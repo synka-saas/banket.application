@@ -49,6 +49,15 @@ certbot --nginx -d app.banket.com.br
 
 ## Atualizar
 
+Do Mac, depois de `git push`:
+
+```bash
+scripts/deploy.sh    # ou `make deploy` na raiz do workspace
+```
+
+O script recusa o deploy se houver commits não enviados, valida build + testes do commit numa cópia limpa,
+atualiza a VPS via SSH, espera o app responder e confere a URL pública. Manualmente, na VPS:
+
 ```bash
 cd /opt/banket.application && git pull --ff-only && dc up -d --build
 ```
