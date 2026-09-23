@@ -8,11 +8,10 @@ import PageToolbar from '../../components/ui/PageToolbar.astro';
 import { withTenant } from '../../lib/db';
 import { html } from '../../lib/html';
 import { formatMoney } from '../../lib/money';
-import { dataCurta } from '../../lib/datas';
-import { PERIODOS } from '../../lib/periodos';
+import { dataCurta, hojeSaoPaulo, somarMeses } from '../../lib/datas';
 import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
 import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
-import { listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
+import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
 
 const { tenantId } = Astro.locals.user;
 const url = Astro.url;
@@ -22,13 +21,22 @@ const page = pageParams(url);
 
 const dados = await withTenant(tenantId, async (db) => {
   const [status, tipos, formatos] = [await listarStatus(db), await listarTiposEvento(db, null), await listarFormatosServico(db)];
-  if (visao === 'kanban') return { status, tipos, formatos, cards: await listarEventosKanban(db, filtros), lista: null };
-  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page) };
+  if (visao === 'kanban') {
+    const intervaloMeses = await carregarIntervaloKanban(db);
+    const cards = await listarEventosKanban(db, { ...filtros, intervaloMeses });
+    return { status, tipos, formatos, cards, lista: null, intervaloMeses };
+  }
+  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page), intervaloMeses: null };
 });
 
 const filtrosAtivos = [filtros.de || filtros.ate, filtros.tipoId, filtros.formatoId, filtros.statusId].filter(Boolean).length;
-const intervaloTexto = (de: string | null, ate: string | null) =>
-  de && ate ? `${dataCurta(de)} a ${dataCurta(ate)}` : de ? `A partir de ${dataCurta(de)}` : ate ? `Até ${dataCurta(ate)}` : 'Todas as datas';
+const recorteManual = Boolean(filtros.de || filtros.ate);
+const recorteTexto = recorteManual
+  ? `Filtro de datas: ${filtros.de ? dataCurta(filtros.de) : 'início'} a ${filtros.ate ? dataCurta(filtros.ate) : 'sem fim'}`
+  : dados.intervaloMeses
+    ? `Intervalo de trabalho: ${dados.intervaloMeses} ${dados.intervaloMeses === 1 ? 'mês' : 'meses'}, de hoje até ${dataCurta(somarMeses(hojeSaoPaulo(), dados.intervaloMeses))} (eventos sem data também aparecem)`
+    : 'Intervalo de trabalho: sem limite de datas';
+const podeConfigurar = Astro.locals.user.role === 'owner' || Astro.locals.user.role === 'admin';
 const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
 const pad = (n: number) => String(n).padStart(2, '0');
 const valorCard = (c: (typeof dados.cards)[number]) => c.valor_orcamento ?? c.verba_total;
@@ -66,28 +74,14 @@ const listaData =
       <form method="get" class="filtros-painel">
         {visao === 'lista' && <input type="hidden" name="view" value="lista" />}
         {filtros.busca && <input type="hidden" name="q" value={url.searchParams.get('q') ?? ''} />}
-        <fieldset class="periodo">
-          <legend class="field-label">Período</legend>
-          <div class="periodo-opcoes">
-            {PERIODOS.map((p) => (
-              <label class="periodo-opcao">
-                <input type="radio" name="periodo" value={p.valor} checked={filtros.periodo === p.valor} data-periodo />
-                <span>{p.rotulo}</span>
-              </label>
-            ))}
-          </div>
-          <p class="periodo-intervalo" data-periodo-intervalo>
-            <Icon name="date_range" size={16} /> <span>{intervaloTexto(filtros.de, filtros.ate)}</span>
-          </p>
-        </fieldset>
         <div class="datas-linha">
           <div class="field">
             <label for="f-de">Data de</label>
-            <input id="f-de" type="date" name="de" value={filtros.de ?? ''} max={filtros.ate ?? undefined} data-data-filtro />
+            <input id="f-de" type="date" name="de" value={filtros.de ?? ''} />
           </div>
           <div class="field">
             <label for="f-ate">Até</label>
-            <input id="f-ate" type="date" name="ate" value={filtros.ate ?? ''} min={filtros.de ?? undefined} data-data-filtro />
+            <input id="f-ate" type="date" name="ate" value={filtros.ate ?? ''} />
           </div>
         </div>
         <div class="field">
@@ -124,6 +118,16 @@ const listaData =
   </PageToolbar>
 
   {visao === 'kanban' ? (
+    <>
+    <p class="recorte" data-recorte>
+      <Icon name="date_range" size={18} />
+      <span>{recorteTexto}</span>
+      {recorteManual ? (
+        <a href="/eventos" class="recorte-link">Voltar ao intervalo de trabalho</a>
+      ) : podeConfigurar && (
+        <a href="/configuracoes/status-orcamento#intervalo-kanban" class="recorte-link">Alterar</a>
+      )}
+    </p>
     <div class="kanban" data-kanban>
       {colunas.map((col) => (
         <section class="kanban-col" data-coluna={col.id} data-status-nome={col.nome}>
@@ -159,6 +163,7 @@ const listaData =
         </section>
       ))}
     </div>
+    </>
   ) : (
     <Table
       columns={[
@@ -180,59 +185,6 @@ const listaData =
 
 <script>
   import { formatMoney } from '../../lib/money';
-  import { dataCurta } from '../../lib/datas';
-  import { hojeSaoPaulo, intervaloPeriodo, type Periodo } from '../../lib/periodos';
-
-  // Filtro de período: escolher um período preenche as datas (para visualizar o intervalo) e envia só ?periodo=,
-  // que o servidor recalcula a cada acesso. Editar uma data à mão desmarca o período (intervalo manual).
-  const painel = document.querySelector<HTMLFormElement>('.filtros-painel');
-  if (painel) {
-    const radios = [...painel.querySelectorAll<HTMLInputElement>('[data-periodo]')];
-    const [de, ate] = [...painel.querySelectorAll<HTMLInputElement>('[data-data-filtro]')];
-    const texto = painel.querySelector<HTMLElement>('[data-periodo-intervalo] span')!;
-
-    const atualizarTexto = () => {
-      texto.textContent =
-        de.value && ate.value ? `${dataCurta(de.value)} a ${dataCurta(ate.value)}`
-        : de.value ? `A partir de ${dataCurta(de.value)}`
-        : ate.value ? `Até ${dataCurta(ate.value)}`
-        : 'Todas as datas';
-      ate.min = de.value;
-      de.max = ate.value;
-    };
-
-    let marcado = radios.find((r) => r.checked) ?? null;
-    radios.forEach((r) =>
-      r.addEventListener('click', () => {
-        if (marcado === r) {
-          // clicar de novo no período ativo desmarca e limpa o intervalo
-          r.checked = false;
-          marcado = null;
-          de.value = ate.value = '';
-        } else {
-          marcado = r;
-          const intervalo = intervaloPeriodo(r.value as Periodo, hojeSaoPaulo());
-          de.value = intervalo.de;
-          ate.value = intervalo.ate;
-        }
-        atualizarTexto();
-      })
-    );
-
-    [de, ate].forEach((campo) =>
-      campo.addEventListener('input', () => {
-        radios.forEach((r) => (r.checked = false));
-        marcado = null;
-        atualizarTexto();
-      })
-    );
-
-    painel.addEventListener('submit', () => {
-      // Com período ativo as datas são derivadas dele: ficam fora da URL para o período continuar "rolando"
-      if (marcado) [de, ate].forEach((campo) => (campo.disabled = true));
-    });
-  }
-
   const toast = (m: string, t = 'info') =>
     (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(m, t);
 
@@ -329,7 +281,7 @@ const listaData =
     right: 0;
     top: calc(100% + 8px);
     z-index: 50;
-    width: 420px;
+    width: 380px;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -338,70 +290,6 @@ const listaData =
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  }
-
-  .periodo {
-    border: none;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .periodo-opcoes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border: 1px solid var(--color-neutral-40);
-    border-radius: var(--border-radius-sm);
-    overflow: hidden;
-  }
-
-  .periodo-opcao {
-    position: relative;
-    cursor: pointer;
-  }
-
-  .periodo-opcao + .periodo-opcao {
-    border-left: 1px solid var(--color-neutral-40);
-  }
-
-  .periodo-opcao input {
-    position: absolute;
-    opacity: 0;
-    inset: 0;
-    cursor: pointer;
-  }
-
-  .periodo-opcao span {
-    display: block;
-    padding: 8px 4px;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    white-space: nowrap;
-    color: var(--color-neutral-80);
-    transition: background-color 0.15s ease, color 0.15s ease;
-  }
-
-  .periodo-opcao:hover span {
-    background: var(--color-neutral-20);
-  }
-
-  .periodo-opcao input:checked + span {
-    background: var(--color-primary);
-    color: var(--color-white);
-  }
-
-  .periodo-opcao input:focus-visible + span {
-    outline: 2px solid var(--color-primary-50);
-    outline-offset: -2px;
-  }
-
-  .periodo-intervalo {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--color-neutral-65);
   }
 
   .datas-linha {
@@ -414,6 +302,24 @@ const listaData =
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+  }
+
+  .recorte {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--color-neutral-65);
+  }
+
+  .recorte-link {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .recorte-link:hover {
+    text-decoration: underline;
   }
 
   .kanban {

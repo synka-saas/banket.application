@@ -49,3 +49,15 @@ export function dataHora(valor: Date | string): string {
   const hora = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
   return `${data} às ${hora}`;
 }
+
+/** "2026-01-31" + 1 mês → "2026-02-28" (mesma regra do Postgres: o dia é limitado ao fim do mês). */
+export function somarMeses(iso: string, meses: number): string {
+  const [a, m, d] = iso.split('-').map(Number);
+  const ultimoDia = new Date(Date.UTC(a, m - 1 + meses + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(a, m - 1 + meses, Math.min(d, ultimoDia))).toISOString().slice(0, 10);
+}
+
+/** Data de hoje ("YYYY-MM-DD") no fuso de São Paulo. */
+export function hojeSaoPaulo(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}

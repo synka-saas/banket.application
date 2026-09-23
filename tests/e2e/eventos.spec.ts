@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { expectToast, login } from './helpers';
-import { hojeSaoPaulo, intervaloPeriodo } from '../../src/lib/periodos';
 
 test.describe('Eventos e quadro de vendas', () => {
   test.beforeEach(async ({ page }) => {
@@ -44,7 +43,8 @@ test.describe('Eventos e quadro de vendas', () => {
 
     // Kanban: aparece na coluna de entrada e pode ser arrastado
     // Filtra pelo cliente para o card ficar isolado (o arrasto do Playwright erra coordenadas em colunas longas com rolagem)
-    await page.goto(`/eventos?q=${encodeURIComponent(cliente)}`);
+    // de=2000-01-01: filtro de datas manual ignora o intervalo de trabalho configurado (evento é de 2027)
+    await page.goto(`/eventos?q=${encodeURIComponent(cliente)}&de=2000-01-01`);
     const card = page.locator('.evento-card', { hasText: cliente });
     const colunaEntrada = page.locator('.kanban-col', { hasText: 'Novo orçamento' });
     await expect(colunaEntrada.locator('.evento-card', { hasText: cliente })).toBeVisible();
@@ -97,28 +97,35 @@ test.describe('Eventos e quadro de vendas', () => {
     await expect(categoria.locator('option', { hasText: 'Confraternização de fim de ano' })).not.toHaveAttribute('hidden');
   });
 
-  test('filtro por período: fica ativo até trocar ou definir datas manualmente', async ({ page }) => {
-    const mes = intervaloPeriodo('mes', hojeSaoPaulo());
-    await page.goto('/eventos');
-    await page.getByText('Filtros').click();
-    await page.getByRole('radio', { name: 'Este mês' }).click();
-    await expect(page.locator('#f-de')).toHaveValue(mes.de);
-    await expect(page.locator('#f-ate')).toHaveValue(mes.ate);
-    await page.getByRole('button', { name: 'Aplicar' }).click();
+  test('intervalo de trabalho do Kanban: configurado pela empresa e substituído pelo filtro de datas', async ({ page }) => {
+    const salvarIntervalo = async (rotulo: string) => {
+      await page.goto('/configuracoes/status-orcamento');
+      await page.getByRole('radio', { name: rotulo, exact: true }).check();
+      await page.getByRole('button', { name: 'Salvar intervalo' }).click();
+      await expectToast(page, 'Intervalo de trabalho salvo.');
+      await expect(page.getByRole('radio', { name: rotulo, exact: true })).toBeChecked();
+    };
+    const anterior = await (async () => {
+      await page.goto('/configuracoes/status-orcamento');
+      return (await page.locator('.intervalo-opcao:has(input:checked) span').textContent())!.trim();
+    })();
 
-    // Só o período vai para a URL e continua ativo ao recarregar
-    await expect(page).toHaveURL(/periodo=mes/);
-    expect(new URL(page.url()).searchParams.has('de')).toBe(false);
-    await page.reload();
-    await page.getByText('Filtros').click();
-    await expect(page.getByRole('radio', { name: 'Este mês' })).toBeChecked();
-    await expect(page.locator('#f-de')).toHaveValue(mes.de);
+    try {
+      await salvarIntervalo('1 mês');
+      await page.goto('/eventos');
+      await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 1 mês, de hoje até');
 
-    // Definir uma data à mão desmarca o período e passa a valer o intervalo manual
-    await page.locator('#f-ate').fill('2030-12-31');
-    await expect(page.getByRole('radio', { name: 'Este mês' })).not.toBeChecked();
-    await page.getByRole('button', { name: 'Aplicar' }).click();
-    await expect(page).toHaveURL(/ate=2030-12-31/);
-    expect(new URL(page.url()).searchParams.has('periodo')).toBe(false);
+      // O filtro só tem Data de / Até, e elas valem como recorte temporário
+      await page.getByText('Filtros').click();
+      await expect(page.locator('input[name=periodo]')).toHaveCount(0);
+      await page.locator('#f-de').fill('2027-01-01');
+      await page.locator('#f-ate').fill('2027-12-31');
+      await page.getByRole('button', { name: 'Aplicar' }).click();
+      await expect(page.locator('[data-recorte]')).toContainText('Filtro de datas: 01/01/2027 a 31/12/2027');
+      await page.getByRole('link', { name: 'Voltar ao intervalo de trabalho' }).click();
+      await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 1 mês, de hoje até');
+    } finally {
+      await salvarIntervalo(anterior);
+    }
   });
 });
