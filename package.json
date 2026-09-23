@@ -1,0 +1,42 @@
+{
+  "name": "webapp",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed": "node scripts/migrate.mjs --seed",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.6",
+    "@astrojs/preact": "^6.0.5",
+    "astro": "^7.3.4",
+    "jose": "^6.2.12",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.23.0",
+    "playwright-core": "^1.63.0",
+    "preact": "^10.29.8",
+    "zod": "^4.6.5"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "playwright": "^1.63.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

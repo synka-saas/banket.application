@@ -1,0 +1,91 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import { withTenant } from '../../lib/db';
+import { formatarDocumento } from '../../lib/documento';
+import { html } from '../../lib/html';
+import { formatMoney } from '../../lib/money';
+import { dataCurta } from '../../lib/datas';
+
+const { tenantId } = Astro.locals.user;
+const id = Astro.params.id!;
+
+const dados = await withTenant(tenantId, async (db) => {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { rows } = await db.query('SELECT * FROM clientes WHERE id = $1', [id]);
+  if (!rows[0]) return null;
+  const eventos = await db.query(
+    `SELECT e.id, e.titulo, to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento, e.numero_convidados,
+            s.nome AS status_nome, s.cor AS status_cor, o.valor_total, e.verba_total
+       FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
+       LEFT JOIN orcamentos o ON o.evento_id = e.id
+      WHERE e.cliente_id = $1 ORDER BY e.data_evento DESC NULLS LAST`,
+    [id]
+  );
+  return { cliente: rows[0], eventos: eventos.rows };
+});
+
+if (!dados) return new Response(null, { status: 404 });
+const { cliente, eventos } = dados;
+
+const tabela = eventos.map((e) => ({
+  data: dataCurta(e.data_evento),
+  evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? 'Evento'}</a>`,
+  convidados: e.numero_convidados ?? '-',
+  status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
+  valor: formatMoney(e.valor_total ?? e.verba_total),
+}));
+---
+
+<AppLayout title={cliente.nome} heading={`Clientes / ${cliente.nome}`}>
+  <div class="topo">
+    <Button variant="outline" href="/clientes">Voltar</Button>
+    <Button variant="success" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
+  </div>
+
+  <SectionCard title="Dados do cliente" icon="account_box">
+    <dl class="kv kv-3">
+      <div><dt>Nome / Razão social</dt><dd>{cliente.nome}</dd></div>
+      <div><dt>Tipo</dt><dd>{cliente.tipo_pessoa === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física'}</dd></div>
+      <div><dt>{cliente.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'}</dt><dd>{formatarDocumento(cliente.documento) || '-'}</dd></div>
+      <div><dt>E-mail</dt><dd>{cliente.email ?? '-'}</dd></div>
+      <div><dt>Telefone</dt><dd>{cliente.telefone ?? '-'}</dd></div>
+      <div><dt>Endereço</dt><dd>{cliente.endereco ?? '-'}</dd></div>
+    </dl>
+    {cliente.observacoes && <dl class="kv"><div><dt>Observações</dt><dd>{cliente.observacoes}</dd></div></dl>}
+  </SectionCard>
+
+  <h3 class="secao">Eventos ({eventos.length})</h3>
+  <Table
+    columns={[
+      { key: 'data', label: 'Data' },
+      { key: 'evento', label: 'Evento' },
+      { key: 'convidados', label: 'Convidados', align: 'center' },
+      { key: 'status', label: 'Status' },
+      { key: 'valor', label: 'Orçamento / Budget', align: 'right' },
+    ]}
+    data={tabela}
+    emptyMessage="Este cliente ainda não tem eventos."
+  />
+</AppLayout>
+
+<style>
+  .topo {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .kv-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .secao {
+    margin: 32px 0 14px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+</style>

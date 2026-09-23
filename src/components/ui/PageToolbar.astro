@@ -1,0 +1,133 @@
+---
+// Barra padrão das listagens: busca + filtro (select) à esquerda, ações à direita.
+// Envia via GET, preservando os parâmetros da URL; a paginação volta para a página 1.
+import Icon from './Icon.astro';
+
+interface FilterOption {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  searchPlaceholder?: string;
+  searchParam?: string;
+  filter?: {
+    name: string;
+    placeholder: string;
+    options: FilterOption[];
+  };
+  showSearch?: boolean;
+}
+
+const { searchPlaceholder = 'Pesquisar', searchParam = 'q', filter, showSearch = true } = Astro.props;
+const params = Astro.url.searchParams;
+const q = params.get(searchParam) ?? '';
+const filterValue = filter ? params.get(filter.name) ?? '' : '';
+const preserved = [...params.entries()].filter(
+  ([key]) => key !== searchParam && key !== 'page' && key !== filter?.name
+);
+---
+
+<div class="toolbar">
+  <form method="get" class="toolbar-filters" data-toolbar>
+    {preserved.map(([key, value]) => <input type="hidden" name={key} value={value} />)}
+    {showSearch && (
+      <label class="search-box">
+        <Icon name="search" size={20} class="search-icon" />
+        <span class="sr-only">{searchPlaceholder}</span>
+        <input type="search" name={searchParam} value={q} placeholder={searchPlaceholder} autocomplete="off" />
+      </label>
+    )}
+    {filter && (
+      <label class="filter-box">
+        <Icon name="expand_more" size={18} class="filter-icon" />
+        <span class="sr-only">{filter.placeholder}</span>
+        <select name={filter.name} data-autosubmit>
+          <option value="">{filter.placeholder}</option>
+          {filter.options.map((opt) => (
+            <option value={opt.value} selected={opt.value === filterValue}>{opt.label}</option>
+          ))}
+        </select>
+      </label>
+    )}
+  </form>
+  <div class="toolbar-actions">
+    <slot />
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('form[data-toolbar]').forEach((form) => {
+    form.querySelectorAll('[data-autosubmit]').forEach((el) => {
+      el.addEventListener('change', () => form.requestSubmit());
+    });
+    // Limpar a busca (botão "x" do input search) recarrega a lista
+    form.querySelector<HTMLInputElement>('input[type="search"]')?.addEventListener('search', (e) => {
+      if (!(e.target as HTMLInputElement).value) form.requestSubmit();
+    });
+  });
+</script>
+
+<style>
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-filters {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+
+  .search-box,
+  .filter-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
+    height: 40px;
+    background: var(--color-white);
+    border: 1px solid var(--color-neutral-40);
+    border-radius: var(--border-radius-sm);
+  }
+
+  .search-box input,
+  .filter-box select {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+    padding: 0 14px 0 48px;
+  }
+
+  .filter-box select {
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .search-box:focus-within,
+  .filter-box:focus-within {
+    border-color: var(--color-primary);
+  }
+
+  .search-box :global(.search-icon),
+  .filter-box :global(.filter-icon) {
+    position: absolute;
+    left: 16px;
+    color: var(--color-neutral-65);
+    pointer-events: none;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 12px;
+  }
+</style>

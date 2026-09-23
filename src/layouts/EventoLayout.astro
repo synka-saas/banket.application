@@ -1,0 +1,26 @@
+---
+// Casca das páginas de um evento: título "Eventos / Cliente" e as abas do evento.
+import AppLayout from './AppLayout.astro';
+
+interface Props {
+  eventoId: string;
+  titulo: string;
+  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'timeline';
+}
+
+const { eventoId, titulo, aba } = Astro.props;
+const base = `/eventos/${eventoId}`;
+
+const abas = [
+  { id: 'resumo', label: 'Resumo do Evento', href: base },
+  { id: 'orcamento', label: 'Orçamento', href: `${base}/orcamento` },
+  { id: 'informacoes', label: 'Informações Complementares', href: `${base}/informacoes-complementares` },
+  { id: 'condicoes', label: 'Condições Gerais', href: `${base}/condicoes-gerais` },
+  { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
+];
+---
+
+<AppLayout title={`${titulo} · Evento`} heading={`Eventos / ${titulo}`} submenu={abas} submenuActive={aba}>
+  <slot />
+  <slot name="overlays" slot="overlays" />
+</AppLayout>

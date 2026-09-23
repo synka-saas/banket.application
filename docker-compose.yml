@@ -1,0 +1,42 @@
+services:
+  webapp:
+    build: .
+    ports:
+      - "4321:4321"
+    environment:
+      # Papel da aplicação (sem superuser, sujeito a RLS)
+      - DATABASE_URL=postgres://${APP_DB_USER:-banket_app}:${APP_DB_PASSWORD:-banket_app_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+      # Dono das tabelas: usado só em migrations e fluxos de sistema (login, cadastro, convites)
+      - DATABASE_URL_SYSTEM=postgres://${POSTGRES_USER:-banket_user}:${POSTGRES_PASSWORD:-banket_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+      - APP_DB_USER=${APP_DB_USER:-banket_app}
+      - APP_DB_PASSWORD=${APP_DB_PASSWORD:-banket_app_pass}
+      - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
+      - APP_URL=${APP_URL:-http://localhost:4321}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
+      - UPLOAD_DIR=/data/uploads
+    volumes:
+      - uploads_data:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-banket_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banket_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-banket_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-banket_user} -d $${POSTGRES_DB:-banket_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  uploads_data:

@@ -1,0 +1,44 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+---
+
+<AuthLayout title="Recuperação de Senha - Banket CRM" showOverlay={false}>
+  <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
+  <h1 class="auth-title">Esqueceu a sua senha?</h1>
+  <p class="subtitle">Não se preocupe. É fácil redefinir a sua senha, basta digitar seu e-mail e enviaremos uma mensagem para você redefini-la.</p>
+  
+  <form class="auth-form" action="/auth/login">
+    <Input 
+      id="email" 
+      name="email" 
+      type="email" 
+      label="E-MAIL*" 
+      placeholder="xxxx@xxxx.com.br" 
+      required 
+    />
+    
+    <Button variant="primary" size="large" class="mt-4" type="submit">
+      ENVIAR
+    </Button>
+  </form>
+  
+  <div class="auth-links">
+    <a href="/auth/login" style="font-weight: normal; color: #888; text-decoration: none;">Lembrou a senha? Faça o login.</a>
+  </div>
+</AuthLayout>
+
+<style>
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+    margin-top: -24px;
+    margin-bottom: 40px;
+    line-height: 1.5;
+  }
+  .mt-4 {
+    margin-top: 16px;
+  }
+</style>

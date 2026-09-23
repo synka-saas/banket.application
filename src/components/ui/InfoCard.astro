@@ -1,0 +1,111 @@
+---
+// Card dos frames: ícone + título, linhas rótulo/valor, tags e botão de ação no rodapé.
+import Icon from './Icon.astro';
+
+interface Props {
+  title: string;
+  icon?: string;
+  rows?: { label: string; value: string }[];
+  tags?: string[];
+  muted?: boolean;
+  class?: string;
+}
+
+const { title, icon = 'skillet', rows = [], tags = [], muted = false, class: className } = Astro.props;
+---
+
+<article class:list={['info-card', { muted }, className]}>
+  <h3 class="info-card-title">
+    <Icon name={icon} size={24} class="info-card-icon" />
+    <span>{title}</span>
+  </h3>
+  <slot name="subtitle" />
+  {rows.length > 0 && (
+    <dl class="info-card-rows">
+      {rows.map((r) => (
+        <div class="info-card-row">
+          <dt>{r.label}</dt>
+          <dd>{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )}
+  <slot />
+  {tags.length > 0 && (
+    <div class="tag-list info-card-tags">
+      {tags.map((t) => <span class="tag">{t}</span>)}
+    </div>
+  )}
+  <div class="info-card-footer">
+    <slot name="footer" />
+  </div>
+</article>
+
+<style>
+  .info-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-white);
+    border: 1px solid var(--color-neutral-40);
+    border-radius: var(--border-radius);
+    padding: 36px 32px 32px;
+  }
+
+  .info-card.muted {
+    opacity: 0.6;
+  }
+
+  .info-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-neutral-100);
+    margin-bottom: 18px;
+  }
+
+  .info-card-title span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .info-card-icon {
+    flex-shrink: 0;
+  }
+
+  .info-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .info-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 14px;
+  }
+
+  .info-card-row dt {
+    color: var(--color-neutral-50);
+  }
+
+  .info-card-row dd {
+    color: var(--color-neutral-100);
+    text-align: right;
+  }
+
+  .info-card-tags {
+    margin-bottom: 28px;
+  }
+
+  .info-card-footer {
+    margin-top: auto;
+  }
+
+  .info-card-footer:empty {
+    display: none;
+  }
+</style>

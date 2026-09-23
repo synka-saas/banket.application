@@ -1,0 +1,72 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import { excluirTipoEvento, listarTiposEvento, salvarTipoEvento, tipoEventoSchema } from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirTipoEvento(db, id));
+      return 'Tipo de evento removido.';
+    }
+    const input = tipoEventoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarTipoEvento(db, tenantId, id, input));
+    return id ? 'Tipo de evento atualizado.' : 'Tipo de evento criado.';
+  });
+}
+
+const tipos = await withTenant(tenantId, (db) => listarTiposEvento(db, searchTerm(Astro.url)));
+
+const tableData = tipos.map((t) => ({
+  nome: t.nome,
+  descricao: t.descricao || '-',
+  eventos: t.eventos,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-tipo" data-values="${JSON.stringify({
+    id: t.id,
+    nome: t.nome,
+    descricao: t.descricao,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Tipos de Evento" heading="Configurações / Tipos de Evento" submenu={CONFIG_SUBMENU} submenuActive="tipos">
+  <PageToolbar>
+    <Button icon="add_circle" data-drawer-open="drawer-tipo">Adicionar tipo</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome', width: '30%' },
+      { key: 'descricao', label: 'Descrição' },
+      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum tipo de evento cadastrado."
+  />
+
+  <Drawer slot="overlays" id="drawer-tipo" formId="form-tipo" title="Novo tipo de evento" editTitle="Editar tipo de evento" width="md">
+    <form id="form-tipo" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="tipo-nome">Nome*</label>
+        <input id="tipo-nome" name="nome" required maxlength="50" placeholder="Ex.: Social, Corporativo" />
+      </div>
+      <div class="field span-2">
+        <label for="tipo-desc">Descrição comercial</label>
+        <textarea id="tipo-desc" name="descricao" maxlength="500"></textarea>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>

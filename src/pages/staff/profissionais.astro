@@ -1,0 +1,147 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { formatarDocumento } from '../../lib/documento';
+import { html } from '../../lib/html';
+import { STAFF_SUBMENU } from '../../lib/nav';
+import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import {
+  atualizarEspecialidade,
+  excluirProfissional,
+  listarProfissionais,
+  listarServicos,
+  profissionalSchema,
+  salvarProfissional,
+} from '../../server/staff';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirProfissional(db, id));
+      return 'Profissional removido.';
+    }
+    if (data._action === 'especialidade' && id) {
+      const servico = typeof data.servico_id === 'string' && data.servico_id ? data.servico_id : null;
+      await withTenant(tenantId, (db) => atualizarEspecialidade(db, id, servico));
+      return 'Especialidade atualizada.';
+    }
+    const input = profissionalSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarProfissional(db, tenantId, id, input));
+    return id ? 'Profissional atualizado.' : 'Profissional cadastrado.';
+  });
+}
+
+const page = pageParams(Astro.url);
+const { profissionais, total, servicos } = await withTenant(tenantId, async (db) => {
+  const { rows, total } = await listarProfissionais(
+    db,
+    { busca: searchTerm(Astro.url), servicoId: Astro.url.searchParams.get('especialidade') || null },
+    page
+  );
+  return { profissionais: rows, total, servicos: await listarServicos(db) };
+});
+
+const tableData = profissionais.map((p) => ({
+  nome: html`${p.nome}${!p.ativo && html` <span class="tag tag-off">Inativo</span>`}`,
+  contato: html`${p.email || '-'}${p.telefone && html`<br /><span class="muted">${p.telefone}</span>`}`,
+  especialidade: html`<form method="post" class="inline-form">
+      <input type="hidden" name="id" value="${p.id}" />
+      <input type="hidden" name="_action" value="especialidade" />
+      <select name="servico_id" class="inline-select" aria-label="Especialidade de ${p.nome}" data-autosubmit-row>
+        <option value="">Sem especialidade</option>
+        ${servicos.map((s) => html`<option value="${s.id}" ${s.id === p.servico_id && html`selected`}>${s.funcao}</option>`)}
+      </select>
+    </form>`,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-profissional" data-values="${JSON.stringify({
+    id: p.id,
+    nome: p.nome,
+    email: p.email,
+    telefone: p.telefone,
+    documento: formatarDocumento(p.documento),
+    servico_id: p.servico_id,
+    chave_pix: p.chave_pix,
+    observacoes: p.observacoes,
+    ativo: p.ativo,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Base de Profissionais" heading="Staff / Base de Profissionais" submenu={STAFF_SUBMENU} submenuActive="profissionais">
+  <PageToolbar
+    filter={{ name: 'especialidade', placeholder: 'Especialidade', options: servicos.map((s) => ({ value: s.id, label: s.funcao })) }}
+  >
+    <Button icon="add_circle" data-drawer-open="drawer-profissional" data-values={JSON.stringify({ ativo: true })}>
+      Adicionar profissional
+    </Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome' },
+      { key: 'contato', label: 'Contato' },
+      { key: 'especialidade', label: 'Especialidade' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum profissional encontrado."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  <Drawer
+    slot="overlays"
+    id="drawer-profissional"
+    formId="form-profissional"
+    title="Novo profissional"
+    editTitle="Editar profissional"
+    width="md"
+  >
+    <form id="form-profissional" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="pr-nome">Nome*</label>
+        <input id="pr-nome" name="nome" required maxlength="255" />
+      </div>
+      <div class="field">
+        <label for="pr-email">E-mail</label>
+        <input id="pr-email" name="email" type="email" />
+      </div>
+      <div class="field">
+        <label for="pr-tel">Telefone / WhatsApp</label>
+        <input id="pr-tel" name="telefone" inputmode="tel" />
+      </div>
+      <div class="field">
+        <label for="pr-esp">Especialidade</label>
+        <select id="pr-esp" name="servico_id">
+          <option value="">Selecione…</option>
+          {servicos.map((s) => <option value={s.id}>{s.funcao}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="pr-doc">CPF</label>
+        <input id="pr-doc" name="documento" inputmode="numeric" placeholder="000.000.000-00" />
+      </div>
+      <div class="field span-2">
+        <label for="pr-pix">Chave PIX</label>
+        <input id="pr-pix" name="chave_pix" maxlength="140" />
+      </div>
+      <div class="field span-2">
+        <label for="pr-obs">Observações</label>
+        <textarea id="pr-obs" name="observacoes" maxlength="2000"></textarea>
+      </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="ativo" />Profissional ativo</label>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+

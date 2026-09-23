@@ -1,0 +1,101 @@
+---
+// Casca da página pública do formulário (sem sidebar): cartão central com cabeçalho da empresa.
+import '../styles/global.css';
+import Toast from '../components/ui/Toast.astro';
+
+interface Props {
+  title: string;
+  empresa: string;
+  logo?: string | null;
+  subtitulo?: string;
+}
+
+const { title, empresa, logo, subtitulo } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | {empresa}</title>
+  </head>
+  <body class="fp-body">
+    <main class="fp-app">
+      <header class="fp-header">
+        {logo ? <img src={logo} alt={empresa} class="fp-logo" /> : <span class="fp-empresa">{empresa}</span>}
+        {subtitulo && <p class="fp-subtitulo">{subtitulo}</p>}
+      </header>
+      <slot />
+    </main>
+    <Toast flash={null} />
+  </body>
+</html>
+
+<style is:global>
+  .fp-body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: var(--color-primary-10);
+  }
+
+  .fp-app {
+    width: 100%;
+    max-width: 680px;
+    min-height: 620px;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    background: var(--color-white);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(74, 12, 0, 0.12);
+    overflow: hidden;
+  }
+
+  .fp-header {
+    flex-shrink: 0;
+    padding: 24px;
+    text-align: center;
+    /* Fundo claro: o logo da empresa costuma ser pensado para fundo branco */
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-neutral-20);
+    color: var(--color-primary-80);
+  }
+
+  .fp-logo {
+    max-height: 48px;
+    max-width: 200px;
+    object-fit: contain;
+  }
+
+  .fp-empresa {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .fp-subtitulo {
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-neutral-50);
+  }
+
+  @media (max-width: 600px) {
+    .fp-body {
+      padding: 0;
+      align-items: stretch;
+    }
+
+    .fp-app {
+      max-height: none;
+      min-height: 100vh;
+      border-radius: 0;
+    }
+  }
+</style>

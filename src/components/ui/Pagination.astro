@@ -1,0 +1,69 @@
+---
+import Icon from './Icon.astro';
+import { withQuery, type PageInfo } from '../../lib/pagination';
+
+interface Props {
+  info: PageInfo;
+}
+
+const { info } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+const prev = info.page > 1 ? withQuery(Astro.url, { page: info.page - 1 }) : null;
+const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.page + 1 }) : null;
+---
+
+<div class="pagination">
+  <span class="pagination-status">Mostrando {pad(info.page)} de {pad(info.totalPages)}</span>
+  <div class="pagination-controls">
+    {prev ? (
+      <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron_left" size={16} /></a>
+    ) : (
+      <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_left" size={16} /></span>
+    )}
+    <span class="page-current">{pad(info.page)}</span>
+    {next ? (
+      <a href={next} class="page-btn" aria-label="Próxima página"><Icon name="chevron_right" size={16} /></a>
+    ) : (
+      <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_right" size={16} /></span>
+    )}
+  </div>
+</div>
+
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 36px;
+    background: var(--color-neutral-20);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-100);
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--color-neutral-50);
+    border-radius: 3px;
+    color: var(--color-neutral-65);
+  }
+
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .page-btn.disabled {
+    opacity: 0.4;
+  }
+</style>

@@ -1,0 +1,14 @@
+---
+// Ícone padrão do sistema: Google Material Symbols (Outlined), fonte carregada em global.css.
+// `name` é o nome do ícone em https://fonts.google.com/icons (ex.: "add_circle", "expand_more").
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'span'> & {
+  name: string;
+  size?: number;
+};
+
+const { name, size = 20, class: className, ...rest } = Astro.props;
+---
+
+<span class:list={['icon', className]} style={`font-size: ${size}px`} aria-hidden="true" translate="no" {...rest}>{name}</span>

@@ -1,0 +1,72 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import InfoCard from '../../components/ui/InfoCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import OpcaoEditor from '../../components/cardapio/OpcaoEditor';
+import { withTenant } from '../../lib/db';
+import { formatMoney } from '../../lib/money';
+import { CARDAPIO_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import { carregarCatalogo, listarOpcoes } from '../../server/cardapio';
+import { listarFormatosServico } from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+const { opcoes, catalogo, formatos } = await withTenant(tenantId, async (db) => ({
+  opcoes: await listarOpcoes(db, {
+    busca: searchTerm(Astro.url),
+    secaoId: Astro.url.searchParams.get('secao') || null,
+  }),
+  catalogo: await carregarCatalogo(db),
+  formatos: await listarFormatosServico(db),
+}));
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const semRepetir = (tags: string[]) =>
+  tags.filter((t, i) => tags.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i);
+const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.', ',')} ${h === 1 ? 'hora' : 'horas'}`);
+---
+
+<AppLayout title="Opções de Cardápio" heading="Cardápios / Opções de Cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="opcoes">
+  <PageToolbar
+    filter={{ name: 'secao', placeholder: 'Sessão', options: catalogo.map((s) => ({ value: s.id, label: s.nome })) }}
+  >
+    <Button icon="add_circle" data-opcao-editar="">Criar cardápio</Button>
+  </PageToolbar>
+
+  {opcoes.length === 0 ? (
+    <div class="empty">Nenhum cardápio encontrado. Crie opções prontas combinando sessões e itens do catálogo.</div>
+  ) : (
+    <div class="cards-grid">
+      {opcoes.map((o) => (
+        <InfoCard
+          icon="hand_meal"
+          title={o.nome}
+          muted={!o.ativo}
+          rows={[
+            { label: 'Preço por pessoa', value: formatMoney(o.preco_por_pessoa) },
+            { label: 'Duração', value: horas(o.duracao_horas) },
+            { label: 'Sessões', value: pad(o.secoes) },
+            { label: 'Itens', value: pad(o.itens) },
+          ]}
+          tags={semRepetir([...(o.formato_nome ? [o.formato_nome] : []), ...o.tags, ...(o.ativo ? [] : ['Inativo'])])}
+        >
+          <Button slot="footer" block data-opcao-editar={o.id}>Editar</Button>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+
+  <OpcaoEditor slot="overlays" client:load catalogo={catalogo} formatos={formatos.map((f) => ({ id: f.id, nome: f.nome }))} />
+</AppLayout>
+
+<style>
+  .empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--color-neutral-50);
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+  }
+</style>

@@ -1,0 +1,228 @@
+---
+import Icon from '../components/ui/Icon.astro';
+
+interface Props {
+  title: string;
+  showOverlay?: boolean;
+}
+
+const { title, showOverlay = true } = Astro.props;
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="auth-layout">
+      <div class={`auth-left ${showOverlay ? 'has-overlay' : ''}`}>
+        <div class="bg-image"></div>
+        {showOverlay && (
+          <div class="overlay-content">
+            <div class="brand">
+              <img src="/logo-light.png" alt="Banket" class="logo" />
+            </div>
+            
+            <h2 class="hero-text">
+              Em alguns instantes você irá transformar a sua gestão em um processo padronizado, auditável e seguro
+            </h2>
+            
+            <div class="info-card">
+              <div class="card-header">
+                <Icon name="task" size={24} />
+                <h3>Auditoria Remota</h3>
+              </div>
+              <p>A Yosp fornece relatórios visuais que atestam a qualidade do patrimônio, conferindo a tranquilidade necessária para o gestor sair da operação presencial e focar na expansão estratégica de seus contratos.</p>
+            </div>
+
+            <div class="carousel-dots">
+              <span class="dot active"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div class="auth-right">
+        <div class="form-container">
+          <slot />
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  .auth-layout {
+    display: flex;
+    min-height: 100vh;
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  .auth-left {
+    flex: 1;
+    position: relative;
+    display: none;
+    overflow: hidden;
+  }
+
+  .bg-image {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url('/bg-login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .has-overlay .bg-image::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(227, 83, 54, 0.85) 0%, rgba(183, 44, 20, 0.95) 100%);
+  }
+
+  .overlay-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px;
+    color: white;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .brand {
+    margin-bottom: 60px;
+  }
+
+  .logo {
+    height: 48px;
+  }
+
+  .hero-text {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .info-card {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    margin-bottom: 40px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .card-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .info-card p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+  }
+
+  .carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid white;
+    opacity: 0.5;
+  }
+
+  .dot.active {
+    background-color: white;
+    opacity: 1;
+  }
+
+  .auth-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background-color: white;
+  }
+
+  .form-container {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  @media (min-width: 900px) {
+    .auth-left {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  /* Globals for auth forms */
+  :global(.auth-title) {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 40px;
+  }
+
+  :global(.auth-logo-center) {
+    display: block;
+    margin: 0 auto 32px auto;
+    height: 48px;
+  }
+
+  :global(.auth-form) {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  :global(.auth-links) {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 14px;
+    color: #666;
+  }
+
+  :global(.auth-links a) {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  :global(.auth-links a:hover) {
+    text-decoration: underline;
+  }
+</style>

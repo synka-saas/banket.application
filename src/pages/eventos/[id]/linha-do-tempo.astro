@@ -1,0 +1,106 @@
+---
+import Icon from '../../../components/ui/Icon.astro';
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import { withTenant } from '../../../lib/db';
+import { dataHora } from '../../../lib/datas';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { ICONES_TIMELINE, listarTimeline } from '../../../server/timeline';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  registros: await listarTimeline(db, id),
+}));
+---
+
+<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="timeline">
+  <section class="timeline-card">
+    <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Linha do tempo</h3>
+    {registros.length === 0 ? (
+      <p class="muted">Nenhum registro ainda.</p>
+    ) : (
+      <ol class="timeline">
+        {registros.map((r) => (
+          <li class={`tl-${r.tipo}`}>
+            <span class="tl-icone"><Icon name={ICONES_TIMELINE[r.tipo] ?? 'info'} size={16} /></span>
+            <div class="tl-conteudo">
+              <p class="tl-descricao">{r.descricao}</p>
+              <p class="tl-meta">
+                {dataHora(r.created_at)}
+                {r.usuario_nome ? ` · ${r.usuario_nome}` : r.tipo === 'formulario' ? ' · Formulário público' : ''}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    )}
+  </section>
+</EventoLayout>
+
+<style>
+  .timeline-card {
+    max-width: 900px;
+    padding: 28px 32px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--color-neutral-20);
+  }
+
+  .timeline li {
+    position: relative;
+    display: flex;
+    gap: 16px;
+  }
+
+  .tl-icone {
+    z-index: 1;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-primary-10);
+    color: var(--color-primary);
+  }
+
+  .tl-status .tl-icone {
+    background: #e6f2e8;
+    color: var(--color-secondary-60);
+  }
+
+  .tl-descricao {
+    font-size: 14px;
+    color: var(--color-neutral-100);
+  }
+
+  .tl-meta {
+    font-size: 12px;
+    color: var(--color-neutral-50);
+    margin-top: 2px;
+  }
+</style>

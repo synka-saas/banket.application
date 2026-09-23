@@ -1,0 +1,216 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { moneyInput, formatMoney } from '../../lib/money';
+import { CARDAPIO_SUBMENU } from '../../lib/nav';
+import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import {
+  DADOS_OPERACIONAIS,
+  RESTRICOES,
+  UNIDADES_COBRANCA,
+  atualizarCategoriaPrincipal,
+  excluirItem,
+  itemSchema,
+  listarItens,
+  listarSecoes,
+  salvarItem,
+} from '../../server/cardapio';
+import { listarCategoriasItem, listarFormatosServico } from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(
+    Astro,
+    async (data) => {
+      const id = formId(data);
+      if (data._action === 'delete' && id) {
+        await withTenant(tenantId, (db) => excluirItem(db, id));
+        return 'Item removido.';
+      }
+      if (data._action === 'categoria' && id) {
+        const categoria = typeof data.categoria_principal_id === 'string' && data.categoria_principal_id ? data.categoria_principal_id : null;
+        await withTenant(tenantId, (db) => atualizarCategoriaPrincipal(db, id, categoria));
+        return 'Categoria atualizada.';
+      }
+      const input = itemSchema.parse(data);
+      await withTenant(tenantId, (db) => salvarItem(db, tenantId, id, input));
+      return id ? 'Item atualizado.' : 'Item criado.';
+    },
+    { arrays: ['restricoes', 'dados_operacionais'] }
+  );
+}
+
+const page = pageParams(Astro.url);
+const secaoFiltro = Astro.url.searchParams.get('secao') || null;
+
+const { itens, total, secoes, categorias, formatos } = await withTenant(tenantId, async (db) => {
+  const { rows, total } = await listarItens(db, { busca: searchTerm(Astro.url), secaoId: secaoFiltro }, page);
+  return {
+    itens: rows,
+    total,
+    secoes: (await listarSecoes(db, null)).rows,
+    categorias: await listarCategoriasItem(db, null, null),
+    formatos: await listarFormatosServico(db),
+  };
+});
+
+const principais = categorias.filter((c) => c.tipo === 'principal');
+const secundarias = categorias.filter((c) => c.tipo === 'secundaria');
+
+const tableData = itens.map((i) => ({
+  nome: html`${i.nome}${!i.ativo && html` <span class="tag tag-off">Inativo</span>`}`,
+  descricao: i.descricao || '-',
+  secao: i.secao_nome,
+  preco: i.preco === null ? '-' : `${formatMoney(i.preco)} ${UNIDADES_COBRANCA[i.unidade_cobranca]}`,
+  categoria: html`<form method="post" class="inline-form">
+      <input type="hidden" name="id" value="${i.id}" />
+      <input type="hidden" name="_action" value="categoria" />
+      <select name="categoria_principal_id" class="inline-select" aria-label="Categoria de ${i.nome}" data-autosubmit-row>
+        <option value="">Sem categoria</option>
+        ${principais.map((c) => html`<option value="${c.id}" ${c.id === i.categoria_principal_id && html`selected`}>${c.nome}</option>`)}
+      </select>
+    </form>`,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-item" data-values="${JSON.stringify({
+    id: i.id,
+    nome: i.nome,
+    secao_id: i.secao_id,
+    descricao: i.descricao,
+    composicao: i.composicao,
+    categoria_principal_id: i.categoria_principal_id,
+    categoria_secundaria_id: i.categoria_secundaria_id,
+    formato_servico_id: i.formato_servico_id,
+    custo_unitario: moneyInput(i.custo_unitario),
+    preco: moneyInput(i.preco),
+    unidade_cobranca: i.unidade_cobranca,
+    restricoes: i.restricoes,
+    dados_operacionais: i.dados_operacionais,
+    ativo: i.ativo,
+    _titulo: i.nome,
+  })}">Editar</button>`,
+}));
+
+// Novo item já vem na sessão filtrada (se houver) e ativo
+const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa' });
+---
+
+<AppLayout title="Itens do Cardápio" heading="Cardápios / Itens do Cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
+  <PageToolbar
+    filter={{ name: 'secao', placeholder: 'Sessão', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
+  >
+    <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Adicionar item</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome', width: '24%' },
+      { key: 'descricao', label: 'Descrição', width: '28%' },
+      { key: 'secao', label: 'Sessão' },
+      { key: 'preco', label: 'Preço' },
+      { key: 'categoria', label: 'Categoria' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum item encontrado."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  <Drawer slot="overlays" id="drawer-item" formId="form-item" title="Novo item" editTitle="Editar item">
+    <form id="form-item" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field">
+        <label for="it-nome">Nome do item*</label>
+        <input id="it-nome" name="nome" required maxlength="200" placeholder="Ex.: Coxinha de frango" />
+      </div>
+      <div class="field">
+        <label for="it-secao">Sessão*</label>
+        <select id="it-secao" name="secao_id" required>
+          <option value="">Selecione…</option>
+          {secoes.map((s) => <option value={s.id}>{s.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="it-catp">Categoria principal</label>
+        <select id="it-catp" name="categoria_principal_id">
+          <option value="">Selecione…</option>
+          {principais.map((c) => <option value={c.id}>{c.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="it-cats">Categoria secundária</label>
+        <select id="it-cats" name="categoria_secundaria_id">
+          <option value="">Selecione…</option>
+          {secundarias.map((c) => <option value={c.id}>{c.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="it-formato">Formato de serviço recomendado</label>
+        <select id="it-formato" name="formato_servico_id">
+          <option value="">Selecione…</option>
+          {formatos.map((f) => <option value={f.id}>{f.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="it-custo">Custo unitário / porção (R$)</label>
+        <input id="it-custo" name="custo_unitario" inputmode="decimal" placeholder="0,00" />
+      </div>
+      <div class="field">
+        <label for="it-preco">Preço de venda (R$)</label>
+        <input id="it-preco" name="preco" inputmode="decimal" placeholder="Opcional" />
+        <span class="field-hint">Deixe em branco quando o item só é vendido dentro de uma opção de cardápio.</span>
+      </div>
+      <div class="field">
+        <label for="it-unidade">Cobrança</label>
+        <select id="it-unidade" name="unidade_cobranca">
+          {Object.entries(UNIDADES_COBRANCA).map(([value, label]) => <option value={value}>{label}</option>)}
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="it-desc">Descrição comercial</label>
+        <textarea id="it-desc" name="descricao" maxlength="2000" placeholder="Texto exibido na proposta"></textarea>
+      </div>
+      <div class="field span-2">
+        <label for="it-comp">Composição / ingredientes</label>
+        <textarea id="it-comp" name="composicao" maxlength="2000"></textarea>
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Restrições alimentares e dietas</span>
+        <div class="chip-group">
+          {Object.entries(RESTRICOES).map(([value, label]) => (
+            <label class="chip"><input type="checkbox" name="restricoes" value={value} />{label}</label>
+          ))}
+        </div>
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Dados operacionais</span>
+        <div class="chip-group">
+          {Object.entries(DADOS_OPERACIONAIS).map(([value, label]) => (
+            <label class="chip"><input type="checkbox" name="dados_operacionais" value={value} />{label}</label>
+          ))}
+        </div>
+      </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="ativo" />Item ativo (disponível para novos orçamentos)</label>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<script>
+  document.addEventListener('drawer:open', (e) => {
+    const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+    const drawer = e.target as HTMLElement;
+    if (drawer.id === 'drawer-item' && values._titulo) {
+      drawer.querySelector('.drawer-title')!.textContent = values._titulo;
+    }
+  });
+</script>
+

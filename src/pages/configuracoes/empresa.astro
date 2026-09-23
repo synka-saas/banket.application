@@ -1,0 +1,203 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { formatarDocumento } from '../../lib/documento';
+import { UserError } from '../../lib/forms';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import { fileUrl, removeFile, saveUpload } from '../../lib/storage';
+import { VARIAVEIS_EMAIL, carregarEmpresa, empresaSchema, removerLogo, salvarEmpresa } from '../../server/empresa';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data, raw) => {
+    if (data._action === 'remover_logo') {
+      const antigo = await withTenant(tenantId, (db) => removerLogo(db));
+      if (antigo) await removeFile(tenantId, antigo);
+      return 'Logotipo removido.';
+    }
+    const input = empresaSchema.parse(data);
+    const logo = raw.get('logo');
+    let logoPath: string | null = null;
+    if (logo instanceof File && logo.size > 0) {
+      try {
+        logoPath = await saveUpload(tenantId, 'empresa', logo);
+      } catch (err) {
+        throw new UserError(err instanceof Error ? err.message : 'Falha ao enviar o logotipo.');
+      }
+    }
+    await withTenant(tenantId, (db) => salvarEmpresa(db, input, logoPath));
+    return 'Dados da empresa atualizados.';
+  });
+}
+
+const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
+---
+
+<AppLayout title="Empresa" heading="Configurações / Empresa" submenu={CONFIG_SUBMENU} submenuActive="empresa">
+  <form method="post" enctype="multipart/form-data" class="empresa-form">
+    <div class="form-actions">
+      <Button type="submit" variant="success">Salvar</Button>
+    </div>
+
+    <SectionCard title="Dados da empresa" icon="domain">
+      <div class="form-grid">
+        <div class="field">
+          <label for="emp-nome">Nome fantasia*</label>
+          <input id="emp-nome" name="nome" required maxlength="255" value={empresa.nome} />
+        </div>
+        <div class="field">
+          <label for="emp-razao">Razão social</label>
+          <input id="emp-razao" name="razao_social" maxlength="255" value={empresa.razao_social ?? ''} />
+        </div>
+        <div class="field">
+          <label for="emp-tipo">Tipo</label>
+          <select id="emp-tipo" name="tipo_pessoa">
+            <option value="PJ" selected={empresa.tipo_pessoa === 'PJ'}>Pessoa jurídica</option>
+            <option value="PF" selected={empresa.tipo_pessoa === 'PF'}>Pessoa física</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="emp-doc">CNPJ / CPF</label>
+          <input id="emp-doc" name="documento" inputmode="numeric" value={formatarDocumento(empresa.documento)} />
+        </div>
+        <div class="field">
+          <label for="emp-email">E-mail</label>
+          <input id="emp-email" name="email" type="email" value={empresa.email ?? ''} />
+        </div>
+        <div class="field">
+          <label for="emp-tel">Telefone / WhatsApp</label>
+          <input id="emp-tel" name="telefone" value={empresa.telefone ?? ''} />
+        </div>
+        <div class="field span-2">
+          <label for="emp-end">Endereço</label>
+          <input id="emp-end" name="endereco" maxlength="500" value={empresa.endereco ?? ''} />
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Logotipo</span>
+          <div class="logo-row">
+            <div class="logo-preview">
+              {empresa.logo_path ? <img src={fileUrl(tenantId, empresa.logo_path)} alt="Logotipo atual" /> : <span class="muted">Sem logotipo</span>}
+            </div>
+            <div class="logo-inputs">
+              <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+              <span class="field-hint">PNG, JPG, WEBP ou SVG até 5 MB. Usado nos templates de orçamento.</span>
+              {empresa.logo_path && (
+                <button type="submit" name="_action" value="remover_logo" class="row-action danger" formnovalidate data-confirm="Remover o logotipo?">
+                  Remover logotipo
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </SectionCard>
+
+    <SectionCard title="Parâmetros comerciais" icon="room_service">
+      <div class="form-grid cols-3">
+        <div class="field">
+          <label for="cfg-validade">Validade da proposta (dias)*</label>
+          <input id="cfg-validade" name="validade_proposta_dias" type="number" min="1" required value={empresa.validade_proposta_dias} />
+        </div>
+        <div class="field">
+          <label for="cfg-isenta">Criança não paga até (anos)*</label>
+          <input id="cfg-isenta" name="criancas_isentas_ate" type="number" min="0" required value={empresa.criancas_isentas_ate} />
+        </div>
+        <div class="field">
+          <label for="cfg-meia">Criança paga meia até (anos)*</label>
+          <input id="cfg-meia" name="criancas_meia_ate" type="number" min="0" required value={empresa.criancas_meia_ate} />
+        </div>
+        <div class="field span-3">
+          <label for="cfg-local">Local padrão dos eventos</label>
+          <input id="cfg-local" name="local_padrao" maxlength="255" placeholder="Ex.: Casa Club Gourmet" value={empresa.local_padrao ?? ''} />
+        </div>
+      </div>
+    </SectionCard>
+
+    <SectionCard title="Assinatura da proposta" icon="edit">
+      <div class="form-grid cols-3">
+        <div class="field">
+          <label for="ass-nome">Nome</label>
+          <input id="ass-nome" name="assinatura_nome" maxlength="255" placeholder="Ex.: Newton Oliveira" value={empresa.assinatura_nome ?? ''} />
+        </div>
+        <div class="field">
+          <label for="ass-cargo">Cargo</label>
+          <input id="ass-cargo" name="assinatura_cargo" maxlength="255" placeholder="Ex.: Proprietário" value={empresa.assinatura_cargo ?? ''} />
+        </div>
+        <div class="field">
+          <label for="ass-tel">Telefone</label>
+          <input id="ass-tel" name="assinatura_telefone" maxlength="30" value={empresa.assinatura_telefone ?? ''} />
+        </div>
+      </div>
+    </SectionCard>
+
+    <SectionCard title="E-mail de envio do orçamento" icon="description">
+      <div class="form-grid">
+        <div class="field span-2">
+          <label for="mail-assunto">Assunto*</label>
+          <input id="mail-assunto" name="email_assunto" required maxlength="255" value={empresa.email_assunto} />
+        </div>
+        <div class="field span-2">
+          <label for="mail-corpo">Mensagem*</label>
+          <textarea id="mail-corpo" name="email_corpo" required rows="8">{empresa.email_corpo}</textarea>
+          <span class="field-hint">Variáveis disponíveis: {VARIAVEIS_EMAIL.join(', ')}</span>
+        </div>
+      </div>
+    </SectionCard>
+  </form>
+</AppLayout>
+
+<style>
+  .empresa-form {
+    max-width: 1000px;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+
+  .cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cols-3 .span-3 {
+    grid-column: 1 / -1;
+  }
+
+  .logo-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .logo-preview {
+    width: 160px;
+    height: 90px;
+    border: 1px dashed var(--color-neutral-40);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-neutral-10);
+    font-size: 12px;
+  }
+
+  .logo-preview img {
+    max-width: 90%;
+    max-height: 80%;
+    object-fit: contain;
+  }
+
+  .logo-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+</style>

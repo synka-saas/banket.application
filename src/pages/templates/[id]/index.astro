@@ -1,0 +1,48 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import TemplateForm from '../../../components/templates/TemplateForm.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { TEMPLATES_SUBMENU } from '../../../lib/nav';
+import { removeFile, saveUpload } from '../../../lib/storage';
+import {
+  carregarTemplate,
+  duplicarTemplate,
+  excluirTemplate,
+  salvarTemplateDoFormulario,
+} from '../../../server/templates';
+
+const { tenantId } = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data, raw) =>
+    withTenant(tenantId, async (db) => {
+      if (data._action === 'duplicar') {
+        const novo = await duplicarTemplate(db, id);
+        return { message: 'Template duplicado.', redirect: `/templates/${novo}` };
+      }
+      if (data._action === 'excluir') {
+        const orfas = await excluirTemplate(db, id);
+        for (const arquivo of orfas) await removeFile(tenantId, arquivo);
+        return { message: 'Template excluído.', redirect: '/templates' };
+      }
+      await salvarTemplateDoFormulario(db, tenantId, id, data, raw, { saveUpload: (t, f, a) => saveUpload(t, f, a), removeFile });
+      return 'Template salvo.';
+    })
+  );
+}
+
+const template = await withTenant(tenantId, async (db) => {
+  try {
+    return await carregarTemplate(db, id);
+  } catch {
+    return null;
+  }
+});
+if (!template) return new Response(null, { status: 404 });
+---
+
+<AppLayout title={template.nome} heading={`Templates / ${template.nome}`} submenu={TEMPLATES_SUBMENU} submenuActive="templates">
+  <TemplateForm template={template} tenantId={tenantId} />
+</AppLayout>

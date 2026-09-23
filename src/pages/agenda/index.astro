@@ -1,0 +1,330 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { withTenant } from '../../lib/db';
+import { faixaHorario } from '../../lib/datas';
+import { VARIANTES_STATUS } from '../../server/configuracoes';
+import {
+  DIAS_CURTOS,
+  MESES_NOME,
+  agruparPorDia,
+  dataValida,
+  eventosNoPeriodo,
+  gradeDoMes,
+  hoje,
+  semanaDe,
+  somarDias,
+} from '../../server/agenda';
+
+// Agenda de eventos (calendário mensal/semanal). Parâmetros: data, visao (mes|semana), status (variante).
+const { tenantId } = Astro.locals.user;
+const params = Astro.url.searchParams;
+const hojeIso = hoje();
+const data = dataValida(params.get('data')) ?? hojeIso;
+const visao = params.get('visao') === 'semana' ? 'semana' : 'mes';
+const variante = params.get('status') && params.get('status')! in VARIANTES_STATUS ? params.get('status') : null;
+
+const grade = gradeDoMes(data);
+const dias = visao === 'semana' ? semanaDe(data) : grade.semanas.flat();
+const eventos = await withTenant(tenantId, (db) => eventosNoPeriodo(db, dias[0], dias[dias.length - 1], variante));
+const porDia = agruparPorDia(eventos);
+
+const [ano, mes] = data.split('-').map(Number);
+const mesVizinho = (delta: number) => {
+  const d = new Date(Date.UTC(ano, mes - 1 + delta, 1));
+  return d.toISOString().slice(0, 10);
+};
+const anterior = visao === 'semana' ? somarDias(data, -7) : mesVizinho(-1);
+const proximo = visao === 'semana' ? somarDias(data, 7) : mesVizinho(1);
+
+const link = (over: Record<string, string | null>) => {
+  const p = new URLSearchParams({ data, visao, ...(variante ? { status: variante } : {}) });
+  for (const [k, v] of Object.entries(over)) (v === null ? p.delete(k) : p.set(k, v));
+  return `/agenda?${p}`;
+};
+
+const diaNum = (iso: string) => Number(iso.slice(8, 10));
+const titulo =
+  visao === 'semana'
+    ? `${diaNum(dias[0])} ${MESES_NOME[Number(dias[0].slice(5, 7)) - 1].slice(0, 3).toLowerCase()} – ${diaNum(dias[6])} ${MESES_NOME[Number(dias[6].slice(5, 7)) - 1].slice(0, 3).toLowerCase()} ${dias[6].slice(0, 4)}`
+    : `${MESES_NOME[grade.mes - 1]} ${grade.ano}`;
+const MAX_NO_DIA = 3;
+---
+
+<AppLayout title="Agenda" heading="Agenda">
+  <div class="agenda-topo">
+    <div class="navegacao">
+      <Button variant="outline" size="sm" href={link({ data: anterior })} aria-label="Anterior" icon="chevron_left" />
+      <Button variant="outline" size="sm" href={link({ data: hojeIso })}>Hoje</Button>
+      <Button variant="outline" size="sm" href={link({ data: proximo })} aria-label="Próximo" icon="chevron_right" />
+      <h2>{titulo}</h2>
+    </div>
+    <div class="filtros">
+      <form method="get" class="filtro-status">
+        <input type="hidden" name="data" value={data} />
+        <input type="hidden" name="visao" value={visao} />
+        <select name="status" class="control" aria-label="Filtrar por status" data-autosubmit-row>
+          <option value="">Todos os status</option>
+          {Object.entries(VARIANTES_STATUS).map(([v, l]) => <option value={v} selected={v === variante}>{l}</option>)}
+        </select>
+      </form>
+      <div class="alternar" role="group" aria-label="Visualização">
+        <a href={link({ visao: 'mes' })} class:list={{ ativo: visao === 'mes' }}>Mês</a>
+        <a href={link({ visao: 'semana' })} class:list={{ ativo: visao === 'semana' }}>Semana</a>
+      </div>
+    </div>
+  </div>
+
+  {visao === 'mes' ? (
+    <div class="mes">
+      {DIAS_CURTOS.map((d) => <div class="cabecalho-dia">{d}</div>)}
+      {dias.map((dia) => {
+        const lista = porDia.get(dia) ?? [];
+        return (
+          <div class:list={['dia', { fora: Number(dia.slice(5, 7)) !== grade.mes, hoje: dia === hojeIso }]}>
+            <a class="numero" href={link({ data: dia, visao: 'semana' })}>{diaNum(dia)}</a>
+            {lista.slice(0, MAX_NO_DIA).map((e) => (
+              <a class="evento" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`} title={`${e.titulo ?? ''} · ${e.status_nome}`}>
+                {e.hora_inicio && <b>{e.hora_inicio}</b>} {e.titulo ?? e.cliente_nome ?? 'Evento'}
+              </a>
+            ))}
+            {lista.length > MAX_NO_DIA && (
+              <a class="mais" href={link({ data: dia, visao: 'semana' })}>+{lista.length - MAX_NO_DIA} mais</a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <div class="semana">
+      {dias.map((dia, i) => {
+        const lista = porDia.get(dia) ?? [];
+        return (
+          <section class:list={['coluna', { hoje: dia === hojeIso }]}>
+            <header>
+              <span>{DIAS_CURTOS[i]}</span>
+              <strong>{diaNum(dia)}</strong>
+            </header>
+            {lista.length === 0 && <p class="vazio">—</p>}
+            {lista.map((e) => (
+              <a class="cartao" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`}>
+                <span class="status">{e.status_nome}</span>
+                <strong>{e.titulo ?? 'Evento'}</strong>
+                {e.cliente_nome && <span>{e.cliente_nome}</span>}
+                <span class="muted">{faixaHorario(e.hora_inicio, e.hora_fim)}</span>
+                {e.numero_convidados !== null && <span class="muted">{e.numero_convidados} convidados</span>}
+                {e.local_nome && <span class="muted">{e.local_nome}</span>}
+              </a>
+            ))}
+          </section>
+        );
+      })}
+    </div>
+  )}
+
+  <p class="rodape muted">
+    {eventos.length === 0
+      ? 'Nenhum evento com data neste período.'
+      : `${eventos.length} evento${eventos.length === 1 ? '' : 's'} no período.`}{' '}
+    Eventos sem data definida não aparecem na agenda.
+  </p>
+</AppLayout>
+
+<style>
+  .agenda-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .navegacao,
+  .filtros {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .navegacao h2 {
+    margin-left: 12px;
+    font-size: 22px;
+    color: var(--color-neutral-80);
+  }
+
+  .filtro-status select {
+    min-width: 220px;
+  }
+
+  .alternar {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+
+  .alternar a {
+    padding: 8px 16px;
+    font-size: 14px;
+    color: var(--color-neutral-65);
+    background: var(--color-white);
+  }
+
+  .alternar a.ativo {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .mes {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+
+  .cabecalho-dia {
+    padding: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-neutral-65);
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+  }
+
+  .dia {
+    min-height: 118px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    min-width: 0;
+  }
+
+  .dia:nth-child(7n) {
+    border-right: none;
+  }
+
+  .dia.fora {
+    background: var(--color-neutral-10);
+  }
+
+  .dia.fora .numero {
+    color: var(--color-neutral-50);
+  }
+
+  .numero {
+    align-self: flex-end;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    border-radius: 50%;
+    color: var(--color-neutral-80);
+  }
+
+  .dia.hoje .numero {
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-weight: 700;
+  }
+
+  .evento {
+    display: block;
+    padding: 3px 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 3px solid var(--cor);
+    background: color-mix(in srgb, var(--cor) 12%, white);
+    border-radius: 3px;
+    color: var(--color-neutral-80);
+  }
+
+  .mais {
+    font-size: 12px;
+    color: var(--color-primary);
+    padding-left: 4px;
+  }
+
+  .semana {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .coluna {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .coluna header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 10px 12px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    color: var(--color-neutral-65);
+  }
+
+  .coluna header strong {
+    font-size: 18px;
+    color: var(--color-neutral-80);
+  }
+
+  .coluna.hoje header {
+    border-color: var(--color-primary);
+  }
+
+  .coluna.hoje header strong {
+    color: var(--color-primary);
+  }
+
+  .cartao {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    font-size: 13px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--cor);
+    border-radius: var(--border-radius);
+    color: var(--color-neutral-80);
+    overflow-wrap: anywhere;
+  }
+
+  .cartao .status {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--cor);
+    font-weight: 600;
+  }
+
+  .vazio {
+    text-align: center;
+    color: var(--color-neutral-50);
+  }
+
+  .rodape {
+    margin-top: 14px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    .semana {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,151 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import {
+  VARIANTES_STATUS,
+  excluirStatus,
+  listarStatus,
+  moverStatus,
+  salvarStatus,
+  statusSchema,
+} from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if ((data._action === 'up' || data._action === 'down') && id) {
+      await withTenant(tenantId, (db) => moverStatus(db, id, data._action as 'up' | 'down'));
+      return '';
+    }
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirStatus(db, id));
+      return 'Status removido.';
+    }
+    const input = statusSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarStatus(db, tenantId, id, input));
+    return id ? 'Status atualizado.' : 'Status criado.';
+  });
+}
+
+const status = await withTenant(tenantId, (db) => listarStatus(db));
+
+const tableData = status.map((s, i) => ({
+  ordem: html`<form method="post" class="order-controls">
+      <input type="hidden" name="id" value="${s.id}" />
+      <button type="submit" name="_action" value="up" class="order-btn" aria-label="Mover para cima" ${i === 0 && html`disabled`}><span class="icon" style="font-size: 18px" aria-hidden="true" translate="no">keyboard_arrow_up</span></button>
+      <button type="submit" name="_action" value="down" class="order-btn" aria-label="Mover para baixo" ${i === status.length - 1 && html`disabled`}><span class="icon" style="font-size: 18px" aria-hidden="true" translate="no">keyboard_arrow_down</span></button>
+    </form>`,
+  nome: html`<span class="status-name"><span class="dot" style="background:${s.cor ?? '#888888'}"></span>${s.nome}</span>`,
+  variante: VARIANTES_STATUS[s.variante],
+  eventos: s.eventos,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-status" data-values="${JSON.stringify({
+    id: s.id,
+    nome: s.nome,
+    variante: s.variante,
+    cor: s.cor ?? '#888888',
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Status de orçamento" heading="Configurações / Status de orçamento" submenu={CONFIG_SUBMENU} submenuActive="status">
+  <PageToolbar showSearch={false}>
+    <Button icon="add_circle" data-drawer-open="drawer-status">Adicionar status</Button>
+  </PageToolbar>
+
+  <p class="intro">
+    Cada status é uma coluna do <strong>Quadro de vendas</strong>, na ordem abaixo. O tipo define como o status entra nas
+    métricas: novos pedidos (formulário ou cadastro) caem na primeira coluna de <em>entrada</em>.
+  </p>
+
+  <Table
+    columns={[
+      { key: 'ordem', label: 'Ordem', width: '90px' },
+      { key: 'nome', label: 'Nome' },
+      { key: 'variante', label: 'Tipo' },
+      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  />
+
+  <Drawer
+    slot="overlays"
+    id="drawer-status"
+    formId="form-status"
+    title="Novo status"
+    editTitle="Editar status"
+    width="md"
+    deleteConfirm="Excluir este status? Só é possível excluir colunas sem eventos."
+  >
+    <form id="form-status" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="st-nome">Nome*</label>
+        <input id="st-nome" name="nome" required maxlength="50" placeholder="Ex.: Proposta enviada" />
+      </div>
+      <div class="field">
+        <label for="st-variante">Tipo*</label>
+        <select id="st-variante" name="variante" required>
+          {Object.entries(VARIANTES_STATUS).map(([value, label]) => <option value={value}>{label}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="st-cor">Cor</label>
+        <input id="st-cor" name="cor" type="color" value="#888888" class="color-input" />
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<style>
+  .intro {
+    margin: -8px 0 20px;
+    color: var(--color-neutral-65);
+    font-size: 13px;
+    max-width: 760px;
+  }
+
+  :global(.order-controls) {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  :global(.order-btn) {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--color-neutral-30);
+    border-radius: 3px;
+    background: var(--color-white);
+    color: var(--color-neutral-65);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  :global(.order-btn:hover:not(:disabled)) {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  :global(.order-btn:disabled) {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .color-input {
+    padding: 4px !important;
+    height: 40px;
+    cursor: pointer;
+  }
+</style>

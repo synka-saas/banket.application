@@ -1,0 +1,206 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import VersoesLateral from '../../../components/orcamento/VersoesLateral.astro';
+import OrcamentoBuilder from '../../../components/orcamento/OrcamentoBuilder';
+import Button from '../../../components/ui/Button.astro';
+import Drawer from '../../../components/ui/Drawer.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { optionalUuid } from '../../../lib/forms';
+import { formatarDocumento } from '../../../lib/documento';
+import { eventoExiste } from '../../../server/eventos';
+import { catalogoConstrutor, contextoOrcamento, criarNovaVersao, criarOrcamento, definirTemplate } from '../../../server/orcamento';
+import { listarTemplates } from '../../../server/templates';
+import { envioSchema, enviarProposta, rascunhoEnvio } from '../../../server/envio';
+import { dataHora } from '../../../lib/datas';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/eventos/${id}/orcamento`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'criar') {
+        const { statusAlterado } = await criarOrcamento(db, user, id);
+        return {
+          message: statusAlterado ? 'Orçamento iniciado. O evento passou para "Em negociação".' : 'Orçamento iniciado.',
+          redirect: base,
+        };
+      }
+      if (data._action === 'nova_versao') {
+        const numero = await criarNovaVersao(db, user, id);
+        return { message: `Versão ${String(numero).padStart(2, '0')} criada.`, redirect: base };
+      }
+      if (data._action === 'restaurar') {
+        const numero = await criarNovaVersao(db, user, id, Number(data.numero));
+        return { message: `Versão restaurada como versão ${String(numero).padStart(2, '0')}.`, redirect: base };
+      }
+      if (data._action === 'enviar') {
+        const input = envioSchema.parse(data);
+        const r = await enviarProposta(db, user, id, input);
+        return r.delivered
+          ? `Proposta enviada para ${input.para.join(', ')}.`
+          : 'E-mail registrado no log do servidor (RESEND_API_KEY não configurada). O envio foi anotado na linha do tempo.';
+      }
+      if (data._action === 'template') {
+        await definirTemplate(db, id, optionalUuid().parse(data.template_id) ?? null);
+        return 'Template da proposta atualizado.';
+      }
+      return '';
+    })
+  );
+}
+
+const ctx = await withTenant(user.tenantId, async (db) => {
+  const c = await contextoOrcamento(db, id, Astro.url.searchParams.get('versao'));
+  const catalogo = c.orcamento ? await catalogoConstrutor(db) : null;
+  const { rows } = await db.query<{ criancas_isentas_ate: number; criancas_meia_ate: number }>(
+    'SELECT criancas_isentas_ate, criancas_meia_ate FROM configuracoes_tenant'
+  );
+  const templates = c.orcamento ? await listarTemplates(db) : [];
+  const envio = c.versao ? await rascunhoEnvio(db, id, c.versao.numero) : null;
+  return { ...c, catalogo, templates, envio, idades: { isentas: rows[0]?.criancas_isentas_ate ?? 5, meia: rows[0]?.criancas_meia_ate ?? 11 } };
+});
+const { evento, orcamento, versao } = ctx;
+---
+
+<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="orcamento">
+  <div class="grid-evento">
+    <div>
+      {orcamento && versao && ctx.catalogo ? (
+        <OrcamentoBuilder
+          client:load
+          eventoId={id}
+          numero={versao.numero}
+          congelada={versao.congelada}
+          cliente={{ nome: evento.cliente_nome ?? '-', documento: evento.cliente_documento ? formatarDocumento(evento.cliente_documento) : null }}
+          conteudo={versao.conteudo}
+          catalogo={ctx.catalogo}
+          faixas={ctx.faixas}
+          idades={ctx.idades}
+          pdfUrl={`${base}/pdf?versao=${versao.numero}`}
+        />
+      ) : (
+        <section class="sem-orcamento">
+          <h3>Este evento ainda não tem orçamento</h3>
+          <p>
+            O orçamento começa com o staff padrão calculado para {evento.numero_convidados ?? 0} convidados, a locação
+            pela faixa de convidados e as condições gerais da empresa. Depois é só adicionar cardápios e bebidas.
+          </p>
+          <form method="post">
+            <input type="hidden" name="_action" value="criar" />
+            <Button type="submit" variant="success">Confeccionar orçamento</Button>
+          </form>
+        </section>
+      )}
+    </div>
+    <div class="coluna-lateral">
+      {orcamento && versao && (
+        <form method="post" class="template-proposta">
+          <input type="hidden" name="_action" value="template" />
+          <label for="orc-template" class="bloco-titulo">Template da proposta</label>
+          <select id="orc-template" name="template_id" class="control" data-autosubmit-row>
+            {ctx.templates.map((t) => (
+              <option value={t.padrao ? '' : t.id} selected={orcamento.template_id ? orcamento.template_id === t.id : t.padrao}>
+                {t.nome}{t.padrao ? ' (padrão)' : ''}
+              </option>
+            ))}
+          </select>
+          <span class="field-hint">Versões congeladas mantêm o PDF já gerado.</span>
+        </form>
+      )}
+      {orcamento && versao && <VersoesLateral orcamento={orcamento} visualizando={versao.numero} basePath={base} />}
+      <EventoInfoLateral evento={evento} />
+    </div>
+  </div>
+  {ctx.envio && (
+    <Drawer id="drawer-enviar" formId="form-enviar" title={`Enviar proposta · versão ${String(ctx.envio.numero).padStart(2, '0')}`} deletable={false} width="md" saveLabel="Enviar" saveAction="enviar">
+      <form id="form-enviar" method="post" class="form-envio">
+        <input type="hidden" name="numero" value={ctx.envio.numero} />
+        {ctx.envio.ultimoEnvio && (
+          <p class="aviso-envio">Esta versão já foi enviada em {dataHora(ctx.envio.ultimoEnvio.em)} para {ctx.envio.ultimoEnvio.para}.</p>
+        )}
+        <div class="field">
+          <label for="env-para">Para*</label>
+          <input id="env-para" name="para" required value={ctx.envio.para} placeholder="email@cliente.com.br" />
+          <span class="field-hint">Vários destinatários separados por vírgula. As respostas chegam no seu e-mail ({user.email}).</span>
+        </div>
+        <div class="field">
+          <label for="env-assunto">Assunto*</label>
+          <input id="env-assunto" name="assunto" required maxlength="255" value={ctx.envio.assunto} />
+        </div>
+        <div class="field">
+          <label for="env-mensagem">Mensagem*</label>
+          <textarea id="env-mensagem" name="mensagem" required rows="12" maxlength="10000">{ctx.envio.mensagem}</textarea>
+          <span class="field-hint">O PDF da proposta vai em anexo. O modelo da mensagem fica em Configurações › Empresa.</span>
+        </div>
+      </form>
+    </Drawer>
+  )}
+</EventoLayout>
+
+<style>
+  .grid-evento {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 30px;
+    align-items: start;
+  }
+
+  .coluna-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .form-envio {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .aviso-envio {
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    background: var(--color-neutral-10);
+    font-size: 14px;
+    color: var(--color-neutral-80);
+  }
+
+  .template-proposta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 24px 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .sem-orcamento {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 36px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .sem-orcamento h3 {
+    font-size: 18px;
+  }
+
+  .sem-orcamento p {
+    color: var(--color-neutral-65);
+    max-width: 620px;
+    line-height: 1.6;
+  }
+</style>

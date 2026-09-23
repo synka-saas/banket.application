@@ -1,0 +1,294 @@
+/* Editor de formulários de captação (ilha FormularioEditor) */
+.fe {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 80px;
+}
+
+.fe-card,
+.fe-secao {
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.fe-card {
+  padding: 28px 32px;
+}
+
+.fe-geral {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 20px 24px;
+}
+
+.fe-span {
+  grid-column: 1 / -1;
+}
+
+.fe-slug {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-neutral-40);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.fe-slug span {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--color-neutral-10);
+  color: var(--color-neutral-50);
+  font-size: 13px;
+  white-space: nowrap;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field .fe-slug input:not([type='checkbox']) {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.fe-status {
+  min-width: 190px;
+}
+
+.fe-status .switch {
+  min-height: 40px;
+}
+
+.fe-link {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-neutral-20);
+  font-size: 13px;
+}
+
+.fe-aviso {
+  color: var(--color-primary-50);
+}
+
+.fe-resumo {
+  font-size: 13px;
+  color: var(--color-neutral-50);
+}
+
+.fe-secao {
+  overflow: hidden;
+}
+
+.fe-secao-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--color-neutral-10);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.fe-numero {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fe-secao-titulo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fe-secao-titulo strong {
+  font-size: 15px;
+  color: var(--color-neutral-100);
+}
+
+.fe-secao-titulo span {
+  font-size: 12px;
+  color: var(--color-neutral-50);
+}
+
+.fe-inativa .fe-perguntas,
+.fe-inativa .fe-adicionar,
+.fe-inativa .fe-numero {
+  opacity: 0.45;
+}
+
+.fe-travada {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-neutral-50);
+  white-space: nowrap;
+}
+
+.fe-perguntas {
+  display: flex;
+  flex-direction: column;
+}
+
+.fe-pergunta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--color-neutral-20);
+}
+
+.fe-pergunta.fe-off .fe-pergunta-info {
+  opacity: 0.5;
+}
+
+.fe-pergunta.fe-off .fe-rotulo {
+  text-decoration: line-through;
+}
+
+.fe-ordem {
+  display: flex;
+  flex-direction: column;
+}
+
+.fe-ordem button {
+  display: inline-flex;
+  border: none;
+  background: none;
+  color: var(--color-neutral-50);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.fe-ordem button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.fe-pergunta-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fe-rotulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-neutral-80);
+}
+
+.fe-meta {
+  font-size: 12px;
+  color: var(--color-neutral-50);
+}
+
+.fe-acoes {
+  display: flex;
+  gap: 16px;
+}
+
+.fe-acoes .row-action {
+  font-size: 13px;
+}
+
+.fe-obrigatoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-neutral-65);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fe-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.fe-adicionar:hover:not(:disabled) {
+  background: var(--color-primary-10);
+}
+
+.fe-adicionar:disabled {
+  color: var(--color-neutral-40);
+  cursor: default;
+}
+
+.fe-rascunho {
+  padding: 20px 24px;
+  background: var(--color-primary-10);
+}
+
+.fe-rascunho-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.fe-rascunho-check {
+  justify-content: flex-end;
+}
+
+.fe-rascunho-check .switch {
+  min-height: 40px;
+}
+
+.fe-rascunho-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fe-barra {
+  position: sticky;
+  bottom: -48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.fe-estado {
+  font-size: 13px;
+  color: var(--color-neutral-50);
+}
+
+.fe-barra-acoes {
+  display: flex;
+  gap: 10px;
+}

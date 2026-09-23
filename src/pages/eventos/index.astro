@@ -1,0 +1,568 @@
+---
+import Icon from '../../components/ui/Icon.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import { withTenant } from '../../lib/db';
+import { html } from '../../lib/html';
+import { formatMoney } from '../../lib/money';
+import { dataCurta } from '../../lib/datas';
+import { PERIODOS } from '../../lib/periodos';
+import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
+import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
+import { listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+const url = Astro.url;
+const visao = url.searchParams.get('view') === 'lista' ? 'lista' : 'kanban';
+const filtros = filtrosDaUrl(url, searchTerm(url));
+const page = pageParams(url);
+
+const dados = await withTenant(tenantId, async (db) => {
+  const [status, tipos, formatos] = [await listarStatus(db), await listarTiposEvento(db, null), await listarFormatosServico(db)];
+  if (visao === 'kanban') return { status, tipos, formatos, cards: await listarEventosKanban(db, filtros), lista: null };
+  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page) };
+});
+
+const filtrosAtivos = [filtros.de || filtros.ate, filtros.tipoId, filtros.formatoId, filtros.statusId].filter(Boolean).length;
+const intervaloTexto = (de: string | null, ate: string | null) =>
+  de && ate ? `${dataCurta(de)} a ${dataCurta(ate)}` : de ? `A partir de ${dataCurta(de)}` : ate ? `Até ${dataCurta(ate)}` : 'Todas as datas';
+const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
+const pad = (n: number) => String(n).padStart(2, '0');
+const valorCard = (c: (typeof dados.cards)[number]) => c.valor_orcamento ?? c.verba_total;
+
+const colunas = dados.status.map((s) => {
+  const cards = dados.cards.filter((c) => c.status_id === s.id);
+  return { ...s, cards, total: cards.reduce((acc, c) => acc + (valorCard(c) ?? 0), 0) };
+});
+
+const listaData =
+  dados.lista?.rows.map((e) => ({
+    data: dataCurta(e.data_evento),
+    evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? 'Evento'}</a>`,
+    cliente: e.cliente_nome ?? '-',
+    convidados: e.numero_convidados ?? '-',
+    status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
+    valor: formatMoney(e.valor_orcamento ?? e.verba_total),
+    acoes: html`<a class="row-action" href="/eventos/${e.id}">Abrir</a>`,
+  })) ?? [];
+---
+
+<AppLayout title="Quadro de vendas" heading="Eventos" submenu={[]}>
+  <Fragment slot="submenu-actions">
+    <a href={withQuery(url, { view: 'lista', page: null })} class:list={['view-toggle', { active: visao === 'lista' }]}>
+      <Icon name="list" size={18} /> Lista
+    </a>
+    <a href={withQuery(url, { view: null, page: null })} class:list={['view-toggle', { active: visao === 'kanban' }]}>
+      <Icon name="view_kanban" size={18} /> Kanban
+    </a>
+  </Fragment>
+
+  <PageToolbar searchPlaceholder="Pesquisar">
+    <details class="filtros">
+      <summary class="btn btn-outline btn-md"><Icon name="filter_list" size={18} /> Filtros{filtrosAtivos > 0 && ` (${filtrosAtivos})`}</summary>
+      <form method="get" class="filtros-painel">
+        {visao === 'lista' && <input type="hidden" name="view" value="lista" />}
+        {filtros.busca && <input type="hidden" name="q" value={url.searchParams.get('q') ?? ''} />}
+        <fieldset class="periodo">
+          <legend class="field-label">Período</legend>
+          <div class="periodo-opcoes">
+            {PERIODOS.map((p) => (
+              <label class="periodo-opcao">
+                <input type="radio" name="periodo" value={p.valor} checked={filtros.periodo === p.valor} data-periodo />
+                <span>{p.rotulo}</span>
+              </label>
+            ))}
+          </div>
+          <p class="periodo-intervalo" data-periodo-intervalo>
+            <Icon name="date_range" size={16} /> <span>{intervaloTexto(filtros.de, filtros.ate)}</span>
+          </p>
+        </fieldset>
+        <div class="datas-linha">
+          <div class="field">
+            <label for="f-de">Data de</label>
+            <input id="f-de" type="date" name="de" value={filtros.de ?? ''} max={filtros.ate ?? undefined} data-data-filtro />
+          </div>
+          <div class="field">
+            <label for="f-ate">Até</label>
+            <input id="f-ate" type="date" name="ate" value={filtros.ate ?? ''} min={filtros.de ?? undefined} data-data-filtro />
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-tipo">Tipo de evento</label>
+          <select id="f-tipo" name="tipo">
+            <option value="">Todos</option>
+            {dados.tipos.map((t) => <option value={t.id} selected={t.id === filtros.tipoId}>{t.nome}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-formato">Formato de serviço</label>
+          <select id="f-formato" name="formato">
+            <option value="">Todos</option>
+            {dados.formatos.map((f) => <option value={f.id} selected={f.id === filtros.formatoId}>{f.nome}</option>)}
+          </select>
+        </div>
+        {visao === 'lista' && (
+          <div class="field">
+            <label for="f-status">Status</label>
+            <select id="f-status" name="status">
+              <option value="">Todos</option>
+              {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
+            </select>
+          </div>
+        )}
+        <div class="filtros-acoes">
+          <a href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'} class="btn btn-outline btn-md">Limpar</a>
+          <button type="submit" class="btn btn-primary btn-md">Aplicar</button>
+        </div>
+      </form>
+    </details>
+    <Button variant="outline" icon="upload" href={exportarHref}>Exportar</Button>
+    <Button variant="success" icon="add_circle" href="/eventos/novo">Criar novo evento</Button>
+  </PageToolbar>
+
+  {visao === 'kanban' ? (
+    <div class="kanban" data-kanban>
+      {colunas.map((col) => (
+        <section class="kanban-col" data-coluna={col.id} data-status-nome={col.nome}>
+          <header class="kanban-col-header">
+            <h2 class="kanban-col-titulo">
+              <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
+              <span class="kanban-col-nome">{col.nome}</span>
+            </h2>
+            <span class="kanban-col-meta"><span data-contagem>{pad(col.cards.length)} {col.cards.length === 1 ? 'evento' : 'eventos'}</span><span data-soma>{formatMoney(col.total)}</span></span>
+          </header>
+          <div class="kanban-cards" data-dropzone>
+            {col.cards.map((c) => (
+              <article class="evento-card" draggable="true" data-evento={c.id} data-valor={valorCard(c) ?? 0}>
+                <h3 class="evento-card-title">
+                  <Icon name={c.cliente_tipo === 'PJ' ? 'domain' : 'account_box'} size={22} />
+                  <span>{c.cliente_nome ?? 'Sem cliente'}</span>
+                </h3>
+                <p class="evento-card-sub">{c.titulo}</p>
+                <dl class="evento-card-rows">
+                  <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
+                  <div><dt>Estilo</dt><dd>{c.formato_nome ?? '-'}</dd></div>
+                  <div><dt>{c.valor_orcamento !== null ? 'Orçamento' : 'Budget'}</dt><dd>{formatMoney(valorCard(c))}</dd></div>
+                  <div><dt>Data</dt><dd>{dataCurta(c.data_evento)}</dd></div>
+                </dl>
+                <div class="tag-list">
+                  {[c.tipo_nome, c.categoria_nome].filter(Boolean).map((t) => <span class="tag">{t}</span>)}
+                </div>
+                <a href={`/eventos/${c.id}`} class="btn btn-primary btn-md btn-block evento-card-btn">Editar</a>
+              </article>
+            ))}
+            <p class="kanban-vazio">Nenhum evento</p>
+          </div>
+        </section>
+      ))}
+    </div>
+  ) : (
+    <Table
+      columns={[
+        { key: 'data', label: 'Data' },
+        { key: 'evento', label: 'Evento' },
+        { key: 'cliente', label: 'Cliente' },
+        { key: 'convidados', label: 'Convidados', align: 'center' },
+        { key: 'status', label: 'Status' },
+        { key: 'valor', label: 'Orçamento / Budget', align: 'right' },
+        { key: 'acoes', label: 'Ações', align: 'right' },
+      ]}
+      data={listaData}
+      emptyMessage="Nenhum evento encontrado."
+    >
+      {dados.lista && <Pagination slot="footer" info={pageInfo(page, dados.lista.total)} />}
+    </Table>
+  )}
+</AppLayout>
+
+<script>
+  import { formatMoney } from '../../lib/money';
+  import { dataCurta } from '../../lib/datas';
+  import { hojeSaoPaulo, intervaloPeriodo, type Periodo } from '../../lib/periodos';
+
+  // Filtro de período: escolher um período preenche as datas (para visualizar o intervalo) e envia só ?periodo=,
+  // que o servidor recalcula a cada acesso. Editar uma data à mão desmarca o período (intervalo manual).
+  const painel = document.querySelector<HTMLFormElement>('.filtros-painel');
+  if (painel) {
+    const radios = [...painel.querySelectorAll<HTMLInputElement>('[data-periodo]')];
+    const [de, ate] = [...painel.querySelectorAll<HTMLInputElement>('[data-data-filtro]')];
+    const texto = painel.querySelector<HTMLElement>('[data-periodo-intervalo] span')!;
+
+    const atualizarTexto = () => {
+      texto.textContent =
+        de.value && ate.value ? `${dataCurta(de.value)} a ${dataCurta(ate.value)}`
+        : de.value ? `A partir de ${dataCurta(de.value)}`
+        : ate.value ? `Até ${dataCurta(ate.value)}`
+        : 'Todas as datas';
+      ate.min = de.value;
+      de.max = ate.value;
+    };
+
+    let marcado = radios.find((r) => r.checked) ?? null;
+    radios.forEach((r) =>
+      r.addEventListener('click', () => {
+        if (marcado === r) {
+          // clicar de novo no período ativo desmarca e limpa o intervalo
+          r.checked = false;
+          marcado = null;
+          de.value = ate.value = '';
+        } else {
+          marcado = r;
+          const intervalo = intervaloPeriodo(r.value as Periodo, hojeSaoPaulo());
+          de.value = intervalo.de;
+          ate.value = intervalo.ate;
+        }
+        atualizarTexto();
+      })
+    );
+
+    [de, ate].forEach((campo) =>
+      campo.addEventListener('input', () => {
+        radios.forEach((r) => (r.checked = false));
+        marcado = null;
+        atualizarTexto();
+      })
+    );
+
+    painel.addEventListener('submit', () => {
+      // Com período ativo as datas são derivadas dele: ficam fora da URL para o período continuar "rolando"
+      if (marcado) [de, ate].forEach((campo) => (campo.disabled = true));
+    });
+  }
+
+  const toast = (m: string, t = 'info') =>
+    (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(m, t);
+
+  const kanban = document.querySelector<HTMLElement>('[data-kanban]');
+  if (kanban) {
+    const atualizarTotais = () => {
+      kanban.querySelectorAll<HTMLElement>('.kanban-col').forEach((col) => {
+        const cards = [...col.querySelectorAll<HTMLElement>('[data-evento]')];
+        col.querySelector('[data-contagem]')!.textContent = `${String(cards.length).padStart(2, '0')} ${cards.length === 1 ? 'evento' : 'eventos'}`;
+        col.querySelector('[data-soma]')!.textContent = formatMoney(cards.reduce((a, c) => a + Number(c.dataset.valor || 0), 0));
+      });
+    };
+
+    let arrastando: HTMLElement | null = null;
+    let origem: HTMLElement | null = null;
+
+    kanban.addEventListener('dragstart', (e) => {
+      arrastando = (e.target as HTMLElement).closest<HTMLElement>('[data-evento]');
+      if (!arrastando) return;
+      origem = arrastando.parentElement;
+      arrastando.classList.add('arrastando');
+      e.dataTransfer?.setData('text/plain', arrastando.dataset.evento!);
+    });
+    kanban.addEventListener('dragend', () => {
+      arrastando?.classList.remove('arrastando');
+      kanban.querySelectorAll('.drop-alvo').forEach((el) => el.classList.remove('drop-alvo'));
+    });
+    kanban.addEventListener('dragover', (e) => {
+      const zona = (e.target as HTMLElement).closest<HTMLElement>('[data-dropzone]');
+      if (!zona || !arrastando) return;
+      e.preventDefault();
+      kanban.querySelectorAll('.drop-alvo').forEach((el) => el !== zona && el.classList.remove('drop-alvo'));
+      zona.classList.add('drop-alvo');
+    });
+    kanban.addEventListener('drop', async (e) => {
+      const zona = (e.target as HTMLElement).closest<HTMLElement>('[data-dropzone]');
+      if (!zona || !arrastando || zona === origem) return;
+      e.preventDefault();
+      const card = arrastando;
+      const deOrigem = origem!;
+      const coluna = zona.closest<HTMLElement>('[data-coluna]')!;
+      zona.insertBefore(card, zona.querySelector('.kanban-vazio'));
+      atualizarTotais();
+      try {
+        const res = await fetch(`/api/eventos/${card.dataset.evento}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status_id: coluna.dataset.coluna }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
+        toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
+      } catch (err) {
+        deOrigem.insertBefore(card, deOrigem.querySelector('.kanban-vazio'));
+        atualizarTotais();
+        toast(err instanceof Error ? err.message : 'Erro ao mover o evento.', 'error');
+      }
+    });
+  }
+</script>
+
+<style>
+  .view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-neutral-80);
+    background: var(--color-primary-10);
+  }
+
+  .view-toggle.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .filtros {
+    position: relative;
+  }
+
+  .filtros summary {
+    list-style: none;
+  }
+
+  .filtros summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .filtros-painel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 50;
+    width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .periodo {
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .periodo-opcoes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--color-neutral-40);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+  }
+
+  .periodo-opcao {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .periodo-opcao + .periodo-opcao {
+    border-left: 1px solid var(--color-neutral-40);
+  }
+
+  .periodo-opcao input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    cursor: pointer;
+  }
+
+  .periodo-opcao span {
+    display: block;
+    padding: 8px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--color-neutral-80);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .periodo-opcao:hover span {
+    background: var(--color-neutral-20);
+  }
+
+  .periodo-opcao input:checked + span {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .periodo-opcao input:focus-visible + span {
+    outline: 2px solid var(--color-primary-50);
+    outline-offset: -2px;
+  }
+
+  .periodo-intervalo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-neutral-65);
+  }
+
+  .datas-linha {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .filtros-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .kanban {
+    display: flex;
+    gap: 32px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    align-items: flex-start;
+  }
+
+  /* Largura distribuída: cada coluna parte de 1/4 da área e cresce para preencher (3–4 colunas dividem o espaço);
+     com 5+ colunas as 4 primeiras ocupam a largura visível e o restante entra na rolagem horizontal. */
+  .kanban-col {
+    flex: 1 0 calc((100% - 3 * 32px) / 4);
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Com menos de 3 colunas, nenhuma passa de 340px */
+  .kanban:not(:has(> .kanban-col:nth-child(3))) .kanban-col {
+    max-width: 340px;
+  }
+
+  .kanban-col-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--color-neutral-20);
+    border-radius: var(--border-radius);
+  }
+
+  .kanban-col-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-100);
+  }
+
+  .kanban-col-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--color-neutral-65);
+    padding-left: 16px;
+  }
+
+  /* Colunas mais estreitas: etiquetas longas quebram linha em vez de vazar do card */
+  .evento-card .tag {
+    white-space: normal;
+  }
+
+  .kanban-col-meta [data-soma] {
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    white-space: nowrap;
+  }
+
+  .kanban-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 120px;
+    padding: 4px;
+    border-radius: var(--border-radius);
+    transition: background-color 0.15s ease;
+  }
+
+  .kanban-cards.drop-alvo {
+    background: var(--color-primary-10);
+    outline: 2px dashed var(--color-primary-20);
+  }
+
+  .kanban-vazio {
+    display: none;
+    padding: 24px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-neutral-40);
+    border: 1px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius);
+  }
+
+  .kanban-cards > .kanban-vazio:first-child {
+    display: block;
+  }
+
+  .evento-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-neutral-40);
+    border-radius: var(--border-radius);
+    padding: 28px 30px;
+    cursor: grab;
+  }
+
+  .evento-card.arrastando {
+    opacity: 0.4;
+  }
+
+  .evento-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-neutral-80);
+  }
+
+  .evento-card-title span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .evento-card-sub {
+    margin: 4px 0 14px;
+    font-size: 12px;
+    color: var(--color-neutral-50);
+  }
+
+  .evento-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .evento-card-rows div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+  }
+
+  .evento-card-rows dt {
+    color: var(--color-neutral-50);
+  }
+
+  .evento-card-rows dd {
+    color: var(--color-neutral-100);
+    text-align: right;
+  }
+
+  .evento-card-btn {
+    margin-top: 20px;
+  }
+</style>

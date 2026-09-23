@@ -1,0 +1,231 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { ROLE_LABELS, type Role } from '../../lib/auth';
+import { dataBR } from '../../lib/forms';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import {
+  atualizarMembro,
+  cancelarConvite,
+  conviteSchema,
+  convidarUsuario,
+  listarConvitesPendentes,
+  listarMembros,
+  membroSchema,
+  papeisAtribuiveis,
+  reenviarConvite,
+  removerMembro,
+} from '../../server/usuarios';
+
+const actor = Astro.locals.user;
+const { tenantId } = actor;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    return withTenant(tenantId, async (db) => {
+      if (data._form === 'convite') {
+        if (data._action === 'reenviar' && id) {
+          await reenviarConvite(db, actor, id);
+          return 'Convite reenviado.';
+        }
+        if (data._action === 'cancelar' && id) {
+          await cancelarConvite(db, id);
+          return 'Convite cancelado.';
+        }
+        const input = conviteSchema.parse(data);
+        await convidarUsuario(db, actor, input);
+        return `Convite enviado para ${input.email}.`;
+      }
+      if (!id) return '';
+      if (data._action === 'delete') {
+        await removerMembro(db, actor, id);
+        return 'Acesso do usuário removido.';
+      }
+      await atualizarMembro(db, actor, id, membroSchema.parse(data));
+      return 'Usuário atualizado.';
+    });
+  });
+}
+
+const page = pageParams(Astro.url);
+const { membros, total, convites } = await withTenant(tenantId, async (db) => {
+  const { rows, total } = await listarMembros(
+    db,
+    { busca: searchTerm(Astro.url), papel: Astro.url.searchParams.get('papel') },
+    page
+  );
+  return { membros: rows, total, convites: await listarConvitesPendentes(db) };
+});
+
+const papeis = papeisAtribuiveis(actor);
+const podeGerenciar = (alvo: { id: string; role: Role }) =>
+  alvo.id !== actor.id && (actor.role === 'owner' || alvo.role !== 'owner');
+
+const roleOptions = (atual: Role) =>
+  (papeis.includes(atual) ? papeis : [atual, ...papeis]).map(
+    (r) => html`<option value="${r}" ${r === atual && html`selected`}>${ROLE_LABELS[r]}</option>`
+  );
+
+const tableData = membros.map((m) => {
+  const editavel = podeGerenciar(m);
+  return {
+    nome: html`${m.nome}${m.id === actor.id ? html` <span class="muted">(você)</span>` : ''}`,
+    email: m.email,
+    papel: editavel
+      ? html`<form method="post" class="inline-form">
+          <input type="hidden" name="id" value="${m.id}" />
+          <input type="hidden" name="ativo" value="${m.ativo ? 'on' : ''}" />
+          <select name="role" class="inline-select" aria-label="Papel de ${m.nome}" data-autosubmit-row>${roleOptions(m.role)}</select>
+        </form>`
+      : ROLE_LABELS[m.role],
+    status: m.ativo ? html`<span class="tag tag-ok">Ativo</span>` : html`<span class="tag tag-off">Inativo</span>`,
+    acoes: editavel
+      ? html`<button type="button" class="row-action" data-drawer-open="drawer-membro" data-values="${JSON.stringify({
+          id: m.id,
+          role: m.role,
+          ativo: m.ativo,
+          _nome: m.nome,
+        })}">Editar</button>`
+      : '',
+  };
+});
+
+const convitesData = convites.map((c) => {
+  const expirado = new Date(c.expira_em) < new Date();
+  return {
+    email: c.email,
+    nome: c.nome,
+    papel: ROLE_LABELS[c.role] ?? c.role,
+    expira: expirado ? html`<span class="tag tag-off">Expirado</span>` : dataBR(c.expira_em),
+    acoes: html`<form method="post" class="cell-actions">
+        <input type="hidden" name="_form" value="convite" />
+        <input type="hidden" name="id" value="${c.id}" />
+        <button type="submit" name="_action" value="reenviar" class="row-action">Reenviar</button>
+        <button type="submit" name="_action" value="cancelar" class="row-action danger" data-confirm="Cancelar o convite para ${c.email}?">Cancelar</button>
+      </form>`,
+  };
+});
+---
+
+<AppLayout title="Usuários" heading="Configurações / Usuários" submenu={CONFIG_SUBMENU} submenuActive="usuarios">
+  <PageToolbar
+    filter={{
+      name: 'papel',
+      placeholder: 'Papel',
+      options: (Object.keys(ROLE_LABELS) as Role[]).map((r) => ({ value: r, label: ROLE_LABELS[r] })),
+    }}
+  >
+    <Button icon="add_circle" data-drawer-open="drawer-convite">Adicionar usuário</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome' },
+      { key: 'email', label: 'E-mail' },
+      { key: 'papel', label: 'Papel' },
+      { key: 'status', label: 'Status' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum usuário encontrado."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  {convitesData.length > 0 && (
+    <section class="convites">
+      <h3 class="section-title">Convites pendentes</h3>
+      <Table
+        columns={[
+          { key: 'email', label: 'E-mail' },
+          { key: 'nome', label: 'Nome' },
+          { key: 'papel', label: 'Papel' },
+          { key: 'expira', label: 'Válido até' },
+          { key: 'acoes', label: 'Ações', align: 'right' },
+        ]}
+        data={convitesData}
+      />
+    </section>
+  )}
+
+  <Fragment slot="overlays">
+    <Drawer id="drawer-convite" formId="form-convite" title="Convidar usuário" width="md" deletable={false}>
+      <form id="form-convite" method="post" class="form-grid">
+        <input type="hidden" name="_form" value="convite" />
+        <div class="field span-2">
+          <label for="conv-nome">Nome*</label>
+          <input id="conv-nome" name="nome" required maxlength="255" placeholder="Nome e sobrenome" />
+        </div>
+        <div class="field span-2">
+          <label for="conv-email">E-mail*</label>
+          <input id="conv-email" name="email" type="email" required placeholder="nome@empresa.com.br" />
+        </div>
+        <div class="field span-2">
+          <label for="conv-role">Papel*</label>
+          <select id="conv-role" name="role" required>
+            {papeis.map((r) => <option value={r} selected={r === 'usuario'}>{ROLE_LABELS[r]}</option>)}
+          </select>
+          <span class="field-hint">
+            Usuários operam eventos, orçamentos, clientes e cardápio. Administradores também acessam as Configurações.
+          </span>
+        </div>
+        <p class="span-2 muted">A pessoa receberá um e-mail com um link para criar a senha e acessar a plataforma.</p>
+      </form>
+    </Drawer>
+
+    <Drawer
+      id="drawer-membro"
+      formId="form-membro"
+      title="Editar usuário"
+      width="md"
+      deleteConfirm="Remover o acesso deste usuário à empresa?"
+    >
+      <form id="form-membro" method="post" class="form-grid">
+        <input type="hidden" name="id" />
+        <div class="field span-2">
+          <label for="mb-role">Papel*</label>
+          <select id="mb-role" name="role" required>
+            {papeis.map((r) => <option value={r}>{ROLE_LABELS[r]}</option>)}
+          </select>
+        </div>
+        <div class="field span-2">
+          <label class="switch"><input type="checkbox" name="ativo" />Acesso ativo</label>
+          <span class="field-hint">Usuários inativos não conseguem entrar na plataforma.</span>
+        </div>
+      </form>
+    </Drawer>
+  </Fragment>
+</AppLayout>
+
+<script>
+  document.addEventListener('drawer:open', (e) => {
+    const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+    const drawer = e.target as HTMLElement;
+    if (drawer.id === 'drawer-membro' && values._nome) {
+      drawer.querySelector('.drawer-title')!.textContent = values._nome;
+    }
+  });
+</script>
+
+<style>
+  .convites {
+    margin-top: 40px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    color: var(--color-neutral-80);
+  }
+
+</style>

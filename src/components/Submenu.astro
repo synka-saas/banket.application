@@ -1,0 +1,63 @@
+---
+interface Props {
+  items: { id: string; label: string; href?: string }[];
+  activeId?: string;
+}
+
+const { items = [], activeId } = Astro.props;
+---
+
+<div class="submenu-container">
+  <nav class="submenu-nav">
+    {items.map((item) => (
+      <a href={item.href || `?tab=${item.id}`} class:list={['submenu-item', { active: activeId === item.id }]}>
+        {item.label}
+      </a>
+    ))}
+  </nav>
+  <div class="submenu-actions">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .submenu-container {
+    background-color: var(--color-white);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 45px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 49px;
+    flex-shrink: 0;
+  }
+
+  .submenu-nav {
+    display: flex;
+    gap: 60px;
+    overflow-x: auto;
+  }
+
+  .submenu-item {
+    display: inline-block;
+    padding: 14px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .submenu-item:hover {
+    color: var(--color-primary);
+  }
+
+  .submenu-item.active {
+    color: var(--color-primary);
+  }
+
+  .submenu-actions {
+    display: flex;
+    gap: 8px;
+  }
+</style>

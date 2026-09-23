@@ -1,0 +1,89 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import {
+  excluirFormatoServico,
+  formatoServicoSchema,
+  listarFormatosServico,
+  salvarFormatoServico,
+} from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirFormatoServico(db, id));
+      return 'Formato de serviço removido.';
+    }
+    const input = formatoServicoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarFormatoServico(db, tenantId, id, input));
+    return id ? 'Formato de serviço atualizado.' : 'Formato de serviço criado.';
+  });
+}
+
+const formatos = await withTenant(tenantId, (db) => listarFormatosServico(db, searchTerm(Astro.url)));
+
+const tableData = formatos.map((f) => ({
+  nome: f.nome,
+  descricao: f.descricao || '-',
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-formato" data-values="${JSON.stringify({
+    id: f.id,
+    nome: f.nome,
+    descricao: f.descricao,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Formatos de serviço" heading="Configurações / Formatos de serviço" submenu={CONFIG_SUBMENU} submenuActive="formatos">
+  <PageToolbar>
+    <Button icon="add_circle" data-drawer-open="drawer-formato">Adicionar formato</Button>
+  </PageToolbar>
+
+  <p class="intro">
+    Como o serviço é oferecido aos convidados: garçons servindo (volante), buffet em que o convidado se serve, ilhas,
+    empratado etc. Usado no evento, nos itens do cardápio e no orçamento.
+  </p>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome', width: '30%' },
+      { key: 'descricao', label: 'Descrição' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum formato de serviço cadastrado."
+  />
+
+  <Drawer slot="overlays" id="drawer-formato" formId="form-formato" title="Novo formato de serviço" editTitle="Editar formato de serviço" width="md">
+    <form id="form-formato" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="fmt-nome">Nome*</label>
+        <input id="fmt-nome" name="nome" required maxlength="80" placeholder="Ex.: Serviço volante" />
+      </div>
+      <div class="field span-2">
+        <label for="fmt-desc">Descrição</label>
+        <textarea id="fmt-desc" name="descricao" maxlength="500"></textarea>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<style>
+  .intro {
+    margin: -8px 0 20px;
+    color: var(--color-neutral-65);
+    font-size: 13px;
+    max-width: 760px;
+  }
+</style>

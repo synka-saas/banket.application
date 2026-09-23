@@ -1,0 +1,48 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import EventoForm from '../../../components/eventos/EventoForm.astro';
+import { withTenant } from '../../../lib/db';
+import { setFlash } from '../../../lib/flash';
+import { formToObject, userMessage } from '../../../lib/forms';
+import {
+  atualizarEvento,
+  carregarEvento,
+  clienteNovoDoFormulario,
+  eventoExiste,
+  eventoSchema,
+  opcoesFormularioEvento,
+} from '../../../server/eventos';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+let erro = '';
+let valores: Record<string, unknown> | null = null;
+
+if (Astro.request.method === 'POST') {
+  valores = formToObject(await Astro.request.formData(), ['restricoes', 'compliance']);
+  try {
+    const input = eventoSchema.parse(valores);
+    await withTenant(user.tenantId, (db) =>
+      atualizarEvento(db, user, id, input, input.cliente_novo ? clienteNovoDoFormulario(valores!) : null)
+    );
+    setFlash(Astro.cookies, 'success', 'Evento atualizado.');
+    return Astro.redirect(`/eventos/${id}`);
+  } catch (err) {
+    erro = userMessage(err);
+  }
+}
+
+const { evento, opcoes } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  opcoes: await opcoesFormularioEvento(db),
+}));
+---
+
+<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="resumo">
+  <EventoForm valores={valores ?? { ...evento }} {...opcoes} erro={erro} cancelarHref={`/eventos/${id}`} modo="editar" />
+</EventoLayout>

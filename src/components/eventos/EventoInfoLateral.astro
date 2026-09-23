@@ -1,0 +1,69 @@
+---
+// Coluna "Informações operacionais" dos frames de evento e orçamento.
+import Icon from '../ui/Icon.astro';
+import { formatMoney } from '../../lib/money';
+import { dataComDiaSemana } from '../../lib/datas';
+import { RESTRICOES_EVENTO } from '../../server/eventos';
+import type { EventoDetalhe } from '../../server/eventos';
+
+interface Props {
+  evento: EventoDetalhe;
+}
+
+const { evento: e } = Astro.props;
+
+const verba =
+  e.verba_total || e.verba_por_pessoa
+    ? [e.verba_total ? formatMoney(e.verba_total) : null, e.verba_por_pessoa ? `${formatMoney(e.verba_por_pessoa)} por pessoa` : null]
+        .filter(Boolean)
+        .join(' - ')
+    : '-';
+const restricoes = e.restricoes.map((r) => RESTRICOES_EVENTO[r as keyof typeof RESTRICOES_EVENTO] ?? r);
+---
+
+<aside class="info-lateral">
+  <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Informações operacionais</h3>
+  <dl class="kv kv-2">
+    <div><dt>Convidados</dt><dd>{e.numero_convidados ? `${e.numero_convidados} pessoas` : '-'}</dd></div>
+    <div><dt>Perfil</dt><dd>{e.perfil_convidados ?? '-'}</dd></div>
+  </dl>
+  <dl class="kv">
+    <div><dt>Formato</dt><dd>{e.categoria_nome ?? e.titulo ?? '-'}</dd></div>
+    <div><dt>Data</dt><dd>{dataComDiaSemana(e.data_evento)}</dd></div>
+    <div><dt>Estimativa de verba</dt><dd>{verba}</dd></div>
+    {e.formato_nome && <div><dt>Formato de serviço</dt><dd>{e.formato_nome}</dd></div>}
+  </dl>
+
+  <h3 class="bloco-titulo"><Icon name="chef_hat" size={18} /> Estilo gastronômico</h3>
+  <dl class="kv">
+    <div><dt>Estilo principal</dt><dd>{e.estilo_principal ?? '-'}</dd></div>
+    <div><dt>Estilo secundário</dt><dd>{e.estilo_secundario ?? '-'}</dd></div>
+  </dl>
+
+  <h3 class="bloco-titulo"><Icon name="local_bar" size={18} /> Bebidas</h3>
+  <dl class="kv">
+    <div><dt>Open bar alcoólico</dt><dd>{e.bebidas_alcoolicas ?? '-'}</dd></div>
+    <div><dt>Bebidas sem álcool</dt><dd>{e.bebidas_sem_alcool ?? '-'}</dd></div>
+  </dl>
+
+  <h3 class="bloco-titulo"><Icon name="allergies" size={18} /> Restrições alimentares</h3>
+  {restricoes.length ? (
+    <div class="chips-leitura">{restricoes.map((r) => <span class="chip-leitura">{r}</span>)}</div>
+  ) : (
+    <p class="muted vazio">Nenhuma restrição informada</p>
+  )}
+  <slot />
+</aside>
+
+<style>
+  .info-lateral {
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 28px 28px 32px;
+  }
+
+  .vazio {
+    font-size: 13px;
+  }
+</style>

@@ -1,0 +1,56 @@
+---
+// Coluna "Histórico de versões" (frames de orçamento): versão atual e acesso às anteriores (somente leitura).
+import Icon from '../ui/Icon.astro';
+import { formatMoney } from '../../lib/money';
+import { dataHora } from '../../lib/datas';
+import type { OrcamentoInfo } from '../../server/orcamento';
+
+interface Props {
+  orcamento: OrcamentoInfo;
+  visualizando: number;
+  basePath: string;
+}
+
+const { orcamento, visualizando, basePath } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<section class="versoes">
+  <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Histórico de versões</h3>
+  <div class="versoes-lista">
+    {orcamento.versoes.map((v) => (
+      <div class:list={['versao-card', { visualizando: v.numero === visualizando }]}>
+        <span>Versão: {pad(v.numero)}</span>
+        <span class="valor">{formatMoney(v.valor_total)}</span>
+        <span class="data">{dataHora(v.updated_at)}</span>
+        {v.numero === orcamento.versao_atual ? (
+          v.numero === visualizando ? (
+            <span class="selo selo-atual">Versão atual</span>
+          ) : (
+            <a class="selo selo-acessar" href={basePath}>Voltar à atual</a>
+          )
+        ) : v.numero === visualizando ? (
+          <span class="selo selo-atual">Visualizando</span>
+        ) : (
+          <a class="selo selo-acessar" href={`${basePath}?versao=${v.numero}`}>Acessar</a>
+        )}
+        {v.enviado_em && <span class="data" style="grid-column: 1 / -1">Enviada para {v.enviado_para} em {dataHora(v.enviado_em)}</span>}
+      </div>
+    ))}
+  </div>
+  {visualizando !== orcamento.versao_atual && (
+    <form method="post" class="restaurar">
+      <input type="hidden" name="_action" value="restaurar" />
+      <input type="hidden" name="numero" value={visualizando} />
+      <button type="submit" class="btn btn-primary btn-md btn-block" data-confirm={`Criar uma nova versão a partir da versão ${pad(visualizando)}? A versão atual será congelada.`}>
+        Restaurar como nova versão
+      </button>
+    </form>
+  )}
+</section>
+
+<style>
+  .restaurar {
+    margin-top: 16px;
+  }
+</style>

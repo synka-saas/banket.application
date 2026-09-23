@@ -1,0 +1,93 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  title: string;
+  isOpen?: boolean;
+}
+
+const { title, isOpen = false } = Astro.props;
+---
+
+<div class={`accordion ${isOpen ? 'open' : ''}`}>
+  <button class="accordion-header" type="button">
+    <span class="accordion-title">{title}</span>
+    <Icon name="expand_more" class="accordion-icon" size={20} />
+  </button>
+  <div class="accordion-content">
+    <div class="accordion-inner">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<script>
+  // Script para gerenciar a abertura/fechamento do Accordion
+  const accordions = document.querySelectorAll('.accordion');
+  
+  accordions.forEach(acc => {
+    const header = acc.querySelector('.accordion-header');
+    header?.addEventListener('click', () => {
+      acc.classList.toggle('open');
+    });
+  });
+</script>
+
+<style>
+  .accordion {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--color-white);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .accordion-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--color-neutral-10);
+    border: none;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+  }
+
+  .accordion-header:hover {
+    background: var(--color-neutral-20);
+  }
+
+  .accordion-icon {
+    color: var(--color-neutral-40);
+    transition: transform 0.3s ease;
+  }
+
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .accordion.open .accordion-header {
+    border-bottom-color: var(--border-color);
+    background: var(--color-white);
+  }
+
+  .accordion.open .accordion-icon {
+    transform: rotate(180deg);
+  }
+
+  .accordion.open .accordion-content {
+    max-height: 1000px; /* arbitrary large value for transition */
+  }
+
+  .accordion-inner {
+    padding: 24px;
+  }
+</style>

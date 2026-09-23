@@ -1,0 +1,141 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import VersoesLateral from '../../../components/orcamento/VersoesLateral.astro';
+import BlocosEditor from '../../../components/orcamento/BlocosEditor';
+import Button from '../../../components/ui/Button.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { formatarDocumento } from '../../../lib/documento';
+import { formatMoney } from '../../../lib/money';
+import { eventoExiste } from '../../../server/eventos';
+import { contextoOrcamento, criarNovaVersao } from '../../../server/orcamento';
+
+// Informações complementares da versão do orçamento (frame "Orçamento | Informações complementares")
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/eventos/${id}/informacoes-complementares`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'restaurar') {
+        const numero = await criarNovaVersao(db, user, id, Number(data.numero));
+        return { message: `Versão restaurada como versão ${String(numero).padStart(2, '0')}.`, redirect: base };
+      }
+      return '';
+    })
+  );
+}
+
+const { evento, orcamento, versao, faixas } = await withTenant(user.tenantId, (db) =>
+  contextoOrcamento(db, id, Astro.url.searchParams.get('versao'))
+);
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="informacoes">
+  <div class="grid-evento">
+    <div class="coluna-principal">
+      {orcamento && versao ? (
+        <>
+          <section class="orc-cabecalho-simples">
+            <div>
+              <span class="rotulo">Cliente</span>
+              <strong>{evento.cliente_nome ?? '-'}</strong>
+              {evento.cliente_documento && <span class="muted">{formatarDocumento(evento.cliente_documento)}</span>}
+            </div>
+            <div>
+              <span class="rotulo">Versão: {pad(versao.numero)}</span>
+              <strong class="total">{formatMoney(versao.conteudo.totais?.total ?? versao.valor_total)}</strong>
+            </div>
+            {versao.congelada && <span class="selo-congelada">Versão congelada · somente leitura</span>}
+          </section>
+          <BlocosEditor
+            client:load
+            eventoId={id}
+            numero={versao.numero}
+            congelada={versao.congelada}
+            campo="informacoes_complementares"
+            conteudo={versao.conteudo}
+            faixas={faixas}
+          />
+        </>
+      ) : (
+        <section class="sem-orcamento">
+          <h3>Este evento ainda não tem orçamento</h3>
+          <p>As informações complementares fazem parte de cada versão do orçamento.</p>
+          <Button variant="success" href={`/eventos/${id}/orcamento`}>Ir para o orçamento</Button>
+        </section>
+      )}
+    </div>
+    <div class="coluna-lateral">
+      {orcamento && versao && <VersoesLateral orcamento={orcamento} visualizando={versao.numero} basePath={base} />}
+      <EventoInfoLateral evento={evento} />
+    </div>
+  </div>
+</EventoLayout>
+
+<style>
+  .grid-evento {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 30px;
+    align-items: start;
+  }
+
+  .coluna-principal,
+  .coluna-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .coluna-lateral {
+    gap: 30px;
+  }
+
+  .orc-cabecalho-simples {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr auto;
+    align-items: center;
+    gap: 20px;
+    padding: 26px 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .orc-cabecalho-simples > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+  }
+
+  .rotulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .total {
+    font-size: 20px;
+    color: var(--color-neutral-80);
+  }
+
+  .sem-orcamento {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 36px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+</style>

@@ -1,0 +1,241 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import {
+  TIPOS_CATEGORIA_ITEM,
+  categoriaEventoSchema,
+  categoriaItemSchema,
+  excluirCategoriaEvento,
+  excluirCategoriaItem,
+  listarCategoriasEvento,
+  listarCategoriasItem,
+  listarTiposEvento,
+  salvarCategoriaEvento,
+  salvarCategoriaItem,
+} from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+const aba = Astro.url.searchParams.get('aba') === 'item' ? 'item' : 'evento';
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(
+    Astro,
+    async (data) => {
+      const id = formId(data);
+      if (aba === 'item') {
+        if (data._action === 'delete' && id) {
+          await withTenant(tenantId, (db) => excluirCategoriaItem(db, id));
+          return 'Categoria removida.';
+        }
+        const input = categoriaItemSchema.parse(data);
+        await withTenant(tenantId, (db) => salvarCategoriaItem(db, tenantId, id, input));
+        return id ? 'Categoria atualizada.' : 'Categoria criada.';
+      }
+      if (data._action === 'delete' && id) {
+        await withTenant(tenantId, (db) => excluirCategoriaEvento(db, id));
+        return 'Categoria removida.';
+      }
+      const input = categoriaEventoSchema.parse(data);
+      await withTenant(tenantId, (db) => salvarCategoriaEvento(db, tenantId, id, input));
+      return id ? 'Categoria atualizada.' : 'Categoria criada.';
+    },
+    { arrays: ['tipos'] }
+  );
+}
+
+const busca = searchTerm(Astro.url);
+const filtro = Astro.url.searchParams.get('filtro') || null;
+
+const { tipos, categoriasEvento, categoriasItem } = await withTenant(tenantId, async (db) => ({
+  tipos: await listarTiposEvento(db, null),
+  categoriasEvento: aba === 'evento' ? await listarCategoriasEvento(db, busca, filtro) : [],
+  categoriasItem: aba === 'item' ? await listarCategoriasItem(db, busca, filtro) : [],
+}));
+
+const eventoData = categoriasEvento.map((c) => ({
+  nome: html`<button type="button" class="row-link" data-drawer-open="drawer-cat-evento" data-values="${JSON.stringify({
+    id: c.id,
+    nome: c.nome,
+    descricao: c.descricao,
+    tipos: c.tipos,
+  })}">${c.nome}</button>`,
+  tipos: html`<div class="inline-list">${tipos.map(
+    (t) => html`<label class="switch"><input type="checkbox" data-toggle-tipo data-categoria="${c.id}" data-tipo="${t.id}" ${
+      c.tipos.includes(t.id) && html`checked`
+    } />${t.nome}</label>`
+  )}</div>`,
+  eventos: c.eventos,
+  acoes: html`<form method="post" class="cell-actions">
+      <input type="hidden" name="id" value="${c.id}" />
+      <button type="button" class="row-action" data-drawer-open="drawer-cat-evento" data-values="${JSON.stringify({
+        id: c.id,
+        nome: c.nome,
+        descricao: c.descricao,
+        tipos: c.tipos,
+      })}">Editar</button>
+      <button type="submit" name="_action" value="delete" class="row-action danger" data-confirm="Excluir a categoria ${c.nome}?">Excluir</button>
+    </form>`,
+}));
+
+const itemData = categoriasItem.map((c) => ({
+  nome: c.nome,
+  tipo: TIPOS_CATEGORIA_ITEM[c.tipo],
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-cat-item" data-values="${JSON.stringify({
+    id: c.id,
+    nome: c.nome,
+    tipo: c.tipo,
+  })}">Editar</button>`,
+}));
+
+const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
+---
+
+<AppLayout title="Categorias" heading="Configurações / Categoria" submenu={CONFIG_SUBMENU} submenuActive="categorias">
+  <nav class="segmented" aria-label="Tipo de categoria">
+    <a href={abaHref('evento')} class:list={{ active: aba === 'evento' }}>Categorias de evento</a>
+    <a href={abaHref('item')} class:list={{ active: aba === 'item' }}>Categorias de item do cardápio</a>
+  </nav>
+
+  {aba === 'evento' ? (
+    <>
+      <PageToolbar
+        filter={{
+          name: 'filtro',
+          placeholder: 'Tipo de evento',
+          options: tipos.map((t) => ({ value: t.id, label: t.nome })),
+        }}
+      >
+        <Button icon="add_circle" data-drawer-open="drawer-cat-evento">Adicionar categoria</Button>
+      </PageToolbar>
+      <Table
+        columns={[
+          { key: 'nome', label: 'Nome Categoria', width: '28%' },
+          { key: 'tipos', label: 'Tipo de Evento' },
+          { key: 'eventos', label: 'Eventos', align: 'center' },
+          { key: 'acoes', label: 'Ações', align: 'right' },
+        ]}
+        data={eventoData}
+        emptyMessage="Nenhuma categoria de evento cadastrada."
+      />
+    </>
+  ) : (
+    <>
+      <PageToolbar
+        filter={{
+          name: 'filtro',
+          placeholder: 'Principal ou secundária',
+          options: Object.entries(TIPOS_CATEGORIA_ITEM).map(([value, label]) => ({ value, label })),
+        }}
+      >
+        <Button icon="add_circle" data-drawer-open="drawer-cat-item">Adicionar categoria</Button>
+      </PageToolbar>
+      <Table
+        columns={[
+          { key: 'nome', label: 'Nome Categoria' },
+          { key: 'tipo', label: 'Aplica-se a' },
+          { key: 'acoes', label: 'Ações', align: 'right' },
+        ]}
+        data={itemData}
+        emptyMessage="Nenhuma categoria de item cadastrada."
+      />
+      <p class="help">
+        A <strong>categoria principal</strong> indica o tipo do item (Salgado, Doce, Bebida). A
+        <strong>secundária</strong> indica o momento do serviço (Recepção, Entrada, Prato principal, Sobremesa).
+      </p>
+    </>
+  )}
+
+  <Fragment slot="overlays">
+    <Drawer id="drawer-cat-evento" formId="form-cat-evento" title="Nova categoria de evento" editTitle="Editar categoria" width="md">
+      <form id="form-cat-evento" method="post" class="form-grid">
+        <input type="hidden" name="id" />
+        <div class="field span-2">
+          <label for="cat-nome">Nome da categoria*</label>
+          <input id="cat-nome" name="nome" required maxlength="80" placeholder="Ex.: Casamento, Confraternização" />
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Tipos de evento</span>
+          <div class="chip-group">
+            {tipos.map((t) => (
+              <label class="chip"><input type="checkbox" name="tipos" value={t.id} />{t.nome}</label>
+            ))}
+          </div>
+        </div>
+        <div class="field span-2">
+          <label for="cat-desc">Descrição</label>
+          <textarea id="cat-desc" name="descricao" maxlength="500"></textarea>
+        </div>
+      </form>
+    </Drawer>
+
+    <Drawer id="drawer-cat-item" formId="form-cat-item" title="Nova categoria de item" editTitle="Editar categoria" width="md">
+      <form id="form-cat-item" method="post" action="?aba=item" class="form-grid">
+        <input type="hidden" name="id" />
+        <div class="field span-2">
+          <label for="cati-nome">Nome da categoria*</label>
+          <input id="cati-nome" name="nome" required maxlength="80" placeholder="Ex.: Salgado, Entrada" />
+        </div>
+        <div class="field span-2">
+          <label for="cati-tipo">Aplica-se a*</label>
+          <select id="cati-tipo" name="tipo" required>
+            {Object.entries(TIPOS_CATEGORIA_ITEM).map(([value, label]) => <option value={value}>{label}</option>)}
+          </select>
+        </div>
+      </form>
+    </Drawer>
+  </Fragment>
+</AppLayout>
+
+<script>
+  document.querySelectorAll<HTMLInputElement>('[data-toggle-tipo]').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const toast = (window as unknown as { banketToast: (m: string, t?: string) => void }).banketToast;
+      input.disabled = true;
+      try {
+        const res = await fetch('/api/configuracoes/categorias/tipos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ categoriaId: input.dataset.categoria, tipoId: input.dataset.tipo, ativo: input.checked }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao salvar');
+        toast('Categoria atualizada.', 'success');
+      } catch (err) {
+        input.checked = !input.checked;
+        toast(err instanceof Error ? err.message : 'Erro ao salvar', 'error');
+      } finally {
+        input.disabled = false;
+      }
+    });
+  });
+</script>
+
+<style>
+  .help {
+    margin-top: 16px;
+    color: var(--color-neutral-65);
+    font-size: 13px;
+  }
+
+  :global(.row-link) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  :global(.row-link:hover) {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+</style>

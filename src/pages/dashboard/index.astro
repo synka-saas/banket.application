@@ -1,0 +1,286 @@
+---
+import Icon from '../../components/ui/Icon.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import { withTenant } from '../../lib/db';
+import { formatMoney } from '../../lib/money';
+import { dataComDiaSemana, dataHora } from '../../lib/datas';
+import { DIAS_SEM_RESPOSTA, PERIODOS, carregarIndicadores, type Periodo } from '../../server/dashboard';
+
+const user = Astro.locals.user;
+const p = Astro.url.searchParams.get('periodo');
+const periodo: Periodo = p && p in PERIODOS ? (p as Periodo) : '90';
+const ind = await withTenant(user.tenantId, (db) => carregarIndicadores(db, periodo));
+
+const maxEventos = Math.max(1, ...ind.porStatus.map((s) => s.eventos));
+const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
+const primeiroNome = user.nome.split(' ')[0];
+---
+
+<AppLayout title="Dashboard" heading="Dashboard">
+  <div class="topo">
+    <div>
+      <h2>Olá, {primeiroNome}</h2>
+      <p class="muted">Indicadores dos pedidos que entraram no período. Valores = versão atual de cada orçamento.</p>
+    </div>
+    <form method="get">
+      <select name="periodo" class="control" aria-label="Período" data-autosubmit-row>
+        {Object.entries(PERIODOS).map(([v, l]) => <option value={v} selected={v === periodo}>{l}</option>)}
+      </select>
+    </form>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <span class="rotulo">Pedidos recebidos</span>
+      <strong>{ind.pedidos}</strong>
+      <span class="muted">{PERIODOS[periodo].toLowerCase()}</span>
+    </div>
+    <div class="kpi">
+      <span class="rotulo">Em aberto</span>
+      <strong>{formatMoney(ind.pipeline.valor)}</strong>
+      <span class="muted">{ind.pipeline.eventos} evento{ind.pipeline.eventos === 1 ? '' : 's'} no funil</span>
+    </div>
+    <div class="kpi">
+      <span class="rotulo">Aprovados</span>
+      <strong class="positivo">{formatMoney(ind.aprovados.valor)}</strong>
+      <span class="muted">{ind.aprovados.eventos} evento{ind.aprovados.eventos === 1 ? '' : 's'}</span>
+    </div>
+    <div class="kpi">
+      <span class="rotulo">Taxa de conversão</span>
+      <strong>{pct(ind.conversao)}</strong>
+      <span class="muted">{ind.aprovados.eventos} aprovados · {ind.recusados} recusados</span>
+    </div>
+    <div class="kpi">
+      <span class="rotulo">Ticket médio</span>
+      <strong>{ind.ticketMedio === null ? '—' : formatMoney(ind.ticketMedio)}</strong>
+      <span class="muted">dos eventos aprovados</span>
+    </div>
+  </div>
+
+  <div class="grade">
+    <div class="coluna">
+    <SectionCard title="Funil por status" icon="view_kanban">
+      <ul class="funil">
+        {ind.porStatus.map((s) => (
+          <li>
+            <a href={`/eventos?view=lista&status=${s.id}`} class="funil-nome">
+              <span class="bolinha" style={`background:${s.cor}`}></span>{s.nome}
+            </a>
+            <span class="barra"><span style={`width:${(s.eventos / maxEventos) * 100}%;background:${s.cor}`}></span></span>
+            <span class="funil-num">{s.eventos}</span>
+            <span class="funil-valor">{formatMoney(s.valor)}</span>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+    <SectionCard title={`Propostas sem retorno há ${DIAS_SEM_RESPOSTA}+ dias`} icon="send">
+      {ind.parados.length === 0 ? (
+        <p class="muted">Nenhuma proposta enviada aguardando retorno há mais de {DIAS_SEM_RESPOSTA} dias.</p>
+      ) : (
+        <ul class="lista">
+          {ind.parados.map((o) => (
+            <li>
+              <a href={`/eventos/${o.id}/orcamento`} style="--cor:var(--color-primary)">
+                <strong>{o.titulo ?? o.cliente_nome ?? 'Evento'}</strong>
+                <span class="muted">Enviada em {dataHora(o.enviado_em)} para {o.enviado_para ?? '-'} · há {o.dias} dias</span>
+                <span class="selo">{formatMoney(o.valor)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
+    </div>
+
+    <div class="coluna">
+    <SectionCard title="Próximos 30 dias" icon="calendar_today">
+      {ind.proximos.length === 0 ? (
+        <p class="muted">Nenhum evento agendado nos próximos 30 dias.</p>
+      ) : (
+        <ul class="lista">
+          {ind.proximos.map((e) => (
+            <li>
+              <a href={`/eventos/${e.id}`} style={`--cor:${e.cor}`}>
+                <strong>{e.titulo ?? e.cliente_nome ?? 'Evento'}</strong>
+                <span class="muted">
+                  {dataComDiaSemana(e.data_evento)}{e.hora_inicio && ` · ${e.hora_inicio}`}
+                  {e.numero_convidados !== null && ` · ${e.numero_convidados} convidados`}
+                </span>
+                <span class="selo" >{e.status_nome}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <a class="ver-mais" href="/agenda">Abrir agenda <Icon name="chevron_right" size={16} /></a>
+    </SectionCard>
+    </div>
+  </div>
+</AppLayout>
+
+<style>
+  .topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .topo h2 {
+    font-size: 22px;
+    color: var(--color-neutral-80);
+    margin-bottom: 4px;
+  }
+
+  .topo select {
+    min-width: 200px;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 22px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .kpi .rotulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .kpi strong {
+    font-size: 26px;
+    color: var(--color-neutral-80);
+  }
+
+  .kpi strong.positivo {
+    color: var(--color-secondary);
+  }
+
+  .kpi .muted {
+    font-size: 13px;
+  }
+
+  .grade {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .coluna {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  @media (max-width: 1100px) {
+    .grade {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .funil {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .funil li {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) 2fr 48px 140px;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+  }
+
+  .funil-nome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-neutral-80);
+  }
+
+  .bolinha {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .barra {
+    height: 10px;
+    background: var(--color-neutral-10);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .barra span {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+  }
+
+  .funil-num {
+    text-align: right;
+    font-weight: 600;
+  }
+
+  .funil-valor {
+    text-align: right;
+    color: var(--color-neutral-65);
+  }
+
+  .lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .lista a {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    padding: 10px 14px;
+    border-left: 4px solid var(--cor);
+    background: var(--color-neutral-10);
+    border-radius: 4px;
+    color: var(--color-neutral-80);
+    font-size: 14px;
+  }
+
+  .lista .muted {
+    grid-column: 1;
+    font-size: 13px;
+  }
+
+  .lista .selo {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 12px;
+    color: var(--color-neutral-65);
+  }
+
+  .ver-mais {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--color-primary);
+  }
+</style>

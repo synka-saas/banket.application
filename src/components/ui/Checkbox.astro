@@ -1,0 +1,142 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+  checked?: boolean;
+  required?: boolean;
+  type?: 'checkbox' | 'toggle';
+}
+
+const { id, name, label, checked = false, required = false, type = 'checkbox' } = Astro.props;
+---
+
+<div class={`checkbox-group type-${type}`}>
+  <label class="checkbox-label" for={id}>
+    {type === 'toggle' ? (
+      <div class="toggle-wrapper">
+        <input type="checkbox" id={id} name={name} class="toggle-input" checked={checked} />
+        <div class="toggle-slider"></div>
+      </div>
+    ) : (
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id={id} name={name} class="checkbox-input" checked={checked} required={required} />
+        <div class="checkbox-box">
+          <Icon name="check" size={14} class="checkmark" />
+        </div>
+      </div>
+    )}
+    <span class="label-text">{label}</span>
+  </label>
+</div>
+
+<style>
+  .checkbox-group {
+    margin-bottom: 16px;
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  .checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .label-text {
+    font-size: 14px;
+    color: var(--color-neutral-80);
+  }
+
+  /* Checkbox Styles */
+  .checkbox-input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+
+  .checkbox-wrapper {
+    position: relative;
+    width: 18px;
+    height: 18px;
+  }
+
+  .checkbox-box {
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .checkmark {
+    color: white;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s ease;
+  }
+
+  .checkbox-input:checked ~ .checkbox-box {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .checkbox-input:checked ~ .checkbox-box .checkmark {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Toggle Styles */
+  .toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-wrapper {
+    position: relative;
+    width: 36px;
+    height: 20px;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-neutral-30);
+    border-radius: 20px;
+    transition: 0.3s;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+
+  .toggle-input:checked ~ .toggle-slider {
+    background-color: var(--color-primary);
+  }
+
+  .toggle-input:checked ~ .toggle-slider:before {
+    transform: translateX(16px);
+  }
+</style>

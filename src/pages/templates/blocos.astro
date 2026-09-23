@@ -1,0 +1,203 @@
+---
+import Icon from '../../components/ui/Icon.astro';
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { TEMPLATES_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import { renderTexto } from '../../lib/texto';
+import { PAGINAS_BLOCO, blocoSchema, excluirBloco, listarBlocos, salvarBloco, type PaginaBloco } from '../../server/templates';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(tenantId, async (db) => {
+      const id = formId(data);
+      if (data._action === 'delete' && id) {
+        await excluirBloco(db, id);
+        return { message: 'Bloco removido.', redirect: '/templates/blocos' };
+      }
+      const salvo = await salvarBloco(db, tenantId, id, blocoSchema.parse(data));
+      return { message: id ? 'Bloco atualizado.' : 'Bloco criado.', redirect: `/templates/blocos?id=${salvo}` };
+    })
+  );
+}
+
+const paginaFiltro = Astro.url.searchParams.get('pagina') || null;
+const blocos = await withTenant(tenantId, (db) => listarBlocos(db, { busca: searchTerm(Astro.url), pagina: paginaFiltro }));
+const novo = Astro.url.searchParams.has('novo');
+const selecionado = novo ? null : blocos.find((b) => b.id === Astro.url.searchParams.get('id')) ?? blocos[0] ?? null;
+const atual = selecionado ?? { id: '', titulo: '', texto: '', pagina: 'informacoes' as PaginaBloco, ativo_por_padrao: true, ordem: '' };
+const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
+  .map((p) => ({ pagina: p, blocos: blocos.filter((b) => b.pagina === p) }))
+  .filter((g) => g.blocos.length);
+---
+
+<AppLayout title="Blocos de Informação" heading="Templates / Blocos de Informação" submenu={TEMPLATES_SUBMENU} submenuActive="blocos">
+  <PageToolbar
+    filter={{ name: 'pagina', placeholder: 'Página da proposta', options: Object.entries(PAGINAS_BLOCO).map(([value, label]) => ({ value, label })) }}
+  >
+    <Button icon="add_circle" href="/templates/blocos?novo=1">Criar novo bloco</Button>
+  </PageToolbar>
+
+  <div class="grid-blocos">
+    <SectionCard title={selecionado ? selecionado.titulo : 'Novo bloco'}>
+      <form method="post" class="form-bloco" data-bloco-form>
+        <input type="hidden" name="id" value={atual.id} />
+        <div class="field">
+          <label for="bl-titulo">Título*</label>
+          <input id="bl-titulo" name="titulo" required maxlength="150" value={atual.titulo} placeholder="Título" />
+        </div>
+        <div class="field">
+          <label for="bl-texto">Conteúdo</label>
+          <textarea id="bl-texto" name="texto" rows="10" maxlength="10000" data-texto>{atual.texto}</textarea>
+          <span class="field-hint">"## " para subtítulo, "- " para item de lista, **texto** para negrito. Linha em branco separa parágrafos.</span>
+        </div>
+        <label class="switch"><input type="checkbox" name="ativo_por_padrao" checked={atual.ativo_por_padrao} />Incluído por padrão em novos orçamentos</label>
+        <div class="linha">
+          <div class="field">
+            <label for="bl-pagina">Página a ser inserido</label>
+            <select id="bl-pagina" name="pagina" required>
+              {Object.entries(PAGINAS_BLOCO).map(([value, label]) => <option value={value} selected={value === atual.pagina}>{label}</option>)}
+            </select>
+          </div>
+          <div class="field ordem">
+            <label for="bl-ordem">Ordem</label>
+            <input id="bl-ordem" name="ordem" type="number" min="0" value={atual.ordem} />
+          </div>
+        </div>
+        <div class="acoes">
+          {selecionado && (
+            <button type="submit" name="_action" value="delete" formnovalidate class="btn btn-outline btn-md" data-confirm="Excluir este bloco? Propostas já criadas mantêm a cópia do texto.">Excluir</button>
+          )}
+          <Button type="submit" variant="success">Salvar</Button>
+        </div>
+        <div class="previa">
+          <span class="field-label">Pré-visualização</span>
+          <div class="previa-texto" data-previa set:html={renderTexto(atual.texto) || '<p class="muted">Sem conteúdo.</p>'} />
+        </div>
+      </form>
+    </SectionCard>
+
+    <aside class="lista">
+      <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Blocos</h3>
+      {grupos.length === 0 && <p class="muted">Nenhum bloco encontrado.</p>}
+      {grupos.map((g) => (
+        <div class="grupo">
+          <span class="grupo-titulo">{PAGINAS_BLOCO[g.pagina]}</span>
+          <div class="chips">
+            {g.blocos.map((b) => (
+              <a href={`/templates/blocos?id=${b.id}${paginaFiltro ? `&pagina=${paginaFiltro}` : ''}`} class:list={['chip', 'chip-bloco', { atual: b.id === selecionado?.id }]} title={b.ativo_por_padrao ? 'Incluído por padrão' : 'Não incluído por padrão'}>
+                <input type="checkbox" checked={b.ativo_por_padrao} disabled tabindex="-1" aria-hidden="true" />
+                {b.titulo}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </aside>
+  </div>
+</AppLayout>
+
+<script>
+  import { renderTexto } from '../../lib/texto';
+
+  const texto = document.querySelector<HTMLTextAreaElement>('[data-bloco-form] [data-texto]');
+  const previa = document.querySelector<HTMLElement>('[data-previa]');
+  texto?.addEventListener('input', () => {
+    if (previa) previa.innerHTML = renderTexto(texto.value) || '<p class="muted">Sem conteúdo.</p>';
+  });
+</script>
+
+<style>
+  .grid-blocos {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+    gap: 30px;
+    align-items: start;
+  }
+
+  .form-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .linha {
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    gap: 16px;
+  }
+
+  .acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .previa {
+    padding-top: 16px;
+    border-top: 1px dashed var(--color-neutral-30);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .previa-texto {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-neutral-100);
+  }
+
+  .previa-texto :global(ul) {
+    list-style: disc;
+    padding-left: 20px;
+  }
+
+  .previa-texto :global(h4) {
+    margin: 8px 0 4px;
+  }
+
+  .previa-texto :global(p + p) {
+    margin-top: 8px;
+  }
+
+  .lista {
+    padding: 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .grupo + .grupo {
+    margin-top: 18px;
+  }
+
+  .grupo-titulo {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-neutral-65);
+    margin-bottom: 8px;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip-bloco {
+    text-transform: uppercase;
+    font-size: 13px;
+  }
+
+  .chip-bloco.atual {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+</style>

@@ -1,0 +1,123 @@
+---
+// Card de seção dos frames: ícone laranja + título em caixa alta; opcionalmente recolhível.
+import Icon from './Icon.astro';
+
+interface Props {
+  title: string;
+  icon?: string;
+  collapsible?: boolean;
+  open?: boolean;
+  /** Estilo do cabeçalho: "accent" (título laranja, padrão) ou "plain" (título escuro com divisória) */
+  variant?: 'accent' | 'plain';
+  class?: string;
+  id?: string;
+}
+
+const {
+  title,
+  icon = 'account_circle',
+  collapsible = false,
+  open = true,
+  variant = 'accent',
+  class: className,
+  id,
+} = Astro.props;
+---
+
+{collapsible ? (
+  <details class:list={['section-card', `section-${variant}`, className]} open={open} id={id}>
+    <summary class="section-header">
+      <span class="section-title">
+        {variant === 'accent' && <Icon name={icon} size={18} class="section-icon" />}
+        {title}
+      </span>
+      <span class="section-actions"><slot name="actions" /></span>
+      <Icon name="expand_circle_down" size={22} class="section-toggle" />
+    </summary>
+    <div class="section-body"><slot /></div>
+  </details>
+) : (
+  <section class:list={['section-card', `section-${variant}`, className]} id={id}>
+    <header class="section-header">
+      <span class="section-title">
+        {variant === 'accent' && <Icon name={icon} size={18} class="section-icon" />}
+        {title}
+      </span>
+      <span class="section-actions"><slot name="actions" /></span>
+    </header>
+    <div class="section-body"><slot /></div>
+  </section>
+)}
+
+<style>
+  .section-card {
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .section-card + .section-card {
+    margin-top: 16px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 28px 8px;
+    list-style: none;
+  }
+
+  .section-header::-webkit-details-marker {
+    display: none;
+  }
+
+  details > .section-header {
+    cursor: pointer;
+    padding-bottom: 20px;
+  }
+
+  details[open] > .section-header {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .section-title {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .section-accent .section-title {
+    color: var(--color-primary);
+  }
+
+  .section-plain .section-title {
+    color: var(--color-neutral-80);
+  }
+
+  .section-plain > .section-header {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .section-actions:empty {
+    display: none;
+  }
+
+  .section-toggle {
+    color: var(--color-neutral-65);
+    transition: transform 0.2s ease;
+  }
+
+  details:not([open]) .section-toggle {
+    transform: rotate(-90deg);
+  }
+
+  .section-body {
+    padding: 20px 28px 28px;
+  }
+</style>

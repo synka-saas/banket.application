@@ -1,0 +1,167 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import Icon from '../../components/ui/Icon.astro';
+---
+
+<AuthLayout title="Cadastro Complementar - Banket CRM" showOverlay={true}>
+  <div class="success-header">
+    <div class="icon-circle">
+      <Icon name="check" size={20} />
+    </div>
+    <h1 class="auth-title" style="margin-bottom: 16px;">E-mail Validado</h1>
+  </div>
+  
+  <p class="subtitle">Para finalizar, selecione o seu tipo de conta (PF ou PJ) e preencha as informações abaixo para começarmos a preparar o seu ambiente de gestão.</p>
+  
+  <div class="type-toggle">
+    <button type="button" class="type-btn" onclick="document.querySelector('.auth-form').classList.remove('is-pj')">
+      <Icon name="person" size={18} />
+      PESSOA FÍSICA
+    </button>
+    <button type="button" class="type-btn active" onclick="document.querySelector('.auth-form').classList.add('is-pj')">
+      <Icon name="domain" size={18} />
+      PESSOA JURÍDICA
+    </button>
+  </div>
+  
+  <form class="auth-form is-pj" action="/auth/direcionamento">
+    <div class="form-grid">
+      <Input 
+        id="nome" 
+        name="nome" 
+        label="NOME E SOBRENOME*" 
+        placeholder="Nome Sobrenome" 
+        required 
+      />
+      
+      <Input 
+        id="email" 
+        name="email" 
+        type="email" 
+        label="E-MAIL CORPORATIVO*" 
+        placeholder="nome@empresa.com.br" 
+        required 
+      />
+      
+      <Input 
+        id="celular" 
+        name="celular" 
+        label="CELULAR*" 
+        placeholder="DDD + 00000 0000" 
+        required 
+      />
+      
+      <div class="pf-only">
+        <Input 
+          id="cpf" 
+          name="cpf" 
+          label="CPF*" 
+          placeholder="000.000.000-00" 
+        />
+      </div>
+      
+      <div class="pj-only">
+        <Input 
+          id="razao_social" 
+          name="razao_social" 
+          label="RAZÃO SOCIAL*" 
+          placeholder="Nome da empresa" 
+        />
+        
+        <Input 
+          id="cnpj" 
+          name="cnpj" 
+          label="CNPJ*" 
+          placeholder="00.000.000/0000-00" 
+        />
+      </div>
+      
+      <Input 
+        id="endereco" 
+        name="endereco" 
+        label="ENDEREÇO COMERCIAL*" 
+        placeholder="Endereço" 
+        required 
+      />
+    </div>
+    
+    <Button variant="primary" size="large" class="mt-4" type="submit">
+      FINALIZAR E ACESSAR A PLATFORMA
+    </Button>
+  </form>
+  
+  <div class="auth-links">
+    <span style="font-size: 12px; color: #888;">*Dados obrigatórios</span>
+  </div>
+</AuthLayout>
+
+<style>
+  .success-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #E35336;
+    color: #E35336;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+  .type-toggle {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .type-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .type-btn.active, .is-pj .type-btn:nth-child(2), .auth-form:not(.is-pj) + .type-toggle .type-btn:nth-child(1) {
+    background: #E35336;
+    color: white;
+  }
+  
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .pf-only, .pj-only {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .is-pj .pf-only { display: none; }
+  .auth-form:not(.is-pj) .pj-only { display: none; }
+  
+  .mt-4 { margin-top: 16px; }
+</style>

@@ -1,0 +1,131 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { setFlash } from '../../lib/flash';
+import { formToObject, userMessage } from '../../lib/forms';
+import { html } from '../../lib/html';
+import { formatarDocumento } from '../../lib/documento';
+import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { clienteSchema, excluirCliente, listarClientes, salvarCliente } from '../../server/clientes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  const data = formToObject(await Astro.request.formData());
+  const id = (data.id as string) || null;
+  try {
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirCliente(db, id));
+      setFlash(Astro.cookies, 'success', 'Cliente removido.');
+    } else {
+      const input = clienteSchema.parse(data);
+      await withTenant(tenantId, (db) => salvarCliente(db, tenantId, id, input));
+      setFlash(Astro.cookies, 'success', id ? 'Cliente atualizado.' : 'Cliente cadastrado.');
+    }
+  } catch (err) {
+    setFlash(Astro.cookies, 'error', userMessage(err));
+  }
+  return Astro.redirect(Astro.url.pathname + Astro.url.search);
+}
+
+const page = pageParams(Astro.url);
+const { rows, total } = await withTenant(tenantId, (db) =>
+  listarClientes(db, { busca: searchTerm(Astro.url), tipo: Astro.url.searchParams.get('tipo') }, page)
+);
+
+const tableData = rows.map((c) => ({
+  nome: html`<a class="link" href="/clientes/${c.id}">${c.nome}</a>`,
+  documento: formatarDocumento(c.documento) || '-',
+  contato: html`${c.email || '-'}<br /><span class="muted">${c.telefone || ''}</span>`,
+  eventos: c.total_eventos,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-cliente" data-values="${JSON.stringify({
+    id: c.id,
+    tipo_pessoa: c.tipo_pessoa,
+    nome: c.nome,
+    documento: formatarDocumento(c.documento),
+    email: c.email,
+    telefone: c.telefone,
+    endereco: c.endereco,
+    observacoes: c.observacoes,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Clientes" heading="Clientes">
+  <PageToolbar
+    searchPlaceholder="Pesquisar por nome, e-mail ou documento"
+    filter={{
+      name: 'tipo',
+      placeholder: 'Tipo de cliente',
+      options: [
+        { value: 'PF', label: 'Pessoa física' },
+        { value: 'PJ', label: 'Pessoa jurídica' },
+      ],
+    }}
+  >
+    <Button icon="add_circle" data-drawer-open="drawer-cliente">Adicionar cliente</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome' },
+      { key: 'documento', label: 'CPF / CNPJ' },
+      { key: 'contato', label: 'Contato' },
+      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhum cliente encontrado."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  <Drawer
+    slot="overlays"
+    id="drawer-cliente"
+    formId="form-cliente"
+    title="Novo cliente"
+    editTitle="Editar cliente"
+    deleteConfirm="Excluir este cliente? Clientes com eventos não podem ser removidos."
+  >
+    <form id="form-cliente" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field">
+        <label for="cli-tipo">Tipo</label>
+        <select id="cli-tipo" name="tipo_pessoa" required>
+          <option value="PF">Pessoa física</option>
+          <option value="PJ">Pessoa jurídica</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cli-documento">CPF / CNPJ</label>
+        <input id="cli-documento" name="documento" inputmode="numeric" placeholder="000.000.000-00" />
+      </div>
+      <div class="field span-2">
+        <label for="cli-nome">Nome / Razão social*</label>
+        <input id="cli-nome" name="nome" required maxlength="255" placeholder="Ex.: Maria Silva, TechCorp Brasil" />
+      </div>
+      <div class="field">
+        <label for="cli-email">E-mail</label>
+        <input id="cli-email" name="email" type="email" placeholder="nome@email.com" />
+      </div>
+      <div class="field">
+        <label for="cli-telefone">Telefone / WhatsApp</label>
+        <input id="cli-telefone" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" />
+      </div>
+      <div class="field span-2">
+        <label for="cli-endereco">Endereço</label>
+        <input id="cli-endereco" name="endereco" placeholder="Rua, número, bairro, cidade - UF" />
+      </div>
+      <div class="field span-2">
+        <label for="cli-obs">Observações</label>
+        <textarea id="cli-obs" name="observacoes"></textarea>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>

@@ -1,0 +1,81 @@
+---
+// Casca das telas autenticadas: sidebar, topbar, submenu opcional, toast de feedback e área de conteúdo.
+import Layout from './Layout.astro';
+import Sidebar from '../components/Sidebar.astro';
+import Topbar from '../components/Topbar.astro';
+import Submenu from '../components/Submenu.astro';
+import Toast from '../components/ui/Toast.astro';
+
+interface SubmenuItem {
+  id: string;
+  label: string;
+  href: string;
+}
+
+interface Props {
+  /** Título da aba do navegador */
+  title: string;
+  /** Texto do topo (ex.: "Cardápios / Itens do Cardápio"); padrão = title */
+  heading?: string;
+  submenu?: SubmenuItem[];
+  submenuActive?: string;
+}
+
+const { title, heading = title, submenu, submenuActive } = Astro.props;
+---
+
+<Layout title={title}>
+  <Sidebar />
+  <main class="main-content">
+    <Topbar title={heading} />
+    {submenu && (
+      <Submenu items={submenu} activeId={submenuActive}>
+        <slot name="submenu-actions" />
+      </Submenu>
+    )}
+    <div class="page-content">
+      <slot />
+    </div>
+  </main>
+  <slot name="overlays" />
+  <Toast flash={Astro.locals.flash} />
+</Layout>
+
+<script>
+  // Qualquer botão/link com data-confirm pede confirmação antes de agir.
+  document.addEventListener(
+    'click',
+    (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-confirm]');
+      if (el && !window.confirm(el.dataset.confirm!)) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    },
+    true
+  );
+
+  // Selects editáveis dentro de tabelas (papel, categoria, especialidade) enviam o formulário ao mudar.
+  document.addEventListener('change', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.matches('[data-autosubmit-row]')) (el as HTMLSelectElement).form?.requestSubmit();
+  });
+</script>
+
+<style>
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--color-bg-body);
+  }
+
+  .page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 45px 48px;
+  }
+</style>

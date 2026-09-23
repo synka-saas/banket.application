@@ -1,0 +1,135 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import InfoCard from '../../components/ui/InfoCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { dataBR } from '../../lib/forms';
+import { searchTerm } from '../../lib/pagination';
+import { criarFormulario, listarFormularios } from '../../server/formularios';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async () => {
+    const id = await withTenant(tenantId, (db) => criarFormulario(db, tenantId));
+    return { message: 'Formulário criado a partir do modelo padrão.', redirect: `/formularios/${id}` };
+  });
+}
+
+const formularios = await withTenant(tenantId, (db) => listarFormularios(db, searchTerm(Astro.url)));
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<AppLayout title="Formulários" heading="Formulários">
+  <PageToolbar searchPlaceholder="Pesquisar por nome ou endereço">
+    <form method="post">
+      <Button type="submit" icon="add_circle">Criar formulário</Button>
+    </form>
+  </PageToolbar>
+
+  {formularios.length === 0 ? (
+    <div class="empty">Nenhum formulário encontrado. Crie um a partir do modelo padrão de captação.</div>
+  ) : (
+    <div class="cards-grid">
+      {formularios.map((f) => (
+        <InfoCard
+          title={f.nome}
+          icon="layers"
+          muted={!f.ativo}
+          rows={[
+            { label: 'Sessões ativas', value: pad(f.secoes_ativas) },
+            { label: 'Perguntas ativas', value: pad(f.perguntas_ativas) },
+            { label: 'Respostas', value: pad(f.respostas) },
+            { label: 'Última resposta', value: dataBR(f.ultima_resposta) },
+          ]}
+          tags={[f.ativo ? 'Ativo' : 'Inativo']}
+        >
+          <p slot="subtitle" class="descricao">{f.descricao ?? 'Sem descrição.'}</p>
+          <div class="link-publico">
+            <span class="link-url" title={`${Astro.url.origin}/f/${f.slug}`}>/f/{f.slug}</span>
+            <button type="button" class="row-action" data-copiar={`${Astro.url.origin}/f/${f.slug}`}>Copiar link</button>
+          </div>
+          <div slot="footer" class="acoes">
+            <Button block href={`/formularios/${f.id}`}>Editar</Button>
+            <div class="acoes-secundarias">
+              <a class="link" href={`/formularios/${f.id}/respostas`}>Respostas</a>
+              {f.ativo && <a class="link" href={`/f/${f.slug}`} target="_blank" rel="noopener">Abrir formulário</a>}
+            </div>
+          </div>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+</AppLayout>
+
+<script>
+  // Copia o link público do formulário
+  document.addEventListener('click', async (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-copiar]');
+    if (!el) return;
+    const toast = (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast;
+    try {
+      await navigator.clipboard.writeText(el.dataset.copiar!);
+      toast?.('Link copiado.', 'success');
+    } catch {
+      toast?.('Não foi possível copiar. Copie o endereço manualmente.', 'error');
+    }
+  });
+</script>
+
+<style>
+  .empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--color-neutral-50);
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+  }
+
+  .descricao {
+    margin: -8px 0 16px;
+    color: var(--color-neutral-50);
+    font-size: 14px;
+    min-height: 40px;
+  }
+
+  .link-publico {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 8px 12px;
+    background: var(--color-neutral-10);
+    border: 1px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+  }
+
+  .link-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-neutral-65);
+  }
+
+  .link-publico .row-action {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .acoes-secundarias {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 13px;
+  }
+</style>

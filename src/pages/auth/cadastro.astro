@@ -1,0 +1,69 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import Checkbox from '../../components/ui/Checkbox.astro';
+---
+
+<AuthLayout title="Cadastro - Banket CRM" showOverlay={true}>
+  <h1 class="auth-title">Crie sua conta e teste grátis<br>por 30 dias.</h1>
+  
+  <form class="auth-form" action="/auth/validacao">
+    <Input 
+      id="nome" 
+      name="nome" 
+      label="NOME E SOBRENOME*" 
+      placeholder="Nome Sobrenome" 
+      required 
+    />
+    
+    <Input 
+      id="email" 
+      name="email" 
+      type="email" 
+      label="E-MAIL*" 
+      placeholder="xxxx@xxxx.com.br" 
+      required 
+    />
+    
+    <Input 
+      id="senha" 
+      name="senha" 
+      type="password" 
+      label="SENHA*" 
+      placeholder="XXXXXXXX" 
+      required 
+    />
+    
+    <Input 
+      id="confirma_senha" 
+      name="confirma_senha" 
+      type="password" 
+      label="CONFIRME SUA SENHA*" 
+      placeholder="XXXXXXXX" 
+      required 
+    />
+    
+    <Checkbox 
+      id="termos"
+      name="termos"
+      label="Termos e Condições de Uso" 
+      required 
+    />
+    
+    <Button variant="primary" size="large" class="mt-4" type="submit">
+      CRIAR CONTA
+    </Button>
+  </form>
+  
+  <div class="auth-links">
+    Já tem uma conta? <a href="/auth/login">Entre agora</a><br>
+    <span style="font-size: 12px; color: #888;">*Dados obrigatórios</span>
+  </div>
+</AuthLayout>
+
+<style>
+  .mt-4 {
+    margin-top: 16px;
+  }
+</style>

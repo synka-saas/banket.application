@@ -1,0 +1,65 @@
+---
+interface Props {
+  title?: string;
+  class?: string;
+  headerColor?: 'white' | 'primary';
+}
+
+const { title, class: className = '', headerColor = 'white' } = Astro.props;
+---
+
+<div class={`card ${className}`}>
+  {title && (
+    <div class={`card-header header-${headerColor}`}>
+      <h3 class="card-title">{title}</h3>
+      <slot name="header-actions" />
+    </div>
+  )}
+  <div class="card-body">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .card {
+    background-color: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-white {
+    background-color: var(--color-white);
+  }
+
+  .header-white .card-title {
+    color: var(--color-primary); /* According to design, titles in cards are often orange */
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  .header-primary {
+    background-color: var(--color-primary);
+    border-bottom: none;
+  }
+  
+  .header-primary .card-title {
+    color: var(--color-white);
+    font-size: 14px;
+  }
+
+  .card-body {
+    padding: 24px;
+    flex: 1;
+  }
+</style>

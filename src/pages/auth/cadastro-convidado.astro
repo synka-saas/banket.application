@@ -1,0 +1,117 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import Checkbox from '../../components/ui/Checkbox.astro';
+import { setSessionCookie, signSession } from '../../lib/auth';
+import { setFlash } from '../../lib/flash';
+import { invalidateMembership } from '../../lib/membership';
+import { userMessage } from '../../lib/forms';
+import { REGRA_SENHA } from '../../lib/senha';
+import { aceitarConvite, buscarConvite } from '../../server/convites';
+
+const token = Astro.url.searchParams.get('token');
+let errorMessage = '';
+let nomeDigitado = '';
+
+if (Astro.request.method === 'POST' && token) {
+  const data = await Astro.request.formData();
+  nomeDigitado = data.get('nome')?.toString() ?? '';
+  try {
+    if (!data.get('termos') && !data.get('conta_existente')) {
+      throw new Error('termos');
+    }
+    const user = await aceitarConvite(token, {
+      nome: nomeDigitado,
+      senha: data.get('senha')?.toString() ?? '',
+      confirmacao: data.get('confirma_senha')?.toString(),
+    });
+    invalidateMembership(user.id, user.tenantId);
+    setSessionCookie(Astro.cookies, await signSession(user));
+    setFlash(Astro.cookies, 'success', `Bem-vindo(a) ao Banket, ${user.nome.split(' ')[0]}!`);
+    return Astro.redirect('/dashboard');
+  } catch (err) {
+    errorMessage =
+      err instanceof Error && err.message === 'termos' ? 'É preciso aceitar os Termos e Condições de Uso.' : userMessage(err);
+  }
+}
+
+const convite = await buscarConvite(token);
+---
+
+<AuthLayout title="Cadastro Convidado - Banket CRM" showOverlay={true}>
+  {convite ? (
+    <>
+      <h1 class="auth-title" style="margin-bottom: 8px;">Você foi convidado para o Banket</h1>
+      <p class="subtitle">
+        {convite.contaExistente
+          ? `Você já possui uma conta Banket. Informe sua senha para acessar também a ${convite.empresa}.`
+          : `Crie sua senha para acessar a ${convite.empresa} e acompanhar em tempo real a operação da sua empresa.`}
+      </p>
+
+      {errorMessage && <div class="auth-error">{errorMessage}</div>}
+
+      <form class="auth-form" method="POST">
+        {!convite.contaExistente && (
+          <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Nome Sobrenome" value={nomeDigitado || convite.nome} required />
+        )}
+
+        <Input id="email" name="email" type="email" label="E-MAIL" value={convite.email} readonly required />
+
+        <Input id="senha" name="senha" type="password" label="SENHA" placeholder="XXXXXXXX" autocomplete={convite.contaExistente ? 'current-password' : 'new-password'} required />
+
+        {convite.contaExistente ? (
+          <input type="hidden" name="conta_existente" value="1" />
+        ) : (
+          <>
+            <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A SENHA" placeholder="XXXXXXXX" autocomplete="new-password" required />
+            <div class="hint">{REGRA_SENHA}</div>
+          </>
+        )}
+
+        <Button variant="primary" size="large" type="submit">
+          {convite.contaExistente ? 'ACEITAR CONVITE E ACESSAR' : 'FINALIZAR E ACESSAR A PLATAFORMA'}
+        </Button>
+
+        {!convite.contaExistente && <Checkbox id="termos" name="termos" label="Termos e Condições de Uso" required />}
+      </form>
+
+      <div class="auth-links">
+        <span style="font-size: 12px; color: #888;">*Dados obrigatórios</span>
+      </div>
+    </>
+  ) : (
+    <>
+      <h1 class="auth-title" style="margin-bottom: 8px;">Convite inválido ou expirado</h1>
+      <p class="subtitle">Peça ao administrador da sua empresa para enviar um novo convite.</p>
+      <div class="auth-links"><a href="/auth/login">Ir para o login</a></div>
+    </>
+  )}
+</AuthLayout>
+
+<style>
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 40px;
+    line-height: 1.5;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: -8px;
+    margin-bottom: 8px;
+  }
+
+  .auth-error {
+    background-color: #fce8e6;
+    color: #d93025;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    text-align: center;
+  }
+</style>

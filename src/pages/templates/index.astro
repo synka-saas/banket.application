@@ -1,0 +1,88 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import InfoCard from '../../components/ui/InfoCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import { withTenant } from '../../lib/db';
+import { TEMPLATES_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import { fileUrl } from '../../lib/storage';
+import { listarTemplates } from '../../server/templates';
+
+const { tenantId } = Astro.locals.user;
+const templates = await withTenant(tenantId, (db) => listarTemplates(db, searchTerm(Astro.url)));
+---
+
+<AppLayout title="Templates" heading="Templates" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
+  <PageToolbar>
+    <Button icon="add_circle" href="/templates/novo">Criar novo template</Button>
+  </PageToolbar>
+
+  {templates.length === 0 ? (
+    <div class="empty">Nenhum template encontrado.</div>
+  ) : (
+    <div class="cards-grid">
+      {templates.map((t) => (
+        <InfoCard title={t.nome} tags={[...(t.padrao ? ['Padrão'] : []), ...t.tags.filter((x) => x.toLowerCase() !== 'padrão')]}>
+          <p slot="subtitle" class="descricao">{t.descricao ?? 'Sem descrição.'}</p>
+          <a
+            href={`/templates/${t.id}`}
+            class="miniatura"
+            style={`--fundo:${t.cor_fundo};--destaque:${t.cor_texto_secundaria};--texto:${t.cor_texto_primaria};${t.capa_imagem_path ? `background-image:url('${fileUrl(tenantId, t.capa_imagem_path)}')` : ''}`}
+            aria-label={`Editar ${t.nome}`}
+          >
+            <span class:list={['miniatura-titulo', { 'sobre-imagem': Boolean(t.capa_imagem_path) }]} style={`font-family:'${t.fonte_titulo}', sans-serif`}>
+              {t.capa_titulo}
+            </span>
+          </a>
+          <Button slot="footer" block href={`/templates/${t.id}`}>Editar</Button>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+</AppLayout>
+
+<style>
+  .empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--color-neutral-50);
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+  }
+
+  .descricao {
+    margin: -8px 0 16px;
+    color: var(--color-neutral-50);
+    font-size: 14px;
+    min-height: 40px;
+  }
+
+  .miniatura {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: 3px;
+    background-color: var(--fundo);
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--color-neutral-30);
+    text-align: center;
+  }
+
+  .miniatura-titulo {
+    color: var(--destaque);
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  .miniatura-titulo.sobre-imagem {
+    color: #fff;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  }
+</style>

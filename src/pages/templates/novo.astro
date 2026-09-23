@@ -1,0 +1,24 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import TemplateForm from '../../components/templates/TemplateForm.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { TEMPLATES_SUBMENU } from '../../lib/nav';
+import { removeFile, saveUpload } from '../../lib/storage';
+import { salvarTemplateDoFormulario } from '../../server/templates';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data, raw) => {
+    const id = await withTenant(tenantId, (db) =>
+      salvarTemplateDoFormulario(db, tenantId, null, data, raw, { saveUpload: (t, f, a) => saveUpload(t, f, a), removeFile })
+    );
+    return { message: 'Template criado.', redirect: `/templates/${id}` };
+  });
+}
+---
+
+<AppLayout title="Novo template" heading="Templates / Novo Template" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
+  <TemplateForm template={{ capa_ativa: true, contracapa_ativa: false }} tenantId={tenantId} />
+</AppLayout>

@@ -1,0 +1,102 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { brl } from '../../lib/forms';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import {
+  descreverFaixa,
+  excluirFaixaLocacao,
+  faixaLocacaoSchema,
+  listarFaixasLocacao,
+  salvarFaixaLocacao,
+} from '../../server/configuracoes';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirFaixaLocacao(db, id));
+      return 'Faixa removida.';
+    }
+    const input = faixaLocacaoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarFaixaLocacao(db, tenantId, id, input));
+    return id ? 'Faixa atualizada.' : 'Faixa criada.';
+  });
+}
+
+const faixas = await withTenant(tenantId, (db) => listarFaixasLocacao(db));
+
+const tableData = faixas.map((f) => ({
+  faixa: descreverFaixa(f),
+  valor: brl(f.valor),
+  observacao: f.observacao || '-',
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-faixa" data-values="${JSON.stringify({
+    id: f.id,
+    min_convidados: f.min_convidados,
+    max_convidados: f.max_convidados,
+    valor: f.valor.toFixed(2).replace('.', ','),
+    observacao: f.observacao,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Locação do espaço" heading="Configurações / Locação do espaço" submenu={CONFIG_SUBMENU} submenuActive="locacao">
+  <PageToolbar showSearch={false}>
+    <Button icon="add_circle" data-drawer-open="drawer-faixa">Adicionar faixa</Button>
+  </PageToolbar>
+
+  <p class="intro">
+    O valor da locação entra automaticamente no orçamento conforme o número de convidados do evento. O valor pode ser
+    ajustado manualmente em cada orçamento.
+  </p>
+
+  <Table
+    columns={[
+      { key: 'faixa', label: 'Faixa de convidados' },
+      { key: 'valor', label: 'Valor da locação' },
+      { key: 'observacao', label: 'Observação' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhuma faixa cadastrada: a locação não será calculada automaticamente."
+  />
+
+  <Drawer slot="overlays" id="drawer-faixa" formId="form-faixa" title="Nova faixa de locação" editTitle="Editar faixa de locação" width="md">
+    <form id="form-faixa" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field">
+        <label for="fx-min">Mínimo de convidados*</label>
+        <input id="fx-min" name="min_convidados" type="number" min="0" step="1" required />
+      </div>
+      <div class="field">
+        <label for="fx-max">Máximo de convidados</label>
+        <input id="fx-max" name="max_convidados" type="number" min="0" step="1" placeholder="Sem limite" />
+      </div>
+      <div class="field span-2">
+        <label for="fx-valor">Valor da locação (R$)*</label>
+        <input id="fx-valor" name="valor" inputmode="decimal" required placeholder="0,00" />
+      </div>
+      <div class="field span-2">
+        <label for="fx-obs">Observação</label>
+        <input id="fx-obs" name="observacao" maxlength="500" placeholder="Ex.: Somente na modalidade coquetel" />
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<style>
+  .intro {
+    margin: -8px 0 20px;
+    color: var(--color-neutral-65);
+    font-size: 13px;
+    max-width: 760px;
+  }
+</style>

@@ -1,0 +1,94 @@
+---
+import Icon from './Icon.astro';
+
+interface Option {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  id: string;
+  name: string;
+  label?: string;
+  options: Option[];
+  value?: string;
+  required?: boolean;
+}
+
+const { id, name, label, options, value, required = false } = Astro.props;
+---
+
+<div class="select-group">
+  {label && (
+    <label for={id} class="select-label">
+      {label} {required && <span class="required">*</span>}
+    </label>
+  )}
+  
+  <div class="select-wrapper">
+    <select id={id} name={name} class="select-field" required={required}>
+      <option value="" disabled selected={!value}>Selecione...</option>
+      {options.map((opt) => (
+        <option value={opt.value} selected={value === opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+    <div class="select-arrow">
+      <Icon name="expand_more" size={18} />
+    </div>
+  </div>
+</div>
+
+<style>
+  .select-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  .select-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    margin-bottom: 8px;
+  }
+
+  .required {
+    color: #E35336;
+  }
+
+  .select-wrapper {
+    position: relative;
+  }
+
+  .select-field {
+    width: 100%;
+    padding: 10px 32px 10px 12px;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+    background-color: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    outline: none;
+    appearance: none; /* Hide default arrow */
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .select-field:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(227, 83, 54, 0.1);
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-neutral-40);
+    display: flex;
+    pointer-events: none;
+  }
+</style>

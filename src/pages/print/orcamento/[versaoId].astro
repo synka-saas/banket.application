@@ -1,0 +1,18 @@
+---
+// Página de impressão de uma versão do orçamento (aberta pelo Chromium interno com token de curta duração).
+import Proposta from '../../../components/proposta/Proposta.astro';
+import { withTenant } from '../../../lib/db';
+import { verifyPrintToken } from '../../../lib/printToken';
+import { montarProposta } from '../../../server/proposta';
+
+const versaoId = Astro.params.versaoId!;
+const claims = await verifyPrintToken(Astro.url.searchParams.get('token'), 'versao', versaoId);
+if (!claims) return new Response('Não autorizado', { status: 401 });
+
+const parte = Astro.url.searchParams.get('parte');
+if (parte !== 'capa' && parte !== 'miolo' && parte !== 'contracapa') return new Response('Parte inválida', { status: 400 });
+
+const view = await withTenant(claims.tenantId, (db) => montarProposta(db, claims.tenantId, versaoId));
+---
+
+<Proposta view={view} parte={parte} />

@@ -1,0 +1,400 @@
+---
+// Formulário completo do evento (criação e edição), organizado nas mesmas seções do Resumo.
+import SectionCard from '../ui/SectionCard.astro';
+import Button from '../ui/Button.astro';
+import { moneyInput } from '../../lib/money';
+import { formatarDocumento } from '../../lib/documento';
+import {
+  COMPLIANCE,
+  CONVITE_EXPERIENCIA,
+  QUALIFICACOES,
+  RESTRICOES_EVENTO,
+  STAFF_TERCEIROS,
+} from '../../server/eventos';
+
+interface Opcao {
+  id: string;
+  nome: string;
+}
+
+interface Props {
+  /** Valores atuais (do banco na edição, ou os digitados quando houve erro) */
+  valores: Record<string, unknown>;
+  clientes: (Opcao & { documento: string | null })[];
+  tipos: Opcao[];
+  categorias: (Opcao & { tipos: string[] })[];
+  formatos: Opcao[];
+  status: Opcao[];
+  erro?: string;
+  cancelarHref: string;
+  modo: 'criar' | 'editar';
+}
+
+const { valores: v, clientes, tipos, categorias, formatos, status, erro, cancelarHref, modo } = Astro.props;
+
+const texto = (campo: string) => (v[campo] === null || v[campo] === undefined ? '' : String(v[campo]));
+const lista = (campo: string): string[] => (Array.isArray(v[campo]) ? (v[campo] as string[]) : v[campo] ? [String(v[campo])] : []);
+const dinheiro = (campo: string) => (typeof v[campo] === 'number' ? moneyInput(v[campo] as number) : texto(campo));
+const decimal = (campo: string) => texto(campo).replace('.', ',');
+const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo === 'criar' && clientes.length === 0);
+---
+
+<form method="post" class="evento-form" data-evento-form novalidate>
+  <div class="form-topo">
+    <div>
+      {erro && <div class="form-erro" role="alert">{erro}</div>}
+    </div>
+    <div class="form-acoes">
+      <Button variant="outline" href={cancelarHref}>Cancelar</Button>
+      <Button type="submit" variant="success">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+    </div>
+  </div>
+
+  <SectionCard title="Cliente" icon="account_box">
+    <input type="hidden" name="cliente_novo" value={clienteNovo ? '1' : '0'} data-cliente-novo />
+    <div class="form-grid" data-cliente-existente hidden={clienteNovo}>
+      <div class="field span-2">
+        <label for="ev-cliente">Cliente*</label>
+        <select id="ev-cliente" name="cliente_id">
+          <option value="">Selecione…</option>
+          {clientes.map((c) => (
+            <option value={c.id} selected={c.id === v.cliente_id}>
+              {c.nome}{c.documento ? ` · ${formatarDocumento(c.documento)}` : ''}
+            </option>
+          ))}
+        </select>
+        <button type="button" class="ed-link" data-alternar-cliente="novo">+ Cadastrar novo cliente</button>
+      </div>
+    </div>
+    <div class="form-grid" data-cliente-novo-campos hidden={!clienteNovo}>
+      <div class="field">
+        <label for="cn-tipo">Tipo</label>
+        <select id="cn-tipo" name="cliente_tipo_pessoa">
+          <option value="PJ" selected={v.cliente_tipo_pessoa === 'PJ'}>Pessoa jurídica</option>
+          <option value="PF" selected={v.cliente_tipo_pessoa !== 'PJ'}>Pessoa física</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="cn-doc">CPF / CNPJ</label>
+        <input id="cn-doc" name="cliente_documento" value={texto('cliente_documento')} inputmode="numeric" />
+      </div>
+      <div class="field span-2">
+        <label for="cn-nome">Nome / Razão social*</label>
+        <input id="cn-nome" name="cliente_nome" value={texto('cliente_nome')} maxlength="255" />
+      </div>
+      <div class="field">
+        <label for="cn-email">E-mail</label>
+        <input id="cn-email" name="cliente_email" type="email" value={texto('cliente_email')} />
+      </div>
+      <div class="field">
+        <label for="cn-tel">Telefone</label>
+        <input id="cn-tel" name="cliente_telefone" value={texto('cliente_telefone')} />
+      </div>
+      {clientes.length > 0 && (
+        <div class="span-2"><button type="button" class="ed-link" data-alternar-cliente="existente">Escolher um cliente já cadastrado</button></div>
+      )}
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Detalhes do evento" icon="calendar_today">
+    <div class="form-grid cols-3">
+      <div class="field span-3">
+        <label for="ev-titulo">Título do evento</label>
+        <input id="ev-titulo" name="titulo" value={texto('titulo')} maxlength="200" placeholder="Ex.: Confraternização de fim de ano (gerado automaticamente se vazio)" />
+      </div>
+      <div class="field">
+        <label for="ev-tipo">Natureza (tipo)</label>
+        <select id="ev-tipo" name="tipo_evento_id" data-tipo-evento>
+          <option value="">Selecione…</option>
+          {tipos.map((t) => <option value={t.id} selected={t.id === v.tipo_evento_id}>{t.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ev-categoria">Formato do evento (categoria)</label>
+        <select id="ev-categoria" name="categoria_evento_id" data-categoria-evento>
+          <option value="">Selecione…</option>
+          {categorias.map((c) => (
+            <option value={c.id} data-tipos={c.tipos.join(',')} selected={c.id === v.categoria_evento_id}>{c.nome}</option>
+          ))}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ev-status">Status</label>
+        <select id="ev-status" name="status_id">
+          {modo === 'criar' && <option value="">Entrada (padrão)</option>}
+          {status.map((s) => <option value={s.id} selected={s.id === v.status_id}>{s.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ev-data">Data</label>
+        <input id="ev-data" type="date" name="data_evento" value={texto('data_evento')} />
+      </div>
+      <div class="field">
+        <label for="ev-hi">Início</label>
+        <input id="ev-hi" type="time" name="hora_inicio" value={texto('hora_inicio')} />
+      </div>
+      <div class="field">
+        <label for="ev-hf">Término</label>
+        <input id="ev-hf" type="time" name="hora_fim" value={texto('hora_fim')} />
+      </div>
+      <div class="field">
+        <label for="ev-conv">Convidados</label>
+        <input id="ev-conv" type="number" min="0" name="numero_convidados" value={texto('numero_convidados')} />
+      </div>
+      <div class="field">
+        <label for="ev-perfil">Perfil dos convidados</label>
+        <input id="ev-perfil" name="perfil_convidados" value={texto('perfil_convidados')} list="perfis" placeholder="Ex.: Clientes VIPs" />
+        <datalist id="perfis">
+          <option value="Clientes VIPs" /><option value="Colaboradores" /><option value="Família e amigos" /><option value="Público misto" />
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="ev-formato">Formato de serviço</label>
+        <select id="ev-formato" name="formato_servico_id">
+          <option value="">Selecione…</option>
+          {formatos.map((f) => <option value={f.id} selected={f.id === v.formato_servico_id}>{f.nome}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ev-dur">Duração do evento (horas)</label>
+        <input id="ev-dur" inputmode="decimal" name="duracao_evento_horas" value={decimal('duracao_evento_horas')} />
+      </div>
+      <div class="field">
+        <label for="ev-dura">Duração da alimentação (horas)</label>
+        <input id="ev-dura" inputmode="decimal" name="duracao_alimentacao_horas" value={decimal('duracao_alimentacao_horas')} />
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Responsável" icon="account_circle">
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label for="ev-rn">Nome</label>
+        <input id="ev-rn" name="responsavel_nome" value={texto('responsavel_nome')} maxlength="255" />
+      </div>
+      <div class="field">
+        <label for="ev-re">E-mail</label>
+        <input id="ev-re" type="email" name="responsavel_email" value={texto('responsavel_email')} />
+      </div>
+      <div class="field">
+        <label for="ev-rw">WhatsApp</label>
+        <input id="ev-rw" name="responsavel_whatsapp" value={texto('responsavel_whatsapp')} inputmode="tel" />
+      </div>
+      <div class="field">
+        <label for="ev-qual">Qualificação do cliente</label>
+        <select id="ev-qual" name="qualificacao">
+          <option value="">Selecione…</option>
+          {Object.entries(QUALIFICACOES).map(([k, l]) => <option value={k} selected={k === v.qualificacao}>{l}</option>)}
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="ev-conv-exp">Convite para experiência</label>
+        <select id="ev-conv-exp" name="convite_experiencia">
+          <option value="">Selecione…</option>
+          {CONVITE_EXPERIENCIA.map((c) => <option value={c} selected={c === v.convite_experiencia}>{c}</option>)}
+        </select>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Logística e infraestrutura" icon="domain">
+    <div class="form-grid">
+      <div class="field">
+        <span class="field-label">Local</span>
+        <div class="radios">
+          <label><input type="radio" name="local_tipo" value="casa" checked={v.local_tipo !== 'externo'} /> No nosso espaço</label>
+          <label><input type="radio" name="local_tipo" value="externo" checked={v.local_tipo === 'externo'} /> Local externo (empresa, residência ou espaço alugado)</label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="ev-local">Nome do local</label>
+        <input id="ev-local" name="local_nome" value={texto('local_nome')} maxlength="255" />
+      </div>
+      <div class="field span-2">
+        <label for="ev-end">Endereço</label>
+        <input id="ev-end" name="endereco" value={texto('endereco')} maxlength="500" />
+      </div>
+      <div class="field span-2">
+        <label for="ev-infra">Infraestrutura</label>
+        <textarea id="ev-infra" name="infraestrutura" maxlength="2000" placeholder="Ex.: não possui estrutura, precisaremos de montagem completa">{texto('infraestrutura')}</textarea>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Orçamento e pagamento" icon="room_service">
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label for="ev-verba">Estimativa de verba total (R$)</label>
+        <input id="ev-verba" inputmode="decimal" name="verba_total" value={dinheiro('verba_total')} />
+      </div>
+      <div class="field">
+        <label for="ev-verba-pp">Verba por pessoa (R$)</label>
+        <input id="ev-verba-pp" inputmode="decimal" name="verba_por_pessoa" value={dinheiro('verba_por_pessoa')} />
+      </div>
+      <div class="field">
+        <label for="ev-pag">Forma de pagamento</label>
+        <input id="ev-pag" name="forma_pagamento" value={texto('forma_pagamento')} maxlength="255" placeholder="Ex.: 30/60 dias" />
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Estilo gastronômico e bebidas" icon="chef_hat">
+    <div class="form-grid">
+      <div class="field">
+        <label for="ev-ep">Estilo principal</label>
+        <textarea id="ev-ep" name="estilo_principal" maxlength="1000">{texto('estilo_principal')}</textarea>
+      </div>
+      <div class="field">
+        <label for="ev-es">Estilo secundário</label>
+        <textarea id="ev-es" name="estilo_secundario" maxlength="1000">{texto('estilo_secundario')}</textarea>
+      </div>
+      <div class="field">
+        <label for="ev-ba">Bebidas alcoólicas</label>
+        <input id="ev-ba" name="bebidas_alcoolicas" value={texto('bebidas_alcoolicas')} maxlength="1000" placeholder="Ex.: Open bar completo" />
+      </div>
+      <div class="field">
+        <label for="ev-bs">Bebidas sem álcool</label>
+        <input id="ev-bs" name="bebidas_sem_alcool" value={texto('bebidas_sem_alcool')} maxlength="1000" placeholder="Ex.: Água, sucos e refrigerantes" />
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Restrições alimentares</span>
+        <div class="chip-group">
+          {Object.entries(RESTRICOES_EVENTO).map(([k, l]) => (
+            <label class="chip"><input type="checkbox" name="restricoes" value={k} checked={lista('restricoes').includes(k)} />{l}</label>
+          ))}
+        </div>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Compliance, staff de terceiros e comentários" icon="description">
+    <div class="form-grid">
+      <div class="field span-2">
+        <span class="field-label">Requisitos de compliance</span>
+        <div class="chip-group">
+          {Object.entries(COMPLIANCE).map(([k, l]) => (
+            <label class="chip"><input type="checkbox" name="compliance" value={k} checked={lista('compliance').includes(k)} />{l}</label>
+          ))}
+        </div>
+      </div>
+      <div class="field">
+        <label for="ev-staff">Staff de terceiros</label>
+        <select id="ev-staff" name="staff_terceiros">
+          <option value="">Selecione…</option>
+          {STAFF_TERCEIROS.map((s) => <option value={s} selected={s === v.staff_terceiros}>{s}</option>)}
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="ev-coment">Comentário do cliente</label>
+        <textarea id="ev-coment" name="comentario_cliente" rows="5" maxlength="5000">{texto('comentario_cliente')}</textarea>
+      </div>
+    </div>
+  </SectionCard>
+
+  <div class="form-rodape">
+    <Button variant="outline" href={cancelarHref}>Cancelar</Button>
+    <Button type="submit" variant="success">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+  </div>
+</form>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-evento-form]');
+  if (form) {
+    // Alterna entre escolher cliente existente e cadastrar um novo
+    const flag = form.querySelector<HTMLInputElement>('[data-cliente-novo]')!;
+    const existente = form.querySelector<HTMLElement>('[data-cliente-existente]')!;
+    const novo = form.querySelector<HTMLElement>('[data-cliente-novo-campos]')!;
+    form.querySelectorAll<HTMLElement>('[data-alternar-cliente]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        const usarNovo = btn.dataset.alternarCliente === 'novo';
+        flag.value = usarNovo ? '1' : '0';
+        existente.hidden = usarNovo;
+        novo.hidden = !usarNovo;
+        (usarNovo ? novo.querySelector<HTMLInputElement>('[name="cliente_nome"]') : existente.querySelector('select'))?.focus();
+      })
+    );
+
+    // Categorias válidas para o tipo de evento escolhido
+    const tipo = form.querySelector<HTMLSelectElement>('[data-tipo-evento]')!;
+    const categoria = form.querySelector<HTMLSelectElement>('[data-categoria-evento]')!;
+    const filtrarCategorias = () => {
+      [...categoria.options].forEach((opt) => {
+        if (!opt.value) return;
+        const tipos = (opt.dataset.tipos ?? '').split(',').filter(Boolean);
+        opt.hidden = Boolean(tipo.value) && !tipos.includes(tipo.value);
+      });
+      if (categoria.selectedOptions[0]?.hidden) categoria.value = '';
+    };
+    tipo.addEventListener('change', filtrarCategorias);
+    filtrarCategorias();
+  }
+</script>
+
+<style>
+  .evento-form {
+    max-width: 1100px;
+  }
+
+  .form-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .form-acoes,
+  .form-rodape {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .form-rodape {
+    margin-top: 24px;
+  }
+
+  .form-erro {
+    padding: 12px 16px;
+    border-radius: var(--border-radius-sm);
+    background: var(--color-primary-10);
+    color: var(--color-primary-60);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cols-3 .span-3 {
+    grid-column: 1 / -1;
+  }
+
+  .radios {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .radios input {
+    accent-color: var(--color-primary);
+    margin-right: 6px;
+  }
+
+  .ed-link {
+    align-self: flex-start;
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+</style>

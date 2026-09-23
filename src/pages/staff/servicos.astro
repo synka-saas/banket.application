@@ -1,0 +1,239 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import InfoCard from '../../components/ui/InfoCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { formatMoney, moneyInput } from '../../lib/money';
+import { STAFF_SUBMENU } from '../../lib/nav';
+import { searchTerm } from '../../lib/pagination';
+import { excluirServico, listarServicos, listarTagsServicos, salvarServico, servicoSchema } from '../../server/staff';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirServico(db, id));
+      return 'Serviço removido.';
+    }
+    const input = servicoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarServico(db, tenantId, id, input));
+    return id ? 'Serviço atualizado.' : 'Serviço criado.';
+  });
+}
+
+const { servicos, tags } = await withTenant(tenantId, async (db) => ({
+  servicos: await listarServicos(db, { busca: searchTerm(Astro.url), tag: Astro.url.searchParams.get('tag') || null }),
+  tags: await listarTagsServicos(db),
+}));
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const plural = (n: number) => `${pad(n)} ${n === 1 ? 'profissional' : 'profissionais'}`;
+
+const linhas = (s: (typeof servicos)[number]) => [
+  { label: 'Cachê / Diária Fixo', value: formatMoney(s.cache_diaria) },
+  { label: 'Hora Extra', value: formatMoney(s.hora_extra) },
+  { label: 'Auxílio', value: formatMoney(s.auxilio) },
+  s.por_evento
+    ? { label: 'Por evento', value: plural(s.quantidade_fixa) }
+    : { label: '01 profissional a cada', value: s.convidados_por_profissional ? `${s.convidados_por_profissional} convidados` : '-' },
+  ...(!s.por_evento && s.minimo > 0 ? [{ label: 'Mínimo exigido', value: plural(s.minimo) }] : []),
+];
+
+const valores = (s: (typeof servicos)[number]) =>
+  JSON.stringify({
+    id: s.id,
+    funcao: s.funcao,
+    descricao: s.descricao,
+    cache_diaria: moneyInput(s.cache_diaria),
+    hora_extra: moneyInput(s.hora_extra),
+    auxilio: moneyInput(s.auxilio),
+    regra: s.por_evento ? 'por_evento' : 'proporcional',
+    quantidade_fixa: s.quantidade_fixa,
+    convidados_por_profissional: s.convidados_por_profissional,
+    minimo: s.minimo || '',
+    incluir_por_padrao: s.incluir_por_padrao,
+    tags: s.tags.join(', '),
+    ativo: s.ativo,
+  });
+
+const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir_por_padrao: true, ativo: true });
+---
+
+<AppLayout title="Serviços e Custos" heading="Staff / Serviços e Custos" submenu={STAFF_SUBMENU} submenuActive="servicos">
+  <PageToolbar filter={{ name: 'tag', placeholder: 'Tag', options: tags.map((t) => ({ value: t, label: t })) }}>
+    <Button icon="add_circle" data-drawer-open="drawer-servico" data-values={novo}>Adicionar serviço</Button>
+  </PageToolbar>
+
+  {servicos.length === 0 ? (
+    <div class="empty">Nenhum serviço cadastrado. Cadastre as funções do staff e suas regras de dimensionamento.</div>
+  ) : (
+    <div class="cards-grid">
+      {servicos.map((s) => (
+        <InfoCard
+          title={s.funcao}
+          icon="chef_hat"
+          muted={!s.ativo}
+          rows={linhas(s)}
+          tags={[...s.tags, ...(s.incluir_por_padrao ? [] : ['Opcional']), ...(s.ativo ? [] : ['Inativo'])]}
+        >
+          <Button slot="footer" block data-drawer-open="drawer-servico" data-values={valores(s)}>Editar</Button>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+
+  <Drawer slot="overlays" id="drawer-servico" formId="form-servico" title="Novo serviço" editTitle="Editar serviço">
+    <form id="form-servico" method="post" class="form-grid" data-servico-form>
+      <input type="hidden" name="id" />
+      <div class="field">
+        <label for="sv-funcao">Função*</label>
+        <input id="sv-funcao" name="funcao" required maxlength="80" placeholder="Ex.: Garçom" />
+      </div>
+      <div class="field">
+        <label for="sv-tags">Tags</label>
+        <input id="sv-tags" name="tags" placeholder="Separadas por vírgula (ex.: Salão, Bar)" />
+      </div>
+      <div class="field">
+        <label for="sv-cache">Cachê / diária (R$)*</label>
+        <input id="sv-cache" name="cache_diaria" inputmode="decimal" required placeholder="0,00" />
+      </div>
+      <div class="field">
+        <label for="sv-aux">Auxílio (R$)</label>
+        <input id="sv-aux" name="auxilio" inputmode="decimal" placeholder="Transporte, alimentação…" />
+      </div>
+      <div class="field">
+        <label for="sv-he">Hora extra (R$)</label>
+        <input id="sv-he" name="hora_extra" inputmode="decimal" placeholder="Valor por hora" />
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Regra de quantidade</span>
+        <div class="regras">
+          <label class="radio"><input type="radio" name="regra" value="proporcional" />Proporcional ao número de convidados</label>
+          <label class="radio"><input type="radio" name="regra" value="por_evento" />Quantidade fixa por evento</label>
+        </div>
+      </div>
+      <div class="field" data-regra="proporcional">
+        <label for="sv-cpp">1 profissional a cada (convidados)</label>
+        <input id="sv-cpp" name="convidados_por_profissional" type="number" min="1" placeholder="Ex.: 15" />
+      </div>
+      <div class="field" data-regra="proporcional">
+        <label for="sv-min">Mínimo exigido (profissionais)</label>
+        <input id="sv-min" name="minimo" type="number" min="0" placeholder="0" />
+      </div>
+      <div class="field" data-regra="por_evento">
+        <label for="sv-qtd">Profissionais por evento</label>
+        <input id="sv-qtd" name="quantidade_fixa" type="number" min="1" />
+      </div>
+      <div class="field span-2 simulador">
+        <label for="sv-sim">Simular para</label>
+        <div class="simulador-linha">
+          <input id="sv-sim" type="number" min="0" value="100" aria-label="Número de convidados" /> convidados:
+          <strong data-sim-resultado>-</strong>
+        </div>
+      </div>
+      <div class="field span-2">
+        <label for="sv-desc">Descrição</label>
+        <textarea id="sv-desc" name="descricao" maxlength="1000" placeholder="Ex.: somente quando houver bar contratado"></textarea>
+      </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="incluir_por_padrao" />Incluir automaticamente em novos orçamentos</label>
+        <label class="switch"><input type="checkbox" name="ativo" />Serviço ativo</label>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<script>
+  import { custoSugerido } from '../../lib/calculo/staff';
+  import { formatMoney, parseMoney } from '../../lib/money';
+
+  const form = document.querySelector<HTMLFormElement>('[data-servico-form]');
+  if (form) {
+    const campo = (nome: string) => form.elements.namedItem(nome) as HTMLInputElement | null;
+    const numero = (nome: string) => Number(campo(nome)?.value || 0);
+
+    const atualizar = () => {
+      const regra = (form.querySelector<HTMLInputElement>('input[name="regra"]:checked')?.value ?? 'proporcional') as string;
+      form.querySelectorAll<HTMLElement>('[data-regra]').forEach((el) => {
+        el.hidden = el.dataset.regra !== regra;
+      });
+      const convidados = Number((document.getElementById('sv-sim') as HTMLInputElement).value || 0);
+      const r = custoSugerido(
+        {
+          cache_diaria: parseMoney(campo('cache_diaria')?.value) || 0,
+          auxilio: parseMoney(campo('auxilio')?.value) || 0,
+          por_evento: regra === 'por_evento',
+          quantidade_fixa: numero('quantidade_fixa') || 1,
+          convidados_por_profissional: numero('convidados_por_profissional') || null,
+          minimo: numero('minimo'),
+        },
+        convidados
+      );
+      form.querySelector('[data-sim-resultado]')!.textContent =
+        `${r.quantidade} ${r.quantidade === 1 ? 'profissional' : 'profissionais'} × ${formatMoney(r.unitario)} = ${formatMoney(r.total)}`;
+    };
+
+    form.addEventListener('input', atualizar);
+    form.addEventListener('change', atualizar);
+    document.addEventListener('drawer:open', atualizar);
+  }
+</script>
+
+<style>
+  .empty {
+    padding: 48px;
+    text-align: center;
+    color: var(--color-neutral-50);
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+  }
+
+  .regras {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .radio input {
+    accent-color: var(--color-primary);
+  }
+
+  [data-regra][hidden] {
+    display: none;
+  }
+
+  .simulador {
+    padding: 14px 18px;
+    background: var(--color-primary-10);
+    border-radius: var(--border-radius-sm);
+  }
+
+  .simulador-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .simulador-linha input {
+    width: 90px !important;
+    min-height: 32px !important;
+  }
+
+  .field .switch + .switch {
+    margin-top: 8px;
+  }
+</style>

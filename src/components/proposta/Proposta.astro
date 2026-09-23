@@ -1,0 +1,554 @@
+---
+// Proposta de orçamento para impressão (A4). Cada parte vira um PDF separado e depois é unida:
+//   capa · miolo (conteúdo, com cabeçalho/rodapé repetidos em todas as páginas) · contracapa.
+import { formatMoney } from '../../lib/money';
+import { renderTexto } from '../../lib/texto';
+import type { PropostaView } from '../../server/proposta';
+import type { BlocoTexto } from '../../lib/calculo/orcamento';
+
+interface Props {
+  view: PropostaView;
+  parte: 'capa' | 'miolo' | 'contracapa';
+}
+
+const { view, parte } = Astro.props;
+const { template: t, imagens, conteudo: c, assinatura } = view;
+const totais = c.totais!;
+
+const fontes = [...new Set([t.fonte_titulo, t.fonte_corpo])]
+  .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;600;700`)
+  .join('&');
+const cssVars = [
+  `--fundo:${t.cor_fundo}`,
+  `--texto:${t.cor_texto_primaria}`,
+  `--destaque:${t.cor_texto_secundaria}`,
+  `--fonte-titulo:'${t.fonte_titulo}', 'Arial Black', sans-serif`,
+  `--fonte-corpo:'${t.fonte_corpo}', Arial, sans-serif`,
+].join(';');
+
+const blocosDa = (pagina: BlocoTexto['pagina']) => c.blocos_texto.filter((b) => b.pagina === pagina);
+const efetivo = (manual: number | null | undefined, calc: number | null | undefined) => manual ?? calc ?? 0;
+const itensSelecionados = (s: (typeof c.cardapios)[number]['secoes'][number]) => s.itens.filter((i) => i.selecionado);
+const escolhaTexto = (n: number | null) => (n ? ` – escolha ${n === 1 ? 'apenas uma opção' : `${n} opções`}` : '');
+const temRodape = Boolean(imagens.rodape_logo_path || t.rodape_titulo || t.rodape_conteudo);
+const linhasCabecalho = [
+  ['Data da proposta', view.dataProposta],
+  ['Evento', c.cabecalho.evento],
+  ['Contato', c.cabecalho.contato],
+  ['Telefone', c.cabecalho.telefone],
+  ['Data do evento', c.cabecalho.data_evento],
+  ['Horário do evento', c.cabecalho.horario],
+];
+const linhasServico = [
+  ['Tipo de serviço', c.cabecalho.formato_servico],
+  ['Número de convidados', c.pagantes.convidados ? `${c.pagantes.convidados} pax` : null],
+  ['Duração do serviço de alimentação', c.cabecalho.duracao_alimentacao],
+  ['Duração do evento', c.cabecalho.duracao_evento],
+  ['Local', c.cabecalho.local],
+];
+const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantidade_calc) > 0);
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Proposta de orçamento – {c.cabecalho.evento}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href={`https://fonts.googleapis.com/css2?${fontes}&display=block`} rel="stylesheet" />
+  </head>
+  <body style={cssVars} class={`parte-${parte}`}>
+    {parte === 'capa' && (
+      <section class="pagina-inteira capa" style={imagens.capa_imagem_path ? `background-image:url('${imagens.capa_imagem_path}')` : undefined}>
+        <div class:list={['capa-conteudo', { 'sobre-imagem': Boolean(imagens.capa_imagem_path) }]}>
+          {imagens.logo_path && <img class="capa-logo" src={imagens.logo_path} alt="" />}
+          <h1>{t.capa_titulo}</h1>
+          {t.capa_conteudo && <p>{t.capa_conteudo}</p>}
+          <p class="capa-evento">{c.cabecalho.evento}</p>
+        </div>
+      </section>
+    )}
+
+    {parte === 'contracapa' && (
+      <section class="pagina-inteira capa" style={imagens.contracapa_imagem_path ? `background-image:url('${imagens.contracapa_imagem_path}')` : undefined}>
+        <div class:list={['capa-conteudo', { 'sobre-imagem': Boolean(imagens.contracapa_imagem_path) }]}>
+          {imagens.logo_path && <img class="capa-logo" src={imagens.logo_path} alt="" />}
+          {t.contracapa_titulo && <h1>{t.contracapa_titulo}</h1>}
+          {t.contracapa_conteudo && <p>{t.contracapa_conteudo}</p>}
+          <p class="capa-evento">{view.empresa.nome}{view.empresa.telefone ? ` · ${view.empresa.telefone}` : ''}</p>
+        </div>
+      </section>
+    )}
+
+    {parte === 'miolo' && (
+      <>
+        <div class="fundo-fixo" style={imagens.miolo_imagem_path ? `background-image:url('${imagens.miolo_imagem_path}')` : undefined}></div>
+        <header class="topo">
+          {imagens.logo_path && <img src={imagens.logo_path} alt="" />}
+          <h1>{t.miolo_titulo}</h1>
+        </header>
+        {temRodape && (
+          <footer class="rodape">
+            <div>
+              {t.rodape_titulo && <strong>{t.rodape_titulo}</strong>}
+              {t.rodape_conteudo && <span>{t.rodape_conteudo}</span>}
+            </div>
+            {imagens.rodape_logo_path && <img src={imagens.rodape_logo_path} alt="" />}
+          </footer>
+        )}
+
+        <table class="fluxo">
+          <thead><tr><td><div class="espaco-topo"></div></td></tr></thead>
+          <tfoot><tr><td><div class:list={['espaco-rodape', { com: temRodape }]}></div></td></tr></tfoot>
+          <tbody><tr><td class="conteudo">
+            <section class="dados">
+              <dl>{linhasCabecalho.map(([l, v]) => <div><dt>{l}:</dt><dd>{v ?? ''}</dd></div>)}</dl>
+              <dl>{linhasServico.map(([l, v]) => <div><dt>{l}:</dt><dd>{v ?? ''}</dd></div>)}</dl>
+            </section>
+
+            {t.miolo_introducao && <p class="intro" set:html={renderTexto(t.miolo_introducao).replace(/^<p>|<\/p>$/g, '')} />}
+
+            {c.cardapios.length > 0 && (
+              <section class="colunas">
+                {c.cardapios.map((card) => (
+                  <article class="cardapio">
+                    <h2>{card.nome}</h2>
+                    <p class="preco">{formatMoney(efetivo(card.preco_pp_manual, card.preco_pp_calc))} por pessoa</p>
+                    {card.secoes.filter((s) => itensSelecionados(s).length).map((s) => (
+                      <div class="grupo">
+                        <h3>{s.nome}<span class="escolha">{escolhaTexto(s.escolha_qtd)}</span></h3>
+                        <ul>
+                          {itensSelecionados(s).map((i) => (
+                            <li>{i.nome}{i.descricao && <span class="descricao"> ({i.descricao})</span>}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </article>
+                ))}
+                {blocosDa('cardapio').map((b) => <article class="bloco"><h2>{b.titulo}</h2><div set:html={renderTexto(b.texto)} /></article>)}
+              </section>
+            )}
+
+            {(c.bebidas.length > 0 || staffAtivo.length > 0 || blocosDa('bebidas').length > 0 || blocosDa('staff').length > 0) && (
+              <section class:list={['colunas', { 'quebra-antes': c.cardapios.length > 0 }]}>
+                {(staffAtivo.length > 0 || blocosDa('staff').length > 0) && (
+                  <article class="bloco">
+                    <h2>Staff</h2>
+                    {blocosDa('staff').map((b) => <div set:html={renderTexto(b.texto)} />)}
+                    <ul>
+                      {staffAtivo.map((s) => {
+                        const qtd = efetivo(s.quantidade_manual, s.quantidade_calc);
+                        return <li>{s.funcao} – {qtd} {qtd === 1 ? 'profissional' : 'profissionais'} – {formatMoney(efetivo(s.valor_unit_manual, s.valor_unit_calc))}</li>;
+                      })}
+                    </ul>
+                  </article>
+                )}
+                {(c.bebidas.length > 0 || blocosDa('bebidas').length > 0) && (
+                  <article class="bloco">
+                    <h2>Bebidas</h2>
+                    {c.bebidas.map((b) => (
+                      <div class="grupo">
+                        <h3>{b.nome}</h3>
+                        {b.descricao && <p class="descricao">{b.descricao}</p>}
+                        <p>
+                          {formatMoney(efetivo(b.preco_manual, b.preco_catalogo))}
+                          {b.unidade === 'pessoa' ? ' por pessoa' : ` a unidade · ${b.quantidade} ${b.quantidade === 1 ? 'unidade' : 'unidades'}`}
+                        </p>
+                      </div>
+                    ))}
+                    {blocosDa('bebidas').map((b) => <div class="grupo"><h3>{b.titulo}</h3><div set:html={renderTexto(b.texto)} /></div>)}
+                  </article>
+                )}
+              </section>
+            )}
+
+            {(c.informacoes_complementares.length > 0 || blocosDa('informacoes').length > 0 || totais.locacao > 0 || c.extras.length > 0) && (
+              <section class="colunas quebra-antes">
+                <h2 class="titulo-secao">Informações complementares</h2>
+                {totais.locacao > 0 && (
+                  <article class="bloco">
+                    <h3>Locação do espaço</h3>
+                    <p>{c.locacao.descricao ? `${c.locacao.descricao}: ` : ''}{formatMoney(totais.locacao)}</p>
+                  </article>
+                )}
+                {c.extras.length > 0 && (
+                  <article class="bloco">
+                    <h3>Adicionais</h3>
+                    <ul>{c.extras.map((e) => <li>{e.descricao}{e.quantidade !== 1 ? ` (${e.quantidade}×)` : ''} – {formatMoney(e.subtotal_calc ?? 0)}</li>)}</ul>
+                  </article>
+                )}
+                {c.informacoes_complementares.filter((b) => b.linhas.some((l) => l.valor)).map((b) => (
+                  <article class="bloco">
+                    <h3>{b.titulo}</h3>
+                    <ul class="kv">{b.linhas.filter((l) => l.valor).map((l) => <li><strong>{l.label}:</strong> {l.valor}</li>)}</ul>
+                  </article>
+                ))}
+                {blocosDa('informacoes').map((b) => <article class="bloco"><h3>{b.titulo}</h3><div set:html={renderTexto(b.texto)} /></article>)}
+              </section>
+            )}
+
+            <section class="final quebra-antes">
+              <h2 class="titulo-secao">Demais condições</h2>
+              {c.condicoes_gerais.map((b) => (
+                <div class="grupo">
+                  <h3>{b.titulo}</h3>
+                  <ul class="kv">{b.linhas.filter((l) => l.valor).map((l) => <li><strong>{l.label}:</strong> {l.valor}</li>)}</ul>
+                </div>
+              ))}
+              {blocosDa('condicoes').map((b) => <div class="grupo"><h3>{b.titulo}</h3><div set:html={renderTexto(b.texto)} /></div>)}
+
+              {c.mostrar_valor_total && (
+                <table class="resumo">
+                  <tbody>
+                    {totais.alimentos > 0 && <tr><td>Alimentação</td><td>{formatMoney(totais.alimentos)}</td></tr>}
+                    {totais.bebidas > 0 && <tr><td>Bebidas</td><td>{formatMoney(totais.bebidas)}</td></tr>}
+                    {totais.staff > 0 && <tr><td>Staff</td><td>{formatMoney(totais.staff)}</td></tr>}
+                    {totais.locacao > 0 && <tr><td>Locação do espaço</td><td>{formatMoney(totais.locacao)}</td></tr>}
+                    {totais.extras > 0 && <tr><td>Adicionais</td><td>{formatMoney(totais.extras)}</td></tr>}
+                    <tr class="total"><td>Valor total da proposta</td><td>{formatMoney(totais.total)}</td></tr>
+                  </tbody>
+                </table>
+              )}
+
+              <div class="assinatura">
+                <p>Atenciosamente,</p>
+                {assinatura.nome && <strong>{assinatura.nome}</strong>}
+                {assinatura.cargo && <strong>{assinatura.cargo}</strong>}
+                {assinatura.telefone && <strong>{assinatura.telefone}</strong>}
+                {!assinatura.nome && <strong>{view.empresa.nome}</strong>}
+              </div>
+            </section>
+          </td></tr></tbody>
+        </table>
+      </>
+    )}
+  </body>
+</html>
+
+<style is:global>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: var(--fonte-corpo);
+    color: var(--texto);
+    background: var(--fundo);
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+
+  /* ---------- Capa e contracapa ---------- */
+  .pagina-inteira {
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    background-color: var(--fundo);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+  }
+
+  .capa-conteudo {
+    margin: auto;
+    padding: 0 22mm;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6mm;
+    color: var(--destaque);
+  }
+
+  .capa-conteudo.sobre-imagem {
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+
+  .capa-logo {
+    max-width: 60mm;
+    max-height: 40mm;
+    object-fit: contain;
+    margin-bottom: 8mm;
+  }
+
+  .capa h1 {
+    font-family: var(--fonte-titulo);
+    font-size: 40pt;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .capa p {
+    font-size: 15pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+  }
+
+  .capa .capa-evento {
+    margin-top: 10mm;
+    font-size: 11pt;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.9;
+  }
+
+  /* ---------- Miolo ---------- */
+  .fundo-fixo {
+    position: fixed;
+    inset: 0;
+    background-color: var(--fundo);
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+  }
+
+  .topo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10mm;
+    padding: 0 16mm;
+  }
+
+  .topo img {
+    max-height: 32mm;
+    max-width: 55mm;
+    object-fit: contain;
+  }
+
+  .topo h1 {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 30pt;
+    line-height: 1.05;
+    text-transform: uppercase;
+    max-width: 110mm;
+  }
+
+  .rodape {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 16mm;
+    padding: 0 16mm 5mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8mm;
+    font-size: 8pt;
+  }
+
+  .rodape div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rodape img {
+    max-height: 10mm;
+    max-width: 35mm;
+    object-fit: contain;
+  }
+
+  .fluxo {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .espaco-topo {
+    height: 52mm;
+  }
+
+  .espaco-rodape {
+    height: 12mm;
+  }
+
+  .espaco-rodape.com {
+    height: 20mm;
+  }
+
+  .conteudo {
+    padding: 0 14mm;
+    vertical-align: top;
+  }
+
+  .dados {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    margin: 0 2mm 8mm;
+  }
+
+  .dados dl {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5mm;
+    padding: 0 6mm;
+  }
+
+  .dados dl:first-child {
+    border-right: 1px solid var(--destaque);
+    text-align: right;
+  }
+
+  .dados dl:first-child div {
+    justify-content: flex-end;
+  }
+
+  .dados div {
+    display: flex;
+    gap: 2mm;
+  }
+
+  .dados dt {
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .dados dd {
+    white-space: nowrap;
+  }
+
+  .intro {
+    text-align: center;
+    margin: 0 8mm 10mm;
+    font-size: 10pt;
+  }
+
+  .colunas {
+    column-count: 2;
+    column-gap: 12mm;
+    margin-bottom: 4mm;
+  }
+
+  .quebra-antes {
+    break-before: page;
+  }
+
+  .titulo-secao {
+    column-span: all;
+  }
+
+  h2 {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 12.5pt;
+    text-transform: uppercase;
+    margin: 0 0 3mm;
+    break-after: avoid;
+  }
+
+  h3,
+  h4 {
+    font-family: var(--fonte-titulo);
+    font-size: 10.5pt;
+    margin: 3mm 0 1mm;
+    break-after: avoid;
+  }
+
+  .preco {
+    font-family: var(--fonte-titulo);
+    font-size: 11pt;
+    margin-bottom: 2mm;
+  }
+
+  .escolha {
+    font-family: var(--fonte-corpo);
+    font-weight: 400;
+  }
+
+  .cardapio,
+  .bloco {
+    margin-bottom: 7mm;
+  }
+
+  .grupo {
+    break-inside: avoid;
+  }
+
+  ul {
+    padding-left: 4.5mm;
+  }
+
+  li {
+    margin-bottom: 0.6mm;
+  }
+
+  p + p {
+    margin-top: 2mm;
+  }
+
+  .descricao {
+    font-size: 9pt;
+    opacity: 0.85;
+  }
+
+  .kv {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .final {
+    padding: 0 4mm;
+  }
+
+  .final .grupo {
+    margin-bottom: 4mm;
+  }
+
+  .resumo {
+    width: 100%;
+    margin: 8mm 0;
+    border-collapse: collapse;
+    break-inside: avoid;
+  }
+
+  .resumo td {
+    padding: 2mm 3mm;
+    border-bottom: 1px solid color-mix(in srgb, var(--texto) 25%, transparent);
+  }
+
+  .resumo td:last-child {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .resumo .total td {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 12pt;
+    border-bottom: none;
+  }
+
+  .assinatura {
+    display: flex;
+    flex-direction: column;
+    margin-top: 8mm;
+    break-inside: avoid;
+  }
+
+  .assinatura strong {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+  }
+</style>

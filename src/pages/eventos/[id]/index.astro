@@ -1,0 +1,388 @@
+---
+import Icon from '../../../components/ui/Icon.astro';
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import SectionCard from '../../../components/ui/SectionCard.astro';
+import Button from '../../../components/ui/Button.astro';
+import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { removeDir } from '../../../lib/storage';
+import { formatarDocumento } from '../../../lib/documento';
+import { formatMoney } from '../../../lib/money';
+import { dataCurta, dataHora, faixaHorario } from '../../../lib/datas';
+import { listarStatus } from '../../../server/configuracoes';
+import { respostasDoEvento } from '../../../server/formularios';
+import {
+  COMPLIANCE,
+  QUALIFICACOES,
+  STATUS_CHECKLIST,
+  carregarEvento,
+  checklistSchema,
+  eventoExiste,
+  excluirChecklist,
+  excluirEvento,
+  listarChecklist,
+  moverEvento,
+  salvarChecklist,
+} from '../../../server/eventos';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      switch (data._action) {
+        case 'status':
+          await moverEvento(db, user, id, String(data.status_id));
+          return 'Status atualizado.';
+        case 'excluir':
+          await excluirEvento(db, id);
+          await removeDir(user.tenantId, `orcamentos/${id}`);
+          return { message: 'Evento excluído.', redirect: '/eventos' };
+        case 'checklist_salvar': {
+          const itemId = typeof data.checklist_id === 'string' && data.checklist_id ? data.checklist_id : null;
+          await salvarChecklist(db, user, id, itemId, checklistSchema.parse(data));
+          return itemId ? '' : 'Item adicionado ao checklist.';
+        }
+        case 'checklist_excluir':
+          await excluirChecklist(db, id, String(data.checklist_id));
+          return 'Item removido do checklist.';
+        default:
+          return '';
+      }
+    })
+  );
+}
+
+const { evento, checklist, status, respostas } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  checklist: await listarChecklist(db, id),
+  status: await listarStatus(db),
+  respostas: await respostasDoEvento(db, id),
+}));
+
+const e = evento;
+const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIANCE] ?? c);
+---
+
+<EventoLayout eventoId={id} titulo={e.cliente_nome ?? 'Evento'} aba="resumo">
+  <section class="banner">
+    <div>
+      <span class="banner-label">{e.cliente_tipo === 'PJ' ? 'Empresa' : 'Cliente'}</span>
+      <strong>{e.cliente_nome ?? '-'}</strong>
+      {e.cliente_documento && <span>{e.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'} {formatarDocumento(e.cliente_documento)}</span>}
+    </div>
+    <div>
+      <span class="banner-label">Data e horário</span>
+      <strong>{dataCurta(e.data_evento)}</strong>
+      <span>{faixaHorario(e.hora_inicio, e.hora_fim)}</span>
+    </div>
+    <div>
+      <span class="banner-label">Local do evento</span>
+      <strong>{e.local_nome ?? (e.local_tipo === 'casa' ? 'Nosso espaço' : 'Local externo')}</strong>
+      {e.endereco && <span class="banner-endereco">{e.endereco}</span>}
+    </div>
+    <form method="post" class="banner-status">
+      <input type="hidden" name="_action" value="status" />
+      <label class="banner-label" for="status-evento">Status do evento</label>
+      <select id="status-evento" name="status_id" data-autosubmit-row>
+        {status.map((s) => <option value={s.id} selected={s.id === e.status_id}>{s.nome}</option>)}
+      </select>
+    </form>
+  </section>
+
+  <div class="resumo-grid">
+    <div class="coluna-principal">
+      <section class="cabecalho-card">
+        <div>
+          <span class="rotulo">Cliente</span>
+          <strong>{e.cliente_nome ?? '-'}</strong>
+          {e.cliente_documento && <span class="muted">{formatarDocumento(e.cliente_documento)}</span>}
+        </div>
+        <div>
+          <span class="rotulo">Orçamento</span>
+          <strong class="valor">{e.tem_orcamento ? formatMoney(e.valor_orcamento) : 'R$ 00'}</strong>
+        </div>
+        {e.tem_orcamento ? (
+          <Button variant="success" href={`/eventos/${id}/orcamento`}>Abrir orçamento</Button>
+        ) : (
+          <form method="post" action={`/eventos/${id}/orcamento`}>
+            <input type="hidden" name="_action" value="criar" />
+            <Button type="submit" variant="success">Confeccionar orçamento</Button>
+          </form>
+        )}
+      </section>
+
+      <SectionCard title="Responsável" variant="plain" collapsible>
+        <dl class="kv kv-2">
+          <div><dt>Nome</dt><dd>{e.responsavel_nome ?? '-'}</dd></div>
+          <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
+          <div><dt>E-mail</dt><dd>{e.responsavel_email ?? '-'}</dd></div>
+          <div><dt>WhatsApp</dt><dd>{e.responsavel_whatsapp ?? '-'}</dd></div>
+          <div><dt>Natureza do evento</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
+          <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
+        </dl>
+        {e.convite_experiencia && (
+          <dl class="kv"><div><dt>Convite para experiência</dt><dd><span class="chip-leitura">{e.convite_experiencia}</span></dd></div></dl>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Logística e infraestrutura" variant="plain" collapsible>
+        <dl class="kv">
+          <div><dt>Local</dt><dd>{e.local_tipo === 'externo' ? 'Local externo (empresa, residência ou espaço alugado)' : 'No nosso espaço'}{e.local_nome ? ` · ${e.local_nome}` : ''}</dd></div>
+          <div><dt>Endereço</dt><dd>{e.endereco ?? '-'}</dd></div>
+          <div><dt>Infraestrutura</dt><dd>{e.infraestrutura ?? '-'}</dd></div>
+        </dl>
+      </SectionCard>
+
+      <SectionCard title="Requisitos de compliance" variant="plain" collapsible>
+        {compliance.length ? (
+          <div class="chips-leitura">{compliance.map((c) => <span class="chip-leitura">{c}</span>)}</div>
+        ) : (
+          <p class="muted">Nenhum requisito informado.</p>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Staff de terceiros" variant="plain" collapsible>
+        {e.staff_terceiros ? <span class="chip-leitura">{e.staff_terceiros}</span> : <p class="muted">Não informado.</p>}
+      </SectionCard>
+
+      {respostas && (
+        <SectionCard title="Respostas do formulário" variant="plain" collapsible open={false}>
+          <p class="muted respostas-origem">
+            {respostas.formulario ?? 'Formulário removido'} · recebido em {dataHora(respostas.created_at)}
+          </p>
+          <dl class="kv">
+            {respostas.dados.map((r) => (
+              <div><dt>{r.rotulo}</dt><dd>{r.valor}</dd></div>
+            ))}
+          </dl>
+        </SectionCard>
+      )}
+
+      <SectionCard title="Comentário do cliente" variant="plain" collapsible>
+        <p class="comentario">{e.comentario_cliente ?? 'Sem comentários.'}</p>
+      </SectionCard>
+
+      <div class="acoes-evento">
+        <Button variant="outline" icon="edit" href={`/eventos/${id}/editar`}>Editar evento</Button>
+        <form method="post">
+          <input type="hidden" name="_action" value="excluir" />
+          <button type="submit" class="row-action danger" data-confirm="Excluir este evento? O orçamento e o histórico também serão removidos.">
+            Excluir evento
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="coluna-lateral">
+      <EventoInfoLateral evento={e} />
+
+      <section class="checklist">
+        <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Checklist operacional</h3>
+        {checklist.length === 0 && <p class="muted vazio">Nenhum item. Adicione o que precisa acontecer antes do evento.</p>}
+        <ul class="checklist-lista">
+          {checklist.map((c) => (
+            <li>
+              <div class="checklist-item">
+                <span class="rotulo">Item</span>
+                <span>{c.item}</span>
+              </div>
+              <form method="post" class="checklist-status">
+                <input type="hidden" name="_action" value="checklist_salvar" />
+                <input type="hidden" name="checklist_id" value={c.id} />
+                <input type="hidden" name="item" value={c.item} />
+                <input type="hidden" name="prazo" value={c.prazo ?? ''} />
+                <span class="rotulo">Status</span>
+                <select name="status" class="inline-select" aria-label={`Status de ${c.item}`} data-autosubmit-row>
+                  {Object.entries(STATUS_CHECKLIST).map(([k, l]) => <option value={k} selected={k === c.status}>{l}</option>)}
+                </select>
+              </form>
+              <form method="post">
+                <input type="hidden" name="_action" value="checklist_excluir" />
+                <input type="hidden" name="checklist_id" value={c.id} />
+                <button type="submit" class="remover" aria-label={`Remover ${c.item}`} data-confirm={`Remover "${c.item}" do checklist?`}><Icon name="close" size={18} /></button>
+              </form>
+            </li>
+          ))}
+        </ul>
+        <form method="post" class="checklist-novo">
+          <input type="hidden" name="_action" value="checklist_salvar" />
+          <input name="item" class="control" placeholder="Novo item (ex.: Degustação presencial)" required maxlength="255" aria-label="Novo item do checklist" />
+          <button type="submit" class="btn btn-primary btn-md">Adicionar</button>
+        </form>
+      </section>
+    </div>
+  </div>
+</EventoLayout>
+
+<style>
+  .banner {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr 1fr 1fr;
+    gap: 24px;
+    padding: 28px 40px;
+    margin-bottom: 28px;
+    background: var(--color-primary);
+    border-radius: var(--border-radius);
+    color: var(--color-white);
+    font-size: 14px;
+  }
+
+  .banner > div,
+  .banner-status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .banner strong {
+    font-weight: 600;
+  }
+
+  .banner-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+
+  .banner-endereco {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .banner-status select {
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    background: var(--color-white);
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .resumo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 30px;
+    align-items: start;
+  }
+
+  .coluna-principal,
+  .coluna-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cabecalho-card {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .cabecalho-card > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+  }
+
+  .rotulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .valor {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-neutral-80);
+  }
+
+  .comentario {
+    white-space: pre-line;
+    line-height: 1.6;
+    color: var(--color-neutral-100);
+  }
+
+  .respostas-origem {
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
+  .acoes-evento {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  .checklist {
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 28px;
+  }
+
+  .checklist-lista li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: end;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-neutral-30);
+  }
+
+  .checklist-item,
+  .checklist-status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    color: var(--color-neutral-100);
+  }
+
+  .checklist .rotulo {
+    color: var(--color-neutral-65);
+  }
+
+  .remover {
+    display: inline-flex;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: var(--color-neutral-40);
+    cursor: pointer;
+  }
+
+  .remover:hover {
+    color: var(--color-primary);
+  }
+
+  .checklist-novo {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .vazio {
+    font-size: 13px;
+  }
+</style>

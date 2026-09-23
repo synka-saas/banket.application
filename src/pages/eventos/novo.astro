@@ -1,0 +1,37 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import EventoForm from '../../components/eventos/EventoForm.astro';
+import { withTenant } from '../../lib/db';
+import { setFlash } from '../../lib/flash';
+import { formToObject, userMessage } from '../../lib/forms';
+import { clienteNovoDoFormulario, criarEvento, eventoSchema, opcoesFormularioEvento } from '../../server/eventos';
+
+const user = Astro.locals.user;
+let erro = '';
+let valores: Record<string, unknown> = { local_tipo: 'casa' };
+
+if (Astro.request.method === 'POST') {
+  valores = formToObject(await Astro.request.formData(), ['restricoes', 'compliance']);
+  try {
+    const input = eventoSchema.parse(valores);
+    const id = await withTenant(user.tenantId, (db) =>
+      criarEvento(db, user, input, input.cliente_novo ? clienteNovoDoFormulario(valores) : null)
+    );
+    setFlash(Astro.cookies, 'success', 'Evento criado.');
+    return Astro.redirect(`/eventos/${id}`);
+  } catch (err) {
+    // Formulário longo: mantém o que foi digitado e mostra o erro na própria página
+    erro = userMessage(err);
+  }
+}
+
+const opcoes = await withTenant(user.tenantId, (db) => opcoesFormularioEvento(db));
+if (!valores.cliente_id) {
+  const clienteDaUrl = Astro.url.searchParams.get('cliente');
+  if (clienteDaUrl) valores.cliente_id = clienteDaUrl;
+}
+---
+
+<AppLayout title="Novo evento" heading="Eventos / Novo evento">
+  <EventoForm valores={valores} {...opcoes} erro={erro} cancelarHref="/eventos" modo="criar" />
+</AppLayout>

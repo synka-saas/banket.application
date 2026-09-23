@@ -1,0 +1,64 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Table from '../../../components/ui/Table.astro';
+import Pagination from '../../../components/ui/Pagination.astro';
+import { withTenant } from '../../../lib/db';
+import { dataHora } from '../../../lib/datas';
+import { html } from '../../../lib/html';
+import { pageInfo, pageParams } from '../../../lib/pagination';
+import { carregarFormulario, listarRespostas } from '../../../server/formularios';
+
+const { tenantId } = Astro.locals.user;
+const id = Astro.params.id!;
+const page = pageParams(Astro.url);
+
+const dados = await withTenant(tenantId, async (db) => {
+  const formulario = await carregarFormulario(db, id).catch(() => null);
+  if (!formulario) return null;
+  return { formulario, ...(await listarRespostas(db, id, page)) };
+});
+if (!dados) return new Response(null, { status: 404 });
+
+const { formulario, rows, total } = dados;
+const tableData = rows.map((r) => ({
+  data: dataHora(r.created_at),
+  nome: r.nome ?? '-',
+  email: r.email ?? '-',
+  natureza: r.natureza ?? '-',
+  evento: r.evento_id
+    ? html`<a class="link" href="/eventos/${r.evento_id}">${r.evento_titulo ?? 'Abrir evento'}</a>`
+    : 'Evento removido',
+}));
+---
+
+<AppLayout title={`Respostas · ${formulario.nome}`} heading={`Formulários / ${formulario.nome} / Respostas`}>
+  <div class="topo">
+    <p class="muted">{total} {total === 1 ? 'resposta recebida' : 'respostas recebidas'}. Cada resposta cria um evento na coluna de entrada do quadro de vendas.</p>
+    <Button variant="outline" icon="edit" href={`/formularios/${id}`}>Editar formulário</Button>
+  </div>
+
+  <Table
+    columns={[
+      { key: 'data', label: 'Recebida em' },
+      { key: 'nome', label: 'Nome' },
+      { key: 'email', label: 'E-mail' },
+      { key: 'natureza', label: 'Natureza' },
+      { key: 'evento', label: 'Evento' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhuma resposta recebida ainda. Compartilhe o link público do formulário."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+</AppLayout>
+
+<style>
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+</style>

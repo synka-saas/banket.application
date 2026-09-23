@@ -1,0 +1,597 @@
+---
+// Página pública do formulário de captação (sem login). Renderiza as sessões ativas da configuração;
+// o passo a passo, a bifurcação B2B/B2C e as perguntas condicionais rodam no navegador.
+import Icon from '../../components/ui/Icon.astro';
+import FormularioLayout from '../../layouts/FormularioLayout.astro';
+import { contentTypeFor, readFile } from '../../lib/storage';
+import { formularioPublico } from '../../server/formularios';
+
+const formulario = await formularioPublico(Astro.params.slug ?? '').catch(() => null);
+
+let logo: string | null = null;
+if (formulario?.empresa.logo_path) {
+  const arquivo = await readFile(formulario.tenantId, formulario.empresa.logo_path).catch(() => null);
+  // A rota /uploads exige login; o logo vai embutido na página
+  if (arquivo && arquivo.length < 400_000) {
+    logo = `data:${contentTypeFor(formulario.empresa.logo_path)};base64,${arquivo.toString('base64')}`;
+  }
+}
+
+if (!formulario) Astro.response.status = 404;
+
+const secoes = formulario ? formulario.secoes.filter((s) => s.ativa) : [];
+const mensagemSucesso =
+  formulario?.mensagem_sucesso ||
+  'Seu pedido foi recebido. Nossa equipe vai analisar as informações e entrar em contato em breve.';
+---
+
+{!formulario ? (
+  <FormularioLayout title="Formulário indisponível" empresa="Banket">
+    <div class="fp-indisponivel">
+      <h2>Formulário indisponível</h2>
+      <p>Este formulário não existe ou não está recebendo respostas no momento.</p>
+    </div>
+  </FormularioLayout>
+) : (
+  <FormularioLayout title={formulario.nome} empresa={formulario.empresa.nome} logo={logo} subtitulo={formulario.nome}>
+    <div class="fp-progresso"><div class="fp-progresso-barra" id="fp-progresso"></div></div>
+
+    <form id="fp-form" class="fp-conteudo" novalidate data-slug={Astro.params.slug}>
+      <input type="text" name="_website" class="fp-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+      {secoes.map((s, i) => (
+        <section class:list={['fp-etapa', { ativa: i === 0 }]} data-etapa={s.chave} data-fluxo={s.fluxo}>
+          <div class="fp-etapa-titulo">
+            {i > 0 && <Icon name={s.icone} size={20} />}
+            <h2>{s.titulo}</h2>
+          </div>
+          <p class="fp-etapa-descricao">{s.descricao}</p>
+
+          <div class="fp-perguntas">
+            {s.perguntas.filter((p) => p.ativa).map((p) => (
+              <div
+                class:list={['fp-pergunta', { 'fp-condicional': p.mostrarSe }]}
+                data-pergunta={p.id}
+                data-tipo={p.tipo}
+                data-rotulo={p.rotulo}
+                data-obrigatoria={p.obrigatoria ? '1' : undefined}
+                data-mostrar-se-chave={p.mostrarSe?.chave}
+                data-mostrar-se-valor={p.mostrarSe?.valor}
+                hidden={Boolean(p.mostrarSe)}
+              >
+                {['unica', 'multipla', 'sim_nao'].includes(p.tipo) ? (
+                  <span class="fp-rotulo">{p.rotulo}{p.obrigatoria && ' *'}</span>
+                ) : (
+                  <label class="fp-rotulo" for={`fp-${p.id}`}>{p.rotulo}{p.obrigatoria && ' *'}</label>
+                )}
+                {p.ajuda && <p class="fp-ajuda">{p.ajuda}</p>}
+
+                {p.tipo === 'texto_longo' && (
+                  <textarea id={`fp-${p.id}`} name={p.id} rows="5" maxlength="5000" placeholder={p.placeholder ?? ''} class="fp-input"></textarea>
+                )}
+                {['texto', 'email', 'telefone', 'numero', 'data'].includes(p.tipo) && (
+                  <input
+                    id={`fp-${p.id}`}
+                    name={p.id}
+                    class="fp-input"
+                    type={p.tipo === 'email' ? 'email' : p.tipo === 'telefone' ? 'tel' : p.tipo === 'data' ? 'date' : 'text'}
+                    inputmode={p.tipo === 'numero' ? 'numeric' : undefined}
+                    placeholder={p.placeholder ?? ''}
+                    maxlength={p.tipo === 'telefone' ? 16 : 500}
+                    autocomplete={{ nome: 'name', email: 'email', whatsapp: 'tel' }[p.id]}
+                    data-mascara={p.tipo === 'telefone' ? 'telefone' : p.tipo === 'numero' ? 'numero' : undefined}
+                  />
+                )}
+                {p.tipo === 'selecao' && (
+                  <select id={`fp-${p.id}`} name={p.id} class="fp-input">
+                    <option value="">Selecione…</option>
+                    {p.opcoes.map((o) => <option value={o.valor}>{o.rotulo}</option>)}
+                  </select>
+                )}
+                {(p.tipo === 'unica' || p.tipo === 'sim_nao') && (
+                  <div class:list={['fp-opcoes', { 'fp-opcoes-lado': p.opcoes.length <= 3 && p.opcoes.every((o) => o.rotulo.length < 40) }]}>
+                    {p.opcoes.map((o) => (
+                      <label class="fp-opcao">
+                        <input type="radio" name={p.id} value={o.valor} />
+                        <span class="fp-opcao-caixa">
+                          <strong>{o.rotulo}</strong>
+                          {o.descricao && <small>{o.descricao}</small>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {p.tipo === 'multipla' && (
+                  <div class="fp-checks">
+                    {p.opcoes.map((o) => (
+                      <label class="fp-check">
+                        <input type="checkbox" name={p.id} value={o.valor} />
+                        <span>{o.rotulo}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <section class="fp-etapa fp-sucesso" data-etapa="_sucesso">
+        <div class="fp-sucesso-icone"><Icon name="auto_awesome" size={36} /></div>
+        <h2>Tudo certo!</h2>
+        <p>{mensagemSucesso}</p>
+      </section>
+    </form>
+
+    <footer class="fp-rodape" id="fp-rodape">
+      <button type="button" class="fp-voltar" id="fp-voltar" hidden>Voltar</button>
+      <button type="button" class="fp-avancar" id="fp-avancar">Avançar</button>
+    </footer>
+  </FormularioLayout>
+)}
+
+<script>
+  const form = document.getElementById('fp-form') as HTMLFormElement | null;
+  if (form) iniciar(form);
+
+  function iniciar(form: HTMLFormElement) {
+    const etapas = [...form.querySelectorAll<HTMLElement>('.fp-etapa:not(.fp-sucesso)')];
+    const sucesso = form.querySelector<HTMLElement>('.fp-sucesso')!;
+    const btnVoltar = document.getElementById('fp-voltar') as HTMLButtonElement;
+    const btnAvancar = document.getElementById('fp-avancar') as HTMLButtonElement;
+    const rodape = document.getElementById('fp-rodape')!;
+    const barra = document.getElementById('fp-progresso')!;
+    let atual = 0;
+    let enviando = false;
+
+    const toast = (m: string, t = 'error') =>
+      (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(m, t);
+
+    const natureza = () => form.querySelector<HTMLInputElement>('input[name="natureza"]:checked')?.value ?? null;
+
+    /** Etapas do caminho atual: as de fluxo "todos" e as da natureza escolhida. */
+    const caminho = () => etapas.filter((e) => e.dataset.fluxo === 'todos' || e.dataset.fluxo === natureza());
+
+    function valor(nome: string): string | string[] | null {
+      const campos = [...form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`)];
+      if (!campos.length) return null;
+      if (campos[0].type === 'checkbox') return campos.filter((c) => c.checked).map((c) => c.value);
+      if (campos[0].type === 'radio') return campos.find((c) => c.checked)?.value ?? null;
+      return campos[0].value.trim() || null;
+    }
+
+    function atualizarCondicionais() {
+      form.querySelectorAll<HTMLElement>('[data-mostrar-se-chave]').forEach((el) => {
+        el.hidden = valor(el.dataset.mostrarSeChave!) !== el.dataset.mostrarSeValor;
+      });
+    }
+
+    function mostrar() {
+      const lista = caminho();
+      etapas.forEach((e) => e.classList.toggle('ativa', e === lista[atual]));
+      sucesso.classList.remove('ativa');
+      btnVoltar.hidden = atual === 0;
+      const ultima = atual === lista.length - 1;
+      btnAvancar.textContent = ultima ? (natureza() === 'B2B' ? 'Solicitar proposta' : 'Finalizar solicitação') : 'Avançar';
+      barra.style.width = `${Math.round(((atual + 1) / (lista.length + 1)) * 100)}%`;
+      form.scrollTop = 0;
+    }
+
+    function validar(etapa: HTMLElement): boolean {
+      for (const el of etapa.querySelectorAll<HTMLElement>('.fp-pergunta')) {
+        if (el.hidden) continue;
+        const v = valor(el.dataset.pergunta!);
+        const vazio = v === null || (Array.isArray(v) && v.length === 0);
+        el.classList.toggle('fp-erro', Boolean(el.dataset.obrigatoria && vazio));
+        if (el.dataset.obrigatoria && vazio) {
+          toast(`Preencha "${el.dataset.rotulo}" para avançar.`);
+          el.querySelector<HTMLElement>('input, select, textarea')?.focus();
+          return false;
+        }
+        if (!vazio && el.dataset.tipo === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) {
+          el.classList.add('fp-erro');
+          toast('Informe um e-mail válido.');
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function coletar(): Record<string, unknown> {
+      const dados: Record<string, unknown> = { _website: valor('_website') ?? '' };
+      for (const etapa of caminho()) {
+        etapa.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
+          if (!el.hidden) dados[el.dataset.pergunta!] = valor(el.dataset.pergunta!);
+        });
+      }
+      return dados;
+    }
+
+    async function enviar() {
+      if (enviando) return;
+      enviando = true;
+      btnAvancar.disabled = true;
+      btnAvancar.textContent = 'Enviando…';
+      try {
+        const res = await fetch(`/api/public/formularios/${encodeURIComponent(form.dataset.slug!)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(coletar()),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? 'Não foi possível enviar. Tente novamente.');
+        etapas.forEach((e) => e.classList.remove('ativa'));
+        sucesso.classList.add('ativa');
+        rodape.hidden = true;
+        barra.style.width = '100%';
+      } catch (err) {
+        toast(err instanceof Error ? err.message : 'Não foi possível enviar. Tente novamente.');
+        btnAvancar.disabled = false;
+        mostrar();
+      } finally {
+        enviando = false;
+      }
+    }
+
+    btnAvancar.addEventListener('click', () => {
+      const lista = caminho();
+      if (!validar(lista[atual])) return;
+      if (atual === lista.length - 1) return void enviar();
+      atual += 1;
+      mostrar();
+    });
+
+    btnVoltar.addEventListener('click', () => {
+      if (atual > 0) atual -= 1;
+      mostrar();
+    });
+
+    form.addEventListener('change', (e) => {
+      atualizarCondicionais();
+      (e.target as HTMLElement).closest('.fp-pergunta')?.classList.remove('fp-erro');
+      if ((e.target as HTMLInputElement).name === 'natureza') mostrar();
+    });
+
+    form.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement;
+      el.closest('.fp-pergunta')?.classList.remove('fp-erro');
+      if (el.dataset.mascara === 'telefone') {
+        const d = el.value.replace(/\D/g, '').slice(0, 11);
+        el.value = d.length <= 2 ? d : d.length <= 7 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+      }
+      if (el.dataset.mascara === 'numero') el.value = el.value.replace(/[^\d]/g, '').slice(0, 7);
+    });
+
+    // Enter em campos de texto avança em vez de enviar
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      btnAvancar.click();
+    });
+
+    atualizarCondicionais();
+    mostrar();
+  }
+</script>
+
+<style>
+  .fp-indisponivel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    padding: 48px;
+    text-align: center;
+    color: var(--color-neutral-65);
+  }
+
+  .fp-progresso {
+    flex-shrink: 0;
+    height: 5px;
+    background: var(--color-neutral-20);
+  }
+
+  .fp-progresso-barra {
+    width: 0;
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: 0 4px 4px 0;
+    transition: width 0.4s ease;
+  }
+
+  .fp-conteudo {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px;
+  }
+
+  .fp-hp {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .fp-etapa {
+    display: none;
+  }
+
+  .fp-etapa.ativa {
+    display: block;
+    animation: fp-entrar 0.35s ease;
+  }
+
+  .fp-etapa-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-primary-80);
+  }
+
+  .fp-etapa-titulo h2 {
+    font-size: 24px;
+    color: var(--color-primary-80);
+  }
+
+  .fp-etapa-descricao {
+    margin: 8px 0 28px;
+    color: var(--color-neutral-50);
+  }
+
+  .fp-perguntas {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .fp-pergunta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fp-pergunta[hidden] {
+    display: none;
+  }
+
+  .fp-condicional {
+    padding: 16px;
+    background: var(--color-neutral-10);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .fp-rotulo {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-neutral-80);
+  }
+
+  .fp-ajuda {
+    margin-top: -2px;
+    font-size: 12px;
+    color: var(--color-neutral-50);
+  }
+
+  .fp-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+    background: var(--color-white);
+    border: 1px solid var(--color-neutral-30);
+    border-radius: 10px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  textarea.fp-input {
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .fp-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(227, 83, 54, 0.14);
+  }
+
+  .fp-erro .fp-input,
+  .fp-erro .fp-opcao-caixa,
+  .fp-erro .fp-checks {
+    border-color: var(--color-primary);
+  }
+
+  .fp-erro .fp-rotulo {
+    color: var(--color-primary-50);
+  }
+
+  .fp-opcoes {
+    display: grid;
+    gap: 10px;
+  }
+
+  .fp-opcoes-lado {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .fp-opcao {
+    cursor: pointer;
+  }
+
+  .fp-opcao input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .fp-opcao-caixa {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 100%;
+    padding: 14px 16px;
+    border: 2px solid var(--color-neutral-20);
+    border-radius: 12px;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .fp-opcao-caixa strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+  }
+
+  .fp-opcao-caixa small {
+    font-size: 12px;
+    color: var(--color-neutral-50);
+  }
+
+  .fp-opcao:hover .fp-opcao-caixa {
+    border-color: var(--color-neutral-30);
+  }
+
+  .fp-opcao input:checked + .fp-opcao-caixa {
+    border-color: var(--color-primary);
+    background: var(--color-primary-10);
+  }
+
+  .fp-opcao input:focus-visible + .fp-opcao-caixa {
+    box-shadow: 0 0 0 3px rgba(227, 83, 54, 0.2);
+  }
+
+  .fp-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-neutral-20);
+    border-radius: 12px;
+  }
+
+  .fp-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .fp-check input {
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+  }
+
+  .fp-sucesso {
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  .fp-sucesso.ativa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .fp-sucesso-icone {
+    display: grid;
+    place-items: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #e6f2e8;
+    color: var(--color-secondary);
+  }
+
+  .fp-sucesso h2 {
+    font-size: 28px;
+    color: var(--color-primary-80);
+  }
+
+  .fp-sucesso p {
+    max-width: 420px;
+    color: var(--color-neutral-65);
+    white-space: pre-line;
+  }
+
+  .fp-rodape {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 32px;
+    border-top: 1px solid var(--color-neutral-20);
+  }
+
+  .fp-rodape[hidden] {
+    display: none;
+  }
+
+  .fp-voltar {
+    margin-right: auto;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-neutral-50);
+    cursor: pointer;
+  }
+
+  .fp-voltar:hover {
+    background: var(--color-neutral-20);
+  }
+
+  .fp-voltar[hidden] {
+    display: none;
+  }
+
+  .fp-avancar {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(227, 83, 54, 0.3);
+    transition: background-color 0.2s ease, transform 0.1s ease;
+  }
+
+  .fp-avancar:hover:not(:disabled) {
+    background: var(--color-primary-50);
+  }
+
+  .fp-avancar:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .fp-avancar:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
+  @keyframes fp-entrar {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .fp-conteudo {
+      padding: 24px 16px;
+    }
+
+    .fp-rodape {
+      padding: 12px 16px;
+    }
+  }
+</style>

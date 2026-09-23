@@ -1,0 +1,200 @@
+---
+import Icon from './ui/Icon.astro';
+import { ROLE_LABELS } from '../lib/auth';
+
+interface Props {
+  title: string;
+  showInfo?: boolean;
+}
+
+const { title, showInfo = true } = Astro.props;
+
+const user = Astro.locals.user;
+const userName = user?.nome || 'Usuário';
+const userRole = user ? ROLE_LABELS[user.role] : '';
+const names = userName.trim().split(/\s+/);
+const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0] ?? 'U').toUpperCase();
+---
+
+<header class="topbar">
+  <div class="topbar-left">
+    <h2 class="topbar-title">{title}</h2>
+    {showInfo && <Icon name="info" size={18} class="info-icon" />}
+  </div>
+  
+  <div class="topbar-right">
+    <div class="user-profile" id="user-profile-btn">
+      <div class="avatar">{initials}</div>
+      <div class="user-info">
+        <span class="user-name">{userName}</span>
+        <span class="user-role">{userRole}</span>
+      </div>
+      <Icon name="expand_more" size={16} class="dropdown-icon" />
+
+      <!-- Menu Dropdown -->
+      <div class="dropdown-menu" id="user-dropdown">
+        <a href="/auth/logout" class="dropdown-item logout-item">
+          <Icon name="logout" size={16} /> Sair
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Lógica para abrir/fechar o dropdown
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('user-profile-btn');
+    const dropdown = document.getElementById('user-dropdown');
+
+    if (btn && dropdown) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('active');
+      });
+
+      // Fecha o dropdown se clicar fora dele
+      document.addEventListener('click', (e) => {
+        if (!btn.contains(e.target as Node)) {
+          dropdown.classList.remove('active');
+        }
+      });
+    }
+  });
+</script>
+
+<style>
+  .topbar {
+    height: 80px;
+    background-color: var(--color-white);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    flex-shrink: 0;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .topbar-title {
+    color: var(--color-neutral-80);
+    margin: 0;
+  }
+
+  .info-icon {
+    color: var(--color-neutral-50);
+    cursor: pointer;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+  }
+  
+  .user-profile:hover {
+    background-color: #f9fafb;
+  }
+
+  .dropdown-icon {
+    color: var(--color-neutral-65);
+    margin-left: 4px;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+  }
+
+  .dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    color: var(--color-neutral-80, #374151);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f3f4f6;
+  }
+
+  .logout-item {
+    color: #d93025;
+  }
+  
+  .logout-item:hover {
+    background-color: #FCE8E6;
+    color: #d93025;
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background-color: var(--border-color, #e5e7eb);
+    margin: 4px 0;
+  }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-neutral-30);
+    color: var(--color-neutral-80);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .user-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-neutral-100);
+  }
+
+  .user-role {
+    font-size: 12px;
+    color: var(--color-neutral-65);
+  }
+</style>

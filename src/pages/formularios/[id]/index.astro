@@ -1,0 +1,30 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import FormularioEditor from '../../../components/formularios/FormularioEditor';
+import { withTenant } from '../../../lib/db';
+import { carregarFormulario } from '../../../server/formularios';
+
+const { tenantId } = Astro.locals.user;
+const formulario = await withTenant(tenantId, async (db) => {
+  try {
+    return await carregarFormulario(db, Astro.params.id!);
+  } catch {
+    return null; // id inválido
+  }
+});
+if (!formulario) return new Response(null, { status: 404 });
+---
+
+<AppLayout title={formulario.nome} heading={`Formulários / ${formulario.nome}`}>
+  <div class="voltar">
+    <Button variant="text" icon="arrow_back" href="/formularios">Todos os formulários</Button>
+  </div>
+  <FormularioEditor client:load formulario={formulario} origem={Astro.url.origin} />
+</AppLayout>
+
+<style>
+  .voltar {
+    margin: -12px 0 12px;
+  }
+</style>

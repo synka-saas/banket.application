@@ -1,0 +1,426 @@
+---
+// Editor de template da proposta (frame "Templates / Novo Template"), com pré-visualização ao vivo.
+import SectionCard from '../ui/SectionCard.astro';
+import Button from '../ui/Button.astro';
+import { fileUrl } from '../../lib/storage';
+import { FONTES, type CampoImagem, type Template } from '../../server/templates';
+
+interface Props {
+  template: Partial<Template>;
+  tenantId: string;
+}
+
+const { template: t, tenantId } = Astro.props;
+const valor = (campo: keyof Template, padrao = '') => {
+  const v = t[campo];
+  return v === null || v === undefined ? padrao : Array.isArray(v) ? v.join(', ') : String(v);
+};
+const imagem = (campo: CampoImagem) => (t[campo] ? fileUrl(tenantId, t[campo] as string) : null);
+
+const camposImagem: Record<CampoImagem, string> = {
+  capa_imagem_path: 'Imagem de fundo',
+  logo_path: 'Logotipo',
+  miolo_imagem_path: 'Imagem de fundo das páginas',
+  rodape_logo_path: 'Logotipo do rodapé',
+  contracapa_imagem_path: 'Imagem de fundo',
+};
+const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;700`).join('&');
+---
+
+<link href={`https://fonts.googleapis.com/css2?${fontesGoogle}&display=swap`} rel="stylesheet" />
+
+<form method="post" enctype="multipart/form-data" class="template-form" data-template-form>
+  <section class="cabecalho">
+    <div class="nome">
+      <label for="tp-nome">Nome do template</label>
+      <input id="tp-nome" name="nome" required maxlength="100" value={valor('nome')} placeholder="Nome Template" />
+    </div>
+    <div class="acoes">
+      {t.id && (
+        <>
+          <a class="btn btn-outline btn-md" href={`/templates/${t.id}/exemplo`} target="_blank" rel="noopener">PDF de exemplo</a>
+          <button type="submit" name="_action" value="duplicar" class="btn btn-outline btn-md" formnovalidate>Duplicar</button>
+          <button type="submit" name="_action" value="excluir" class="btn btn-outline btn-md" formnovalidate data-confirm="Excluir este template?">Excluir</button>
+        </>
+      )}
+      <Button type="submit" variant="success">Salvar</Button>
+    </div>
+    <div class="form-grid gerais">
+      <div class="field">
+        <label for="tp-desc">Descrição</label>
+        <input id="tp-desc" name="descricao" maxlength="1000" value={valor('descricao')} />
+      </div>
+      <div class="field">
+        <label for="tp-tags">Tags</label>
+        <input id="tp-tags" name="tags" value={valor('tags')} placeholder="Separadas por vírgula" />
+      </div>
+      <label class="switch"><input type="checkbox" name="padrao" checked={Boolean(t.padrao)} />Template padrão das novas propostas</label>
+    </div>
+  </section>
+
+  <SectionCard title="Fontes" variant="plain" collapsible>
+    <div class="form-grid">
+      <div class="field">
+        <label for="tp-ft">Títulos</label>
+        <select id="tp-ft" name="fonte_titulo" data-var="--p-fonte-titulo">
+          {FONTES.map((f) => <option value={f} selected={f === valor('fonte_titulo', 'Archivo Black')} style={`font-family:'${f}'`}>{f}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="tp-fc">Parágrafos</label>
+        <select id="tp-fc" name="fonte_corpo" data-var="--p-fonte-corpo">
+          {FONTES.map((f) => <option value={f} selected={f === valor('fonte_corpo', 'Open Sans')} style={`font-family:'${f}'`}>{f}</option>)}
+        </select>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Cores" variant="plain" collapsible>
+    <div class="form-grid cols-3">
+      <div class="field">
+        <label for="tp-bg">Background</label>
+        <input id="tp-bg" type="color" name="cor_fundo" value={valor('cor_fundo', '#FFF9F2')} data-var="--p-fundo" />
+      </div>
+      <div class="field">
+        <label for="tp-c1">Cor primária (texto)</label>
+        <input id="tp-c1" type="color" name="cor_texto_primaria" value={valor('cor_texto_primaria', '#4A1A0E')} data-var="--p-texto" />
+      </div>
+      <div class="field">
+        <label for="tp-c2">Cor secundária (títulos)</label>
+        <input id="tp-c2" type="color" name="cor_texto_secundaria" value={valor('cor_texto_secundaria', '#A61E00')} data-var="--p-destaque" />
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Página capa" variant="plain" collapsible>
+    <div class="pagina-grid">
+      <div class="campos">
+        <label class="switch"><input type="checkbox" name="capa_ativa" checked={t.capa_ativa ?? true} />Incluir capa na proposta</label>
+        {(['capa_imagem_path', 'logo_path'] as CampoImagem[]).map((c) => (
+          <div class="field">
+            <span class="field-label">{camposImagem[c]}</span>
+            <input type="file" name={c} accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview={c} />
+            {imagem(c) && <label class="remover"><input type="checkbox" name={`remover_${c}`} /> Remover imagem atual</label>}
+          </div>
+        ))}
+        <div class="field">
+          <label for="tp-ct">Título capa</label>
+          <input id="tp-ct" name="capa_titulo" required maxlength="120" value={valor('capa_titulo', 'Proposta de orçamento')} data-texto="capa_titulo" />
+        </div>
+        <div class="field">
+          <label for="tp-cc">Conteúdo capa</label>
+          <textarea id="tp-cc" name="capa_conteudo" maxlength="500" data-texto="capa_conteudo">{valor('capa_conteudo')}</textarea>
+        </div>
+      </div>
+      <div class="preview pagina capa" data-bg="capa_imagem_path" style={imagem('capa_imagem_path') ? `background-image:url('${imagem('capa_imagem_path')}')` : undefined}>
+        <span class="preview-rotulo">Capa</span>
+        <img data-img="logo_path" src={imagem('logo_path') ?? undefined} alt="" hidden={!imagem('logo_path')} />
+        <strong data-alvo="capa_titulo">{valor('capa_titulo', 'Proposta de orçamento')}</strong>
+        <small data-alvo="capa_conteudo">{valor('capa_conteudo')}</small>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Página conteúdo" variant="plain" collapsible>
+    <div class="pagina-grid">
+      <div class="campos">
+        <div class="field">
+          <span class="field-label">{camposImagem.miolo_imagem_path}</span>
+          <input type="file" name="miolo_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="miolo_imagem_path" />
+          {imagem('miolo_imagem_path') && <label class="remover"><input type="checkbox" name="remover_miolo_imagem_path" /> Remover imagem atual</label>}
+        </div>
+        <div class="field">
+          <label for="tp-mt">Título do cabeçalho</label>
+          <input id="tp-mt" name="miolo_titulo" required maxlength="120" value={valor('miolo_titulo', 'Proposta de orçamento')} data-texto="miolo_titulo" />
+        </div>
+        <div class="field">
+          <label for="tp-mi">Texto de introdução</label>
+          <textarea id="tp-mi" name="miolo_introducao" maxlength="2000">{valor('miolo_introducao')}</textarea>
+          <span class="field-hint">Use **texto** para negrito.</span>
+        </div>
+        <div class="field">
+          <span class="field-label">{camposImagem.rodape_logo_path}</span>
+          <input type="file" name="rodape_logo_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="rodape_logo_path" />
+          {imagem('rodape_logo_path') && <label class="remover"><input type="checkbox" name="remover_rodape_logo_path" /> Remover imagem atual</label>}
+        </div>
+        <div class="field">
+          <label for="tp-rt">Título rodapé</label>
+          <input id="tp-rt" name="rodape_titulo" maxlength="120" value={valor('rodape_titulo')} data-texto="rodape_titulo" />
+        </div>
+        <div class="field">
+          <label for="tp-rc">Conteúdo rodapé</label>
+          <textarea id="tp-rc" name="rodape_conteudo" maxlength="500" data-texto="rodape_conteudo">{valor('rodape_conteudo')}</textarea>
+        </div>
+      </div>
+      <div class="preview pagina miolo" data-bg="miolo_imagem_path" style={imagem('miolo_imagem_path') ? `background-image:url('${imagem('miolo_imagem_path')}')` : undefined}>
+        <div class="miolo-topo">
+          <img data-img="logo_path" src={imagem('logo_path') ?? undefined} alt="" hidden={!imagem('logo_path')} />
+          <strong data-alvo="miolo_titulo">{valor('miolo_titulo', 'Proposta de orçamento')}</strong>
+        </div>
+        <b class="t1">Título</b>
+        <b class="t2">Subtítulo 1</b>
+        <b class="t2">Subtítulo 2</b>
+        <p>Parágrafo 01</p>
+        <p class="pequeno">Parágrafo 02</p>
+        <div class="miolo-rodape">
+          <span><b data-alvo="rodape_titulo">{valor('rodape_titulo', 'Texto rodapé')}</b> <span data-alvo="rodape_conteudo">{valor('rodape_conteudo')}</span></span>
+          <img data-img="rodape_logo_path" src={imagem('rodape_logo_path') ?? undefined} alt="" hidden={!imagem('rodape_logo_path')} />
+        </div>
+      </div>
+    </div>
+  </SectionCard>
+
+  <SectionCard title="Página contracapa" variant="plain" collapsible>
+    <div class="pagina-grid">
+      <div class="campos">
+        <label class="switch"><input type="checkbox" name="contracapa_ativa" checked={Boolean(t.contracapa_ativa)} />Incluir contracapa na proposta</label>
+        <div class="field">
+          <span class="field-label">{camposImagem.contracapa_imagem_path}</span>
+          <input type="file" name="contracapa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="contracapa_imagem_path" />
+          {imagem('contracapa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_contracapa_imagem_path" /> Remover imagem atual</label>}
+        </div>
+        <div class="field">
+          <label for="tp-cct">Título contracapa</label>
+          <input id="tp-cct" name="contracapa_titulo" maxlength="120" value={valor('contracapa_titulo')} data-texto="contracapa_titulo" />
+        </div>
+        <div class="field">
+          <label for="tp-ccc">Conteúdo contracapa</label>
+          <textarea id="tp-ccc" name="contracapa_conteudo" maxlength="1000" data-texto="contracapa_conteudo">{valor('contracapa_conteudo')}</textarea>
+        </div>
+      </div>
+      <div class="preview pagina capa" data-bg="contracapa_imagem_path" style={imagem('contracapa_imagem_path') ? `background-image:url('${imagem('contracapa_imagem_path')}')` : undefined}>
+        <span class="preview-rotulo">Contracapa</span>
+        <img data-img="logo_path" src={imagem('logo_path') ?? undefined} alt="" hidden={!imagem('logo_path')} />
+        <strong data-alvo="contracapa_titulo">{valor('contracapa_titulo')}</strong>
+        <small data-alvo="contracapa_conteudo">{valor('contracapa_conteudo')}</small>
+      </div>
+    </div>
+  </SectionCard>
+</form>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('[data-template-form]');
+  if (form) {
+    const aplicarVars = () => {
+      form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-var]').forEach((el) => {
+        const v = el.tagName === 'SELECT' ? `'${el.value}', sans-serif` : el.value;
+        form.style.setProperty(el.dataset.var!, v);
+      });
+    };
+    // Textos refletidos na pré-visualização
+    form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-texto]').forEach((el) => {
+      el.addEventListener('input', () => {
+        form.querySelectorAll<HTMLElement>(`[data-alvo="${el.dataset.texto}"]`).forEach((alvo) => (alvo.textContent = el.value));
+      });
+    });
+    // Imagens escolhidas aparecem na pré-visualização antes de salvar
+    form.querySelectorAll<HTMLInputElement>('[data-preview]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const arquivo = input.files?.[0];
+        if (!arquivo) return;
+        const url = URL.createObjectURL(arquivo);
+        const campo = input.dataset.preview!;
+        form.querySelectorAll<HTMLElement>(`[data-bg="${campo}"]`).forEach((el) => (el.style.backgroundImage = `url('${url}')`));
+        form.querySelectorAll<HTMLImageElement>(`[data-img="${campo}"]`).forEach((img) => {
+          img.src = url;
+          img.hidden = false;
+        });
+      });
+    });
+    form.addEventListener('input', aplicarVars);
+    form.addEventListener('change', aplicarVars);
+    aplicarVars();
+  }
+</script>
+
+<style>
+  .template-form {
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cabecalho {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px 24px;
+    padding: 28px 36px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .nome {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nome label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .nome input {
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin-left: -6px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+  }
+
+  .nome input:hover,
+  .nome input:focus {
+    border-color: var(--color-neutral-30);
+    outline: none;
+  }
+
+  .acoes {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .gerais {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+  }
+
+  .cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pagina-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .campos {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .remover {
+    font-size: 12px;
+    color: var(--color-neutral-65);
+  }
+
+  /* Pré-visualização (proporção A4) */
+  .preview {
+    position: relative;
+    aspect-ratio: 210 / 297;
+    width: 230px;
+    padding: 18px;
+    border: 1px solid var(--color-neutral-30);
+    border-radius: 3px;
+    background-color: var(--p-fundo, #fff);
+    background-size: cover;
+    background-position: center;
+    color: var(--p-texto, #444);
+    font-family: var(--p-fonte-corpo, sans-serif);
+    overflow: hidden;
+  }
+
+  .preview-rotulo {
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-size: 13px;
+    color: var(--color-neutral-80);
+  }
+
+  .preview.capa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    overflow: visible;
+  }
+
+  .preview.capa strong {
+    font-family: var(--p-fonte-titulo, sans-serif);
+    color: var(--p-destaque, #e35336);
+    font-size: 20px;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .preview.capa small {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--p-destaque, #e35336);
+  }
+
+  .preview img {
+    max-width: 90px;
+    max-height: 50px;
+    object-fit: contain;
+  }
+
+  .miolo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .miolo-topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .miolo-topo strong {
+    font-family: var(--p-fonte-titulo, sans-serif);
+    color: var(--p-destaque, #e35336);
+    font-size: 13px;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  .miolo .t1 {
+    font-family: var(--p-fonte-titulo, sans-serif);
+    color: var(--p-destaque);
+    font-size: 16px;
+  }
+
+  .miolo .t2 {
+    font-family: var(--p-fonte-titulo, sans-serif);
+    font-size: 12px;
+  }
+
+  .miolo p {
+    font-size: 10px;
+  }
+
+  .miolo .pequeno {
+    font-size: 8px;
+  }
+
+  .miolo-rodape {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 6px;
+    font-size: 8px;
+  }
+
+  .miolo-rodape img {
+    max-width: 50px;
+    max-height: 20px;
+  }
+</style>

@@ -1,0 +1,18 @@
+---
+// Página de impressão de exemplo de um template (pré-visualização em PDF com conteúdo fictício).
+import Proposta from '../../../components/proposta/Proposta.astro';
+import { withTenant } from '../../../lib/db';
+import { verifyPrintToken } from '../../../lib/printToken';
+import { montarPropostaExemplo } from '../../../server/proposta';
+
+const templateId = Astro.params.templateId!;
+const claims = await verifyPrintToken(Astro.url.searchParams.get('token'), 'template', templateId);
+if (!claims) return new Response('Não autorizado', { status: 401 });
+
+const parte = Astro.url.searchParams.get('parte');
+if (parte !== 'capa' && parte !== 'miolo' && parte !== 'contracapa') return new Response('Parte inválida', { status: 400 });
+
+const view = await withTenant(claims.tenantId, (db) => montarPropostaExemplo(db, claims.tenantId, templateId));
+---
+
+<Proposta view={view} parte={parte} />

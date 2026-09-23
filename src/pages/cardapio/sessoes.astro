@@ -1,0 +1,109 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { formatMoney, moneyInput } from '../../lib/money';
+import { CARDAPIO_SUBMENU } from '../../lib/nav';
+import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { UNIDADES_COBRANCA, excluirSecao, listarSecoes, salvarSecao, secaoSchema } from '../../server/cardapio';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirSecao(db, id));
+      return 'Sessão removida.';
+    }
+    const input = secaoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarSecao(db, tenantId, id, input));
+    return id ? 'Sessão atualizada.' : 'Sessão criada.';
+  });
+}
+
+const page = pageParams(Astro.url);
+const { rows: secoes, total } = await withTenant(tenantId, (db) => listarSecoes(db, searchTerm(Astro.url), page));
+
+const tableData = secoes.map((s) => ({
+  nome: s.nome,
+  descricao: s.descricao || '-',
+  preco: s.preco === null ? '-' : `${formatMoney(s.preco)} ${UNIDADES_COBRANCA[s.unidade_cobranca]}`,
+  itens: html`<a class="link" href="/cardapio/itens?secao=${s.id}">${s.itens}</a>`,
+  opcoes: s.opcoes,
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-sessao" data-values="${JSON.stringify({
+    id: s.id,
+    nome: s.nome,
+    descricao: s.descricao,
+    preco: moneyInput(s.preco),
+    unidade_cobranca: s.unidade_cobranca,
+    ordem: s.ordem,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Sessões do Cardápio" heading="Cardápios / Sessão do Cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="sessoes">
+  <PageToolbar>
+    <Button icon="add_circle" data-drawer-open="drawer-sessao">Adicionar sessão</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Nome da Sessão', width: '26%' },
+      { key: 'descricao', label: 'Descrição', width: '32%' },
+      { key: 'preco', label: 'Preço' },
+      { key: 'itens', label: 'Itens Vinculados', align: 'center' },
+      { key: 'opcoes', label: 'Em opções', align: 'center' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    emptyMessage="Nenhuma sessão encontrada."
+  >
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  <Drawer
+    slot="overlays"
+    id="drawer-sessao"
+    formId="form-sessao"
+    title="Nova sessão"
+    editTitle="Editar sessão"
+    width="md"
+    deleteConfirm="Excluir esta sessão? Todos os itens dela também serão removidos."
+  >
+    <form id="form-sessao" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="se-nome">Nome da sessão*</label>
+        <input id="se-nome" name="nome" required maxlength="120" placeholder="Ex.: Saladas, Mesa de pães" />
+      </div>
+      <div class="field span-2">
+        <label for="se-desc">Descrição</label>
+        <textarea id="se-desc" name="descricao" maxlength="1000"></textarea>
+      </div>
+      <div class="field">
+        <label for="se-preco">Preço da sessão (R$)</label>
+        <input id="se-preco" name="preco" inputmode="decimal" placeholder="Opcional" />
+      </div>
+      <div class="field">
+        <label for="se-unidade">Cobrança</label>
+        <select id="se-unidade" name="unidade_cobranca">
+          {Object.entries(UNIDADES_COBRANCA).map(([value, label]) => <option value={value}>{label}</option>)}
+        </select>
+      </div>
+      <p class="span-2 field-hint">
+        Quando a sessão tem preço (ex.: pacote de soft drinks por pessoa), ele é usado no orçamento no lugar da soma dos itens.
+      </p>
+      <div class="field">
+        <label for="se-ordem">Ordem de exibição</label>
+        <input id="se-ordem" name="ordem" type="number" min="0" />
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>

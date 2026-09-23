@@ -1,0 +1,110 @@
+---
+import { isRawHtml } from '../../lib/html';
+
+interface Column {
+  key: string;
+  label: string;
+  align?: 'left' | 'center' | 'right';
+  width?: string;
+}
+
+interface Props {
+  columns: Column[];
+  /** Valores comuns são renderizados como texto; use html`` (lib/html) para marcação confiável. */
+  data: Record<string, unknown>[];
+  emptyMessage?: string;
+}
+
+const { columns, data, emptyMessage = 'Nenhum registro encontrado.' } = Astro.props;
+---
+
+<div class="table-card">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th class={`text-${col.align || 'left'}`} style={col.width ? `width:${col.width}` : undefined}>{col.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.length > 0 ? (
+          data.map((row) => (
+            <tr>
+              {columns.map((col) => (
+                <td class={`text-${col.align || 'left'}`}>
+                  {isRawHtml(row[col.key])
+                    ? <Fragment set:html={(row[col.key] as { __html: string }).__html} />
+                    : String(row[col.key] ?? '')}
+                </td>
+              ))}
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+  <slot name="footer" />
+</div>
+
+<style>
+  .table-card {
+    width: 100%;
+    background: var(--color-white);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 15px 30px;
+    border-bottom: 1px solid var(--color-neutral-20);
+    vertical-align: middle;
+  }
+
+  .data-table th {
+    background-color: var(--color-neutral-20);
+    font-weight: 600;
+    color: var(--color-neutral-100);
+    padding-top: 18px;
+    padding-bottom: 18px;
+    border-bottom: none;
+  }
+
+  .data-table td {
+    color: var(--color-neutral-65);
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tbody tr:hover {
+    background-color: #fcfcfc;
+  }
+
+  .text-left { text-align: left; }
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+
+  .empty-state {
+    text-align: center;
+    color: var(--color-neutral-50);
+    padding: 40px;
+  }
+</style>

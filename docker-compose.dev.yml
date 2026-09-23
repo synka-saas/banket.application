@@ -1,0 +1,14 @@
+services:
+  webapp:
+    build:
+      context: .
+      target: builder
+    # Aplica migrations + seeds de desenvolvimento antes de subir o Astro com HMR
+    command: sh -c "rm -f .astro/dev.json && node scripts/migrate.mjs --seed && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - uploads_data:/data/uploads
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
