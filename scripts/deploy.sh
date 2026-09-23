@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Deploy em produção: valida o commit atual (build + testes numa cópia limpa)
-# e atualiza a VPS com o que está no GitHub.
+# Deploy em produção sem indisponibilidade (blue-green): valida o commit atual (build + testes
+# numa cópia limpa), atualiza a VPS com o que está no GitHub e troca o tráfego no Nginx.
 #
-# Uso: scripts/deploy.sh   (ou `make deploy` na raiz do workspace)
+# Uso: scripts/deploy.sh              (ou `make deploy` na raiz do workspace)
+#      scripts/deploy.sh --rollback   (ou `make rollback`) volta para a versão anterior
 # Variáveis opcionais: DEPLOY_HOST (padrão synka-main), DEPLOY_DIR, DEPLOY_URL
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -13,6 +14,21 @@ URL="${DEPLOY_URL:-https://app.banket.com.br}"
 
 passo() { printf '\n\033[1;34m→ %s\033[0m\n' "$*"; }
 erro() { printf '\n\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
+
+verificar_url() {
+  passo "Verificando $URL"
+  local codigo
+  codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL/auth/login")"
+  [ "$codigo" = 200 ] || erro "$URL respondeu HTTP $codigo"
+}
+
+if [ "${1:-}" = --rollback ]; then
+  passo "Rollback em $HOST"
+  ssh "$HOST" "cd '$DIR' && bash scripts/deploy-remoto.sh --rollback"
+  verificar_url
+  printf '\n\033[1;32m✓ Rollback concluído\033[0m\n'
+  exit 0
+fi
 
 # 1. Só o que está commitado e enviado ao GitHub vai para produção
 [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || erro "Deploy só a partir da branch main."
@@ -41,26 +57,9 @@ echo "build ok"
 (cd "$TMP/wt" && npm test >"$TMP/test.log" 2>&1) || { tail -30 "$TMP/test.log"; erro "Testes falharam. Nada foi enviado para produção."; }
 echo "testes ok"
 
-# 3. Atualiza a VPS (se o build lá falhar, o container antigo continua no ar)
-passo "Atualizando $HOST:$DIR"
-ssh "$HOST" bash -s -- "$DIR" <<'REMOTO'
-set -euo pipefail
-cd "$1"
-DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-git pull -q --ff-only
-echo "commit: $(git log --oneline -1)"
-$DC up -d --build >/tmp/banket-deploy.log 2>&1 || { tail -30 /tmp/banket-deploy.log; echo "✗ Build na VPS falhou (versão anterior segue no ar)"; exit 1; }
-PORTA="$(grep -E '^APP_PORT=' .env | cut -d= -f2)"; PORTA="${PORTA:-5168}"
-for _ in $(seq 1 30); do
-  curl -sf -o /dev/null "http://127.0.0.1:$PORTA/auth/login" && { echo "app respondendo na porta $PORTA"; break; }
-  sleep 2
-done
-$DC logs --tail 12 webapp
-curl -sf -o /dev/null "http://127.0.0.1:$PORTA/auth/login" || { echo "✗ App não respondeu após o deploy"; exit 1; }
-REMOTO
+# 3. Atualiza a VPS: sobe a cor inativa, troca o Nginx quando ela responder, para a antiga
+passo "Deploy blue-green em $HOST:$DIR"
+ssh "$HOST" "cd '$DIR' && git pull -q --ff-only && bash scripts/deploy-remoto.sh"
 
-# 4. Confere o acesso público
-passo "Verificando $URL"
-CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$URL/auth/login")"
-[ "$CODIGO" = 200 ] || erro "$URL respondeu HTTP $CODIGO"
+verificar_url
 printf '\n\033[1;32m✓ Deploy concluído: %s\033[0m\n' "$COMMIT"

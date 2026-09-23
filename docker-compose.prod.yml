@@ -1,14 +1,56 @@
-# Override de produção (VPS): docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Produção (VPS) com deploy blue-green: docker compose -f docker-compose.prod.yml ...
+# - Duas cópias do app (blue/green) em 127.0.0.1, atrás do Nginx do host; só uma recebe tráfego
+#   (upstream em /etc/nginx/conf.d/banket-upstream.conf, trocado por scripts/deploy-remoto.sh)
 # - Postgres sem porta publicada (acessível só pela rede interna do compose)
-# - App escutando apenas em 127.0.0.1, atrás do Nginx do host
 name: banket
 
+x-webapp: &webapp
+  build: .
+  restart: unless-stopped
+  environment:
+    # Papel da aplicação (sem superuser, sujeito a RLS)
+    - DATABASE_URL=postgres://${APP_DB_USER:-banket_app}:${APP_DB_PASSWORD:-banket_app_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+    # Dono das tabelas: usado só em migrations e fluxos de sistema (login, cadastro, convites)
+    - DATABASE_URL_SYSTEM=postgres://${POSTGRES_USER:-banket_user}:${POSTGRES_PASSWORD:-banket_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+    - APP_DB_USER=${APP_DB_USER:-banket_app}
+    - APP_DB_PASSWORD=${APP_DB_PASSWORD:-banket_app_pass}
+    - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
+    - APP_URL=${APP_URL:-http://localhost:4321}
+    - RESEND_API_KEY=${RESEND_API_KEY:-}
+    - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
+    - UPLOAD_DIR=/data/uploads
+  volumes:
+    - uploads_data:/data/uploads
+  depends_on:
+    postgres:
+      condition: service_healthy
+
 services:
-  webapp:
-    restart: unless-stopped
-    ports: !override
-      - "127.0.0.1:${APP_PORT:-5168}:4321"
+  webapp_blue:
+    <<: *webapp
+    ports:
+      - "127.0.0.1:${APP_PORT_BLUE:-5168}:4321"
+
+  webapp_green:
+    <<: *webapp
+    ports:
+      - "127.0.0.1:${APP_PORT_GREEN:-5169}:4321"
 
   postgres:
+    image: postgres:15-alpine
     restart: unless-stopped
-    ports: !reset []
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-banket_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banket_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-banket_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-banket_user} -d $${POSTGRES_DB:-banket_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  uploads_data:

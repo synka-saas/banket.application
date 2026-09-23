@@ -18,6 +18,9 @@ pnpm-debug.log*
 .env
 .env.production
 
+# cor ativa do deploy blue-green (só na VPS)
+.deploy-ativo
+
 # macOS-specific files
 .DS_Store
 
