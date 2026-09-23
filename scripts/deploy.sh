@@ -2,7 +2,7 @@
 # Deploy em produção sem indisponibilidade (blue-green): valida o commit atual (build + testes
 # numa cópia limpa), atualiza a VPS com o que está no GitHub e troca o tráfego no Nginx.
 #
-# Uso: scripts/deploy.sh              (ou `make deploy` na raiz do workspace)
+# Uso: scripts/deploy.sh              (ou `make deploy` no Makefile de dev)
 #      scripts/deploy.sh --rollback   (ou `make rollback`) volta para a versão anterior
 # Variáveis opcionais: DEPLOY_HOST (padrão synka-main), DEPLOY_DIR, DEPLOY_URL
 set -euo pipefail

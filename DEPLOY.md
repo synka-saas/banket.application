@@ -13,16 +13,56 @@ Produção: `https://app.banket.com.br` — Docker Compose (`docker-compose.prod
 - Se a cor nova não subir, o Nginx não é tocado e a versão atual segue no ar.
 - A cor ativa fica em `.deploy-ativo` (fora do git).
 
-## Fluxo do dia a dia (no Mac)
+## Fluxo do dia a dia
+
+O `Makefile` fica fora do git: cada ambiente tem o seu, e `make deploy` faz a coisa certa em cada um.
+
+**No Mac (dev):**
 
 ```bash
 git add … && git commit -m "…" && git push
-make deploy      # na raiz do workspace (ou application/scripts/deploy.sh)
-make rollback    # volta para a versão anterior (religa a cor parada), se algo der errado
+make deploy      # valida e publica na VPS por SSH (= scripts/deploy.sh)
+make rollback    # volta para a versão anterior, se algo der errado
 ```
 
-`make deploy` recusa o deploy se houver commits não enviados, valida build + testes do commit numa cópia limpa,
-faz o `git pull` na VPS, roda o blue-green e confere a URL pública.
+Recusa o deploy se houver commits não enviados, valida build + testes do commit numa cópia limpa,
+roda o blue-green na VPS por SSH e confere a URL pública.
+
+**Na VPS** (`ssh synka-main`, `cd /opt/banket.application`):
+
+```bash
+make deploy      # git pull + blue-green aqui mesmo (sem a validação de build/testes do Mac)
+make rollback
+make status      # cor ativa, commit e containers
+make logs        # logs da cor ativa
+make psql
+```
+
+Makefile da VPS (se precisar recriar; as linhas de comando começam com TAB):
+
+```make
+.PHONY: deploy rollback status logs psql
+
+DC = docker compose -f docker-compose.prod.yml
+
+deploy:
+	git pull --ff-only
+	@bash scripts/deploy-remoto.sh
+
+rollback:
+	@bash scripts/deploy-remoto.sh --rollback
+
+status:
+	@echo "cor ativa: $$(cat .deploy-ativo 2>/dev/null || echo '?')"
+	@git log --oneline -1
+	@$(DC) ps -a
+
+logs:
+	$(DC) logs -f --tail 100 webapp_$$(cat .deploy-ativo)
+
+psql:
+	$(DC) exec postgres psql -U banket_user banket_db
+```
 
 ## ⚠ Migrations precisam ser compatíveis com a versão anterior
 

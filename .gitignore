@@ -21,6 +21,9 @@ pnpm-debug.log*
 # cor ativa do deploy blue-green (só na VPS)
 .deploy-ativo
 
+# Makefile por ambiente (dev no Mac, produção na VPS — ver DEPLOY.md)
+Makefile
+
 # macOS-specific files
 .DS_Store
 
