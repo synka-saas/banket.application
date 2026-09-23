@@ -7,6 +7,8 @@ interface Props {
 }
 
 const { title, showOverlay = true } = Astro.props;
+// Mensagem de retorno (PRG) das telas de autenticação
+const flash = Astro.locals.flash;
 import '../styles/global.css';
 ---
 
@@ -53,6 +55,7 @@ import '../styles/global.css';
       </div>
       <div class="auth-right">
         <div class="form-container">
+          {flash && <div class:list={['auth-alert', `auth-alert-${flash.type}`]} role={flash.type === 'error' ? 'alert' : 'status'}>{flash.message}</div>}
           <slot />
         </div>
       </div>
@@ -189,6 +192,43 @@ import '../styles/global.css';
   }
 
   /* Globals for auth forms */
+  :global(.auth-alert) {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  :global(.auth-alert-error) {
+    background: #fce8e6;
+    color: #b3261e;
+  }
+
+  :global(.auth-alert-success) {
+    background: #e7f3ea;
+    color: #2f6b3a;
+  }
+
+  :global(.auth-alert-info) {
+    background: #f1f3f4;
+    color: #333;
+  }
+
+  :global(.auth-subtitle) {
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+    margin: -24px 0 32px;
+    line-height: 1.5;
+  }
+
+  :global(.auth-hint) {
+    font-size: 12px;
+    color: #666;
+    margin-top: -12px;
+  }
   :global(.auth-title) {
     text-align: center;
     font-size: 28px;

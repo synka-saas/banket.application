@@ -9,6 +9,7 @@ import { invalidateMembership } from '../../lib/membership';
 import { userMessage } from '../../lib/forms';
 import { REGRA_SENHA } from '../../lib/senha';
 import { aceitarConvite, buscarConvite } from '../../server/convites';
+import { invalidarEmpresas } from '../../server/autoatendimento';
 
 const token = Astro.url.searchParams.get('token');
 let errorMessage = '';
@@ -27,6 +28,7 @@ if (Astro.request.method === 'POST' && token) {
       confirmacao: data.get('confirma_senha')?.toString(),
     });
     invalidateMembership(user.id, user.tenantId);
+    invalidarEmpresas(user.id);
     setSessionCookie(Astro.cookies, await signSession(user));
     setFlash(Astro.cookies, 'success', `Bem-vindo(a) ao Banket, ${user.nome.split(' ')[0]}!`);
     return Astro.redirect('/dashboard');

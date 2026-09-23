@@ -31,7 +31,7 @@ Makefile
 .idea/
 
 # uploads locais
-uploads/
+/uploads/
 
 # testes e2e
 test-results/

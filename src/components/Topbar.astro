@@ -1,6 +1,7 @@
 ---
 import Icon from './ui/Icon.astro';
 import { ROLE_LABELS } from '../lib/auth';
+import { empresasDoUsuario } from '../server/autoatendimento';
 
 interface Props {
   title: string;
@@ -13,6 +14,9 @@ const user = Astro.locals.user;
 const userName = user?.nome || 'Usuário';
 const userRole = user ? ROLE_LABELS[user.role] : '';
 const names = userName.trim().split(/\s+/);
+// Seletor de empresa: só aparece para quem pertence a mais de uma
+const empresas = user ? await empresasDoUsuario(user.id) : [];
+const empresaAtual = empresas.find((e) => e.id === user?.tenantId);
 const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0] ?? 'U').toUpperCase();
 ---
 
@@ -27,12 +31,26 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
       <div class="avatar">{initials}</div>
       <div class="user-info">
         <span class="user-name">{userName}</span>
-        <span class="user-role">{userRole}</span>
+        <span class="user-role">{userRole}{empresas.length > 1 && empresaAtual && ` · ${empresaAtual.nome}`}</span>
       </div>
       <Icon name="expand_more" size={16} class="dropdown-icon" />
 
       <!-- Menu Dropdown -->
       <div class="dropdown-menu" id="user-dropdown">
+        {empresas.length > 1 && (
+          <>
+            <span class="dropdown-rotulo">Trocar de empresa</span>
+            {empresas.map((e) => (
+              <form method="post" action="/api/sessao/empresa">
+                <input type="hidden" name="tenant_id" value={e.id} />
+                <button type="submit" class:list={['dropdown-item', 'empresa-item', { atual: e.id === user?.tenantId }]} disabled={e.id === user?.tenantId}>
+                  <Icon name={e.id === user?.tenantId ? 'check' : 'apartment'} size={16} /> {e.nome}
+                </button>
+              </form>
+            ))}
+            <div class="dropdown-divider"></div>
+          </>
+        )}
         <a href="/auth/logout" class="dropdown-item logout-item">
           <Icon name="logout" size={16} /> Sair
         </a>
@@ -152,6 +170,28 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 
   .dropdown-item:hover {
     background-color: #f3f4f6;
+  }
+
+  .dropdown-rotulo {
+    display: block;
+    padding: 10px 16px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--color-neutral-65);
+  }
+
+  .empresa-item {
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .empresa-item.atual {
+    color: var(--color-primary);
+    cursor: default;
   }
 
   .logout-item {

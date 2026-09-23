@@ -3,67 +3,58 @@ import AuthLayout from '../../layouts/AuthLayout.astro';
 import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
 import Checkbox from '../../components/ui/Checkbox.astro';
+import { setFlash } from '../../lib/flash';
+import { formToObject, userMessage } from '../../lib/forms';
+import { REGRA_SENHA } from '../../lib/senha';
+import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
+import { cadastrarConta, cadastroSchema } from '../../server/autoatendimento';
+
+// Cadastro self-service: cria a conta (e-mail ainda não confirmado) e envia o link de confirmação.
+let nome = '';
+let email = '';
+
+if (Astro.request.method === 'POST') {
+  const data = formToObject(await Astro.request.formData());
+  nome = String(data.nome ?? '');
+  email = String(data.email ?? '');
+  try {
+    if (!permitir(`cadastro:${ipDaRequisicao(Astro.request, Astro.clientAddress)}`, 20, 60 * 60_000)) {
+      throw new Error('limite');
+    }
+    const input = cadastroSchema.parse(data);
+    await cadastrarConta(input);
+    return Astro.redirect(`/auth/validacao?email=${encodeURIComponent(input.email)}`);
+  } catch (err) {
+    setFlash(
+      Astro.cookies,
+      'error',
+      err instanceof Error && err.message === 'limite' ? 'Muitas tentativas. Tente novamente mais tarde.' : userMessage(err)
+    );
+    // Mantém nome e e-mail digitados (a senha nunca volta para a página)
+    return Astro.redirect(`/auth/cadastro?nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}`);
+  }
+}
+
+nome = Astro.url.searchParams.get('nome') ?? '';
+email = Astro.url.searchParams.get('email') ?? '';
 ---
 
-<AuthLayout title="Cadastro - Banket CRM" showOverlay={true}>
-  <h1 class="auth-title">Crie sua conta e teste grátis<br>por 30 dias.</h1>
-  
-  <form class="auth-form" action="/auth/validacao">
-    <Input 
-      id="nome" 
-      name="nome" 
-      label="NOME E SOBRENOME*" 
-      placeholder="Nome Sobrenome" 
-      required 
-    />
-    
-    <Input 
-      id="email" 
-      name="email" 
-      type="email" 
-      label="E-MAIL*" 
-      placeholder="xxxx@xxxx.com.br" 
-      required 
-    />
-    
-    <Input 
-      id="senha" 
-      name="senha" 
-      type="password" 
-      label="SENHA*" 
-      placeholder="XXXXXXXX" 
-      required 
-    />
-    
-    <Input 
-      id="confirma_senha" 
-      name="confirma_senha" 
-      type="password" 
-      label="CONFIRME SUA SENHA*" 
-      placeholder="XXXXXXXX" 
-      required 
-    />
-    
-    <Checkbox 
-      id="termos"
-      name="termos"
-      label="Termos e Condições de Uso" 
-      required 
-    />
-    
-    <Button variant="primary" size="large" class="mt-4" type="submit">
-      CRIAR CONTA
-    </Button>
+<AuthLayout title="Cadastro - Banket" showOverlay={true}>
+  <h1 class="auth-title">Crie sua conta e teste grátis<br />por 30 dias.</h1>
+
+  <form class="auth-form" method="post">
+    <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Nome Sobrenome" value={nome} autocomplete="name" maxlength="255" required />
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" value={email} autocomplete="email" required />
+    <Input id="senha" name="senha" type="password" label="SENHA" placeholder="XXXXXXXX" autocomplete="new-password" minlength="8" required />
+    <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME SUA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" required />
+    <p class="auth-hint">{REGRA_SENHA}</p>
+    <Checkbox id="termos" name="termos" label="Termos e Condições de Uso" required />
+
+    <Button variant="primary" size="large" type="submit">CRIAR CONTA</Button>
   </form>
-  
+
   <div class="auth-links">
-    Já tem uma conta? <a href="/auth/login">Entre agora</a><br>
+    Já tem uma conta? <a href="/auth/login">Entre agora</a><br />
     <span style="font-size: 12px; color: #888;">*Dados obrigatórios</span>
   </div>
 </AuthLayout>
-
-<style>
-  .mt-4 {
-    margin-top: 16px;
-  }
-</style>

@@ -2,43 +2,39 @@
 import AuthLayout from '../../layouts/AuthLayout.astro';
 import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
+import { setFlash } from '../../lib/flash';
+import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
+import { solicitarRecuperacao } from '../../server/autoatendimento';
+
+// Recuperação de senha: resposta sempre genérica (não revela se o e-mail tem conta).
+if (Astro.request.method === 'POST') {
+  const email = (await Astro.request.formData()).get('email')?.toString().trim().slice(0, 255) ?? '';
+  const ip = ipDaRequisicao(Astro.request, Astro.clientAddress);
+  if (!email) {
+    setFlash(Astro.cookies, 'error', 'Informe o seu e-mail.');
+  } else if (!permitir(`recuperacao:${ip}`, 10, 60 * 60_000) || !permitir(`recuperacao:${email.toLowerCase()}`, 3, 15 * 60_000)) {
+    setFlash(Astro.cookies, 'error', 'Muitos pedidos em pouco tempo. Aguarde alguns minutos.');
+  } else {
+    await solicitarRecuperacao(email).catch((err) => console.error('Falha na recuperação de senha:', err));
+    setFlash(Astro.cookies, 'success', `Se houver uma conta para ${email}, você receberá em instantes um link para criar uma nova senha.`);
+  }
+  return Astro.redirect('/auth/recuperacao');
+}
 ---
 
-<AuthLayout title="Recuperação de Senha - Banket CRM" showOverlay={false}>
+<AuthLayout title="Recuperação de senha - Banket" showOverlay={false}>
   <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
   <h1 class="auth-title">Esqueceu a sua senha?</h1>
-  <p class="subtitle">Não se preocupe. É fácil redefinir a sua senha, basta digitar seu e-mail e enviaremos uma mensagem para você redefini-la.</p>
-  
-  <form class="auth-form" action="/auth/login">
-    <Input 
-      id="email" 
-      name="email" 
-      type="email" 
-      label="E-MAIL*" 
-      placeholder="xxxx@xxxx.com.br" 
-      required 
-    />
-    
-    <Button variant="primary" size="large" class="mt-4" type="submit">
-      ENVIAR
-    </Button>
+  <p class="auth-subtitle">
+    Não se preocupe. É fácil redefinir a sua senha, basta digitar seu e-mail e enviaremos uma mensagem para você redefini-la.
+  </p>
+
+  <form class="auth-form" method="post">
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" autocomplete="email" required />
+    <Button variant="primary" size="large" type="submit">ENVIAR</Button>
   </form>
-  
+
   <div class="auth-links">
-    <a href="/auth/login" style="font-weight: normal; color: #888; text-decoration: none;">Lembrou a senha? Faça o login.</a>
+    <a href="/auth/login" style="font-weight: normal; color: #888;">Lembrou a senha? Faça o login.</a>
   </div>
 </AuthLayout>
-
-<style>
-  .subtitle {
-    text-align: center;
-    font-size: 14px;
-    color: #333;
-    margin-top: -24px;
-    margin-bottom: 40px;
-    line-height: 1.5;
-  }
-  .mt-4 {
-    margin-top: 16px;
-  }
-</style>

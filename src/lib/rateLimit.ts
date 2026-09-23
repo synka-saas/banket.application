@@ -24,3 +24,14 @@ export function ipDaRequisicao(request: Request, clientAddress?: string): string
   const encaminhado = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   return (encaminhado || clientAddress || 'desconhecido').slice(0, 64);
 }
+
+/** Consulta sem registrar: a chave já atingiu o limite na janela atual? (ex.: falhas de login) */
+export function excedeu(chave: string, limite: number, janelaMs: number, agora = Date.now()): boolean {
+  const atual = janelas.get(chave);
+  return Boolean(atual && agora - atual.inicio < janelaMs && atual.total >= limite);
+}
+
+/** Zera a contagem de uma chave (ex.: login bem-sucedido). */
+export function zerar(chave: string) {
+  janelas.delete(chave);
+}

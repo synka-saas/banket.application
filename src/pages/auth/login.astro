@@ -2,118 +2,88 @@
 import AuthLayout from '../../layouts/AuthLayout.astro';
 import Input from '../../components/ui/Input.astro';
 import Button from '../../components/ui/Button.astro';
-import { systemQuery } from '../../lib/db';
-import { normalizeRole, setSessionCookie, signSession } from '../../lib/auth';
-
-let errorMessage = Astro.locals.flash?.type === 'error' ? Astro.locals.flash.message : '';
+import { setOnboardingCookie, setSessionCookie, signOnboarding, signSession } from '../../lib/auth';
+import { setFlash } from '../../lib/flash';
+import { excedeu, ipDaRequisicao, permitir, zerar } from '../../lib/rateLimit';
+import { autenticar } from '../../server/autoatendimento';
 
 // Só aceita redirecionamentos internos (evita open redirect)
 const nextParam = Astro.url.searchParams.get('next') ?? '';
 const destino = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/dashboard';
+let email = Astro.url.searchParams.get('email') ?? '';
 
 if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData();
+  email = data.get('email')?.toString().trim().toLowerCase() ?? '';
+  const senha = data.get('senha')?.toString() ?? '';
+  const voltar = () => Astro.redirect(`/auth/login?email=${encodeURIComponent(email)}${nextParam ? `&next=${encodeURIComponent(nextParam)}` : ''}`);
+
+  if (!email || !senha) {
+    setFlash(Astro.cookies, 'error', 'Por favor, preencha todos os campos.');
+    return voltar();
+  }
+  // Força bruta: bloqueia após 10 senhas erradas em 15 minutos (por IP + e-mail); logins certos não contam
+  const chave = `login:${ipDaRequisicao(Astro.request, Astro.clientAddress)}:${email}`;
+  const JANELA = 15 * 60_000;
+  if (excedeu(chave, 10, JANELA)) {
+    setFlash(Astro.cookies, 'error', 'Muitas tentativas de login. Aguarde alguns minutos ou redefina sua senha.');
+    return voltar();
+  }
+
   try {
-    const data = await Astro.request.formData();
-    const email = data.get('email')?.toString().trim().toLowerCase();
-    const senha = data.get('senha')?.toString();
-
-    if (!email || !senha) {
-      errorMessage = 'Por favor, preencha todos os campos.';
-    } else {
-      // Login ocorre antes de existir tenant na sessão: usa a conexão de sistema.
-      // A senha é verificada pelo pgcrypto (bcrypt) no próprio banco.
-      const res = await systemQuery(
-        `SELECT u.id, u.nome, u.email, tu.tenant_id, tu.role
-           FROM usuarios u
-           JOIN tenant_usuarios tu ON tu.usuario_id = u.id
-          WHERE lower(u.email) = $1 AND u.senha_hash = crypt($2, u.senha_hash) AND tu.ativo
-          ORDER BY tu.created_at
-          LIMIT 1`,
-        [email, senha]
-      );
-
-      if (res.rows.length === 0) {
-        errorMessage = 'E-mail ou senha incorretos.';
-      } else {
-        const row = res.rows[0];
-        const token = await signSession({
-          id: row.id,
-          nome: row.nome,
-          email: row.email,
-          tenantId: row.tenant_id,
-          role: normalizeRole(row.role),
-        });
-        setSessionCookie(Astro.cookies, token);
+    const r = await autenticar(email, senha);
+    switch (r.tipo) {
+      case 'sessao':
+        zerar(chave);
+        setSessionCookie(Astro.cookies, await signSession(r.usuario));
         return Astro.redirect(destino);
-      }
+      case 'onboarding':
+        setOnboardingCookie(Astro.cookies, await signOnboarding(r.usuario));
+        return Astro.redirect('/auth/cadastro-complemento');
+      case 'nao_verificado':
+        setFlash(Astro.cookies, 'error', 'Confirme seu e-mail para entrar. Use o botão abaixo para receber um novo link.');
+        return Astro.redirect(`/auth/validacao?email=${encodeURIComponent(r.email)}`);
+      default:
+        permitir(chave, 10, JANELA);
+        setFlash(Astro.cookies, 'error', 'E-mail ou senha incorretos.');
+        return voltar();
     }
   } catch (err) {
     console.error('Erro no login:', err);
-    errorMessage = 'Ocorreu um erro ao processar o login.';
+    setFlash(Astro.cookies, 'error', 'Ocorreu um erro ao processar o login.');
+    return voltar();
   }
 }
 ---
 
-<AuthLayout title="Login - Banket CRM" showOverlay={false}>
+<AuthLayout title="Login - Banket" showOverlay={false}>
   <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
   <h1 class="auth-title">Faça login para continuar</h1>
-  
-  {errorMessage && (
-    <div style="background-color: #FCE8E6; color: #d93025; padding: 12px; border-radius: 4px; margin-bottom: 16px; font-size: 14px; text-align: center;">
-      {errorMessage}
-    </div>
-  )}
 
-  <form class="auth-form" method="POST">
-    <Input 
-      id="email" 
-      name="email" 
-      type="email" 
-      label="E-MAIL" 
-      placeholder="xxxx@xxxx.com.br" 
-      required 
-    />
-    
-    <div style="position: relative;">
-      <Input 
-        id="senha" 
-        name="senha" 
-        type="password" 
-        label="SENHA" 
-        placeholder="XXXXXXXX" 
-        required 
-      />
+  <form class="auth-form" method="post">
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" value={email} autocomplete="email" required />
+
+    <div class="campo-senha">
+      <Input id="senha" name="senha" type="password" label="SENHA" placeholder="XXXXXXXX" autocomplete="current-password" required />
       <a href="/auth/recuperacao" class="forgot-password">Esqueceu a senha?</a>
     </div>
-    
-    <Button variant="primary" size="large" class="mt-4" type="submit">
-      ENTRAR
-    </Button>
-    
-    <Button variant="danger" size="large" type="button" style="background-color: #FCE8E6; color: #333; border: none;">
+
+    <Button variant="primary" size="large" type="submit">ENTRAR</Button>
+    <Button variant="secondary" size="large" href={`/auth/link-acesso${email ? `?email=${encodeURIComponent(email)}` : ''}`} class="link-acesso">
       ENTRAR COM LINK DE ACESSO POR E-MAIL
     </Button>
-    
-    <div class="divider">
-      <span>OU</span>
-    </div>
-    
-    <Button variant="secondary" size="large" type="button" class="google-btn">
-      <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-      </svg>
-      GMAIL
-    </Button>
   </form>
+
+  <div class="auth-links">
+    Ainda não tem conta? <a href="/auth/cadastro">Teste grátis por 30 dias</a>
+  </div>
 </AuthLayout>
 
 <style>
-  .mt-4 {
-    margin-top: 16px;
+  .campo-senha {
+    position: relative;
   }
+
   .forgot-password {
     position: absolute;
     top: 0;
@@ -122,30 +92,10 @@ if (Astro.request.method === 'POST') {
     color: #666;
     text-decoration: underline;
   }
-  .divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    color: #888;
-    margin: 8px 0;
-    font-size: 12px;
-  }
-  .divider::before,
-  .divider::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #ddd;
-  }
-  .divider span {
-    padding: 0 10px;
-  }
-  .google-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background-color: white;
-    border: 1px solid #ccc;
+
+  .auth-form :global(.link-acesso) {
+    background-color: #fce8e6;
     color: #333;
+    border: none;
   }
 </style>

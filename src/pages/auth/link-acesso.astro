@@ -1,0 +1,38 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { setFlash } from '../../lib/flash';
+import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
+import { solicitarLinkAcesso } from '../../server/autoatendimento';
+
+// "Entrar com link de acesso por e-mail": login sem senha (link de uso único, 15 minutos).
+if (Astro.request.method === 'POST') {
+  const email = (await Astro.request.formData()).get('email')?.toString().trim().slice(0, 255) ?? '';
+  const ip = ipDaRequisicao(Astro.request, Astro.clientAddress);
+  if (!email) {
+    setFlash(Astro.cookies, 'error', 'Informe o seu e-mail.');
+  } else if (!permitir(`link:${ip}`, 10, 60 * 60_000) || !permitir(`link:${email.toLowerCase()}`, 3, 15 * 60_000)) {
+    setFlash(Astro.cookies, 'error', 'Muitos pedidos em pouco tempo. Aguarde alguns minutos.');
+  } else {
+    await solicitarLinkAcesso(email).catch((err) => console.error('Falha ao enviar link de acesso:', err));
+    setFlash(Astro.cookies, 'success', `Se houver uma conta confirmada para ${email}, enviamos um link de acesso. Ele vale por 15 minutos.`);
+  }
+  return Astro.redirect('/auth/link-acesso');
+}
+
+const email = Astro.url.searchParams.get('email') ?? '';
+---
+
+<AuthLayout title="Link de acesso - Banket" showOverlay={false}>
+  <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
+  <h1 class="auth-title">Entrar sem senha</h1>
+  <p class="auth-subtitle">Informe seu e-mail e enviaremos um link para você entrar direto, sem digitar a senha.</p>
+
+  <form class="auth-form" method="post">
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" value={email} autocomplete="email" required />
+    <Button variant="primary" size="large" type="submit">ENVIAR LINK DE ACESSO</Button>
+  </form>
+
+  <div class="auth-links"><a href="/auth/login">Entrar com senha</a></div>
+</AuthLayout>

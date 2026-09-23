@@ -41,16 +41,36 @@ const {
       type={type}
       id={id}
       name={name}
-      class={`input-field ${icon ? 'with-icon' : ''}`}
+      class:list={['input-field', { 'with-icon': icon, 'with-toggle': type === 'password' }]}
       placeholder={placeholder}
       value={value}
       required={required}
       {...rest}
     />
+    {type === 'password' && (
+      <button type="button" class="toggle-senha" aria-label="Mostrar senha" aria-pressed="false" data-toggle-senha>
+        <Icon name="visibility" size={20} />
+      </button>
+    )}
   </div>
   
   {error && <span class="input-error">{error}</span>}
 </div>
+
+<script>
+  // Mostrar/ocultar senha (botão com ícone de olho dentro do campo)
+  document.addEventListener('click', (e) => {
+    const botao = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-toggle-senha]');
+    const campo = botao?.parentElement?.querySelector('input');
+    if (!botao || !campo) return;
+    const mostrar = campo.type === 'password';
+    campo.type = mostrar ? 'text' : 'password';
+    botao.setAttribute('aria-pressed', String(mostrar));
+    botao.setAttribute('aria-label', mostrar ? 'Ocultar senha' : 'Mostrar senha');
+    const icone = botao.querySelector('.icon');
+    if (icone) icone.textContent = mostrar ? 'visibility_off' : 'visibility';
+  });
+</script>
 
 <style>
   .input-group {
@@ -96,6 +116,24 @@ const {
 
   .input-field.with-icon {
     padding-left: 36px;
+  }
+
+  .input-field.with-toggle {
+    padding-right: 44px;
+  }
+
+  .toggle-senha {
+    position: absolute;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-neutral-65);
+    cursor: pointer;
   }
 
   .input-icon {

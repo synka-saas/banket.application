@@ -4,12 +4,17 @@ import Button from '../../components/ui/Button.astro';
 import Table from '../../components/ui/Table.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
 import Drawer from '../../components/ui/Drawer.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
 import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
 import { CONFIG_SUBMENU } from '../../lib/nav';
 import {
+  INTERVALOS_KANBAN,
   VARIANTES_STATUS,
+  carregarIntervaloKanban,
+  intervaloKanbanDoForm,
+  salvarIntervaloKanban,
   excluirStatus,
   listarStatus,
   moverStatus,
@@ -26,6 +31,11 @@ if (Astro.request.method === 'POST') {
       await withTenant(tenantId, (db) => moverStatus(db, id, data._action as 'up' | 'down'));
       return '';
     }
+    if (data._action === 'intervalo') {
+      const meses = intervaloKanbanDoForm(data.kanban_intervalo_meses);
+      await withTenant(tenantId, (db) => salvarIntervaloKanban(db, meses));
+      return 'Intervalo de trabalho salvo.';
+    }
     if (data._action === 'delete' && id) {
       await withTenant(tenantId, (db) => excluirStatus(db, id));
       return 'Status removido.';
@@ -36,7 +46,11 @@ if (Astro.request.method === 'POST') {
   });
 }
 
-const status = await withTenant(tenantId, (db) => listarStatus(db));
+const [status, intervaloKanban] = await withTenant(tenantId, async (db) => [await listarStatus(db), await carregarIntervaloKanban(db)] as const);
+const opcoesIntervalo = [
+  ...INTERVALOS_KANBAN.map((m) => ({ valor: String(m), rotulo: m === 1 ? '1 mês' : `${m} meses` })),
+  { valor: '', rotulo: 'Sem limite' },
+];
 
 const tableData = status.map((s, i) => ({
   ordem: html`<form method="post" class="order-controls">
@@ -77,6 +91,29 @@ const tableData = status.map((s, i) => ({
     data={tableData}
   />
 
+  <div class="intervalo-bloco">
+  <SectionCard title="Intervalo de trabalho do Kanban" icon="date_range" id="intervalo-kanban">
+    <form method="post" class="intervalo-form">
+      <input type="hidden" name="_action" value="intervalo" />
+      <p class="intervalo-ajuda">
+        O Quadro de vendas mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre
+        aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.
+      </p>
+      <div class="intervalo-opcoes" role="radiogroup" aria-label="Intervalo de trabalho">
+        {opcoesIntervalo.map((o) => (
+          <label class="intervalo-opcao">
+            <input type="radio" name="kanban_intervalo_meses" value={o.valor} checked={String(intervaloKanban ?? '') === o.valor} />
+            <span>{o.rotulo}</span>
+          </label>
+        ))}
+      </div>
+      <div>
+        <Button type="submit" variant="success">Salvar intervalo</Button>
+      </div>
+    </form>
+  </SectionCard>
+  </div>
+
   <Drawer
     slot="overlays"
     id="drawer-status"
@@ -112,6 +149,70 @@ const tableData = status.map((s, i) => ({
     color: var(--color-neutral-65);
     font-size: 13px;
     max-width: 760px;
+  }
+
+  .intervalo-bloco {
+    margin-top: 32px;
+    max-width: 760px;
+  }
+
+  .intervalo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .intervalo-ajuda {
+    font-size: 13px;
+    color: var(--color-neutral-65);
+  }
+
+  .intervalo-opcoes {
+    display: inline-grid;
+    grid-template-columns: repeat(4, minmax(110px, 1fr));
+    align-self: flex-start;
+    border: 1px solid var(--color-neutral-40);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+  }
+
+  .intervalo-opcao {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .intervalo-opcao + .intervalo-opcao {
+    border-left: 1px solid var(--color-neutral-40);
+  }
+
+  .intervalo-opcao input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .intervalo-opcao span {
+    display: block;
+    padding: 9px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--color-neutral-80);
+  }
+
+  .intervalo-opcao:hover span {
+    background: var(--color-neutral-20);
+  }
+
+  .intervalo-opcao input:checked + span {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .intervalo-opcao input:focus-visible + span {
+    outline: 2px solid var(--color-primary-50);
+    outline-offset: -2px;
   }
 
   :global(.order-controls) {

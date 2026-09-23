@@ -1,0 +1,51 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import { setFlash } from '../../lib/flash';
+import { userMessage } from '../../lib/forms';
+import { REGRA_SENHA } from '../../lib/senha';
+import { redefinirSenha, tokenResetValido } from '../../server/autoatendimento';
+
+// Link do e-mail de recuperação: define a nova senha (token de uso único, 1 hora).
+const token = Astro.url.searchParams.get('token');
+
+if (Astro.request.method === 'POST') {
+  const data = await Astro.request.formData();
+  try {
+    const email = await redefinirSenha(token, data.get('senha')?.toString() ?? '', data.get('confirma_senha')?.toString() ?? '');
+    setFlash(Astro.cookies, 'success', 'Senha alterada. Entre com a nova senha.');
+    return Astro.redirect(`/auth/login?email=${encodeURIComponent(email)}`);
+  } catch (err) {
+    setFlash(Astro.cookies, 'error', userMessage(err));
+    return Astro.redirect(Astro.url.pathname + Astro.url.search);
+  }
+}
+
+const email = await tokenResetValido(token);
+---
+
+<AuthLayout title="Nova senha - Banket" showOverlay={false}>
+  <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
+  {email ? (
+    <>
+      <h1 class="auth-title">Crie uma nova senha</h1>
+      <p class="auth-subtitle">Conta: <strong>{email}</strong></p>
+      <form class="auth-form" method="post">
+        <Input id="senha" name="senha" type="password" label="NOVA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" minlength="8" required />
+        <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A NOVA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" required />
+        <p class="auth-hint">{REGRA_SENHA}</p>
+        <Button variant="primary" size="large" type="submit">SALVAR NOVA SENHA</Button>
+      </form>
+    </>
+  ) : (
+    <>
+      <h1 class="auth-title">Link inválido ou expirado</h1>
+      <p class="auth-subtitle">Os links de redefinição valem por 1 hora e só podem ser usados uma vez.</p>
+      <div class="auth-form">
+        <Button variant="primary" size="large" href="/auth/recuperacao">PEDIR UM NOVO LINK</Button>
+      </div>
+    </>
+  )}
+  <div class="auth-links"><a href="/auth/login">Voltar ao login</a></div>
+</AuthLayout>

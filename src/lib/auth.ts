@@ -79,3 +79,50 @@ export function setSessionCookie(cookies: AstroCookies, token: string) {
 export function clearSessionCookie(cookies: AstroCookies) {
   cookies.delete(SESSION_COOKIE, { path: '/' });
 }
+
+// ---------------------------------------------------------------------------
+// Onboarding: conta com e-mail confirmado que ainda não tem empresa. Cookie curto e separado da sessão,
+// aceito só pela tela de cadastro complementar.
+// ---------------------------------------------------------------------------
+export const ONBOARDING_COOKIE = 'banket_onboarding';
+const ONBOARDING_TTL_SECONDS = 60 * 60 * 2; // 2 horas
+
+export interface OnboardingUser {
+  id: string;
+  nome: string;
+  email: string;
+}
+
+export async function signOnboarding(user: OnboardingUser): Promise<string> {
+  return new SignJWT({ nome: user.nome, email: user.email, purpose: 'onboarding' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(user.id)
+    .setIssuedAt()
+    .setExpirationTime(`${ONBOARDING_TTL_SECONDS}s`)
+    .sign(getSecret());
+}
+
+export async function verifyOnboarding(token: string | undefined): Promise<OnboardingUser | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.purpose !== 'onboarding' || !payload.sub) return null;
+    return { id: payload.sub, nome: String(payload.nome ?? ''), email: String(payload.email ?? '') };
+  } catch {
+    return null;
+  }
+}
+
+export function setOnboardingCookie(cookies: AstroCookies, token: string) {
+  cookies.set(ONBOARDING_COOKIE, token, {
+    path: '/auth',
+    httpOnly: true,
+    secure: import.meta.env.PROD,
+    sameSite: 'lax',
+    maxAge: ONBOARDING_TTL_SECONDS,
+  });
+}
+
+export function clearOnboardingCookie(cookies: AstroCookies) {
+  cookies.delete(ONBOARDING_COOKIE, { path: '/auth' });
+}
