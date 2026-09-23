@@ -7,7 +7,7 @@ services:
   webapp:
     restart: unless-stopped
     ports: !override
-      - "127.0.0.1:${APP_PORT:-4321}:4321"
+      - "127.0.0.1:${APP_PORT:-5168}:4321"
 
   postgres:
     restart: unless-stopped

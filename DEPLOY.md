@@ -20,19 +20,21 @@ nano .env
 dc up -d --build
 ```
 
-O app sobe em `127.0.0.1:4321` (altere com `APP_PORT` no `.env`). O Postgres não é exposto fora do Docker.
+O app sobe em `127.0.0.1:${APP_PORT}` (padrão **5168**, definido no `.env`). O Postgres não é exposto fora do Docker.
 As migrations rodam automaticamente na inicialização do container.
+Se mudar `APP_PORT`, rode `dc up -d` e ajuste o `proxy_pass` do Nginx.
 
 ## Nginx (HTTPS)
 
-`/etc/nginx/sites-available/app.banket.com.br`:
+`/etc/nginx/sites-enabled/app.banket.com.br.conf`:
 
 ```nginx
 server {
+    listen 80;
     server_name app.banket.com.br;
     client_max_body_size 20m;
     location / {
-        proxy_pass http://127.0.0.1:4321;
+        proxy_pass http://127.0.0.1:5168;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -41,7 +43,6 @@ server {
 ```
 
 ```bash
-ln -s /etc/nginx/sites-available/app.banket.com.br /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 certbot --nginx -d app.banket.com.br
 ```
