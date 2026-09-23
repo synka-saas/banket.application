@@ -1,0 +1,14 @@
+# Override de produção (VPS): docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# - Postgres sem porta publicada (acessível só pela rede interna do compose)
+# - App escutando apenas em 127.0.0.1, atrás do Nginx do host
+name: banket
+
+services:
+  webapp:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-4321}:4321"
+
+  postgres:
+    restart: unless-stopped
+    ports: !reset []
