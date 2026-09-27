@@ -12,8 +12,11 @@ const prev = info.page > 1 ? withQuery(Astro.url, { page: info.page - 1 }) : nul
 const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.page + 1 }) : null;
 ---
 
+{info.total > 0 && (
 <div class="pagination">
-  <span class="pagination-status">Mostrando {pad(info.page)} de {pad(info.totalPages)}</span>
+  <span class="pagination-status">
+    Página {pad(info.page)} de {pad(info.totalPages)} · {info.total} {info.total === 1 ? 'registro' : 'registros'}
+  </span>
   <div class="pagination-controls">
     {prev ? (
       <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron_left" size={16} /></a>
@@ -28,6 +31,7 @@ const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.pag
     )}
   </div>
 </div>
+)}
 
 <style>
   .pagination {

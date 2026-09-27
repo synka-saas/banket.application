@@ -1,3 +1,4 @@
+import type { APIContext, MiddlewareNext } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
 import { SESSION_COOKIE, clearSessionCookie, isAdmin, verifySession } from './lib/auth';
 import { consumeFlash, setFlash } from './lib/flash';
@@ -18,7 +19,32 @@ function isPublic(pathname: string): boolean {
   return !pathname.startsWith('/uploads/') && /\.(png|jpe?g|svg|ico|webp|gif|css|js|map|woff2?|ttf|txt)$/i.test(pathname);
 }
 
+// Cabeçalhos de segurança em todas as respostas. O formulário público (/f/) pode ser incorporado
+// no site do buffet; o resto do sistema não pode ser exibido em iframe de outro domínio.
+function comCabecalhos(response: Response, pathname: string): Response {
+  const cabecalhos: Record<string, string> = {
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  };
+  if (!pathname.startsWith('/f/')) cabecalhos['X-Frame-Options'] = 'SAMEORIGIN';
+  if (import.meta.env.PROD) cabecalhos['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+  try {
+    for (const [k, v] of Object.entries(cabecalhos)) if (!response.headers.has(k)) response.headers.set(k, v);
+    return response;
+  } catch {
+    // Headers imutáveis (ex.: Response.redirect): copia a resposta
+    const copia = new Response(response.body, response);
+    for (const [k, v] of Object.entries(cabecalhos)) copia.headers.set(k, v);
+    return copia;
+  }
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  return comCabecalhos(await autorizar(context, next), context.url.pathname);
+});
+
+async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname } = context.url;
   context.locals.flash = consumeFlash(context.cookies);
 
@@ -49,4 +75,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   return next();
-});
+}
+

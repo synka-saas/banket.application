@@ -5,12 +5,18 @@ import SectionCard from '../../components/ui/SectionCard.astro';
 import { withTenant } from '../../lib/db';
 import { formatMoney } from '../../lib/money';
 import { dataComDiaSemana, dataHora } from '../../lib/datas';
-import { DIAS_SEM_RESPOSTA, PERIODOS, carregarIndicadores, type Periodo } from '../../server/dashboard';
+import { DIAS_SEM_RESPOSTA, PERIODOS, carregarIndicadores, primeirosPassos, type Periodo } from '../../server/dashboard';
+import { isAdmin } from '../../lib/auth';
 
 const user = Astro.locals.user;
 const p = Astro.url.searchParams.get('periodo');
 const periodo: Periodo = p && p in PERIODOS ? (p as Periodo) : '90';
-const ind = await withTenant(user.tenantId, (db) => carregarIndicadores(db, periodo));
+const { ind, passos } = await withTenant(user.tenantId, async (db) => ({
+  ind: await carregarIndicadores(db, periodo),
+  // Configuração inicial: só para quem pode configurar a empresa
+  passos: isAdmin(user) ? await primeirosPassos(db) : [],
+}));
+const pendentes = passos.filter((p) => !p.feito).length;
 
 const maxEventos = Math.max(1, ...ind.porStatus.map((s) => s.eventos));
 const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
@@ -29,6 +35,26 @@ const primeiroNome = user.nome.split(' ')[0];
       </select>
     </form>
   </div>
+
+  {pendentes > 0 && (
+    <section class="passos">
+      <div class="passos-topo">
+        <h3>Primeiros passos</h3>
+        <span class="muted">{passos.length - pendentes} de {passos.length} concluídos</span>
+      </div>
+      <ol>
+        {passos.map((p) => (
+          <li class:list={{ feito: p.feito }}>
+            <Icon name={p.feito ? 'check_circle' : 'radio_button_unchecked'} size={20} />
+            <a href={p.href}>
+              <strong>{p.titulo}</strong>
+              <span class="muted">{p.descricao}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
 
   <div class="kpis">
     <div class="kpi">
@@ -136,6 +162,62 @@ const primeiroNome = user.nome.split(' ')[0];
 
   .topo select {
     min-width: 200px;
+  }
+
+  .passos {
+    padding: 22px 26px;
+    margin-bottom: 24px;
+    background: var(--color-white);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--border-radius);
+  }
+
+  .passos-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+
+  .passos h3 {
+    font-size: 16px;
+    color: var(--color-neutral-80);
+  }
+
+  .passos ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px 24px;
+    list-style: none;
+    padding: 0;
+  }
+
+  .passos li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: var(--color-primary);
+  }
+
+  .passos li.feito {
+    color: var(--color-secondary);
+  }
+
+  .passos li.feito strong {
+    text-decoration: line-through;
+    color: var(--color-neutral-65);
+  }
+
+  .passos li a {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+  }
+
+  .passos li .muted {
+    font-size: 13px;
   }
 
   .kpis {

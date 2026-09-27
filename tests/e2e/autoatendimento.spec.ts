@@ -157,4 +157,24 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page).toHaveURL(/\/auth\/link-acesso/);
     await expect(page.locator('.auth-alert-error')).toContainText('inválido');
   });
+  test('empresa nova: todas as telas abrem vazias, sem erro', async ({ page }) => {
+    await page.goto('/auth/login');
+    await page.getByLabel('E-MAIL').fill(email);
+    await page.locator('#senha').fill(NOVA_SENHA);
+    await page.getByRole('button', { name: 'ENTRAR', exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    const telas = [
+      '/dashboard', '/eventos', '/eventos?view=lista', '/eventos/novo', '/agenda', '/clientes',
+      '/cardapio/itens', '/cardapio/sessoes', '/cardapio/opcoes', '/staff/profissionais', '/staff/servicos',
+      '/templates', '/templates/blocos', '/formularios', '/configuracoes/usuarios', '/configuracoes/tipos-evento',
+      '/configuracoes/categorias', '/configuracoes/status-orcamento', '/configuracoes/formatos-servico',
+      '/configuracoes/locacao', '/configuracoes/empresa',
+    ];
+    for (const tela of telas) {
+      const res = await page.goto(tela);
+      expect(res?.status(), tela).toBe(200);
+      await expect(page.locator('main'), tela).not.toContainText(/undefined|NaN|\[object Object\]|Algo deu errado/);
+      await shot(page, `vazio${tela.replace(/[/?=]/g, '-')}`);
+    }
+  });
 });

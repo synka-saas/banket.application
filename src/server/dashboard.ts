@@ -131,3 +131,31 @@ export async function carregarIndicadores(db: Db, periodo: Periodo): Promise<Ind
     parados,
   };
 }
+
+export interface PassoInicial {
+  titulo: string;
+  descricao: string;
+  href: string;
+  feito: boolean;
+}
+
+/** Checklist de configuração de uma empresa nova (some do dashboard quando tudo estiver feito). */
+export async function primeirosPassos(db: Db): Promise<PassoInicial[]> {
+  const { rows } = await db.query<{ empresa: boolean; itens: boolean; opcoes: boolean; staff: boolean; faixas: boolean; eventos: boolean }>(
+    `SELECT (SELECT t.logo_path IS NOT NULL AND t.telefone IS NOT NULL FROM tenants t WHERE t.id = app_tenant_id()) AS empresa,
+            EXISTS (SELECT 1 FROM catalogo_itens) AS itens,
+            EXISTS (SELECT 1 FROM cardapio_opcoes) AS opcoes,
+            EXISTS (SELECT 1 FROM staff_servicos) AS staff,
+            EXISTS (SELECT 1 FROM faixas_locacao) AS faixas,
+            EXISTS (SELECT 1 FROM eventos) AS eventos`
+  );
+  const r = rows[0];
+  return [
+    { titulo: 'Dados da empresa', descricao: 'Logo, telefone e assinatura que aparecem nas propostas.', href: '/configuracoes/empresa', feito: Boolean(r.empresa) },
+    { titulo: 'Itens do cardápio', descricao: 'Cadastre os itens e sessões que você oferece.', href: '/cardapio/itens', feito: r.itens },
+    { titulo: 'Opções de cardápio', descricao: 'Monte cardápios prontos para usar nos orçamentos.', href: '/cardapio/opcoes', feito: r.opcoes },
+    { titulo: 'Staff', descricao: 'Funções, cachês e regras de dimensionamento da equipe.', href: '/staff/servicos', feito: r.staff },
+    { titulo: 'Locação', descricao: 'Valores do espaço por faixa de convidados.', href: '/configuracoes/locacao', feito: r.faixas },
+    { titulo: 'Primeiro evento', descricao: 'Cadastre um pedido e confeccione o orçamento.', href: '/eventos/novo', feito: r.eventos },
+  ];
+}

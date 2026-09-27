@@ -1,13 +1,14 @@
 ---
+// Página de erro 500: não expõe detalhes técnicos (eles ficam no log do servidor).
 import Layout from '../layouts/Layout.astro';
 import Button from '../components/ui/Button.astro';
 ---
 
-<Layout title="Página não encontrada">
+<Layout title="Erro inesperado">
   <main class="nao-encontrado">
     <img src="/logo-dark.png" alt="Banket" />
-    <h1>Página não encontrada</h1>
-    <p>O endereço acessado não existe ou você não tem acesso a ele.</p>
+    <h1>Algo deu errado</h1>
+    <p>Ocorreu um erro inesperado ao carregar esta página. Tente novamente em instantes; se persistir, fale com o suporte.</p>
     <Button href="/dashboard">Voltar ao início</Button>
   </main>
 </Layout>

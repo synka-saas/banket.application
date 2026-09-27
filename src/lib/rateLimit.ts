@@ -19,10 +19,15 @@ function limpar(janelaMs: number, agora: number) {
   for (const [chave, j] of janelas) if (agora - j.inicio >= janelaMs) janelas.delete(chave);
 }
 
-/** IP do cliente (primeiro endereço do X-Forwarded-For quando atrás de proxy). */
+/**
+ * IP do cliente. Atrás do Nginx (DEPLOY.md), X-Real-IP traz o endereço da conexão; o Nginx também o acrescenta
+ * ao FIM do X-Forwarded-For. Os primeiros itens do X-Forwarded-For vêm do próprio cliente e podem ser forjados,
+ * por isso nunca são usados para limitar tentativas.
+ */
 export function ipDaRequisicao(request: Request, clientAddress?: string): string {
-  const encaminhado = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  return (encaminhado || clientAddress || 'desconhecido').slice(0, 64);
+  const real = request.headers.get('x-real-ip')?.trim();
+  const ultimoEncaminhado = request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim();
+  return (real || ultimoEncaminhado || clientAddress || 'desconhecido').slice(0, 64);
 }
 
 /** Consulta sem registrar: a chave já atingiu o limite na janela atual? (ex.: falhas de login) */

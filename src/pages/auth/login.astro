@@ -23,9 +23,12 @@ if (Astro.request.method === 'POST') {
     return voltar();
   }
   // Força bruta: bloqueia após 10 senhas erradas em 15 minutos (por IP + e-mail); logins certos não contam
-  const chave = `login:${ipDaRequisicao(Astro.request, Astro.clientAddress)}:${email}`;
+  // e 30 senhas erradas por IP em qualquer e-mail (tentativa em massa)
+  const ip = ipDaRequisicao(Astro.request, Astro.clientAddress);
+  const chave = `login:${ip}:${email}`;
+  const chaveIp = `login-ip:${ip}`;
   const JANELA = 15 * 60_000;
-  if (excedeu(chave, 10, JANELA)) {
+  if (excedeu(chave, 10, JANELA) || excedeu(chaveIp, 30, JANELA)) {
     setFlash(Astro.cookies, 'error', 'Muitas tentativas de login. Aguarde alguns minutos ou redefina sua senha.');
     return voltar();
   }
@@ -45,6 +48,7 @@ if (Astro.request.method === 'POST') {
         return Astro.redirect(`/auth/validacao?email=${encodeURIComponent(r.email)}`);
       default:
         permitir(chave, 10, JANELA);
+        permitir(chaveIp, 30, JANELA);
         setFlash(Astro.cookies, 'error', 'E-mail ou senha incorretos.');
         return voltar();
     }
