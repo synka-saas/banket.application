@@ -271,7 +271,8 @@ versão não congelada** por orçamento.
 **`orcamento_templates`** — visual do PDF: `nome`, `descricao`, `tags`, `padrao` (índice parcial: um padrão por empresa),
 `fonte_titulo`, `fonte_corpo`, `cor_texto_primaria`, `cor_texto_secundaria`, `cor_fundo`, `logo_path`,
 `capa_ativa`, `capa_imagem_path`, `capa_titulo`, `capa_conteudo`, `miolo_imagem_path`, `miolo_titulo`,
-`miolo_introducao`, `rodape_logo_path`, `rodape_titulo`, `rodape_conteudo`, `contracapa_ativa`,
+`miolo_introducao`, `rodape_logo_ativo`, `rodape_logo_posicao` (`esquerda | centro | direita`; o rodapé usa o `logo_path`),
+`rodape_titulo`, `rodape_conteudo`, `contracapa_ativa`,
 `contracapa_imagem_path`, `contracapa_titulo`, `contracapa_conteudo`.
 
 **`orcamento_blocos_info`** — blocos de texto reutilizáveis: `chave` (UNIQUE por empresa), `titulo`, `pagina`
@@ -341,6 +342,7 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `011_formularios` | formulários públicos e respostas |
 | `012_kanban_intervalo` | `kanban_intervalo_meses` |
 | `013_auth_autoatendimento` | token `link_acesso`, `usuarios.telefone`, documento de tenant único |
+| `014_template_rodape_logo` | `rodape_logo_ativo` + `rodape_logo_posicao`; `rodape_logo_path` fica sem uso (remover num deploy futuro) |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -499,7 +501,11 @@ documento, Pix.
 Templates visuais (fontes da lista `FONTES`, cores, imagens de capa/miolo/contracapa/logos, textos), duplicar, definir
 padrão, PDF de exemplo. O card "Identidade visual" reúne logo, fontes e cores; cada linha tem um botão de IA e as cores
 têm "Capturar cores do logo" (`POST /api/templates/sugestao` → `server/identidadeVisual.ts`, OpenAI com o logo
-convertido em PNG no navegador; 40 pedidos / 10 min por empresa). Blocos de informação por página da proposta, com marcação simples.
+convertido em PNG no navegador; 40 pedidos / 10 min por empresa). Os fundos de capa, conteúdo e contracapa têm
+"Gerar com IA" (`server/imagemFundo.ts`): JPEG 1664×2352 (A4 ~200 dpi) gerado em segundo plano (leva 1–2 min, acima do
+timeout do Nginx) com `POST /api/templates/imagem-fundo` + consulta em `GET …/:id`; a imagem entra no campo de arquivo e
+só é gravada ao salvar (15 / hora por empresa, pedidos em memória por instância). O rodapé do conteúdo não tem logo
+próprio: liga/desliga e posição do logotipo principal. Blocos de informação por página da proposta, com marcação simples.
 
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
 Usuários e convites · Tipos de evento · Categorias (com toggles de tipo via `/api/configuracoes/categorias/tipos`) ·
@@ -555,7 +561,7 @@ do mesmo tenant (`Cache-Control: private`). Interface pensada para trocar por S3
 | `JWT_SECRET` | sessão, onboarding e print token (≥ 32 caracteres, obrigatório) |
 | `APP_URL` | URL pública nos links de e-mail |
 | `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção** |
-| `OPENAI_TOKEN` / `OPENAI_MODEL` | sugestões de fontes/cores do template por IA (`lib/openai.ts`; modelo padrão `gpt-4.1-mini`) |
+| `OPENAI_TOKEN` / `OPENAI_MODEL` / `OPENAI_IMAGE_MODEL` | IA do template: sugestões de fontes/cores (padrão `gpt-4.1-mini`) e imagens de fundo (padrão `gpt-image-2`) |
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |

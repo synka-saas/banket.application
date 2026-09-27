@@ -30,7 +30,9 @@ const blocosDa = (pagina: BlocoTexto['pagina']) => c.blocos_texto.filter((b) => 
 const efetivo = (manual: number | null | undefined, calc: number | null | undefined) => manual ?? calc ?? 0;
 const itensSelecionados = (s: (typeof c.cardapios)[number]['secoes'][number]) => s.itens.filter((i) => i.selecionado);
 const escolhaTexto = (n: number | null) => (n ? ` – escolha ${n === 1 ? 'apenas uma opção' : `${n} opções`}` : '');
-const temRodape = Boolean(imagens.rodape_logo_path || t.rodape_titulo || t.rodape_conteudo);
+// O rodapé usa o logotipo principal do template, na posição escolhida
+const logoRodape = t.rodape_logo_ativo ? imagens.logo_path : null;
+const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
 const linhasCabecalho = [
   ['Data da proposta', view.dataProposta],
   ['Evento', c.cabecalho.evento],
@@ -89,12 +91,12 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
           <h1>{t.miolo_titulo}</h1>
         </header>
         {temRodape && (
-          <footer class="rodape">
-            <div>
+          <footer class:list={['rodape', `logo-${t.rodape_logo_posicao}`]}>
+            <div class="rodape-texto">
               {t.rodape_titulo && <strong>{t.rodape_titulo}</strong>}
               {t.rodape_conteudo && <span>{t.rodape_conteudo}</span>}
             </div>
-            {imagens.rodape_logo_path && <img src={imagens.rodape_logo_path} alt="" />}
+            {logoRodape && <img src={logoRodape} alt="" />}
           </footer>
         )}
 
@@ -353,22 +355,44 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
     right: 0;
     height: 16mm;
     padding: 0 16mm 5mm;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
     gap: 8mm;
     font-size: 8pt;
   }
 
-  .rodape div {
+  .rodape-texto {
+    grid-row: 1;
+    grid-column: 1;
     display: flex;
     flex-direction: column;
   }
 
   .rodape img {
+    grid-row: 1;
+    grid-column: 2;
     max-height: 10mm;
     max-width: 35mm;
     object-fit: contain;
+  }
+
+  .rodape.logo-centro {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  /* Logo à esquerda: o texto vai para a direita */
+  .rodape.logo-esquerda {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .rodape.logo-esquerda img {
+    grid-column: 1;
+  }
+
+  .rodape.logo-esquerda .rodape-texto {
+    grid-column: 2;
+    text-align: right;
   }
 
   .fluxo {

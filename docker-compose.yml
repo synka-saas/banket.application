@@ -16,6 +16,7 @@ services:
       - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
       - OPENAI_TOKEN=${OPENAI_TOKEN:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
+      - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-}
       - UPLOAD_DIR=/data/uploads
     volumes:
       - uploads_data:/data/uploads

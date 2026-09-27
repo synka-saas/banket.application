@@ -15,6 +15,8 @@ export const FONTES = [
 export const CAMPOS_IMAGEM = ['logo_path', 'capa_imagem_path', 'miolo_imagem_path', 'rodape_logo_path', 'contracapa_imagem_path'] as const;
 export type CampoImagem = (typeof CAMPOS_IMAGEM)[number];
 
+export const POSICOES_LOGO_RODAPE = ['esquerda', 'centro', 'direita'] as const;
+
 const cor = (padrao: string) =>
   z.preprocess((v) => (typeof v === 'string' && v ? v : padrao), z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.'));
 const fonte = z.enum(FONTES, { error: 'Fonte inválida.' });
@@ -35,6 +37,8 @@ export const templateSchema = z.object({
   miolo_introducao: optionalText(2000),
   rodape_titulo: optionalText(120),
   rodape_conteudo: optionalText(500),
+  rodape_logo_ativo: checkbox(),
+  rodape_logo_posicao: z.preprocess((v) => v || 'direita', z.enum(POSICOES_LOGO_RODAPE, { error: 'Posição do logo inválida.' })),
   contracapa_ativa: checkbox(),
   contracapa_titulo: optionalText(120),
   contracapa_conteudo: optionalText(1000),
@@ -55,7 +59,7 @@ export interface Template extends TemplateInput {
 
 const COLUNAS = `id, nome, descricao, tags, fonte_titulo, fonte_corpo, cor_fundo, cor_texto_primaria, cor_texto_secundaria,
   capa_ativa, capa_titulo, capa_conteudo, miolo_titulo, miolo_introducao, rodape_titulo, rodape_conteudo,
-  contracapa_ativa, contracapa_titulo, contracapa_conteudo, padrao, logo_path, capa_imagem_path, miolo_imagem_path,
+  rodape_logo_ativo, rodape_logo_posicao, contracapa_ativa, contracapa_titulo, contracapa_conteudo, padrao, logo_path, capa_imagem_path, miolo_imagem_path,
   rodape_logo_path, contracapa_imagem_path, updated_at`;
 
 export async function listarTemplates(db: Db, busca: string | null = null): Promise<Template[]> {
@@ -149,11 +153,11 @@ export async function duplicarTemplate(db: Db, id: string): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO orcamento_templates (tenant_id, nome, descricao, tags, fonte_titulo, fonte_corpo, cor_fundo,
        cor_texto_primaria, cor_texto_secundaria, capa_ativa, capa_titulo, capa_conteudo, miolo_titulo, miolo_introducao,
-       rodape_titulo, rodape_conteudo, contracapa_ativa, contracapa_titulo, contracapa_conteudo, padrao,
-       logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path)
+       rodape_titulo, rodape_conteudo, rodape_logo_ativo, rodape_logo_posicao, contracapa_ativa, contracapa_titulo,
+       contracapa_conteudo, padrao, logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path)
      SELECT tenant_id, $2, descricao, tags, fonte_titulo, fonte_corpo, cor_fundo, cor_texto_primaria, cor_texto_secundaria,
             capa_ativa, capa_titulo, capa_conteudo, miolo_titulo, miolo_introducao, rodape_titulo, rodape_conteudo,
-            contracapa_ativa, contracapa_titulo, contracapa_conteudo, false,
+            rodape_logo_ativo, rodape_logo_posicao, contracapa_ativa, contracapa_titulo, contracapa_conteudo, false,
             logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path
        FROM orcamento_templates WHERE id = $1 RETURNING id`,
     [id, nome]

@@ -18,6 +18,11 @@ const valor = (campo: keyof Template, padrao = '') => {
 };
 const imagem = (campo: CampoImagem) => (t[campo] ? fileUrl(tenantId, t[campo] as string) : null);
 
+const posicoesLogo = [
+  { valor: 'esquerda', rotulo: 'Esquerda', icone: 'align_horizontal_left' },
+  { valor: 'centro', rotulo: 'Centro', icone: 'align_horizontal_center' },
+  { valor: 'direita', rotulo: 'Direita', icone: 'align_horizontal_right' },
+] as const;
 const camposImagem: Record<CampoImagem, string> = {
   capa_imagem_path: 'Imagem de fundo',
   logo_path: 'Logotipo',
@@ -132,7 +137,13 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
         <label class="switch"><input type="checkbox" name="capa_ativa" checked={t.capa_ativa ?? true} />Incluir capa na proposta</label>
         <div class="field">
           <span class="field-label">{camposImagem.capa_imagem_path}</span>
-          <input type="file" name="capa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="capa_imagem_path" />
+          <div class="arquivo-ia">
+            <input type="file" name="capa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="capa_imagem_path" />
+            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="capa" data-campo="capa_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
+              <Icon name="auto_awesome" size={16} /> Gerar com IA
+            </button>
+          </div>
+          <span class="field-hint" data-status-fundo="capa_imagem_path" hidden></span>
           {imagem('capa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_capa_imagem_path" /> Remover imagem atual</label>}
         </div>
         <div class="field">
@@ -158,7 +169,13 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       <div class="campos">
         <div class="field">
           <span class="field-label">{camposImagem.miolo_imagem_path}</span>
-          <input type="file" name="miolo_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="miolo_imagem_path" />
+          <div class="arquivo-ia">
+            <input type="file" name="miolo_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="miolo_imagem_path" />
+            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="miolo" data-campo="miolo_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
+              <Icon name="auto_awesome" size={16} /> Gerar com IA
+            </button>
+          </div>
+          <span class="field-hint" data-status-fundo="miolo_imagem_path" hidden></span>
           {imagem('miolo_imagem_path') && <label class="remover"><input type="checkbox" name="remover_miolo_imagem_path" /> Remover imagem atual</label>}
         </div>
         <div class="field">
@@ -170,10 +187,17 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
           <textarea id="tp-mi" name="miolo_introducao" maxlength="2000">{valor('miolo_introducao')}</textarea>
           <span class="field-hint">Use **texto** para negrito.</span>
         </div>
-        <div class="field">
-          <span class="field-label">{camposImagem.rodape_logo_path}</span>
-          <input type="file" name="rodape_logo_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="rodape_logo_path" />
-          {imagem('rodape_logo_path') && <label class="remover"><input type="checkbox" name="remover_rodape_logo_path" /> Remover imagem atual</label>}
+        <div class="field logo-rodape" data-logo-rodape>
+          <label class="switch"><input type="checkbox" name="rodape_logo_ativo" checked={t.rodape_logo_ativo ?? true} />Exibir o logotipo no rodapé</label>
+          <div class="segmentos" role="radiogroup" aria-label="Posição do logotipo no rodapé">
+            {posicoesLogo.map((p) => (
+              <label>
+                <input type="radio" name="rodape_logo_posicao" value={p.valor} checked={(t.rodape_logo_posicao ?? 'direita') === p.valor} />
+                <span><Icon name={p.icone} size={18} /> {p.rotulo}</span>
+              </label>
+            ))}
+          </div>
+          <span class="field-hint">Usa o logotipo de Identidade visual.</span>
         </div>
         <div class="field">
           <label for="tp-rt">Título rodapé</label>
@@ -194,9 +218,9 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
         <b class="t2">Subtítulo 2</b>
         <p>Parágrafo 01</p>
         <p class="pequeno">Parágrafo 02</p>
-        <div class="miolo-rodape">
-          <span><b data-alvo="rodape_titulo">{valor('rodape_titulo', 'Texto rodapé')}</b> <span data-alvo="rodape_conteudo">{valor('rodape_conteudo')}</span></span>
-          <img data-img="rodape_logo_path" src={imagem('rodape_logo_path') ?? undefined} alt="" hidden={!imagem('rodape_logo_path')} />
+        <div class:list={['miolo-rodape', `logo-${t.rodape_logo_posicao ?? 'direita'}`]} data-preview-rodape>
+          <span class="rodape-texto"><b data-alvo="rodape_titulo">{valor('rodape_titulo', 'Texto rodapé')}</b> <span data-alvo="rodape_conteudo">{valor('rodape_conteudo')}</span></span>
+          <img data-img="logo_path" data-rodape-img src={imagem('logo_path') ?? undefined} alt="" hidden={!imagem('logo_path')} />
         </div>
       </div>
     </div>
@@ -208,7 +232,13 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
         <label class="switch"><input type="checkbox" name="contracapa_ativa" checked={Boolean(t.contracapa_ativa)} />Incluir contracapa na proposta</label>
         <div class="field">
           <span class="field-label">{camposImagem.contracapa_imagem_path}</span>
-          <input type="file" name="contracapa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="contracapa_imagem_path" />
+          <div class="arquivo-ia">
+            <input type="file" name="contracapa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="contracapa_imagem_path" />
+            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="contracapa" data-campo="contracapa_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
+              <Icon name="auto_awesome" size={16} /> Gerar com IA
+            </button>
+          </div>
+          <span class="field-hint" data-status-fundo="contracapa_imagem_path" hidden></span>
           {imagem('contracapa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_contracapa_imagem_path" /> Remover imagem atual</label>}
         </div>
         <div class="field">
@@ -351,6 +381,70 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     form.querySelector<HTMLButtonElement>('[data-capturar-cores]')?.addEventListener('click', (e) =>
       pedirSugestao(e.currentTarget as HTMLButtonElement, ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'], 'capturar')
     );
+
+    // Logo no rodapé: liga/desliga e posição refletidos na pré-visualização
+    const rodapePreview = form.querySelector<HTMLElement>('[data-preview-rodape]')!;
+    const blocoLogoRodape = form.querySelector<HTMLElement>('[data-logo-rodape]')!;
+    const aplicarRodape = () => {
+      const ativo = form.querySelector<HTMLInputElement>('[name="rodape_logo_ativo"]')!.checked;
+      const posicao = form.querySelector<HTMLInputElement>('[name="rodape_logo_posicao"]:checked')?.value ?? 'direita';
+      rodapePreview.className = `miolo-rodape logo-${posicao}${ativo ? '' : ' sem-logo'}`;
+      blocoLogoRodape.classList.toggle('desligado', !ativo);
+    };
+    blocoLogoRodape.addEventListener('change', aplicarRodape);
+    aplicarRodape();
+
+    // Imagem de fundo por IA: a geração leva 1–2 min e roda no servidor; a tela consulta até ficar pronta.
+    // A imagem entra no próprio campo de arquivo, então só é gravada ao salvar o template.
+    const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const gerarFundo = async (botao: HTMLButtonElement) => {
+      const campo = botao.dataset.campo!;
+      const status = form.querySelector<HTMLElement>(`[data-status-fundo="${campo}"]`)!;
+      const input = form.querySelector<HTMLInputElement>(`input[type="file"][name="${campo}"]`)!;
+      const cores = Object.fromEntries(
+        ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'].map((c) => [c, form.querySelector<HTMLInputElement>(`[name="${c}"]`)!.value])
+      );
+      botao.disabled = true;
+      botao.classList.add('carregando');
+      status.hidden = false;
+      status.textContent = 'Gerando a imagem em tamanho A4… isso leva de 1 a 2 minutos.';
+      try {
+        const res = await fetch('/api/templates/imagem-fundo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pagina: botao.dataset.gerarFundo, cores }),
+        });
+        const inicio = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(inicio.error ?? 'Falha ao gerar a imagem.');
+        const limite = Date.now() + 5 * 60_000;
+        let dados: { status?: string; imagem?: string; erro?: string; error?: string } = {};
+        while (Date.now() < limite) {
+          await esperar(4000);
+          const r = await fetch(`/api/templates/imagem-fundo/${inicio.id}`);
+          dados = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(dados.error ?? 'Falha ao gerar a imagem.');
+          if (dados.status !== 'gerando') break;
+        }
+        if (dados.status === 'erro') throw new Error(dados.erro ?? 'Falha ao gerar a imagem.');
+        if (dados.status !== 'pronto' || !dados.imagem) throw new Error('A geração demorou demais. Tente novamente.');
+        const blob = await (await fetch(dados.imagem)).blob();
+        const transferencia = new DataTransfer();
+        transferencia.items.add(new File([blob], `fundo-${botao.dataset.gerarFundo}-ia.jpg`, { type: 'image/jpeg' }));
+        input.files = transferencia.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        const remover = form.querySelector<HTMLInputElement>(`[name="remover_${campo}"]`);
+        if (remover) remover.checked = false;
+        status.textContent = 'Imagem gerada. Salve o template para mantê-la ou gere outra opção.';
+        toast('Imagem de fundo gerada. Salve para manter.', 'success');
+      } catch (err) {
+        status.hidden = true;
+        toast(err instanceof Error ? err.message : 'Falha ao gerar a imagem.', 'error');
+      } finally {
+        botao.disabled = false;
+        botao.classList.remove('carregando');
+      }
+    };
+    form.querySelectorAll<HTMLButtonElement>('[data-gerar-fundo]').forEach((botao) => botao.addEventListener('click', () => gerarFundo(botao)));
 
     form.addEventListener('input', aplicarVars);
     form.addEventListener('change', aplicarVars);
@@ -678,5 +772,94 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .miolo-rodape img {
     max-width: 50px;
     max-height: 20px;
+    object-fit: contain;
+  }
+
+  .miolo-rodape.logo-esquerda {
+    flex-direction: row-reverse;
+  }
+
+  .miolo-rodape.logo-esquerda .rodape-texto {
+    text-align: right;
+  }
+
+  .miolo-rodape.logo-centro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .miolo-rodape.sem-logo img {
+    display: none;
+  }
+
+  .arquivo-ia {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .arquivo-ia input[type='file'] {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .logo-rodape {
+    gap: 10px;
+  }
+
+  .logo-rodape.desligado .segmentos {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .segmentos {
+    display: inline-flex;
+    align-self: flex-start;
+    border: 1px solid var(--color-neutral-30);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+  }
+
+  .segmentos label {
+    position: relative;
+  }
+
+  .segmentos label + label {
+    border-left: 1px solid var(--color-neutral-30);
+  }
+
+  .segmentos input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .segmentos span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--color-neutral-65);
+    background: var(--color-white);
+  }
+
+  .segmentos input:checked + span {
+    background: var(--color-neutral-20);
+    color: var(--color-neutral-80);
+    font-weight: 600;
+  }
+
+  .segmentos input:focus-visible + span {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+
+  @media (max-width: 720px) {
+    .arquivo-ia {
+      flex-wrap: wrap;
+    }
   }
 </style>
