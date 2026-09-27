@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 HOST="${DEPLOY_HOST:-synka-main}"
-DIR="${DEPLOY_DIR:-/opt/banket.application}"
+DIR="${DEPLOY_DIR:-/var/www/banket}"
 URL="${DEPLOY_URL:-https://app.banket.com.br}"
 
 passo() { printf '\n\033[1;34m→ %s\033[0m\n' "$*"; }

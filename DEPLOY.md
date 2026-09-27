@@ -28,7 +28,7 @@ make rollback    # volta para a versão anterior, se algo der errado
 Recusa o deploy se houver commits não enviados, valida build + testes do commit numa cópia limpa,
 roda o blue-green na VPS por SSH e confere a URL pública.
 
-**Na VPS** (`ssh synka-main`, `cd /opt/banket.application`):
+**Na VPS** (`ssh synka-main`, `cd /var/www/banket`):
 
 ```bash
 make deploy      # git pull + blue-green aqui mesmo (sem a validação de build/testes do Mac)
@@ -77,8 +77,8 @@ inicialização do container). E o `make rollback` volta o código, mas **não**
 ## Primeira instalação
 
 ```bash
-git clone git@github.com:synka-saas/banket.application.git /opt/banket.application
-cd /opt/banket.application
+git clone git@github.com:synka-saas/banket.application.git /var/www/banket
+cd /var/www/banket
 cp .env.example .env
 # Edite o .env: senhas fortes para POSTGRES_PASSWORD e APP_DB_PASSWORD,
 # JWT_SECRET (openssl rand -base64 48), APP_URL=https://app.banket.com.br, RESEND_API_KEY
@@ -113,7 +113,7 @@ bash scripts/deploy-remoto.sh     # primeira subida
 ## Útil (na VPS)
 
 ```bash
-cd /opt/banket.application
+cd /var/www/banket
 alias dc='docker compose -f docker-compose.prod.yml'
 cat .deploy-ativo                  # cor no ar
 dc ps
