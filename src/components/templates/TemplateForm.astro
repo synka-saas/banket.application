@@ -775,6 +775,12 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     object-fit: contain;
   }
 
+  /* Título e texto do rodapé em linhas separadas, como no PDF */
+  .miolo-rodape .rodape-texto {
+    display: flex;
+    flex-direction: column;
+  }
+
   .miolo-rodape.logo-esquerda {
     flex-direction: row-reverse;
   }
