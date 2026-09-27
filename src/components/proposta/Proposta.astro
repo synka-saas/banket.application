@@ -63,7 +63,7 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
   <body style={cssVars} class={`parte-${parte}`}>
     {parte === 'capa' && (
       <section class="pagina-inteira capa" style={imagens.capa_imagem_path ? `background-image:url('${imagens.capa_imagem_path}')` : undefined}>
-        <div class:list={['capa-conteudo', { 'sobre-imagem': Boolean(imagens.capa_imagem_path) }]}>
+        <div class="capa-conteudo">
           {imagens.logo_path && <img class="capa-logo" src={imagens.logo_path} alt="" />}
           <h1>{t.capa_titulo}</h1>
           {t.capa_conteudo && <p>{t.capa_conteudo}</p>}
@@ -74,7 +74,7 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
 
     {parte === 'contracapa' && (
       <section class="pagina-inteira capa" style={imagens.contracapa_imagem_path ? `background-image:url('${imagens.contracapa_imagem_path}')` : undefined}>
-        <div class:list={['capa-conteudo', { 'sobre-imagem': Boolean(imagens.contracapa_imagem_path) }]}>
+        <div class="capa-conteudo">
           {imagens.logo_path && <img class="capa-logo" src={imagens.logo_path} alt="" />}
           {t.contracapa_titulo && <h1>{t.contracapa_titulo}</h1>}
           {t.contracapa_conteudo && <p>{t.contracapa_conteudo}</p>}
@@ -274,12 +274,8 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
     flex-direction: column;
     align-items: center;
     gap: 6mm;
+    /* Sempre as cores do template, com ou sem imagem de fundo (igual à pré-visualização do editor) */
     color: var(--destaque);
-  }
-
-  .capa-conteudo.sobre-imagem {
-    color: #fff;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
   }
 
   .capa-logo {
