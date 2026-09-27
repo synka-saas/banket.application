@@ -3,6 +3,8 @@
 import SectionCard from '../ui/SectionCard.astro';
 import Button from '../ui/Button.astro';
 import Icon from '../ui/Icon.astro';
+import FileUpload from '../ui/FileUpload.astro';
+import Galeria from './GaleriaFundos.astro';
 import { fileUrl } from '../../lib/storage';
 import { FONTES, type CampoImagem, type Template } from '../../server/templates';
 
@@ -75,17 +77,11 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 
   <SectionCard title="Identidade visual" variant="plain" collapsible>
     <div class="identidade" data-identidade>
-      <div class="logo-linha">
-        <div class="logo-caixa">
-          <img data-img="logo_path" data-logo src={imagem('logo_path') ?? undefined} alt="Logotipo" hidden={!imagem('logo_path')} />
-          <span class="logo-vazio" data-logo-vazio hidden={Boolean(imagem('logo_path'))}><Icon name="image" size={28} /></span>
-        </div>
-        <div class="field">
-          <span class="field-label">{camposImagem.logo_path}</span>
-          <input type="file" name="logo_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="logo_path" />
-          <span class="field-hint">Usado na capa, no cabeçalho das páginas e na contracapa. Também é a base das sugestões por IA.</span>
-          {imagem('logo_path') && <label class="remover"><input type="checkbox" name="remover_logo_path" /> Remover imagem atual</label>}
-        </div>
+      <div class="field">
+        <span class="field-label">{camposImagem.logo_path}</span>
+        <FileUpload name="logo_path" data-preview="logo_path" atualUrl={imagem('logo_path')} atualNome="Logotipo atual" removerName="remover_logo_path" />
+        <span class="field-hint">Usado na capa, no cabeçalho das páginas, no rodapé e na contracapa. Também é a base das sugestões por IA.</span>
+        <img data-img="logo_path" data-logo src={imagem('logo_path') ?? undefined} alt="" hidden={!imagem('logo_path')} class="logo-fonte-ia" />
       </div>
 
       <div class="subgrupo">
@@ -137,14 +133,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
         <label class="switch"><input type="checkbox" name="capa_ativa" checked={t.capa_ativa ?? true} />Incluir capa na proposta</label>
         <div class="field">
           <span class="field-label">{camposImagem.capa_imagem_path}</span>
-          <div class="arquivo-ia">
-            <input type="file" name="capa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="capa_imagem_path" />
-            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="capa" data-campo="capa_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
-              <Icon name="auto_awesome" size={16} /> Gerar com IA
-            </button>
-          </div>
-          <span class="field-hint" data-status-fundo="capa_imagem_path" hidden></span>
-          {imagem('capa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_capa_imagem_path" /> Remover imagem atual</label>}
+          <FileUpload name="capa_imagem_path" data-preview="capa_imagem_path" atualUrl={imagem('capa_imagem_path')} atualNome="Imagem de fundo atual" removerName="remover_capa_imagem_path" compacto />
+          <Galeria pagina="capa" campo="capa_imagem_path" />
         </div>
         <div class="field">
           <label for="tp-ct">Título capa</label>
@@ -169,14 +159,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       <div class="campos">
         <div class="field">
           <span class="field-label">{camposImagem.miolo_imagem_path}</span>
-          <div class="arquivo-ia">
-            <input type="file" name="miolo_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="miolo_imagem_path" />
-            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="miolo" data-campo="miolo_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
-              <Icon name="auto_awesome" size={16} /> Gerar com IA
-            </button>
-          </div>
-          <span class="field-hint" data-status-fundo="miolo_imagem_path" hidden></span>
-          {imagem('miolo_imagem_path') && <label class="remover"><input type="checkbox" name="remover_miolo_imagem_path" /> Remover imagem atual</label>}
+          <FileUpload name="miolo_imagem_path" data-preview="miolo_imagem_path" atualUrl={imagem('miolo_imagem_path')} atualNome="Imagem de fundo atual" removerName="remover_miolo_imagem_path" compacto />
+          <Galeria pagina="miolo" campo="miolo_imagem_path" />
         </div>
         <div class="field">
           <label for="tp-mt">Título do cabeçalho</label>
@@ -232,14 +216,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
         <label class="switch"><input type="checkbox" name="contracapa_ativa" checked={Boolean(t.contracapa_ativa)} />Incluir contracapa na proposta</label>
         <div class="field">
           <span class="field-label">{camposImagem.contracapa_imagem_path}</span>
-          <div class="arquivo-ia">
-            <input type="file" name="contracapa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="contracapa_imagem_path" />
-            <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar-fundo="contracapa" data-campo="contracapa_imagem_path" title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
-              <Icon name="auto_awesome" size={16} /> Gerar com IA
-            </button>
-          </div>
-          <span class="field-hint" data-status-fundo="contracapa_imagem_path" hidden></span>
-          {imagem('contracapa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_contracapa_imagem_path" /> Remover imagem atual</label>}
+          <FileUpload name="contracapa_imagem_path" data-preview="contracapa_imagem_path" atualUrl={imagem('contracapa_imagem_path')} atualNome="Imagem de fundo atual" removerName="remover_contracapa_imagem_path" compacto />
+          <Galeria pagina="contracapa" campo="contracapa_imagem_path" />
         </div>
         <div class="field">
           <label for="tp-cct">Título contracapa</label>
@@ -287,7 +265,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
           img.src = url;
           img.hidden = false;
         });
-        if (campo === 'logo_path') form.querySelector<HTMLElement>('[data-logo-vazio]')!.hidden = true;
       });
     });
 
@@ -394,57 +371,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     blocoLogoRodape.addEventListener('change', aplicarRodape);
     aplicarRodape();
 
-    // Imagem de fundo por IA: a geração leva 1–2 min e roda no servidor; a tela consulta até ficar pronta.
-    // A imagem entra no próprio campo de arquivo, então só é gravada ao salvar o template.
-    const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const gerarFundo = async (botao: HTMLButtonElement) => {
-      const campo = botao.dataset.campo!;
-      const status = form.querySelector<HTMLElement>(`[data-status-fundo="${campo}"]`)!;
-      const input = form.querySelector<HTMLInputElement>(`input[type="file"][name="${campo}"]`)!;
-      const cores = Object.fromEntries(
-        ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'].map((c) => [c, form.querySelector<HTMLInputElement>(`[name="${c}"]`)!.value])
-      );
-      botao.disabled = true;
-      botao.classList.add('carregando');
-      status.hidden = false;
-      status.textContent = 'Gerando a imagem em tamanho A4… isso leva de 1 a 2 minutos.';
-      try {
-        const res = await fetch('/api/templates/imagem-fundo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pagina: botao.dataset.gerarFundo, cores }),
-        });
-        const inicio = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(inicio.error ?? 'Falha ao gerar a imagem.');
-        const limite = Date.now() + 5 * 60_000;
-        let dados: { status?: string; imagem?: string; erro?: string; error?: string } = {};
-        while (Date.now() < limite) {
-          await esperar(4000);
-          const r = await fetch(`/api/templates/imagem-fundo/${inicio.id}`);
-          dados = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(dados.error ?? 'Falha ao gerar a imagem.');
-          if (dados.status !== 'gerando') break;
-        }
-        if (dados.status === 'erro') throw new Error(dados.erro ?? 'Falha ao gerar a imagem.');
-        if (dados.status !== 'pronto' || !dados.imagem) throw new Error('A geração demorou demais. Tente novamente.');
-        const blob = await (await fetch(dados.imagem)).blob();
-        const transferencia = new DataTransfer();
-        transferencia.items.add(new File([blob], `fundo-${botao.dataset.gerarFundo}-ia.jpg`, { type: 'image/jpeg' }));
-        input.files = transferencia.files;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-        const remover = form.querySelector<HTMLInputElement>(`[name="remover_${campo}"]`);
-        if (remover) remover.checked = false;
-        status.textContent = 'Imagem gerada. Salve o template para mantê-la ou gere outra opção.';
-        toast('Imagem de fundo gerada. Salve para manter.', 'success');
-      } catch (err) {
-        status.hidden = true;
-        toast(err instanceof Error ? err.message : 'Falha ao gerar a imagem.', 'error');
-      } finally {
-        botao.disabled = false;
-        botao.classList.remove('carregando');
-      }
-    };
-    form.querySelectorAll<HTMLButtonElement>('[data-gerar-fundo]').forEach((botao) => botao.addEventListener('click', () => gerarFundo(botao)));
 
     form.addEventListener('input', aplicarVars);
     form.addEventListener('change', aplicarVars);
@@ -517,41 +443,9 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     gap: 24px;
   }
 
-  .logo-linha {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .logo-caixa {
-    flex: 0 0 auto;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 140px;
-    height: 100px;
-    padding: 8px;
-    border: 1px dashed var(--color-neutral-30);
-    border-radius: var(--border-radius-sm);
-    background: var(--color-white);
-    overflow: hidden;
-  }
-
-  /* Ocupa a caixa inteira e ajusta o logo dentro dela, seja largo, alto ou quadrado */
-  .logo-caixa img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .logo-caixa img[hidden] {
-    display: none;
-  }
-
-  .logo-vazio {
-    color: var(--color-neutral-50);
+  /* Imagem usada só como fonte para as sugestões por IA (a miniatura visível fica no campo de upload) */
+  .logo-fonte-ia {
+    display: none !important;
   }
 
   .subgrupo {
@@ -639,7 +533,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     .linha {
       grid-template-columns: minmax(0, 1fr);
     }
-    .logo-linha,
     .subgrupo-topo {
       flex-wrap: wrap;
     }
@@ -656,11 +549,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     display: flex;
     flex-direction: column;
     gap: 18px;
-  }
-
-  .remover {
-    font-size: 12px;
-    color: var(--color-neutral-65);
   }
 
   /* Pré-visualização (proporção A4) */
@@ -798,17 +686,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     display: none;
   }
 
-  .arquivo-ia {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .arquivo-ia input[type='file'] {
-    flex: 1;
-    min-width: 0;
-  }
-
   .logo-rodape {
     gap: 10px;
   }
@@ -861,11 +738,5 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .segmentos input:focus-visible + span {
     outline: 2px solid var(--color-primary);
     outline-offset: -2px;
-  }
-
-  @media (max-width: 720px) {
-    .arquivo-ia {
-      flex-wrap: wrap;
-    }
   }
 </style>

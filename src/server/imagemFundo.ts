@@ -1,26 +1,42 @@
-// Geração de imagens de fundo do template (capa, páginas de conteúdo, contracapa) com IA.
+// Galeria de imagens de fundo do template (capa, páginas de conteúdo, contracapa) geradas por IA.
 // A geração em qualidade alta passa de um minuto (acima do timeout do Nginx), então roda em segundo plano:
-// o navegador inicia o pedido e consulta o andamento. Os pedidos ficam em memória, por instância.
+// o pedido vira uma linha em template_fundos_ia ("gerando") e a tela acompanha pela listagem. Como o status fica
+// no banco, dá para trocar de página e voltar; a imagem pronta fica na galeria para ser escolhida em qualquer template.
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { withTenant, type Db } from '../lib/db';
 import { UserError } from '../lib/forms';
 import { openAiImagem } from '../lib/openai';
+import { removeFile, saveFile } from '../lib/storage';
 
 /** Proporção do A4 (210 × 297) em ~200 dpi */
 const TAMANHO_A4 = '1664x2352';
-const VALIDADE_MS = 15 * 60_000;
 const MAX_SIMULTANEAS = 2;
+/** Por página, quantas imagens a galeria mostra */
+const POR_PAGINA = 12;
+
+export const PAGINAS_FUNDO = ['capa', 'miolo', 'contracapa'] as const;
+export type PaginaFundo = (typeof PAGINAS_FUNDO)[number];
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
 export const imagemFundoSchema = z.object({
-  pagina: z.enum(['capa', 'miolo', 'contracapa']),
+  pagina: z.enum(PAGINAS_FUNDO),
   cores: z.object({ cor_fundo: hex, cor_texto_primaria: hex, cor_texto_secundaria: hex }),
 });
 
 export type PedidoImagemFundo = z.infer<typeof imagemFundoSchema>;
 
-const USO: Record<PedidoImagemFundo['pagina'], string> = {
+export interface FundoIa {
+  id: string;
+  pagina: PaginaFundo;
+  status: 'gerando' | 'pronto' | 'erro';
+  arquivo_path: string | null;
+  erro: string | null;
+  created_at: Date;
+}
+
+const USO: Record<PaginaFundo, string> = {
   capa:
     'Front cover of the proposal. The logo and a short title will be placed over the CENTER of the page, so keep a ' +
     'calm, clean, fairly uniform area in the middle; concentrate decorative elements toward the edges and corners.',
@@ -47,45 +63,88 @@ function montarPrompt({ pagina, cores }: PedidoImagemFundo): string {
   ].join('\n');
 }
 
-interface Geracao {
-  tenantId: string;
-  status: 'gerando' | 'pronto' | 'erro';
-  imagem?: Buffer;
-  erro?: string;
-  criadoEm: number;
+/** Gerações "presas" (instância reiniciada no meio, ex.: deploy) viram erro para não girar para sempre. */
+async function encerrarInterrompidas(db: Db) {
+  await db.query(
+    `UPDATE template_fundos_ia SET status = 'erro', erro = 'A geração foi interrompida. Gere novamente.', updated_at = now()
+      WHERE status = 'gerando' AND created_at < now() - interval '6 minutes'`
+  );
 }
 
-const geracoes = new Map<string, Geracao>();
-
-function limpar(agora = Date.now()) {
-  for (const [id, g] of geracoes) if (agora - g.criadoEm > VALIDADE_MS) geracoes.delete(id);
+export async function listarFundos(db: Db): Promise<FundoIa[]> {
+  await encerrarInterrompidas(db);
+  const { rows } = await db.query<FundoIa>(
+    `SELECT id, pagina, status, arquivo_path, erro, created_at FROM (
+       SELECT *, row_number() OVER (PARTITION BY pagina ORDER BY created_at DESC) AS n FROM template_fundos_ia
+     ) f WHERE n <= $1 ORDER BY created_at DESC`,
+    [POR_PAGINA]
+  );
+  return rows;
 }
 
-export function iniciarImagemFundo(tenantId: string, pedido: PedidoImagemFundo): string {
-  limpar();
-  const ativas = [...geracoes.values()].filter((g) => g.tenantId === tenantId && g.status === 'gerando').length;
-  if (ativas >= MAX_SIMULTANEAS) throw new UserError('Já há imagens sendo geradas. Aguarde terminarem.');
+/** Registra o pedido; a geração em si começa com processarFundo depois do COMMIT. */
+export async function registrarFundo(db: Db, tenantId: string, usuarioId: string, pedido: PedidoImagemFundo): Promise<string> {
+  await encerrarInterrompidas(db);
+  const { rows: ativas } = await db.query<{ n: number }>(`SELECT count(*) AS n FROM template_fundos_ia WHERE status = 'gerando'`);
+  if (ativas[0].n >= MAX_SIMULTANEAS) throw new UserError('Já há imagens sendo geradas. Aguarde terminarem.');
+  const { rows } = await db.query<{ id: string }>(
+    `INSERT INTO template_fundos_ia (tenant_id, pagina, cores, criado_por) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [tenantId, pedido.pagina, JSON.stringify(pedido.cores), usuarioId]
+  );
+  return rows[0].id;
+}
 
-  const id = randomUUID();
-  const geracao: Geracao = { tenantId, status: 'gerando', criadoEm: Date.now() };
-  geracoes.set(id, geracao);
-  openAiImagem({ prompt: montarPrompt(pedido), tamanho: TAMANHO_A4 })
-    .then((imagem) => Object.assign(geracao, { status: 'pronto', imagem }))
-    .catch((err) =>
-      Object.assign(geracao, {
-        status: 'erro',
-        erro: err instanceof UserError ? err.message : 'Não foi possível gerar a imagem.',
-      })
+/** Gera a imagem, grava no disco do tenant e atualiza a linha. Roda solto (sem request), com conexão própria. */
+export async function processarFundo(tenantId: string, id: string, pedido: PedidoImagemFundo): Promise<void> {
+  try {
+    const imagem = await openAiImagem({ prompt: montarPrompt(pedido), tamanho: TAMANHO_A4 });
+    const caminho = await saveFile(tenantId, `templates/ia/${randomUUID()}.jpg`, imagem);
+    const atualizada = await withTenant(tenantId, (db) =>
+      db.query(`UPDATE template_fundos_ia SET status = 'pronto', arquivo_path = $2, updated_at = now() WHERE id = $1`, [id, caminho])
     );
-  return id;
+    // Excluída da galeria enquanto gerava: o arquivo não tem dono
+    if (!atualizada.rowCount) await removeFile(tenantId, caminho);
+  } catch (err) {
+    const mensagem = err instanceof UserError ? err.message : 'Não foi possível gerar a imagem.';
+    if (!(err instanceof UserError)) console.error('[imagem-fundo]', err);
+    await withTenant(tenantId, (db) =>
+      db.query(`UPDATE template_fundos_ia SET status = 'erro', erro = $2, updated_at = now() WHERE id = $1`, [id, mensagem])
+    ).catch((e) => console.error('[imagem-fundo] falha ao registrar erro', e));
+  }
 }
 
-/** Andamento da geração; a imagem é entregue uma única vez (depois o pedido é descartado). */
-export function consultarImagemFundo(tenantId: string, id: string) {
-  const g = geracoes.get(id);
-  if (!g || g.tenantId !== tenantId) throw new UserError('Geração não encontrada. Tente gerar novamente.');
-  if (g.status === 'gerando') return { status: g.status };
-  geracoes.delete(id);
-  if (g.status === 'erro') return { status: g.status, erro: g.erro };
-  return { status: g.status, imagem: `data:image/jpeg;base64,${g.imagem!.toString('base64')}` };
+/** Arquivo referenciado por algum template ou pela galeria (não pode ser apagado do disco). */
+export async function arquivoEmUso(db: Db, caminho: string): Promise<boolean> {
+  const { rows } = await db.query(
+    `SELECT 1 FROM orcamento_templates
+      WHERE $1 IN (logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path)
+     UNION ALL
+     SELECT 1 FROM template_fundos_ia WHERE arquivo_path = $1
+     LIMIT 1`,
+    [caminho]
+  );
+  return rows.length > 0;
+}
+
+/** Caminho da imagem da galeria escolhida para uma página do template. */
+export async function arquivoDoFundo(db: Db, id: string, pagina: PaginaFundo): Promise<string> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new UserError('Imagem da galeria não encontrada.');
+  const { rows } = await db.query<{ arquivo_path: string }>(
+    `SELECT arquivo_path FROM template_fundos_ia WHERE id = $1 AND pagina = $2 AND status = 'pronto'`,
+    [id, pagina]
+  );
+  if (!rows[0]?.arquivo_path) throw new UserError('Imagem da galeria não encontrada.');
+  return rows[0].arquivo_path;
+}
+
+/** Tira a imagem da galeria; devolve o arquivo a apagar do disco se nenhum template o usa. */
+export async function excluirFundo(db: Db, id: string): Promise<string | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new UserError('Imagem da galeria não encontrada.');
+  const { rows } = await db.query<{ arquivo_path: string | null; status: string }>(
+    `DELETE FROM template_fundos_ia WHERE id = $1 RETURNING arquivo_path, status`,
+    [id]
+  );
+  if (!rows[0]) throw new UserError('Imagem da galeria não encontrada.');
+  const caminho = rows[0].arquivo_path;
+  return caminho && !(await arquivoEmUso(db, caminho)) ? caminho : null;
 }

@@ -1,0 +1,300 @@
+---
+// Galeria de fundos gerados por IA para uma página da proposta (capa, miolo ou contracapa).
+// A geração roda no servidor e fica registrada no banco: dá para sair da página e voltar que ela continua.
+// Escolher uma imagem preenche o campo oculto ia_<campo>; o servidor aplica ao salvar o template.
+import Icon from '../ui/Icon.astro';
+
+interface Props {
+  pagina: 'capa' | 'miolo' | 'contracapa';
+  campo: string;
+}
+
+const { pagina, campo } = Astro.props;
+---
+
+<div class="galeria" data-galeria={pagina} data-campo={campo}>
+  <input type="hidden" name={`ia_${campo}`} value="" data-galeria-escolha />
+  <div class="galeria-topo">
+    <button type="button" class="btn btn-outline btn-sm btn-ia" data-gerar title="Gerar uma imagem de fundo em tamanho A4 com as cores do template">
+      <Icon name="auto_awesome" size={16} /> Gerar com IA
+    </button>
+    <span class="field-hint">Fundo A4 com as cores do template (1–2 min). Pode sair da página: a imagem fica aqui na galeria.</span>
+  </div>
+  <div class="galeria-itens" data-itens></div>
+</div>
+
+<script>
+  interface Fundo {
+    id: string;
+    pagina: string;
+    status: 'gerando' | 'pronto' | 'erro';
+    erro: string | null;
+    url: string | null;
+  }
+
+  const galerias = [...document.querySelectorAll<HTMLElement>('[data-galeria]')];
+  const toast = (msg: string, tipo: 'success' | 'error' | 'info') =>
+    (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(msg, tipo);
+  const statusAnterior = new Map<string, Fundo['status']>();
+  let espera: ReturnType<typeof setTimeout> | null = null;
+
+  const icone = (nome: string) => {
+    const el = document.createElement('span');
+    el.className = 'icon';
+    el.textContent = nome;
+    el.setAttribute('aria-hidden', 'true');
+    return el;
+  };
+
+  const partes = (g: HTMLElement) => {
+    const campo = g.dataset.campo!;
+    const form = g.closest('form')!;
+    const upload = form.querySelector<HTMLInputElement>(`input[type="file"][name="${campo}"]`)!.closest<HTMLElement>('[data-upload]')!;
+    return { campo, form, upload, escolha: g.querySelector<HTMLInputElement>('[data-galeria-escolha]')! };
+  };
+
+  function escolher(g: HTMLElement, fundo: Fundo) {
+    const { campo, form, upload, escolha } = partes(g);
+    escolha.value = fundo.id;
+    upload.dispatchEvent(new CustomEvent('upload:externo', { detail: { url: fundo.url, nome: 'Imagem da galeria (IA)' } }));
+    form.querySelectorAll<HTMLElement>(`[data-bg="${campo}"]`).forEach((el) => (el.style.backgroundImage = `url('${fundo.url}')`));
+    g.querySelectorAll('.galeria-item').forEach((el) => el.classList.toggle('escolhido', (el as HTMLElement).dataset.id === fundo.id));
+  }
+
+  async function excluir(fundo: Fundo) {
+    if (!confirm('Excluir esta imagem da galeria?')) return;
+    const res = await fetch(`/api/templates/imagem-fundo/${fundo.id}`, { method: 'DELETE' });
+    const dados = await res.json().catch(() => ({}));
+    if (!res.ok) return toast(dados.error ?? 'Não foi possível excluir.', 'error');
+    for (const g of galerias) {
+      const { escolha } = partes(g);
+      if (escolha.value === fundo.id) escolha.value = '';
+    }
+    carregar();
+  }
+
+  function renderizar(g: HTMLElement, fundos: Fundo[]) {
+    const itens = g.querySelector<HTMLElement>('[data-itens]')!;
+    const escolhido = partes(g).escolha.value;
+    itens.replaceChildren(
+      ...fundos.map((f) => {
+        const item = document.createElement('div');
+        item.className = `galeria-item ${f.status}`;
+        item.dataset.id = f.id;
+        if (f.status === 'pronto' && f.url) {
+          const botao = document.createElement('button');
+          botao.type = 'button';
+          botao.className = 'galeria-usar';
+          botao.title = 'Usar esta imagem';
+          const img = document.createElement('img');
+          img.src = f.url;
+          img.alt = 'Fundo gerado por IA';
+          img.loading = 'lazy';
+          botao.append(img);
+          botao.addEventListener('click', () => escolher(g, f));
+          item.append(botao);
+          item.classList.toggle('escolhido', f.id === escolhido);
+        } else if (f.status === 'gerando') {
+          const texto = document.createElement('small');
+          texto.textContent = 'Gerando…';
+          item.append(icone('progress_activity'), texto);
+          item.title = 'Gerando a imagem (1–2 min)';
+        } else {
+          const texto = document.createElement('small');
+          texto.textContent = 'Falhou';
+          item.append(icone('error'), texto);
+          item.title = f.erro ?? 'Não foi possível gerar a imagem.';
+        }
+        if (f.status !== 'gerando') {
+          const remover = document.createElement('button');
+          remover.type = 'button';
+          remover.className = 'galeria-excluir';
+          remover.title = 'Excluir da galeria';
+          remover.append(icone('close'));
+          remover.addEventListener('click', () => excluir(f));
+          item.append(remover);
+        }
+        return item;
+      })
+    );
+    itens.hidden = fundos.length === 0;
+  }
+
+  async function carregar() {
+    if (espera) clearTimeout(espera);
+    espera = null;
+    let fundos: Fundo[];
+    try {
+      const res = await fetch('/api/templates/imagem-fundo');
+      if (!res.ok) throw new Error();
+      fundos = (await res.json()).fundos;
+    } catch {
+      espera = setTimeout(carregar, 15_000);
+      return;
+    }
+    for (const f of fundos) {
+      const antes = statusAnterior.get(f.id);
+      if (antes === 'gerando' && f.status === 'pronto') toast('Nova imagem de fundo na galeria. Clique nela para usar.', 'success');
+      if (antes === 'gerando' && f.status === 'erro') toast(f.erro ?? 'Não foi possível gerar a imagem.', 'error');
+      statusAnterior.set(f.id, f.status);
+    }
+    for (const g of galerias) renderizar(g, fundos.filter((f) => f.pagina === g.dataset.galeria));
+    if (fundos.some((f) => f.status === 'gerando')) espera = setTimeout(carregar, 5000);
+  }
+
+  for (const g of galerias) {
+    const { form, upload, escolha } = partes(g);
+    // Arquivo escolhido no campo (ou descartado/removido) vale mais que a galeria
+    const limparEscolha = () => {
+      escolha.value = '';
+      g.querySelectorAll('.galeria-item.escolhido').forEach((el) => el.classList.remove('escolhido'));
+    };
+    upload.addEventListener('change', (e) => {
+      const alvo = e.target as HTMLInputElement;
+      if (alvo.type === 'file' ? alvo.files?.length : alvo.checked) limparEscolha();
+    });
+    upload.addEventListener('upload:limpo', limparEscolha);
+
+    const gerar = g.querySelector<HTMLButtonElement>('[data-gerar]')!;
+    gerar.addEventListener('click', async () => {
+      const cores = Object.fromEntries(
+        ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'].map((c) => [c, form.querySelector<HTMLInputElement>(`[name="${c}"]`)!.value])
+      );
+      gerar.disabled = true;
+      try {
+        const res = await fetch('/api/templates/imagem-fundo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pagina: g.dataset.galeria, cores }),
+        });
+        const dados = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(dados.error ?? 'Não foi possível iniciar a geração.');
+        statusAnterior.set(dados.id, 'gerando');
+        toast('Gerando a imagem. Ela aparece na galeria em 1–2 minutos.', 'info');
+        await carregar();
+      } catch (err) {
+        toast(err instanceof Error ? err.message : 'Não foi possível iniciar a geração.', 'error');
+      } finally {
+        gerar.disabled = false;
+      }
+    });
+  }
+
+  if (galerias.length) carregar();
+</script>
+
+<style is:global>
+  .galeria {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .galeria-topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .galeria-topo .btn {
+    flex: 0 0 auto;
+  }
+
+  .galeria-itens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .galeria-itens[hidden] {
+    display: none;
+  }
+
+  /* Miniaturas na proporção A4 */
+  .galeria-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 64px;
+    aspect-ratio: 210 / 297;
+    border: 1px solid var(--color-neutral-30);
+    border-radius: var(--border-radius-sm);
+    background: var(--color-neutral-10);
+    color: var(--color-neutral-50);
+    font-size: 11px;
+  }
+
+  .galeria-item.escolhido {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px var(--color-secondary);
+  }
+
+  .galeria-item.gerando .icon {
+    animation: galeria-girar 1s linear infinite;
+  }
+
+  .galeria-item.erro {
+    color: var(--color-primary-60);
+    background: var(--color-primary-10);
+    border-color: var(--color-primary-20);
+  }
+
+  .galeria-usar {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    border: 0;
+    border-radius: inherit;
+    background: none;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .galeria-usar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .galeria-excluir {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--color-neutral-30);
+    border-radius: 50%;
+    background: var(--color-white);
+    color: var(--color-neutral-80);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .galeria-excluir .icon {
+    font-size: 14px;
+  }
+
+  .galeria-item:hover .galeria-excluir,
+  .galeria-excluir:focus-visible {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .galeria-excluir {
+      opacity: 1;
+    }
+  }
+
+  @keyframes galeria-girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

@@ -2,6 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
+import FileUpload from '../../components/ui/FileUpload.astro';
 import { withTenant } from '../../lib/db';
 import { handleFormPost } from '../../lib/actions';
 import { formatarDocumento } from '../../lib/documento';
@@ -78,20 +79,14 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
         </div>
         <div class="field span-2">
           <span class="field-label">Logotipo</span>
-          <div class="logo-row">
-            <div class="logo-preview">
-              {empresa.logo_path ? <img src={fileUrl(tenantId, empresa.logo_path)} alt="Logotipo atual" /> : <span class="muted">Sem logotipo</span>}
-            </div>
-            <div class="logo-inputs">
-              <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
-              <span class="field-hint">PNG, JPG, WEBP ou SVG até 5 MB. Usado nos templates de orçamento.</span>
-              {empresa.logo_path && (
-                <button type="submit" name="_action" value="remover_logo" class="row-action danger" formnovalidate data-confirm="Remover o logotipo?">
-                  Remover logotipo
-                </button>
-              )}
-            </div>
-          </div>
+          <FileUpload
+            name="logo"
+            atualUrl={empresa.logo_path ? fileUrl(tenantId, empresa.logo_path) : null}
+            atualNome="Logotipo atual"
+            removerAcao="remover_logo"
+            removerConfirmacao="Remover o logotipo?"
+          />
+          <span class="field-hint">Usado nos templates de orçamento.</span>
         </div>
       </div>
     </SectionCard>
@@ -167,37 +162,5 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
 
   .cols-3 .span-3 {
     grid-column: 1 / -1;
-  }
-
-  .logo-row {
-    display: flex;
-    gap: 24px;
-    align-items: center;
-  }
-
-  .logo-preview {
-    width: 160px;
-    height: 90px;
-    border: 1px dashed var(--color-neutral-40);
-    border-radius: var(--border-radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-neutral-10);
-    font-size: 12px;
-  }
-
-  .logo-preview img {
-    max-width: 90%;
-    max-height: 80%;
-    object-fit: contain;
-  }
-
-  .logo-inputs {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
-    font-size: 13px;
   }
 </style>

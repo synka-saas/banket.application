@@ -1,0 +1,401 @@
+---
+// Campo de upload padrão do sistema: área de "arrastar e soltar ou procurar" e, com arquivo, um cartão com miniatura,
+// nome e ações (trocar / remover). O <input type="file"> real continua no formulário (envio normal via multipart),
+// então os scripts das páginas podem ouvir o "change" dele como antes.
+//
+// API para scripts: disparar `upload:externo` no elemento [data-upload] com { url, nome } mostra uma imagem vinda de
+// outra origem (ex.: galeria de IA) e limpa o arquivo escolhido; o componente dispara `upload:limpo` quando o
+// usuário descarta o arquivo novo.
+import type { HTMLAttributes } from 'astro/types';
+import Icon from './Icon.astro';
+
+type Props = Omit<HTMLAttributes<'input'>, 'type'> & {
+  name: string;
+  /** Tipos aceitos (atributo accept). Padrão: imagens PNG, JPG, WEBP e SVG. */
+  accept?: string;
+  /** Texto dos formatos aceitos exibido abaixo da chamada */
+  formatos?: string;
+  /** URL do arquivo já salvo (mostrado como "arquivo atual") */
+  atualUrl?: string | null;
+  atualNome?: string;
+  /** Checkbox enviado ao salvar para remover o arquivo atual (ex.: remover_logo_path) */
+  removerName?: string;
+  /** Alternativa ao removerName: botão submit que remove na hora (valor de _action) */
+  removerAcao?: string;
+  removerConfirmacao?: string;
+  /** Versão mais baixa, para colunas estreitas */
+  compacto?: boolean;
+};
+
+const {
+  name,
+  accept = 'image/png,image/jpeg,image/webp,image/svg+xml',
+  formatos = 'PNG, JPG, WEBP ou SVG · até 5 MB',
+  atualUrl = null,
+  atualNome = 'Imagem atual',
+  removerName,
+  removerAcao,
+  removerConfirmacao = 'Remover o arquivo atual?',
+  compacto = false,
+  class: className,
+  ...rest
+} = Astro.props;
+---
+
+<div
+  class:list={['upload', { compacto }, className]}
+  data-upload
+  data-atual-url={atualUrl ?? undefined}
+  data-atual-nome={atualNome}
+>
+  <input type="file" name={name} accept={accept} class="upload-input" tabindex="-1" {...rest} />
+
+  <div class="upload-zona" data-zona role="button" tabindex="0" hidden={Boolean(atualUrl)}>
+    <span class="upload-icone"><Icon name="upload" size={22} /></span>
+    <span class="upload-chamada">Arraste e solte ou <span class="upload-link">procure</span> para enviar</span>
+    <span class="upload-formatos">{formatos}</span>
+  </div>
+
+  <div class="upload-cartao" data-cartao hidden={!atualUrl}>
+    <span class="upload-miniatura">
+      <img data-miniatura src={atualUrl ?? undefined} alt="" hidden={!atualUrl} />
+      <Icon name="description" size={22} class="upload-miniatura-icone" />
+    </span>
+    <span class="upload-info">
+      <strong data-nome>{atualNome}</strong>
+      <small data-detalhe>{atualUrl ? 'Salvo' : ''}</small>
+    </span>
+    <span class="upload-acoes">
+      <button type="button" class="upload-acao" data-trocar><Icon name="swap_horiz" size={18} /> Trocar</button>
+      {removerName && atualUrl && (
+        <label class="upload-acao perigo" data-remover-atual>
+          <input type="checkbox" name={removerName} hidden />
+          <Icon name="delete" size={18} /> <span data-remover-rotulo>Remover</span>
+        </label>
+      )}
+      {removerAcao && atualUrl && (
+        <button type="submit" name="_action" value={removerAcao} class="upload-acao perigo" formnovalidate data-confirm={removerConfirmacao} data-remover-agora>
+          <Icon name="delete" size={18} /> Remover
+        </button>
+      )}
+      <button type="button" class="upload-acao" data-descartar hidden title="Descartar o arquivo escolhido">
+        <Icon name="close" size={18} /> Descartar
+      </button>
+    </span>
+  </div>
+  <slot />
+</div>
+
+<script>
+  const tamanho = (bytes: number) =>
+    bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+  const aceita = (arquivo: File, accept: string) =>
+    !accept ||
+    accept.split(',').some((tipo) => {
+      const t = tipo.trim().toLowerCase();
+      if (t.startsWith('.')) return arquivo.name.toLowerCase().endsWith(t);
+      if (t.endsWith('/*')) return arquivo.type.startsWith(t.slice(0, -1));
+      return arquivo.type === t;
+    });
+
+  function iniciar(raiz: HTMLElement) {
+    if (raiz.dataset.pronto) return;
+    raiz.dataset.pronto = '1';
+    const input = raiz.querySelector<HTMLInputElement>('.upload-input')!;
+    const zona = raiz.querySelector<HTMLElement>('[data-zona]')!;
+    const cartao = raiz.querySelector<HTMLElement>('[data-cartao]')!;
+    const miniatura = raiz.querySelector<HTMLImageElement>('[data-miniatura]')!;
+    const nome = raiz.querySelector<HTMLElement>('[data-nome]')!;
+    const detalhe = raiz.querySelector<HTMLElement>('[data-detalhe]')!;
+    const descartar = raiz.querySelector<HTMLButtonElement>('[data-descartar]')!;
+    const removerAtual = raiz.querySelector<HTMLLabelElement>('[data-remover-atual]');
+    const removerCheckbox = removerAtual?.querySelector<HTMLInputElement>('input');
+    const removerAgora = raiz.querySelector<HTMLElement>('[data-remover-agora]');
+    const atualUrl = raiz.dataset.atualUrl ?? '';
+    let urlTemporaria: string | null = null;
+
+    const mostrar = (estado: { url?: string | null; nome: string; detalhe: string; novo: boolean } | null) => {
+      if (urlTemporaria) URL.revokeObjectURL(urlTemporaria);
+      urlTemporaria = null;
+      zona.hidden = Boolean(estado);
+      cartao.hidden = !estado;
+      if (!estado) return;
+      miniatura.hidden = !estado.url;
+      if (estado.url) miniatura.src = estado.url;
+      nome.textContent = estado.nome;
+      detalhe.textContent = estado.detalhe;
+      descartar.hidden = !estado.novo;
+      if (removerAtual) removerAtual.hidden = estado.novo;
+      if (removerAgora) removerAgora.hidden = estado.novo;
+      raiz.classList.toggle('removendo', !estado.novo && Boolean(removerCheckbox?.checked));
+    };
+
+    const estadoAtual = () =>
+      atualUrl ? { url: atualUrl, nome: raiz.dataset.atualNome ?? 'Arquivo atual', detalhe: 'Salvo', novo: false } : null;
+
+    const atualizar = () => {
+      const arquivo = input.files?.[0];
+      if (!arquivo) return mostrar(estadoAtual());
+      const url = arquivo.type.startsWith('image/') ? URL.createObjectURL(arquivo) : null;
+      mostrar({ url, nome: arquivo.name, detalhe: `${tamanho(arquivo.size)} · será enviado ao salvar`, novo: true });
+      urlTemporaria = url;
+      if (removerCheckbox) removerCheckbox.checked = false;
+    };
+
+    const escolher = () => input.click();
+    zona.addEventListener('click', escolher);
+    zona.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        escolher();
+      }
+    });
+    raiz.querySelector('[data-trocar]')!.addEventListener('click', escolher);
+    input.addEventListener('change', atualizar);
+
+    descartar.addEventListener('click', () => {
+      input.value = '';
+      atualizar();
+      raiz.dispatchEvent(new CustomEvent('upload:limpo', { bubbles: true }));
+    });
+
+    removerCheckbox?.addEventListener('change', () => {
+      raiz.classList.toggle('removendo', removerCheckbox.checked);
+      raiz.querySelector('[data-remover-rotulo]')!.textContent = removerCheckbox.checked ? 'Desfazer' : 'Remover';
+      detalhe.textContent = removerCheckbox.checked ? 'Será removido ao salvar' : 'Salvo';
+    });
+
+    // Imagem vinda de fora (ex.: galeria de IA): descarta o arquivo escolhido e mostra a escolhida
+    raiz.addEventListener('upload:externo', (e) => {
+      const { url, nome: rotulo } = (e as CustomEvent<{ url: string; nome: string }>).detail;
+      input.value = '';
+      if (removerCheckbox) removerCheckbox.checked = false;
+      mostrar({ url, nome: rotulo, detalhe: 'Será aplicada ao salvar', novo: false });
+      if (removerAtual) removerAtual.hidden = true;
+    });
+
+    // Arrastar e soltar em qualquer parte do campo
+    let profundidade = 0;
+    raiz.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      profundidade++;
+      raiz.classList.add('arrastando');
+    });
+    raiz.addEventListener('dragover', (e) => e.preventDefault());
+    raiz.addEventListener('dragleave', () => {
+      if (--profundidade <= 0) {
+        profundidade = 0;
+        raiz.classList.remove('arrastando');
+      }
+    });
+    raiz.addEventListener('drop', (e) => {
+      e.preventDefault();
+      profundidade = 0;
+      raiz.classList.remove('arrastando');
+      const arquivo = e.dataTransfer?.files?.[0];
+      if (!arquivo) return;
+      if (!aceita(arquivo, input.accept)) {
+        (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.('Formato de arquivo não aceito.', 'error');
+        return;
+      }
+      const transferencia = new DataTransfer();
+      transferencia.items.add(arquivo);
+      input.files = transferencia.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-upload]').forEach(iniciar);
+</script>
+
+<style is:global>
+  .upload {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* O input real fica acessível ao formulário, mas invisível */
+  .upload-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .upload-zona {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px 16px;
+    border: 1.5px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius);
+    background: var(--color-white);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .upload-zona[hidden],
+  .upload-cartao[hidden] {
+    display: none;
+  }
+
+  .upload-zona:hover,
+  .upload-zona:focus-visible,
+  .upload.arrastando .upload-zona {
+    border-color: var(--color-secondary);
+    background: #f5faf6;
+    outline: none;
+  }
+
+  .upload.arrastando .upload-cartao {
+    outline: 2px dashed var(--color-secondary);
+    outline-offset: 2px;
+  }
+
+  .upload-icone {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: var(--color-neutral-10);
+    color: var(--color-secondary);
+  }
+
+  .upload-chamada {
+    font-size: 14px;
+    color: var(--color-neutral-100);
+  }
+
+  .upload-link {
+    color: var(--color-secondary);
+    font-weight: 600;
+  }
+
+  .upload-formatos {
+    font-size: 12px;
+    color: var(--color-neutral-50);
+  }
+
+  .upload.compacto .upload-zona {
+    padding: 14px 12px;
+  }
+
+  .upload.compacto .upload-icone {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0;
+  }
+
+  .upload-cartao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--color-white);
+  }
+
+  .upload.removendo .upload-cartao {
+    border-color: var(--color-primary-20);
+    background: var(--color-primary-10);
+  }
+
+  .upload.removendo .upload-miniatura img {
+    opacity: 0.4;
+  }
+
+  .upload-miniatura {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--border-radius-sm);
+    background: var(--color-neutral-10);
+    color: var(--color-neutral-50);
+    overflow: hidden;
+  }
+
+  .upload-miniatura img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--color-neutral-10);
+  }
+
+  .upload-miniatura img[hidden] {
+    display: none;
+  }
+
+  .upload-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .upload-info strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .upload-info small {
+    font-size: 12px;
+    color: var(--color-neutral-50);
+  }
+
+  .upload-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .upload-acao {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    border: 0;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    color: var(--color-neutral-80);
+    cursor: pointer;
+  }
+
+  .upload-acao:hover {
+    background: var(--color-neutral-20);
+  }
+
+  .upload-acao.perigo {
+    color: var(--color-primary-60);
+  }
+
+  .upload-acao.perigo:hover {
+    background: var(--color-primary-10);
+  }
+
+  .upload-acao[hidden] {
+    display: none;
+  }
+</style>

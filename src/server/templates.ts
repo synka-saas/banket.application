@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import { UserError, checkbox, optionalInt, optionalText, requiredText, tagList } from '../lib/forms';
+import { arquivoDoFundo, arquivoEmUso, type PaginaFundo } from './imagemFundo';
 
 // ---------------------------------------------------------------------------
 // Templates
@@ -132,11 +133,7 @@ export async function excluirTemplate(db: Db, id: string): Promise<string[]> {
   await db.query('DELETE FROM orcamento_templates WHERE id = $1', [id]);
   const orfas: string[] = [];
   for (const p of CAMPOS_IMAGEM.map((c) => t[c]).filter((x): x is string => Boolean(x))) {
-    const { rows } = await db.query(
-      'SELECT 1 FROM orcamento_templates WHERE $1 IN (logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path)',
-      [p]
-    );
-    if (!rows.length) orfas.push(p);
+    if (!(await arquivoEmUso(db, p))) orfas.push(p);
   }
   return orfas;
 }
@@ -230,6 +227,12 @@ export async function excluirBloco(db: Db, id: string) {
   if (!res.rowCount) throw new UserError('Bloco não encontrado.');
 }
 
+const PAGINA_DO_FUNDO: Partial<Record<CampoImagem, PaginaFundo>> = {
+  capa_imagem_path: 'capa',
+  miolo_imagem_path: 'miolo',
+  contracapa_imagem_path: 'contracapa',
+};
+
 // ---------------------------------------------------------------------------
 // Salvamento a partir do formulário (com upload/remoção das imagens)
 // ---------------------------------------------------------------------------
@@ -254,22 +257,23 @@ export async function salvarTemplateDoFormulario(
         const caminho = await storage.saveUpload(tenantId, 'templates', arquivo);
         enviados.push(caminho);
         imagens[campo] = caminho;
+      } else if (PAGINA_DO_FUNDO[campo] && typeof data[`ia_${campo}`] === 'string' && data[`ia_${campo}`]) {
+        // Imagem escolhida na galeria de fundos gerados por IA (o arquivo é compartilhado com a galeria)
+        imagens[campo] = await arquivoDoFundo(db, data[`ia_${campo}`] as string, PAGINA_DO_FUNDO[campo]);
       } else if (data[`remover_${campo}`] === 'on') {
         imagens[campo] = null;
       }
     }
   } catch (err) {
     for (const c of enviados) await storage.removeFile(tenantId, c);
+    if (err instanceof UserError) throw err;
     throw new UserError(err instanceof Error ? err.message : 'Falha ao enviar a imagem.');
   }
   const { id: salvo, imagensAntigas } = await salvarTemplate(db, tenantId, id, input, imagens);
-  // Arquivos substituídos não são mais referenciados por este template; só apaga se nenhum outro usa
+  // Arquivos substituídos não são mais referenciados por este template; só apaga se nenhum outro template
+  // (nem a galeria de fundos por IA) usa
   for (const antigo of imagensAntigas) {
-    const { rows } = await db.query(
-      `SELECT 1 FROM orcamento_templates WHERE $1 IN (logo_path, capa_imagem_path, miolo_imagem_path, rodape_logo_path, contracapa_imagem_path)`,
-      [antigo]
-    );
-    if (!rows.length) await storage.removeFile(tenantId, antigo);
+    if (!(await arquivoEmUso(db, antigo))) await storage.removeFile(tenantId, antigo);
   }
   return salvo;
 }

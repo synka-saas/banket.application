@@ -343,6 +343,7 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `012_kanban_intervalo` | `kanban_intervalo_meses` |
 | `013_auth_autoatendimento` | token `link_acesso`, `usuarios.telefone`, documento de tenant único |
 | `014_template_rodape_logo` | `rodape_logo_ativo` + `rodape_logo_posicao`; `rodape_logo_path` fica sem uso (remover num deploy futuro) |
+| `015_template_fundos_ia` | galeria `template_fundos_ia` (fundos gerados por IA, status gerando/pronto/erro) |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -502,9 +503,12 @@ Templates visuais (fontes da lista `FONTES`, cores, imagens de capa/miolo/contra
 padrão, PDF de exemplo. O card "Identidade visual" reúne logo, fontes e cores; cada linha tem um botão de IA e as cores
 têm "Capturar cores do logo" (`POST /api/templates/sugestao` → `server/identidadeVisual.ts`, OpenAI com o logo
 convertido em PNG no navegador; 40 pedidos / 10 min por empresa). Os fundos de capa, conteúdo e contracapa têm
-"Gerar com IA" (`server/imagemFundo.ts`): JPEG 1664×2352 (A4 ~200 dpi) gerado em segundo plano (leva 1–2 min, acima do
-timeout do Nginx) com `POST /api/templates/imagem-fundo` + consulta em `GET …/:id`; a imagem entra no campo de arquivo e
-só é gravada ao salvar (15 / hora por empresa, pedidos em memória por instância). O rodapé do conteúdo não tem logo
+"Gerar com IA" e uma galeria (`server/imagemFundo.ts`, `components/templates/GaleriaFundos.astro`): JPEG 1664×2352
+(A4 ~200 dpi) gerado em segundo plano (leva 1–2 min, acima do timeout do Nginx). `POST /api/templates/imagem-fundo`
+cria a linha `gerando` em `template_fundos_ia` e dispara a geração; a tela consulta `GET /api/templates/imagem-fundo`
+enquanto houver pendentes (dá para sair da página e voltar). A galeria é por empresa e página; escolher uma imagem
+envia `ia_<campo>` e o template passa a usar o mesmo arquivo. Arquivos só são apagados quando nem templates nem a
+galeria os usam (`arquivoEmUso`). Gerações presas há mais de 6 min viram erro. Limite: 15 / hora e 2 simultâneas. O rodapé do conteúdo não tem logo
 próprio: liga/desliga e posição do logotipo principal. Blocos de informação por página da proposta, com marcação simples.
 
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
@@ -517,6 +521,12 @@ modelo de e-mail).
 Disco em `{UPLOAD_DIR}/{tenantId}/{pasta}/{uuid}.{ext}` (volume Docker `/data/uploads`). Imagens PNG/JPEG/WebP/SVG até
 5 MB por padrão. `resolveKey` impede sair da pasta do tenant. Servidos em `/uploads/{tenantId}/…` apenas para a sessão
 do mesmo tenant (`Cache-Control: private`). Interface pensada para trocar por S3.
+
+### Upload de arquivos (`components/ui/FileUpload.astro`)
+Todo campo de arquivo usa o `FileUpload`: área "arraste e solte ou procure" e, com arquivo, cartão com miniatura, nome
+e ações (Trocar, Remover/Desfazer, Descartar). O `<input type="file">` real segue no formulário (multipart normal).
+Remoção: `removerName` (checkbox aplicado ao salvar) ou `removerAcao` (submit imediato com `_action`). Evento
+`upload:externo` ({url, nome}) mostra uma imagem vinda de outra origem (galeria de IA).
 
 ### E-mail (`lib/mail.ts`, `server/emails.ts`)
 `sendMail` usa `https://api.resend.com/emails` com `RESEND_API_KEY`/`MAIL_FROM`; sem chave, registra no log e retorna
