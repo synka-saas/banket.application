@@ -84,7 +84,12 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       </div>
 
       <div class="subgrupo">
-        <h4>Fontes</h4>
+        <div class="subgrupo-topo">
+          <h4>Fontes</h4>
+          <button type="button" class="btn btn-outline btn-sm btn-ia" data-sugerir-fontes title="Sugerir as fontes de títulos e parágrafos a partir do logotipo">
+            <Icon name="auto_awesome" size={16} /> Sugerir fontes com IA
+          </button>
+        </div>
         {fontes.map((f) => (
           <div class="linha">
             <div class="linha-texto">
@@ -94,9 +99,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
             <select id={f.id} name={f.campo} data-var={f.var}>
               {FONTES.map((nome) => <option value={nome} selected={nome === valor(f.campo, f.padrao)} style={`font-family:'${nome}'`}>{nome}</option>)}
             </select>
-            <button type="button" class="btn btn-outline btn-sm btn-ia" data-ia={f.campo} title="Sugerir com IA a partir do logotipo">
-              <Icon name="auto_awesome" size={16} /> IA
-            </button>
           </div>
         ))}
       </div>
@@ -118,9 +120,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
               <input id={c.id} type="color" name={c.campo} value={valor(c.campo, c.padrao)} data-var={c.var} />
               <input class="hex" value={valor(c.campo, c.padrao).toUpperCase()} data-hex={c.campo} maxlength="7" aria-label={`${c.rotulo} (hexadecimal)`} spellcheck="false" />
             </div>
-            <button type="button" class="btn btn-outline btn-sm btn-ia" data-ia={c.campo} title="Sugerir com IA a partir do logotipo">
-              <Icon name="auto_awesome" size={16} /> IA
-            </button>
           </div>
         ))}
       </div>
@@ -346,8 +345,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       }
     };
 
-    form.querySelectorAll<HTMLButtonElement>('[data-ia]').forEach((botao) =>
-      botao.addEventListener('click', () => pedirSugestao(botao, [botao.dataset.ia!], 'sugerir'))
+    form.querySelector<HTMLButtonElement>('[data-sugerir-fontes]')?.addEventListener('click', (e) =>
+      pedirSugestao(e.currentTarget as HTMLButtonElement, ['fonte_titulo', 'fonte_corpo'], 'sugerir')
     );
     form.querySelector<HTMLButtonElement>('[data-capturar-cores]')?.addEventListener('click', (e) =>
       pedirSugestao(e.currentTarget as HTMLButtonElement, ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'], 'capturar')
@@ -432,20 +431,29 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 
   .logo-caixa {
     flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 120px;
-    height: 80px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 100px;
     padding: 8px;
     border: 1px dashed var(--color-neutral-30);
     border-radius: var(--border-radius-sm);
     background: var(--color-white);
+    overflow: hidden;
   }
 
+  /* Ocupa a caixa inteira e ajusta o logo dentro dela, seja largo, alto ou quadrado */
   .logo-caixa img {
-    max-width: 100%;
-    max-height: 100%;
+    display: block;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
+  }
+
+  .logo-caixa img[hidden] {
+    display: none;
   }
 
   .logo-vazio {
@@ -478,7 +486,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 
   .linha {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 240px auto;
+    grid-template-columns: minmax(0, 1fr) 280px;
     align-items: center;
     gap: 16px;
     padding: 10px 0;
@@ -535,10 +543,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 
   @media (max-width: 720px) {
     .linha {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-    .linha-texto {
-      grid-column: 1 / -1;
+      grid-template-columns: minmax(0, 1fr);
     }
     .logo-linha,
     .subgrupo-topo {
