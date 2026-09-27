@@ -82,6 +82,7 @@ src/
     senha.ts           política de senha
     storage.ts         arquivos em disco particionados por tenant
     mail.ts            envio via Resend / log em dev; appUrl()
+    openai.ts          chamada à OpenAI (Chat Completions) com imagem e resposta JSON estruturada
     forms.ts           FormData → objeto, preprocessadores zod, UserError, tradução de erros do Postgres
     actions.ts         handleFormPost (POST → redirect → GET com flash)
     api.ts             jsonEndpoint / readJson para endpoints JSON
@@ -496,7 +497,9 @@ documento, Pix.
 
 ### Templates — `/templates`, `/templates/novo`, `/templates/:id`, `/templates/blocos` (`server/templates.ts`)
 Templates visuais (fontes da lista `FONTES`, cores, imagens de capa/miolo/contracapa/logos, textos), duplicar, definir
-padrão, PDF de exemplo. Blocos de informação por página da proposta, com marcação simples.
+padrão, PDF de exemplo. O card "Identidade visual" reúne logo, fontes e cores; cada linha tem um botão de IA e as cores
+têm "Capturar cores do logo" (`POST /api/templates/sugestao` → `server/identidadeVisual.ts`, OpenAI com o logo
+convertido em PNG no navegador; 40 pedidos / 10 min por empresa). Blocos de informação por página da proposta, com marcação simples.
 
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
 Usuários e convites · Tipos de evento · Categorias (com toggles de tipo via `/api/configuracoes/categorias/tipos`) ·
@@ -552,6 +555,7 @@ do mesmo tenant (`Cache-Control: private`). Interface pensada para trocar por S3
 | `JWT_SECRET` | sessão, onboarding e print token (≥ 32 caracteres, obrigatório) |
 | `APP_URL` | URL pública nos links de e-mail |
 | `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção** |
+| `OPENAI_TOKEN` / `OPENAI_MODEL` | sugestões de fontes/cores do template por IA (`lib/openai.ts`; modelo padrão `gpt-4.1-mini`) |
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |

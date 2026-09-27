@@ -2,6 +2,7 @@
 // Editor de template da proposta (frame "Templates / Novo Template"), com pré-visualização ao vivo.
 import SectionCard from '../ui/SectionCard.astro';
 import Button from '../ui/Button.astro';
+import Icon from '../ui/Icon.astro';
 import { fileUrl } from '../../lib/storage';
 import { FONTES, type CampoImagem, type Template } from '../../server/templates';
 
@@ -24,6 +25,15 @@ const camposImagem: Record<CampoImagem, string> = {
   rodape_logo_path: 'Logotipo do rodapé',
   contracapa_imagem_path: 'Imagem de fundo',
 };
+const fontes = [
+  { id: 'tp-ft', campo: 'fonte_titulo', rotulo: 'Títulos', dica: 'Capa, cabeçalhos e títulos de seção.', padrao: 'Archivo Black', var: '--p-fonte-titulo' },
+  { id: 'tp-fc', campo: 'fonte_corpo', rotulo: 'Parágrafos', dica: 'Texto corrido, itens e valores.', padrao: 'Open Sans', var: '--p-fonte-corpo' },
+] as const;
+const cores = [
+  { id: 'tp-bg', campo: 'cor_fundo', rotulo: 'Background', dica: 'Fundo das páginas.', padrao: '#FFF9F2', var: '--p-fundo' },
+  { id: 'tp-c1', campo: 'cor_texto_primaria', rotulo: 'Cor primária (texto)', dica: 'Texto corrido.', padrao: '#4A1A0E', var: '--p-texto' },
+  { id: 'tp-c2', campo: 'cor_texto_secundaria', rotulo: 'Cor secundária (títulos)', dica: 'Títulos e destaques.', padrao: '#A61E00', var: '--p-destaque' },
+] as const;
 const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;700`).join('&');
 ---
 
@@ -58,36 +68,61 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     </div>
   </section>
 
-  <SectionCard title="Fontes" variant="plain" collapsible>
-    <div class="form-grid">
-      <div class="field">
-        <label for="tp-ft">Títulos</label>
-        <select id="tp-ft" name="fonte_titulo" data-var="--p-fonte-titulo">
-          {FONTES.map((f) => <option value={f} selected={f === valor('fonte_titulo', 'Archivo Black')} style={`font-family:'${f}'`}>{f}</option>)}
-        </select>
+  <SectionCard title="Identidade visual" variant="plain" collapsible>
+    <div class="identidade" data-identidade>
+      <div class="logo-linha">
+        <div class="logo-caixa">
+          <img data-img="logo_path" data-logo src={imagem('logo_path') ?? undefined} alt="Logotipo" hidden={!imagem('logo_path')} />
+          <span class="logo-vazio" data-logo-vazio hidden={Boolean(imagem('logo_path'))}><Icon name="image" size={28} /></span>
+        </div>
+        <div class="field">
+          <span class="field-label">{camposImagem.logo_path}</span>
+          <input type="file" name="logo_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="logo_path" />
+          <span class="field-hint">Usado na capa, no cabeçalho das páginas e na contracapa. Também é a base das sugestões por IA.</span>
+          {imagem('logo_path') && <label class="remover"><input type="checkbox" name="remover_logo_path" /> Remover imagem atual</label>}
+        </div>
       </div>
-      <div class="field">
-        <label for="tp-fc">Parágrafos</label>
-        <select id="tp-fc" name="fonte_corpo" data-var="--p-fonte-corpo">
-          {FONTES.map((f) => <option value={f} selected={f === valor('fonte_corpo', 'Open Sans')} style={`font-family:'${f}'`}>{f}</option>)}
-        </select>
-      </div>
-    </div>
-  </SectionCard>
 
-  <SectionCard title="Cores" variant="plain" collapsible>
-    <div class="form-grid cols-3">
-      <div class="field">
-        <label for="tp-bg">Background</label>
-        <input id="tp-bg" type="color" name="cor_fundo" value={valor('cor_fundo', '#FFF9F2')} data-var="--p-fundo" />
+      <div class="subgrupo">
+        <h4>Fontes</h4>
+        {fontes.map((f) => (
+          <div class="linha">
+            <div class="linha-texto">
+              <label for={f.id}>{f.rotulo}</label>
+              <span class="field-hint">{f.dica}</span>
+            </div>
+            <select id={f.id} name={f.campo} data-var={f.var}>
+              {FONTES.map((nome) => <option value={nome} selected={nome === valor(f.campo, f.padrao)} style={`font-family:'${nome}'`}>{nome}</option>)}
+            </select>
+            <button type="button" class="btn btn-outline btn-sm btn-ia" data-ia={f.campo} title="Sugerir com IA a partir do logotipo">
+              <Icon name="auto_awesome" size={16} /> IA
+            </button>
+          </div>
+        ))}
       </div>
-      <div class="field">
-        <label for="tp-c1">Cor primária (texto)</label>
-        <input id="tp-c1" type="color" name="cor_texto_primaria" value={valor('cor_texto_primaria', '#4A1A0E')} data-var="--p-texto" />
-      </div>
-      <div class="field">
-        <label for="tp-c2">Cor secundária (títulos)</label>
-        <input id="tp-c2" type="color" name="cor_texto_secundaria" value={valor('cor_texto_secundaria', '#A61E00')} data-var="--p-destaque" />
+
+      <div class="subgrupo">
+        <div class="subgrupo-topo">
+          <h4>Cores</h4>
+          <button type="button" class="btn btn-outline btn-sm btn-ia" data-capturar-cores title="Preencher as três cores com a paleta do logotipo">
+            <Icon name="colorize" size={16} /> Capturar cores do logo
+          </button>
+        </div>
+        {cores.map((c) => (
+          <div class="linha">
+            <div class="linha-texto">
+              <label for={c.id}>{c.rotulo}</label>
+              <span class="field-hint">{c.dica}</span>
+            </div>
+            <div class="cor">
+              <input id={c.id} type="color" name={c.campo} value={valor(c.campo, c.padrao)} data-var={c.var} />
+              <input class="hex" value={valor(c.campo, c.padrao).toUpperCase()} data-hex={c.campo} maxlength="7" aria-label={`${c.rotulo} (hexadecimal)`} spellcheck="false" />
+            </div>
+            <button type="button" class="btn btn-outline btn-sm btn-ia" data-ia={c.campo} title="Sugerir com IA a partir do logotipo">
+              <Icon name="auto_awesome" size={16} /> IA
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   </SectionCard>
@@ -96,13 +131,11 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     <div class="pagina-grid">
       <div class="campos">
         <label class="switch"><input type="checkbox" name="capa_ativa" checked={t.capa_ativa ?? true} />Incluir capa na proposta</label>
-        {(['capa_imagem_path', 'logo_path'] as CampoImagem[]).map((c) => (
-          <div class="field">
-            <span class="field-label">{camposImagem[c]}</span>
-            <input type="file" name={c} accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview={c} />
-            {imagem(c) && <label class="remover"><input type="checkbox" name={`remover_${c}`} /> Remover imagem atual</label>}
-          </div>
-        ))}
+        <div class="field">
+          <span class="field-label">{camposImagem.capa_imagem_path}</span>
+          <input type="file" name="capa_imagem_path" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-preview="capa_imagem_path" />
+          {imagem('capa_imagem_path') && <label class="remover"><input type="checkbox" name="remover_capa_imagem_path" /> Remover imagem atual</label>}
+        </div>
         <div class="field">
           <label for="tp-ct">Título capa</label>
           <input id="tp-ct" name="capa_titulo" required maxlength="120" value={valor('capa_titulo', 'Proposta de orçamento')} data-texto="capa_titulo" />
@@ -225,8 +258,101 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
           img.src = url;
           img.hidden = false;
         });
+        if (campo === 'logo_path') form.querySelector<HTMLElement>('[data-logo-vazio]')!.hidden = true;
       });
     });
+
+    // Cor: seletor nativo e campo hexadecimal andam juntos
+    const definirCor = (campo: string, hex: string) => {
+      const seletor = form.querySelector<HTMLInputElement>(`input[type="color"][name="${campo}"]`)!;
+      seletor.value = hex.toLowerCase();
+      form.querySelector<HTMLInputElement>(`[data-hex="${campo}"]`)!.value = hex.toUpperCase();
+      seletor.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    form.querySelectorAll<HTMLInputElement>('[data-hex]').forEach((hex) => {
+      const seletor = form.querySelector<HTMLInputElement>(`input[type="color"][name="${hex.dataset.hex}"]`)!;
+      seletor.addEventListener('input', () => (hex.value = seletor.value.toUpperCase()));
+      hex.addEventListener('input', () => {
+        const v = hex.value.trim().replace(/^([^#])/, '#$1');
+        if (/^#[0-9a-f]{6}$/i.test(v)) definirCor(hex.dataset.hex!, v);
+      });
+      hex.addEventListener('blur', () => (hex.value = seletor.value.toUpperCase()));
+    });
+
+    // Sugestões por IA: o logo (salvo ou recém-escolhido, inclusive SVG) vira um PNG reduzido no navegador
+    const logoComoPng = async (): Promise<string | null> => {
+      const img = form.querySelector<HTMLImageElement>('[data-logo]')!;
+      const removido = form.querySelector<HTMLInputElement>('[name="remover_logo_path"]')?.checked;
+      const novo = form.querySelector<HTMLInputElement>('input[name="logo_path"]')?.files?.length;
+      if (img.hidden || !img.getAttribute('src') || (removido && !novo)) return null;
+      await img.decode().catch(() => undefined);
+      const max = 512;
+      const w0 = img.naturalWidth || max;
+      const h0 = img.naturalHeight || max;
+      const escala = Math.min(1, max / Math.max(w0, h0));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w0 * escala));
+      canvas.height = Math.max(1, Math.round(h0 * escala));
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png');
+    };
+
+    const toast = (msg: string, tipo: 'success' | 'error' | 'info') =>
+      (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(msg, tipo);
+
+    const valoresAtuais = () =>
+      Object.fromEntries(
+        ['fonte_titulo', 'fonte_corpo', 'cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'].map((c) => [
+          c,
+          form.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${c}"]`)!.value,
+        ])
+      );
+
+    const pedirSugestao = async (botao: HTMLButtonElement, campos: string[], modo: 'sugerir' | 'capturar') => {
+      const logo = await logoComoPng().catch(() => null);
+      if (!logo) return toast('Envie o logotipo para usar as sugestões por IA.', 'info');
+      botao.disabled = true;
+      botao.classList.add('carregando');
+      try {
+        const res = await fetch('/api/templates/sugestao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo, campos, modo, atuais: valoresAtuais() }),
+        });
+        const dados = await res.json().catch(() => ({ error: 'Falha na sugestão.' }));
+        if (!res.ok) throw new Error(dados.error ?? 'Falha na sugestão.');
+        let aplicados = 0;
+        for (const campo of campos) {
+          const v = dados[campo];
+          if (typeof v !== 'string') continue;
+          aplicados++;
+          if (campo.startsWith('cor_')) definirCor(campo, v);
+          else {
+            const select = form.querySelector<HTMLSelectElement>(`select[name="${campo}"]`)!;
+            select.value = v;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+        if (!aplicados) throw new Error('A IA não trouxe uma sugestão válida. Tente de novo.');
+        toast(dados.motivo || 'Sugestão aplicada. Salve para manter.', 'success');
+      } catch (err) {
+        toast(err instanceof Error ? err.message : 'Falha na sugestão.', 'error');
+      } finally {
+        botao.disabled = false;
+        botao.classList.remove('carregando');
+      }
+    };
+
+    form.querySelectorAll<HTMLButtonElement>('[data-ia]').forEach((botao) =>
+      botao.addEventListener('click', () => pedirSugestao(botao, [botao.dataset.ia!], 'sugerir'))
+    );
+    form.querySelector<HTMLButtonElement>('[data-capturar-cores]')?.addEventListener('click', (e) =>
+      pedirSugestao(e.currentTarget as HTMLButtonElement, ['cor_fundo', 'cor_texto_primaria', 'cor_texto_secundaria'], 'capturar')
+    );
+
     form.addEventListener('input', aplicarVars);
     form.addEventListener('change', aplicarVars);
     aplicarVars();
@@ -291,8 +417,133 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     align-items: end;
   }
 
-  .cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Identidade visual: logo, fontes e cores */
+  .identidade {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .logo-linha {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .logo-caixa {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 120px;
+    height: 80px;
+    padding: 8px;
+    border: 1px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius-sm);
+    background: var(--color-white);
+  }
+
+  .logo-caixa img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  .logo-vazio {
+    color: var(--color-neutral-50);
+  }
+
+  .subgrupo {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .subgrupo h4 {
+    margin: 16px 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+  }
+
+  .subgrupo-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .subgrupo-topo h4 {
+    margin-bottom: 4px;
+  }
+
+  .linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px auto;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 0;
+  }
+
+  .linha + .linha {
+    border-top: 1px solid var(--color-neutral-20);
+  }
+
+  .linha-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .linha-texto label {
+    font-weight: 600;
+    color: var(--color-neutral-80);
+  }
+
+  .cor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cor input[type='color'] {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 36px;
+    padding: 2px;
+    cursor: pointer;
+  }
+
+  .cor .hex {
+    width: 100%;
+    font-family: ui-monospace, monospace;
+    text-transform: uppercase;
+  }
+
+  .btn-ia {
+    gap: 4px;
+  }
+
+  .btn-ia.carregando :global(.icon) {
+    animation: girar 1s linear infinite;
+  }
+
+  @keyframes girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (max-width: 720px) {
+    .linha {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .linha-texto {
+      grid-column: 1 / -1;
+    }
+    .logo-linha,
+    .subgrupo-topo {
+      flex-wrap: wrap;
+    }
   }
 
   .pagina-grid {

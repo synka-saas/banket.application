@@ -18,6 +18,8 @@ x-webapp: &webapp
     - APP_URL=${APP_URL:-http://localhost:4321}
     - RESEND_API_KEY=${RESEND_API_KEY:-}
     - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
+    - OPENAI_TOKEN=${OPENAI_TOKEN:-}
+    - OPENAI_MODEL=${OPENAI_MODEL:-}
     - UPLOAD_DIR=/data/uploads
   volumes:
     - uploads_data:/data/uploads
