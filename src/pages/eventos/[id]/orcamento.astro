@@ -150,8 +150,19 @@ const { evento, orcamento, versao } = ctx;
         )}
         <div class="field">
           <label for="env-para">Para<span class="obrigatorio">*</span></label>
-          <input id="env-para" name="para" required value={ctx.envio.para} placeholder="email@cliente.com.br" />
-          <span class="field-hint">Vários destinatários separados por vírgula. As respostas chegam no seu e-mail ({user.email}).</span>
+          <div class="chips-email" data-chips-email>
+            <input type="hidden" name="para" value={ctx.envio.para} data-chips-valor />
+            <input
+              id="env-para"
+              type="email"
+              placeholder="email@cliente.com.br"
+              data-chips-entrada
+              aria-describedby="env-para-dica"
+            />
+          </div>
+          <span class="field-hint" id="env-para-dica">
+            Enter ou vírgula adiciona; até 5 destinatários. As respostas chegam no seu e-mail ({user.email}).
+          </span>
         </div>
         <div class="field">
           <label for="env-assunto">Assunto<span class="obrigatorio">*</span></label>
@@ -160,7 +171,15 @@ const { evento, orcamento, versao } = ctx;
         <div class="field">
           <label for="env-mensagem">Mensagem<span class="obrigatorio">*</span></label>
           <textarea id="env-mensagem" name="mensagem" required rows="12" maxlength="10000">{ctx.envio.mensagem}</textarea>
-          <span class="field-hint">O PDF da proposta vai em anexo. O modelo da mensagem fica em Configurações › Empresa.</span>
+          <span class="field-hint">O modelo da mensagem fica em Configurações › Empresa.</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Prévia do e-mail</span>
+          <div class="envio-previa">
+            <p class="envio-previa-anexo"><strong>Anexo:</strong> PDF da proposta (versão {String(ctx.envio.numero).padStart(2, '0')})</p>
+            <p class="envio-previa-assunto" data-previa-envio-assunto></p>
+            <p class="envio-previa-corpo" data-previa-envio-corpo></p>
+          </div>
         </div>
       </form>
     </Drawer>
@@ -168,19 +187,94 @@ const { evento, orcamento, versao } = ctx;
 </EventoLayout>
 
 <script>
-  // Envio da proposta: confirmação com o resumo do que vai ao cliente (o modal usa data-confirm do botão)
+  import { toast } from '../../../lib/ui';
+
+  // Envio da proposta: destinatários em chips (UX-123) e confirmação com o resumo do que vai ao cliente
   const form = document.querySelector<HTMLFormElement>('#form-enviar');
   const botao = document.querySelector<HTMLButtonElement>('#drawer-enviar [data-drawer-save]');
   if (form && botao) {
-    const para = form.querySelector<HTMLInputElement>('[name="para"]')!;
-    const atualizar = () => {
-      const destinatarios = para.value.split(/[,;\s]+/).filter(Boolean).join(', ') || 'o cliente';
+    const caixa = form.querySelector<HTMLElement>('[data-chips-email]')!;
+    const valorOculto = form.querySelector<HTMLInputElement>('[data-chips-valor]')!;
+    const entrada = form.querySelector<HTMLInputElement>('[data-chips-entrada]')!;
+    const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let emails = valorOculto.value.split(/[,;\s]+/).map((e) => e.trim().toLowerCase()).filter(Boolean);
+
+    const render = () => {
+      caixa.querySelectorAll('.chip-email').forEach((c) => c.remove());
+      for (const [i, email] of emails.entries()) {
+        const chip = document.createElement('span');
+        chip.className = 'chip-email';
+        chip.textContent = email;
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.setAttribute('aria-label', `Remover ${email}`);
+        x.textContent = '×';
+        x.addEventListener('click', () => {
+          emails.splice(i, 1);
+          sincronizar();
+        });
+        chip.appendChild(x);
+        caixa.insertBefore(chip, entrada);
+      }
+      valorOculto.value = emails.join(', ');
+      entrada.placeholder = emails.length ? '' : 'email@cliente.com.br';
+      atualizarConfirmacao();
+      valorOculto.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const sincronizar = render;
+
+    const adicionar = () => {
+      const texto = entrada.value.trim().toLowerCase().replace(/[,;]+$/, '');
+      if (!texto) return;
+      if (!EMAIL_OK.test(texto)) {
+        toast(`"${texto}" não parece um e-mail válido.`, 'error');
+        return;
+      }
+      if (emails.includes(texto)) {
+        entrada.value = '';
+        return;
+      }
+      if (emails.length >= 5) {
+        toast('Máximo de 5 destinatários.', 'error');
+        return;
+      }
+      emails.push(texto);
+      entrada.value = '';
+      sincronizar();
+    };
+    entrada.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        adicionar();
+      } else if (e.key === 'Backspace' && !entrada.value && emails.length) {
+        emails.pop();
+        sincronizar();
+      }
+    });
+    entrada.addEventListener('blur', adicionar);
+    caixa.addEventListener('click', () => entrada.focus());
+
+    // Prévia do e-mail com o que está nos campos (UX-123)
+    const assunto = form.querySelector<HTMLInputElement>('[name="assunto"]')!;
+    const corpo = form.querySelector<HTMLTextAreaElement>('[name="mensagem"]')!;
+    const previaAssunto = form.querySelector<HTMLElement>('[data-previa-envio-assunto]')!;
+    const previaCorpo = form.querySelector<HTMLElement>('[data-previa-envio-corpo]')!;
+    const atualizarPrevia = () => {
+      previaAssunto.textContent = assunto.value;
+      previaCorpo.textContent = corpo.value;
+    };
+    assunto.addEventListener('input', atualizarPrevia);
+    corpo.addEventListener('input', atualizarPrevia);
+
+    const atualizarConfirmacao = () => {
+      const destinatarios = emails.join(', ') || 'o cliente';
       botao.dataset.confirm = `Enviar a proposta para ${destinatarios}?`;
       botao.dataset.confirmTexto = `Versão ${form.dataset.envioVersao} · total ${form.dataset.envioValor}. O PDF vai em anexo.`;
       botao.dataset.confirmRotulo = 'Enviar';
     };
-    para.addEventListener('input', atualizar);
-    atualizar();
+
+    render();
+    atualizarPrevia();
   }
 </script>
 
@@ -247,5 +341,79 @@ const { evento, orcamento, versao } = ctx;
     .grid-evento {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+
+  .chips-email {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 5px 10px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border-input);
+    border-radius: var(--border-radius-sm);
+    cursor: text;
+  }
+
+  .chips-email:focus-within {
+    border-color: var(--color-primary-50);
+    box-shadow: 0 0 0 1px var(--color-primary-50);
+  }
+
+  .chips-email input[type='email'] {
+    flex: 1;
+    min-width: 160px;
+    border: 0;
+    outline: none;
+    font-size: 14px;
+    padding: 4px 0;
+  }
+
+  :global(.chip-email) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px 3px 10px;
+    background: var(--color-primary-10);
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary-60);
+  }
+
+  :global(.chip-email button) {
+    border: 0;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+
+  .envio-previa {
+    padding: 12px 14px;
+    background: var(--color-neutral-10);
+    border: 1px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .envio-previa-anexo {
+    margin-bottom: 8px;
+    color: var(--color-text-muted);
+  }
+
+  .envio-previa-assunto {
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .envio-previa-corpo {
+    white-space: pre-wrap;
+    max-height: 180px;
+    overflow-y: auto;
   }
 </style>

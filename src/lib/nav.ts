@@ -29,7 +29,7 @@ export const navAtiva = (pathname: string, match: string[]) => match.some((m) =>
 export const CONFIG_SUBMENU = [
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
   { id: 'tipos', label: ROTULOS.tiposEvento, href: '/configuracoes/tipos-evento' },
-  { id: 'categorias', label: 'Categorias', href: '/configuracoes/categorias' },
+  { id: 'categorias', label: ROTULOS.ocasioes, href: '/configuracoes/categorias' },
   { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
   { id: 'locacao', label: 'Locação', href: '/configuracoes/locacao' },
@@ -41,6 +41,7 @@ export const CARDAPIO_SUBMENU = [
   { id: 'secoes', label: 'Seções', href: '/cardapio/secoes' },
   { id: 'itens', label: 'Itens do cardápio', href: '/cardapio/itens' },
   { id: 'opcoes', label: 'Opções de cardápio', href: '/cardapio/opcoes' },
+  { id: 'categorias', label: 'Categorias', href: '/cardapio/categorias' },
 ];
 
 export const STAFF_SUBMENU = [

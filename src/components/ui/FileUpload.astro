@@ -27,6 +27,8 @@ type Props = Omit<HTMLAttributes<'input'>, 'type'> & {
   compacto?: boolean;
   /** Tamanho máximo conferido no navegador antes de enviar (o servidor confere de novo). Padrão: 5 MB */
   maxBytes?: number;
+  /** Imagens raster acima deste tamanho (KB) são redimensionadas no navegador antes de enviar (WebP) */
+  comprimirKb?: number;
 };
 
 const {
@@ -40,6 +42,7 @@ const {
   removerConfirmacao = 'Remover o arquivo atual?',
   compacto = false,
   maxBytes = 5 * 1024 * 1024,
+  comprimirKb,
   class: className,
   ...rest
 } = Astro.props;
@@ -51,6 +54,7 @@ const {
   data-atual-url={atualUrl ?? undefined}
   data-atual-nome={atualNome}
   data-max-bytes={maxBytes}
+  data-comprimir-kb={comprimirKb}
 >
   <input type="file" name={name} accept={accept} class="upload-input" tabindex="-1" {...rest} />
 
@@ -147,14 +151,44 @@ const {
       return null;
     };
 
-    const atualizar = () => {
-      const arquivo = input.files?.[0];
-      if (!arquivo) return mostrar(estadoAtual());
-      const erro = recusar(arquivo);
-      if (erro) {
+    // Miniatura no navegador (UX-074): imagens raster acima do limite viram WebP menores antes de enviar
+    const comprimirKb = Number(raiz.dataset.comprimirKb) || 0;
+    async function comprimir(arquivo: File): Promise<File> {
+      if (!comprimirKb || arquivo.size <= comprimirKb * 1024 || !/^image\/(png|jpeg|webp)$/.test(arquivo.type)) return arquivo;
+      try {
+        const bitmap = await createImageBitmap(arquivo);
+        for (const lado of [1024, 768, 512, 320]) {
+          const escala = Math.min(1, lado / Math.max(bitmap.width, bitmap.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(bitmap.width * escala));
+          canvas.height = Math.max(1, Math.round(bitmap.height * escala));
+          canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/webp', 0.85));
+          if (blob && blob.size <= comprimirKb * 1024) {
+            toast('A imagem foi reduzida para carregar rápido em qualquer tela.', 'info');
+            return new File([blob], arquivo.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' });
+          }
+        }
+      } catch {
+        // navegador sem suporte: segue com o arquivo original
+      }
+      return arquivo;
+    }
+
+    const atualizar = async () => {
+      const original = input.files?.[0];
+      if (!original) return mostrar(estadoAtual());
+      const erroOriginal = recusar(original);
+      if (erroOriginal) {
         input.value = '';
-        toast(erro, 'error');
+        toast(erroOriginal, 'error');
         return mostrar(estadoAtual());
+      }
+      const arquivo = await comprimir(original);
+      if (arquivo !== original) {
+        const transferencia = new DataTransfer();
+        transferencia.items.add(arquivo);
+        input.files = transferencia.files;
       }
       const url = arquivo.type.startsWith('image/') ? URL.createObjectURL(arquivo) : null;
       mostrar({ url, nome: arquivo.name, detalhe: `${tamanho(arquivo.size)} · será enviado ao salvar`, novo: true });
