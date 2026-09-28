@@ -9,9 +9,10 @@ import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
 import { formatarDocumento } from '../../lib/documento';
-import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import { clienteSchema, excluirCliente, listarClientes, salvarCliente } from '../../server/clientes';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
 
@@ -30,7 +31,7 @@ if (Astro.request.method === 'POST') {
 
 const page = pageParams(Astro.url);
 const { rows, total } = await withTenant(tenantId, (db) =>
-  listarClientes(db, { busca: searchTerm(Astro.url), tipo: Astro.url.searchParams.get('tipo') }, page)
+  listarClientes(db, { busca: searchTerm(Astro.url), tipo: Astro.url.searchParams.get('tipo') }, page, lerOrdenacao(Astro.url))
 );
 
 const tableData = rows.map((c) => ({
@@ -49,7 +50,7 @@ const tableData = rows.map((c) => ({
     observacoes: c.observacoes,
   })}">Editar</button>`,
 }));
-const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
+const filtrando = estaFiltrando(Astro.url);
 ---
 
 <AppLayout title="Clientes" heading="Clientes">
@@ -69,10 +70,10 @@ const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view
 
   <Table
     columns={[
-      { key: 'nome', label: 'Nome' },
+      { key: 'nome', label: 'Nome', ordenar: 'nome' },
       { key: 'documento', label: 'CPF / CNPJ' },
       { key: 'contato', label: 'Contato' },
-      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'eventos', label: 'Eventos', align: 'center', ordenar: 'eventos' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}

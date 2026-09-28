@@ -15,6 +15,7 @@ import {
 import type { PageParams } from '../lib/pagination';
 import { clienteSchema, salvarCliente } from './clientes';
 import { registrarTimeline } from './timeline';
+import { orderBy, type Ordenacao } from '../lib/ordenacao';
 
 // ---------------------------------------------------------------------------
 // Opções dos campos do briefing (mesmas do formulário público)
@@ -202,16 +203,26 @@ export async function listarEventosKanban(db: Db, filtros: FiltrosEventos): Prom
   return rows;
 }
 
+const ORDEM_EVENTOS: Record<string, string> = {
+  data: 'x.data_evento',
+  evento: 'lower(x.titulo)',
+  cliente: 'lower(x.cliente_nome)',
+  convidados: 'x.numero_convidados',
+  etapa: 's.ordem',
+  valor: 'COALESCE(x.valor_orcamento, x.verba_total)',
+};
+
 export async function listarEventosPaginado(
   db: Db,
   filtros: FiltrosEventos,
-  page: PageParams
+  page: PageParams,
+  ord?: Ordenacao
 ): Promise<{ rows: (EventoCard & { status_nome: string; status_cor: string | null })[]; total: number }> {
   const { sql, params } = whereEventos(filtros);
   const { rows } = await db.query(
     `SELECT x.*, s.nome AS status_nome, s.cor AS status_cor FROM (${SELECT_CARD} ${sql}) x
        JOIN status_orcamento s ON s.id = x.status_id
-      ORDER BY x.data_evento DESC NULLS LAST
+      ORDER BY ${orderBy(ord, ORDEM_EVENTOS, 'x.data_evento DESC NULLS LAST')}
       LIMIT ${page.pageSize} OFFSET ${page.offset}`,
     params
   );

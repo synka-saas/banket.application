@@ -10,7 +10,7 @@ import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
 import { moneyInput, formatMoney } from '../../lib/money';
 import { CARDAPIO_SUBMENU } from '../../lib/nav';
-import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import {
   DADOS_OPERACIONAIS,
   RESTRICOES,
@@ -24,6 +24,7 @@ import {
 } from '../../server/cardapio';
 import { listarCategoriasItem, listarFormatosServico } from '../../server/configuracoes';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
 
@@ -53,7 +54,7 @@ const page = pageParams(Astro.url);
 const secaoFiltro = Astro.url.searchParams.get('secao') || null;
 
 const { itens, total, secoes, categorias, formatos } = await withTenant(tenantId, async (db) => {
-  const { rows, total } = await listarItens(db, { busca: searchTerm(Astro.url), secaoId: secaoFiltro }, page);
+  const { rows, total } = await listarItens(db, { busca: searchTerm(Astro.url), secaoId: secaoFiltro }, page, lerOrdenacao(Astro.url));
   return {
     itens: rows,
     total,
@@ -98,7 +99,7 @@ const tableData = itens.map((i) => ({
   })}">Editar</button>`,
 }));
 
-const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
+const filtrando = estaFiltrando(Astro.url);
 // Novo item já vem na seção filtrada (se houver) e ativo
 const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa' });
 ---
@@ -112,10 +113,10 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
 
   <Table
     columns={[
-      { key: 'nome', label: 'Nome', width: '24%' },
+      { key: 'nome', label: 'Nome', width: '24%', ordenar: 'nome' },
       { key: 'descricao', label: 'Descrição', width: '28%' },
-      { key: 'secao', label: 'Seção' },
-      { key: 'preco', label: 'Preço' },
+      { key: 'secao', label: 'Seção', ordenar: 'secao' },
+      { key: 'preco', label: 'Preço', ordenar: 'preco' },
       { key: 'categoria', label: 'Categoria' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}

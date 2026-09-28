@@ -9,11 +9,12 @@ import { withTenant } from '../../lib/db';
 import { html } from '../../lib/html';
 import { formatMoney } from '../../lib/money';
 import { dataCurta, hojeSaoPaulo, somarMeses } from '../../lib/datas';
-import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
+import { estaFiltrando, pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
 import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
 import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
 import { ROTULOS } from '../../lib/rotulos';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
 const url = Astro.url;
@@ -28,7 +29,7 @@ const dados = await withTenant(tenantId, async (db) => {
     const cards = await listarEventosKanban(db, { ...filtros, intervaloMeses });
     return { status, tipos, formatos, cards, lista: null, intervaloMeses };
   }
-  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page), intervaloMeses: null };
+  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page, lerOrdenacao(url)), intervaloMeses: null };
 });
 
 const filtrosAtivos = [filtros.de || filtros.ate, filtros.tipoId, filtros.formatoId, filtros.statusId].filter(Boolean).length;
@@ -72,7 +73,7 @@ const listaData =
           : '-',
     acoes: html`<a class="row-action" href="/eventos/${e.id}">Abrir</a>`,
   })) ?? [];
-const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
+const filtrando = estaFiltrando(Astro.url);
 ---
 
 <AppLayout title={ROTULOS.funil} heading={ROTULOS.funil} submenu={[]}>
@@ -205,12 +206,12 @@ const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view
   ) : (
     <Table
       columns={[
-        { key: 'data', label: 'Data' },
-        { key: 'evento', label: 'Evento' },
-        { key: 'cliente', label: 'Cliente' },
-        { key: 'convidados', label: 'Convidados', align: 'center' },
-        { key: 'status', label: ROTULOS.etapa },
-        { key: 'valor', label: 'Orçamento', align: 'right' },
+        { key: 'data', label: 'Data', ordenar: 'data' },
+        { key: 'evento', label: 'Evento', ordenar: 'evento' },
+        { key: 'cliente', label: 'Cliente', ordenar: 'cliente' },
+        { key: 'convidados', label: 'Convidados', align: 'center', ordenar: 'convidados' },
+        { key: 'status', label: ROTULOS.etapa, ordenar: 'etapa' },
+        { key: 'valor', label: 'Orçamento', align: 'right', ordenar: 'valor' },
         { key: 'acoes', label: 'Ações', align: 'right' },
       ]}
       data={listaData}

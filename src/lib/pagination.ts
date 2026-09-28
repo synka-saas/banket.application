@@ -48,6 +48,11 @@ export function withQuery(url: URL, changes: Record<string, string | number | nu
   return next.pathname + next.search;
 }
 
+/** A lista está filtrada (busca ou filtro)? Paginação, ordenação e modo de exibição não contam. */
+export function estaFiltrando(url: URL): boolean {
+  return [...url.searchParams.keys()].some((k) => !['page', 'por', 'ordem', 'dir', 'view'].includes(k));
+}
+
 /** Termo de busca pronto para ILIKE (escapa curingas). */
 export function searchTerm(url: URL, param = 'q'): string | null {
   const q = url.searchParams.get(param)?.trim();

@@ -3,6 +3,7 @@ import type { Db } from '../lib/db';
 import { cnpjValido, cpfValido, somenteDigitos } from '../lib/documento';
 import { UserError, optionalEmail, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
+import { orderBy, type Ordenacao } from '../lib/ordenacao';
 
 export const clienteSchema = z
   .object({
@@ -35,10 +36,14 @@ export interface ClienteRow {
   total_eventos: number;
 }
 
+/** Colunas ordenáveis da lista de clientes (?ordem=) → expressão SQL */
+const ORDEM_CLIENTES: Record<string, string> = { nome: 'lower(c.nome)', eventos: 'total_eventos' };
+
 export async function listarClientes(
   db: Db,
   filtros: { busca: string | null; tipo: string | null },
-  page: PageParams
+  page: PageParams,
+  ord?: Ordenacao
 ): Promise<{ rows: ClienteRow[]; total: number }> {
   const params: unknown[] = [filtros.busca, filtros.tipo || null];
   const where = `
@@ -50,7 +55,7 @@ export async function listarClientes(
     db.query<ClienteRow>(
       `SELECT c.*, (SELECT count(*) FROM eventos e WHERE e.cliente_id = c.id) AS total_eventos
          FROM clientes c ${where}
-        ORDER BY lower(c.nome)
+        ORDER BY ${orderBy(ord, ORDEM_CLIENTES, 'lower(c.nome)')}
         LIMIT $3 OFFSET $4`,
       [...params, page.pageSize, page.offset]
     ),

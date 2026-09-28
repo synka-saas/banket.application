@@ -10,7 +10,7 @@ import { formId, handleFormPost } from '../../lib/actions';
 import { formatarDocumento } from '../../lib/documento';
 import { html } from '../../lib/html';
 import { STAFF_SUBMENU } from '../../lib/nav';
-import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import {
   atualizarEspecialidade,
   excluirProfissional,
@@ -20,6 +20,7 @@ import {
   salvarProfissional,
 } from '../../server/staff';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
 
@@ -46,7 +47,8 @@ const { profissionais, total, servicos } = await withTenant(tenantId, async (db)
   const { rows, total } = await listarProfissionais(
     db,
     { busca: searchTerm(Astro.url), servicoId: Astro.url.searchParams.get('especialidade') || null },
-    page
+    page,
+    lerOrdenacao(Astro.url)
   );
   return { profissionais: rows, total, servicos: await listarServicos(db) };
 });
@@ -74,7 +76,7 @@ const tableData = profissionais.map((p) => ({
     ativo: p.ativo,
   })}">Editar</button>`,
 }));
-const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
+const filtrando = estaFiltrando(Astro.url);
 ---
 
 <AppLayout title="Profissionais" heading="Staff / Profissionais" submenu={STAFF_SUBMENU} submenuActive="profissionais">
@@ -88,9 +90,9 @@ const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view
 
   <Table
     columns={[
-      { key: 'nome', label: 'Nome' },
+      { key: 'nome', label: 'Nome', ordenar: 'nome' },
       { key: 'contato', label: 'Contato' },
-      { key: 'especialidade', label: 'Especialidade' },
+      { key: 'especialidade', label: 'Especialidade', ordenar: 'especialidade' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}

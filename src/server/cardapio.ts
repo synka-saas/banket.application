@@ -13,6 +13,7 @@ import {
   tagList,
 } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
+import { orderBy, type Ordenacao } from '../lib/ordenacao';
 
 export const RESTRICOES = {
   vegetariana: 'Vegetariana',
@@ -145,10 +146,13 @@ export interface ItemRow {
   ativo: boolean;
 }
 
+const ORDEM_ITENS: Record<string, string> = { nome: 'lower(i.nome)', secao: 'lower(s.nome)', preco: 'i.preco' };
+
 export async function listarItens(
   db: Db,
   filtros: { busca: string | null; secaoId: string | null },
-  page: PageParams
+  page: PageParams,
+  ord?: Ordenacao
 ): Promise<{ rows: ItemRow[]; total: number }> {
   const params = [filtros.busca, filtros.secaoId];
   const where = `WHERE ($1::text IS NULL OR i.nome ILIKE $1 OR i.descricao ILIKE $1)
@@ -162,7 +166,7 @@ export async function listarItens(
        JOIN catalogo_secoes s ON s.id = i.secao_id
        LEFT JOIN categorias_item cp ON cp.id = i.categoria_principal_id
        ${where}
-      ORDER BY s.ordem, lower(s.nome), i.ordem, lower(i.nome)
+      ORDER BY ${orderBy(ord, ORDEM_ITENS, 's.ordem, lower(s.nome), i.ordem, lower(i.nome)')}
       LIMIT $3 OFFSET $4`,
     [...params, page.pageSize, page.offset]
   );

@@ -15,6 +15,7 @@ import {
 } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import type { RegraStaff } from '../lib/calculo/staff';
+import { orderBy, type Ordenacao } from '../lib/ordenacao';
 
 // ---------------------------------------------------------------------------
 // Serviços e custos
@@ -151,10 +152,13 @@ export interface ProfissionalRow {
   ativo: boolean;
 }
 
+const ORDEM_PROFISSIONAIS: Record<string, string> = { nome: 'lower(p.nome)', especialidade: 'lower(s.funcao)' };
+
 export async function listarProfissionais(
   db: Db,
   filtros: { busca: string | null; servicoId: string | null },
-  page: PageParams
+  page: PageParams,
+  ord?: Ordenacao
 ): Promise<{ rows: ProfissionalRow[]; total: number }> {
   const params = [filtros.busca, filtros.servicoId];
   const where = `WHERE ($1::text IS NULL OR p.nome ILIKE $1 OR p.email ILIKE $1 OR p.telefone ILIKE $1)
@@ -164,7 +168,7 @@ export async function listarProfissionais(
             p.chave_pix, p.observacoes, p.ativo
        FROM profissionais p LEFT JOIN staff_servicos s ON s.id = p.servico_id
        ${where}
-      ORDER BY p.ativo DESC, lower(p.nome)
+      ORDER BY ${orderBy(ord, ORDEM_PROFISSIONAIS, 'p.ativo DESC, lower(p.nome)')}
       LIMIT $3 OFFSET $4`,
     [...params, page.pageSize, page.offset]
   );
