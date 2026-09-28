@@ -34,14 +34,15 @@ if (Astro.request.method === 'POST' && token) {
     return Astro.redirect('/dashboard');
   } catch (err) {
     errorMessage =
-      err instanceof Error && err.message === 'termos' ? 'É preciso aceitar os Termos e condições de uso.' : userMessage(err);
+      err instanceof Error && err.message === 'termos' ? 'É preciso aceitar os Termos de uso para continuar.' : userMessage(err);
+    Astro.response.status = 400;
   }
 }
 
 const convite = await buscarConvite(token);
 ---
 
-<AuthLayout title="Aceitar convite" showOverlay={true}>
+<AuthLayout title="Aceitar convite" showOverlay={true} erro={errorMessage || null}>
   {convite ? (
     <>
       <h1 class="auth-title" style="margin-bottom: 8px;">Você foi convidado para o Banket</h1>
@@ -50,8 +51,6 @@ const convite = await buscarConvite(token);
           ? `Você já possui uma conta Banket. Informe sua senha para acessar também a ${convite.empresa}.`
           : `Crie sua senha para acessar a ${convite.empresa} e acompanhar em tempo real a operação da sua empresa.`}
       </p>
-
-      {errorMessage && <div class="auth-error">{errorMessage}</div>}
 
       <form class="auth-form" method="POST">
         {!convite.contaExistente && (
@@ -71,14 +70,27 @@ const convite = await buscarConvite(token);
           </>
         )}
 
+        {!convite.contaExistente && (
+          <Checkbox id="termos" name="termos" required>
+            Li e aceito os <a href="/termos" target="_blank" rel="noopener" class="link">Termos de uso</a> e a{' '}
+            <a href="/privacidade" target="_blank" rel="noopener" class="link">Política de privacidade</a>
+          </Checkbox>
+        )}
+
         <Button variant="primary" size="large" type="submit">
           {convite.contaExistente ? 'ACEITAR CONVITE E ACESSAR' : 'FINALIZAR E ACESSAR A PLATAFORMA'}
         </Button>
-
-        {!convite.contaExistente && <Checkbox id="termos" name="termos" label="Termos e condições de uso" required />}
       </form>
 
       <div class="auth-links">
+        {convite.contaExistente && (
+          <>
+            <a href={`/auth/recuperacao?email=${encodeURIComponent(convite.email)}`} target="_blank" rel="noopener">Esqueceu a senha?</a>
+            {' · '}
+            <a href={`/auth/link-acesso?email=${encodeURIComponent(convite.email)}`} target="_blank" rel="noopener">Entrar com link por e-mail</a>
+            <br />
+          </>
+        )}
         <span style="font-size: 12px; color: var(--color-text-muted);">*Dados obrigatórios</span>
       </div>
     </>
@@ -107,13 +119,4 @@ const convite = await buscarConvite(token);
     margin-bottom: 8px;
   }
 
-  .auth-error {
-    background-color: #fce8e6;
-    color: #d93025;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 16px;
-    font-size: 14px;
-    text-align: center;
-  }
 </style>

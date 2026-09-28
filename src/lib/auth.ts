@@ -66,13 +66,14 @@ export async function verifySession(token: string | undefined): Promise<SessionU
   }
 }
 
-export function setSessionCookie(cookies: AstroCookies, token: string) {
+export function setSessionCookie(cookies: AstroCookies, token: string, persistente = true) {
   cookies.set(SESSION_COOKIE, token, {
     path: '/',
     httpOnly: true,
     secure: import.meta.env.PROD,
     sameSite: 'lax',
-    maxAge: SESSION_TTL_SECONDS,
+    // Sem "manter conectado", o cookie dura só a sessão do navegador (o JWT continua com validade própria)
+    ...(persistente ? { maxAge: SESSION_TTL_SECONDS } : {}),
   });
 }
 

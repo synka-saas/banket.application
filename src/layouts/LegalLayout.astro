@@ -1,0 +1,90 @@
+---
+// Páginas públicas de texto corrido (Termos de uso, Política de privacidade).
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  atualizadoEm: string;
+}
+
+const { title, atualizadoEm } = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{`${title} · Banket`}</title>
+  </head>
+  <body class="legal-body">
+    <main class="legal">
+      <a href="/auth/cadastro" class="legal-logo"><img src="/logo-dark.png" alt="Banket" /></a>
+      <h1>{title}</h1>
+      <p class="legal-data">Última atualização: {atualizadoEm}</p>
+      <slot />
+      <footer class="legal-rodape">
+        <a href="/termos">Termos de uso</a> · <a href="/privacidade">Política de privacidade</a> ·
+        <a href="/auth/cadastro">Voltar ao cadastro</a>
+      </footer>
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  .legal-body {
+    background: var(--color-white);
+  }
+
+  .legal {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--color-neutral-80);
+  }
+
+  .legal-logo img {
+    height: 40px;
+    margin-bottom: 32px;
+  }
+
+  .legal h1 {
+    margin-bottom: 4px;
+  }
+
+  .legal-data {
+    margin-bottom: 32px;
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+
+  .legal h2 {
+    font-size: 18px;
+    margin: 28px 0 8px;
+  }
+
+  .legal p,
+  .legal ul {
+    margin-bottom: 12px;
+  }
+
+  .legal ul {
+    padding-left: 22px;
+  }
+
+  .legal a {
+    color: var(--color-primary-text);
+    text-decoration: underline;
+  }
+
+  .legal-rodape {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+</style>

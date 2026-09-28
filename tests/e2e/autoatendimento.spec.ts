@@ -50,7 +50,7 @@ test.describe.serial('Cadastro self-service', () => {
     await page.getByLabel('E-MAIL').fill(email);
     await page.locator('#senha').fill('fraca');
     await page.getByLabel('CONFIRME SUA SENHA').fill('fraca');
-    await page.locator('label[for=termos]').click();
+    await page.locator('#termos').check({ force: true });
     // Senha fraca: o navegador bloqueia pelo minlength; remove para validar o servidor
     await page.locator('#senha').evaluate((el) => el.removeAttribute('minlength'));
     await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
@@ -59,7 +59,7 @@ test.describe.serial('Cadastro self-service', () => {
 
     await page.locator('#senha').fill(SENHA);
     await page.getByLabel('CONFIRME SUA SENHA').fill(SENHA);
-    await page.locator('label[for=termos]').click();
+    await page.locator('#termos').check({ force: true });
     await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
     await expect(page).toHaveURL(/\/auth\/validacao/);
     await expect(page.locator('main, body')).toContainText(email);
@@ -82,19 +82,24 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page.getByRole('heading', { name: 'E-mail validado' })).toBeVisible();
     await expect(page.getByLabel('E-MAIL')).toHaveValue(email);
 
+    // Nenhum tipo vem pré-selecionado; os campos aparecem depois da escolha
+    await expect(page.getByLabel('CNPJ')).toBeHidden();
+    await page.getByText('PESSOA JURÍDICA').click();
+
     // CNPJ inválido
     await page.getByLabel('CELULAR').fill('11987654321');
     await page.getByLabel('RAZÃO SOCIAL').fill('Buffet Teste E2E Ltda');
     await page.getByLabel('CNPJ').fill('11.222.333/0001-00');
+    await page.getByLabel('NOME DO BUFFET').fill('Buffet E2E');
     await page.getByLabel('ENDEREÇO COMERCIAL').fill('Rua das Flores, 100 - São Paulo/SP');
     await page.getByRole('button', { name: 'FINALIZAR E ACESSAR A PLATAFORMA' }).click();
     await expect(page.locator('.auth-alert-error')).toContainText('CNPJ inválido');
-    // O rascunho volta preenchido
+    // O rascunho volta preenchido (inclusive o tipo escolhido)
     await expect(page.getByLabel('RAZÃO SOCIAL')).toHaveValue('Buffet Teste E2E Ltda');
     await shot(page, 'auth-complemento');
 
     await page.getByLabel('CNPJ').fill(cnpjAleatorio());
-    await page.getByLabel('NOME DO BUFFET (OPCIONAL)').fill('Buffet E2E');
+    await page.getByLabel('NOME DO BUFFET').fill('Buffet E2E');
     await page.getByRole('button', { name: 'FINALIZAR E ACESSAR A PLATAFORMA' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.locator('.user-role')).toContainText('Proprietário');

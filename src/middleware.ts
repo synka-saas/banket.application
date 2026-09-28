@@ -7,7 +7,7 @@ import { getMembership } from './lib/membership';
 // Rotas acessíveis sem sessão
 // /print/* é acessado pelo Chromium interno e exige um token de impressão (lib/printToken)
 const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/print/', '/_astro/', '/_image'];
-const PUBLIC_EXACT = new Set(['/api/health']);
+const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
 // Rotas restritas a owner/admin
 const ADMIN_PREFIXES = ['/configuracoes', '/api/configuracoes'];

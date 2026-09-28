@@ -4,13 +4,13 @@ import Icon from './Icon.astro';
 interface Props {
   id: string;
   name: string;
-  label: string;
+  label?: string;
   checked?: boolean;
   required?: boolean;
   type?: 'checkbox' | 'toggle';
 }
 
-const { id, name, label, checked = false, required = false, type = 'checkbox' } = Astro.props;
+const { id, name, label = '', checked = false, required = false, type = 'checkbox' } = Astro.props;
 ---
 
 <div class={`checkbox-group type-${type}`}>
@@ -28,7 +28,7 @@ const { id, name, label, checked = false, required = false, type = 'checkbox' } 
         </div>
       </div>
     )}
-    <span class="label-text">{label}</span>
+    <span class="label-text">{Astro.slots.has('default') ? <slot /> : label}</span>
   </label>
 </div>
 

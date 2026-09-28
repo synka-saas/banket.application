@@ -5,9 +5,11 @@ import Mascaras from '../components/ui/Mascaras.astro';
 interface Props {
   title: string;
   showOverlay?: boolean;
+  /** Erro de um POST renderizado na própria resposta (sem redirect): mesmo visual do flash */
+  erro?: string | null;
 }
 
-const { title, showOverlay = true } = Astro.props;
+const { title, showOverlay = true, erro = null } = Astro.props;
 // Mensagem de retorno (PRG) das telas de autenticação
 const flash = Astro.locals.flash;
 import '../styles/global.css';
@@ -53,7 +55,8 @@ import '../styles/global.css';
       </div>
       <div class="auth-right">
         <div class="form-container">
-          {flash && <div class:list={['auth-alert', `auth-alert-${flash.type}`]} role={flash.type === 'error' ? 'alert' : 'status'}>{flash.message}</div>}
+          {erro && <div class="auth-alert auth-alert-error" role="alert">{erro}</div>}
+          {flash && !erro && <div class:list={['auth-alert', `auth-alert-${flash.type}`]} role={flash.type === 'error' ? 'alert' : 'status'}>{flash.message}</div>}
           <slot />
         </div>
       </div>

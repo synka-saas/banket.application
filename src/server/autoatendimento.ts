@@ -211,7 +211,7 @@ export const empresaNovaSchema = z
     cpf: z.preprocess((v) => (typeof v === 'string' ? somenteDigitos(v) : ''), z.string()),
     cnpj: z.preprocess((v) => (typeof v === 'string' ? somenteDigitos(v) : ''), z.string()),
     razao_social: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().max(255)),
-    nome_empresa: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().max(255)),
+    nome_empresa: requiredText('Informe o nome do buffet (ele aparece nas suas propostas).', 255),
     endereco: requiredText('Informe o endereço comercial.', 500),
   })
   .superRefine((d, ctx) => {

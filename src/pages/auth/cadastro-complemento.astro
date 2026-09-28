@@ -24,12 +24,12 @@ if (Astro.request.method === 'POST') {
     clearOnboardingCookie(Astro.cookies);
     Astro.cookies.delete(RASCUNHO, { path: '/auth' });
     setSessionCookie(Astro.cookies, await signSession(sessao));
-    return Astro.redirect('/auth/direcionamento');
+    return Astro.redirect('/dashboard');
   } catch (err) {
     setFlash(Astro.cookies, 'error', userMessage(err, 'Não foi possível cadastrar a empresa. Tente novamente.'));
     // Guarda o que foi digitado (sem dados sensíveis além dos da própria empresa) por alguns minutos
-    const { tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, endereco } = data;
-    Astro.cookies.set(RASCUNHO, JSON.stringify({ tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, endereco }), {
+    const { tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, cep, endereco } = data;
+    Astro.cookies.set(RASCUNHO, JSON.stringify({ tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, cep, endereco }), {
       path: '/auth',
       httpOnly: true,
       sameSite: 'lax',
@@ -46,7 +46,8 @@ try {
   rascunho = {};
 }
 const v = (campo: string) => (typeof rascunho[campo] === 'string' ? rascunho[campo] : '');
-const tipo = v('tipo_pessoa') === 'PF' ? 'PF' : 'PJ';
+// Nenhum tipo vem pré-selecionado: a escolha é do usuário (UX-042)
+const tipo = v('tipo_pessoa') === 'PF' ? 'PF' : v('tipo_pessoa') === 'PJ' ? 'PJ' : '';
 const validado = Astro.url.searchParams.has('validado');
 ---
 
@@ -60,15 +61,15 @@ const validado = Astro.url.searchParams.has('validado');
     seu ambiente de gestão.
   </p>
 
-  <form class:list={['auth-form', { 'is-pj': tipo === 'PJ' }]} method="post" data-complemento>
+  <form class:list={['auth-form', { 'is-pj': tipo === 'PJ', 'sem-tipo': tipo === '' }]} method="post" data-complemento>
     <fieldset class="tipo-conta">
       <legend class="sr-only">Tipo de conta</legend>
       <label class="tipo-btn">
-        <input type="radio" name="tipo_pessoa" value="PF" checked={tipo === 'PF'} />
+        <input type="radio" name="tipo_pessoa" value="PF" checked={tipo === 'PF'} required />
         <Icon name="account_circle" size={20} /> PESSOA FÍSICA
       </label>
       <label class="tipo-btn">
-        <input type="radio" name="tipo_pessoa" value="PJ" checked={tipo === 'PJ'} />
+        <input type="radio" name="tipo_pessoa" value="PJ" checked={tipo === 'PJ'} required />
         <Icon name="apartment" size={20} /> PESSOA JURÍDICA
       </label>
     </fieldset>
@@ -86,8 +87,9 @@ const validado = Astro.url.searchParams.has('validado');
         <Input id="cnpj" name="cnpj" label="CNPJ" placeholder="00.000.000/0000-00" value={v('cnpj')} inputmode="numeric" data-mascara="cnpj" />
       </div>
 
-      <Input id="nome_empresa" name="nome_empresa" label="NOME DO BUFFET (OPCIONAL)" placeholder="Como aparece nas suas propostas" value={v('nome_empresa')} maxlength="255" />
-      <Input id="endereco" name="endereco" label="ENDEREÇO COMERCIAL" placeholder="Endereço" value={v('endereco')} maxlength="500" autocomplete="street-address" required />
+      <Input id="nome_empresa" name="nome_empresa" label="NOME DO BUFFET" placeholder="Como aparece nas suas propostas" value={v('nome_empresa')} maxlength="255" required />
+      <Input id="cep" name="cep" label="CEP" placeholder="00000-000" value={v('cep')} inputmode="numeric" data-mascara="cep" autocomplete="postal-code" />
+      <Input id="endereco" name="endereco" label="ENDEREÇO COMERCIAL" placeholder="Rua, número, bairro, cidade - UF" value={v('endereco')} maxlength="500" autocomplete="street-address" required />
     </div>
 
     <Button variant="primary" size="large" type="submit">FINALIZAR E ACESSAR A PLATAFORMA</Button>
@@ -105,7 +107,10 @@ const validado = Astro.url.searchParams.has('validado');
   // Alterna PF/PJ: campos obrigatórios de cada tipo
   function atualizarTipo() {
     if (!form) return;
-    const pj = form.querySelector<HTMLInputElement>('input[name=tipo_pessoa]:checked')?.value !== 'PF';
+    const escolhido = form.querySelector<HTMLInputElement>('input[name=tipo_pessoa]:checked')?.value;
+    form.classList.toggle('sem-tipo', !escolhido);
+    if (!escolhido) return;
+    const pj = escolhido !== 'PF';
     form.classList.toggle('is-pj', pj);
     for (const id of ['razao_social', 'cnpj']) (document.getElementById(id) as HTMLInputElement).required = pj;
     (document.getElementById('cpf') as HTMLInputElement).required = !pj;
@@ -114,6 +119,28 @@ const validado = Astro.url.searchParams.has('validado');
     if ((e.target as HTMLInputElement).name === 'tipo_pessoa') atualizarTipo();
   });
   atualizarTipo();
+
+  // CEP → endereço pela ViaCEP; só preenche se o usuário ainda não escreveu o próprio texto
+  const cep = document.getElementById('cep') as HTMLInputElement | null;
+  const endereco = document.getElementById('endereco') as HTMLInputElement | null;
+  let preenchidoPeloCep = '';
+  cep?.addEventListener('change', async () => {
+    const digitos = cep.value.replace(/\D/g, '');
+    if (digitos.length !== 8 || !endereco) return;
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
+      const d = (await r.json()) as { erro?: boolean; logradouro?: string; bairro?: string; localidade?: string; uf?: string };
+      if (d.erro) return;
+      const texto = [d.logradouro, d.bairro, d.localidade && `${d.localidade} - ${d.uf}`].filter(Boolean).join(', ');
+      if (texto && (!endereco.value.trim() || endereco.value === preenchidoPeloCep)) {
+        endereco.value = `${texto}`;
+        preenchidoPeloCep = endereco.value;
+        endereco.focus();
+      }
+    } catch {
+      // sem rede/CEP não encontrado: o campo segue manual
+    }
+  });
 </script>
 
 <style>
@@ -176,6 +203,7 @@ const validado = Astro.url.searchParams.has('validado');
   }
 
   .is-pj .so-pf,
+  .sem-tipo .so-pf,
   .auth-form:not(.is-pj) .so-pj {
     display: none;
   }
