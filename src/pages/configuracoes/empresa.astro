@@ -15,11 +15,6 @@ const { tenantId } = Astro.locals.user;
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data, raw) => {
-    if (data._action === 'remover_logo') {
-      const antigo = await withTenant(tenantId, (db) => removerLogo(db));
-      if (antigo) await removeFile(tenantId, antigo);
-      return 'Logotipo removido.';
-    }
     const input = empresaSchema.parse(data);
     const logo = raw.get('logo');
     let logoPath: string | null = null;
@@ -30,7 +25,13 @@ if (Astro.request.method === 'POST') {
         throw new UserError(err instanceof Error ? err.message : 'Falha ao enviar o logotipo.');
       }
     }
-    await withTenant(tenantId, (db) => salvarEmpresa(db, input, logoPath));
+    // Remover o logotipo vale junto com o salvar, sem descartar os demais campos (um logo novo prevalece)
+    const removerAtual = data.remover_logo === 'on' && !logoPath;
+    const antigo = await withTenant(tenantId, async (db) => {
+      await salvarEmpresa(db, input, logoPath);
+      return removerAtual ? removerLogo(db) : null;
+    });
+    if (antigo) await removeFile(tenantId, antigo);
     return 'Dados da empresa atualizados.';
   });
 }
@@ -83,8 +84,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
             name="logo"
             atualUrl={empresa.logo_path ? fileUrl(tenantId, empresa.logo_path) : null}
             atualNome="Logotipo atual"
-            removerAcao="remover_logo"
-            removerConfirmacao="Remover o logotipo?"
+            removerName="remover_logo"
           />
           <span class="field-hint">Usado nos templates de orçamento.</span>
         </div>
@@ -107,7 +107,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
         </div>
         <div class="field span-3">
           <label for="cfg-local">Local padrão dos eventos</label>
-          <input id="cfg-local" name="local_padrao" maxlength="255" placeholder="Ex.: Casa Club Gourmet" value={empresa.local_padrao ?? ''} />
+          <input id="cfg-local" name="local_padrao" maxlength="255" placeholder="Ex.: Salão Jardim" value={empresa.local_padrao ?? ''} />
         </div>
       </div>
     </SectionCard>
@@ -116,7 +116,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
       <div class="form-grid cols-3">
         <div class="field">
           <label for="ass-nome">Nome</label>
-          <input id="ass-nome" name="assinatura_nome" maxlength="255" placeholder="Ex.: Newton Oliveira" value={empresa.assinatura_nome ?? ''} />
+          <input id="ass-nome" name="assinatura_nome" maxlength="255" placeholder="Ex.: Maria Souza" value={empresa.assinatura_nome ?? ''} />
         </div>
         <div class="field">
           <label for="ass-cargo">Cargo</label>

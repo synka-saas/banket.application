@@ -19,7 +19,8 @@ if (Astro.request.method === 'POST' && email) {
   return Astro.redirect(Astro.url.pathname + Astro.url.search);
 }
 
-const modoLog = !process.env.RESEND_API_KEY;
+// Aviso técnico só no ambiente de desenvolvimento; em produção o e-mail é obrigatório
+const modoLog = import.meta.env.DEV && !process.env.RESEND_API_KEY;
 const ehGmail = /@(gmail|googlemail)\.com$/i.test(email);
 ---
 

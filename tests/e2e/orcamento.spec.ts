@@ -30,8 +30,8 @@ test.describe('Orçamento', () => {
   test('monta, calcula, ajusta manualmente, versiona e persiste', async ({ page }) => {
     const eventoUrl = await criarEvento(page, 100);
 
-    // Confeccionar orçamento a partir do Resumo move o evento para "Em negociação"
-    await page.getByRole('button', { name: 'Confeccionar orçamento' }).click();
+    // Criar orçamento a partir do Resumo move o evento para "Em negociação"
+    await page.getByRole('button', { name: 'Criar orçamento' }).click();
     await expectToast(page, 'O evento passou para "Em negociação"');
     await waitForIslands(page);
     await expect(resumo(page)).toContainText('Versão: 01');

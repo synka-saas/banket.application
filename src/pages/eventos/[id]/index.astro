@@ -106,14 +106,14 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         </div>
         <div>
           <span class="rotulo">Orçamento</span>
-          <strong class="valor">{e.tem_orcamento ? formatMoney(e.valor_orcamento) : 'R$ 00'}</strong>
+          {e.tem_orcamento ? <strong class="valor">{formatMoney(e.valor_orcamento)}</strong> : <span class="sem-orcamento">Sem orçamento</span>}
         </div>
         {e.tem_orcamento ? (
           <Button variant="success" href={`/eventos/${id}/orcamento`}>Abrir orçamento</Button>
         ) : (
           <form method="post" action={`/eventos/${id}/orcamento`}>
             <input type="hidden" name="_action" value="criar" />
-            <Button type="submit" variant="success">Confeccionar orçamento</Button>
+            <Button type="submit" variant="success">Criar orçamento</Button>
           </form>
         )}
       </section>
@@ -384,5 +384,10 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
 
   .vazio {
     font-size: 13px;
+  }
+
+  .sem-orcamento {
+    font-size: 16px;
+    color: var(--color-neutral-65);
   }
 </style>

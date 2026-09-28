@@ -82,7 +82,7 @@ test.describe('Templates, blocos e PDF', () => {
     await page.getByLabel('Convidados', { exact: true }).fill('60');
     await page.getByRole('button', { name: 'Criar evento' }).first().click();
     await expectToast(page, 'Evento criado.');
-    await page.getByRole('button', { name: 'Confeccionar orçamento' }).click();
+    await page.getByRole('button', { name: 'Criar orçamento' }).click();
     await expectToast(page, 'Orçamento iniciado');
     const base = page.url().replace(/\?.*$/, '');
     const eventoBase = base.replace(/\/orcamento$/, '');

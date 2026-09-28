@@ -79,7 +79,7 @@ test.describe('Agenda, dashboard e envio', () => {
 
   test('envia a proposta por e-mail e registra na linha do tempo', async ({ page }) => {
     const eventoUrl = await criarEvento(page, `E2E Envio ${Date.now()}`, null);
-    await page.getByRole('button', { name: 'Confeccionar orçamento' }).click();
+    await page.getByRole('button', { name: 'Criar orçamento' }).click();
     await expectToast(page, 'Orçamento iniciado');
     await waitForIslands(page);
 

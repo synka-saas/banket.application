@@ -39,11 +39,20 @@ const recorteTexto = recorteManual
 const podeConfigurar = Astro.locals.user.role === 'owner' || Astro.locals.user.role === 'admin';
 const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
 const pad = (n: number) => String(n).padStart(2, '0');
-const valorCard = (c: (typeof dados.cards)[number]) => c.valor_orcamento ?? c.verba_total;
+type Card = (typeof dados.cards)[number];
+// Verba estimada só conta quando o evento ainda não tem orçamento; os dois totais nunca se misturam
+const verbaSemOrcamento = (c: Card) => (c.valor_orcamento === null ? (c.verba_total ?? 0) : 0);
+// Posição de cada card na ordem do servidor (data do evento): ao mover, o card entra no mesmo lugar em que estará após recarregar
+const ordem = new Map(dados.cards.map((c, i) => [c.id, i]));
 
 const colunas = dados.status.map((s) => {
   const cards = dados.cards.filter((c) => c.status_id === s.id);
-  return { ...s, cards, total: cards.reduce((acc, c) => acc + (valorCard(c) ?? 0), 0) };
+  return {
+    ...s,
+    cards,
+    total: cards.reduce((acc, c) => acc + (c.valor_orcamento ?? 0), 0),
+    verba: cards.reduce((acc, c) => acc + verbaSemOrcamento(c), 0),
+  };
 });
 
 const listaData =
@@ -53,7 +62,12 @@ const listaData =
     cliente: e.cliente_nome ?? '-',
     convidados: e.numero_convidados ?? '-',
     status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
-    valor: formatMoney(e.valor_orcamento ?? e.verba_total),
+    valor:
+      e.valor_orcamento !== null
+        ? formatMoney(e.valor_orcamento)
+        : e.verba_total !== null
+          ? html`<span class="verba" title="Verba estimada pelo cliente (ainda sem orçamento)">${formatMoney(e.verba_total)}</span>`
+          : '-',
     acoes: html`<a class="row-action" href="/eventos/${e.id}">Abrir</a>`,
   })) ?? [];
 ---
@@ -136,11 +150,15 @@ const listaData =
               <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
               <span class="kanban-col-nome">{col.nome}</span>
             </h2>
-            <span class="kanban-col-meta"><span data-contagem>{pad(col.cards.length)} {col.cards.length === 1 ? 'evento' : 'eventos'}</span><span data-soma>{formatMoney(col.total)}</span></span>
+            <span class="kanban-col-meta">
+              <span data-contagem>{pad(col.cards.length)} {col.cards.length === 1 ? 'evento' : 'eventos'}</span>
+              <span data-soma title="Soma dos orçamentos">{formatMoney(col.total)}</span>
+            </span>
+            <span class="kanban-col-verba" data-verba-total hidden={col.verba === 0}>+ {formatMoney(col.verba)} em verba estimada</span>
           </header>
           <div class="kanban-cards" data-dropzone>
             {col.cards.map((c) => (
-              <article class="evento-card" draggable="true" data-evento={c.id} data-valor={valorCard(c) ?? 0}>
+              <article class="evento-card" draggable="true" data-evento={c.id} data-ordem={ordem.get(c.id)} data-valor={c.valor_orcamento ?? 0} data-verba={verbaSemOrcamento(c)}>
                 <h3 class="evento-card-title">
                   <Icon name={c.cliente_tipo === 'PJ' ? 'domain' : 'account_box'} size={22} />
                   <span>{c.cliente_nome ?? 'Sem cliente'}</span>
@@ -149,7 +167,11 @@ const listaData =
                 <dl class="evento-card-rows">
                   <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
                   <div><dt>Estilo</dt><dd>{c.formato_nome ?? '-'}</dd></div>
-                  <div><dt>{c.valor_orcamento !== null ? 'Orçamento' : 'Budget'}</dt><dd>{formatMoney(valorCard(c))}</dd></div>
+                  {c.valor_orcamento !== null ? (
+                    <div><dt>Orçamento</dt><dd>{formatMoney(c.valor_orcamento)}</dd></div>
+                  ) : (
+                    <div class="verba"><dt>Verba estimada</dt><dd>{c.verba_total !== null ? formatMoney(c.verba_total) : '-'}</dd></div>
+                  )}
                   <div><dt>Data</dt><dd>{dataCurta(c.data_evento)}</dd></div>
                 </dl>
                 <div class="tag-list">
@@ -172,7 +194,7 @@ const listaData =
         { key: 'cliente', label: 'Cliente' },
         { key: 'convidados', label: 'Convidados', align: 'center' },
         { key: 'status', label: 'Status' },
-        { key: 'valor', label: 'Orçamento / Budget', align: 'right' },
+        { key: 'valor', label: 'Orçamento', align: 'right' },
         { key: 'acoes', label: 'Ações', align: 'right' },
       ]}
       data={listaData}
@@ -195,7 +217,18 @@ const listaData =
         const cards = [...col.querySelectorAll<HTMLElement>('[data-evento]')];
         col.querySelector('[data-contagem]')!.textContent = `${String(cards.length).padStart(2, '0')} ${cards.length === 1 ? 'evento' : 'eventos'}`;
         col.querySelector('[data-soma]')!.textContent = formatMoney(cards.reduce((a, c) => a + Number(c.dataset.valor || 0), 0));
+        const verba = cards.reduce((a, c) => a + Number(c.dataset.verba || 0), 0);
+        const verbaEl = col.querySelector<HTMLElement>('[data-verba-total]')!;
+        verbaEl.hidden = verba === 0;
+        verbaEl.textContent = `+ ${formatMoney(verba)} em verba estimada`;
       });
+    };
+
+    // Insere o card na posição da ordem do servidor (por data), não onde o mouse soltou
+    const inserirNaOrdem = (zona: HTMLElement, card: HTMLElement) => {
+      const pos = Number(card.dataset.ordem);
+      const depois = [...zona.querySelectorAll<HTMLElement>('[data-evento]')].find((c) => c !== card && Number(c.dataset.ordem) > pos);
+      zona.insertBefore(card, depois ?? zona.querySelector('.kanban-vazio'));
     };
 
     let arrastando: HTMLElement | null = null;
@@ -226,7 +259,7 @@ const listaData =
       const card = arrastando;
       const deOrigem = origem!;
       const coluna = zona.closest<HTMLElement>('[data-coluna]')!;
-      zona.insertBefore(card, zona.querySelector('.kanban-vazio'));
+      inserirNaOrdem(zona, card);
       atualizarTotais();
       try {
         const res = await fetch(`/api/eventos/${card.dataset.evento}/status`, {
@@ -237,7 +270,7 @@ const listaData =
         if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
         toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
       } catch (err) {
-        deOrigem.insertBefore(card, deOrigem.querySelector('.kanban-vazio'));
+        inserirNaOrdem(deOrigem, card);
         atualizarTotais();
         toast(err instanceof Error ? err.message : 'Erro ao mover o evento.', 'error');
       }
@@ -381,6 +414,24 @@ const listaData =
     font-weight: 600;
     color: var(--color-neutral-80);
     white-space: nowrap;
+  }
+
+  .kanban-col-verba {
+    padding-left: 16px;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--color-neutral-65);
+  }
+
+  .kanban-col-verba[hidden] {
+    display: none;
+  }
+
+  /* Verba estimada (evento sem orçamento): valor informativo, visualmente distinto do orçamento */
+  .evento-card-rows .verba dd,
+  :global(td .verba) {
+    font-style: italic;
+    color: var(--color-neutral-65);
   }
 
   .kanban-cards {
