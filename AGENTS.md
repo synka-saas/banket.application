@@ -553,6 +553,21 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 - **Cores** (`global.css`): texto laranja = `--color-primary-text`, auxiliar = `--color-text-muted`, borda de controle =
   `--color-border-input`, botão principal = `--color-primary-action`; `--color-primary` só para bordas/fundos/ícones.
   Foco: `:focus-visible` global; campos com estilo próprio precisam de um `:focus-visible` explícito.
+- **Listas**: `EstadoVazio` no slot `empty` da `Table` (diferencie "sem cadastro" de "sem resultado": `estaFiltrando`);
+  ordenação por coluna com `ordenar` na coluna + `orderBy(ord, MAPA, padrao)` no servidor (`lib/ordenacao.ts`: só
+  expressões fixas do mapa entram no SQL); paginação com `?por=20|50|100`.
+- **Reordenar** (`components/ui/Reordenar.astro`): `data-reordenar="<url PATCH>"` + `data-id`; na `Table`, prop
+  `reordenar` (linhas com `_id`/`_nome`). Servidor: `server/reordenar.ts` (lista branca de tabelas).
+- **Orçamento**: sub-abas `OrcamentoAbas` (itens, informações, condições); incluir itens com `AdicionarBusca`;
+  remoções sem modal com `useRemoverComDesfazer` (Desfazer no aviso).
+
+### Regra de salvamento (UX-013)
+- Ilhas de edição contínua (orçamento, blocos, textos da proposta): salvamento automático com indicador de estado.
+- Formulários (drawer, empresa, template, evento): botão Salvar; alterações não salvas pedem confirmação ao sair
+  (drawer faz sozinho; página inteira: `data-form-sujo` no `<form>`).
+- Exclusão: modal (`data-confirm`/`confirmar`) com o impacto; remoção reversível dentro de uma ilha: sem modal,
+  com Desfazer no aviso.
+- Filtros e período (selects de listagem, dashboard): aplicam na hora, não precisam de confirmação.
 
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
