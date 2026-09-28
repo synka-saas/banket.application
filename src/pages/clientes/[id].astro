@@ -9,9 +9,25 @@ import { html } from '../../lib/html';
 import { formatMoney } from '../../lib/money';
 import { dataCurta } from '../../lib/datas';
 import { ROTULOS } from '../../lib/rotulos';
+import ClienteDrawer from '../../components/clientes/ClienteDrawer.astro';
+import { formId, handleFormPost } from '../../lib/actions';
+import { clienteSchema, excluirCliente, salvarCliente } from '../../server/clientes';
 
 const { tenantId } = Astro.locals.user;
 const id = Astro.params.id!;
+
+// Editar e excluir direto do detalhe (UX-142)
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const alvo = formId(data) ?? id;
+    if (data._action === 'delete') {
+      await withTenant(tenantId, (db) => excluirCliente(db, alvo));
+      return { message: 'Cliente removido.', redirect: '/clientes' };
+    }
+    await withTenant(tenantId, (db) => salvarCliente(db, tenantId, alvo, clienteSchema.parse(data)));
+    return 'Cliente atualizado.';
+  });
+}
 
 const dados = await withTenant(tenantId, async (db) => {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
@@ -25,11 +41,33 @@ const dados = await withTenant(tenantId, async (db) => {
       WHERE e.cliente_id = $1 ORDER BY e.data_evento DESC NULLS LAST`,
     [id]
   );
-  return { cliente: rows[0], eventos: eventos.rows };
+  // Resumo comercial do cliente (UX-142)
+  const resumo = await db.query<{ aprovado: number; aberto: number; ultimo_contato: Date | null }>(
+    `SELECT COALESCE(SUM(o.valor_total) FILTER (WHERE s.variante = 'aprovado'), 0) AS aprovado,
+            COALESCE(SUM(o.valor_total) FILTER (WHERE s.variante IN ('novo', 'negociacao')), 0) AS aberto,
+            (SELECT max(t.created_at) FROM evento_timeline t JOIN eventos e2 ON e2.id = t.evento_id
+              WHERE e2.cliente_id = $1) AS ultimo_contato
+       FROM eventos e
+       JOIN status_orcamento s ON s.id = e.status_id
+       LEFT JOIN orcamentos o ON o.evento_id = e.id
+      WHERE e.cliente_id = $1`,
+    [id]
+  );
+  return { cliente: rows[0], eventos: eventos.rows, resumo: resumo.rows[0] };
 });
 
 if (!dados) return new Response(null, { status: 404 });
-const { cliente, eventos } = dados;
+const { cliente, eventos, resumo } = dados;
+const valoresDrawer = JSON.stringify({
+  id: cliente.id,
+  tipo_pessoa: cliente.tipo_pessoa,
+  nome: cliente.nome,
+  documento: formatarDocumento(cliente.documento),
+  email: cliente.email,
+  telefone: cliente.telefone,
+  endereco: cliente.endereco,
+  observacoes: cliente.observacoes,
+});
 
 const tabela = eventos.map((e) => ({
   data: dataCurta(e.data_evento),
@@ -47,7 +85,29 @@ const tabela = eventos.map((e) => ({
 <AppLayout title={cliente.nome} heading={`Clientes / ${cliente.nome}`}>
   <div class="topo">
     <Button variant="outline" href="/clientes">Voltar</Button>
-    <Button variant="primary" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
+    <div class="topo-acoes">
+      <Button variant="outline" icon="edit" data-drawer-open="drawer-cliente" data-values={valoresDrawer}>Editar</Button>
+      <Button variant="primary" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
+    </div>
+  </div>
+
+  <div class="resumo-cliente">
+    <div class="kpi-mini">
+      <span class="rotulo">Eventos</span>
+      <strong>{eventos.length}</strong>
+    </div>
+    <div class="kpi-mini">
+      <span class="rotulo">Valor aprovado</span>
+      <strong class="positivo">{formatMoney(resumo.aprovado)}</strong>
+    </div>
+    <div class="kpi-mini">
+      <span class="rotulo">Em aberto</span>
+      <strong>{formatMoney(resumo.aberto)}</strong>
+    </div>
+    <div class="kpi-mini">
+      <span class="rotulo">Último contato</span>
+      <strong>{resumo.ultimo_contato ? dataCurta(resumo.ultimo_contato.toISOString().slice(0, 10)) : '—'}</strong>
+    </div>
   </div>
 
   <SectionCard title="Dados do cliente" icon="account_box">
@@ -74,6 +134,7 @@ const tabela = eventos.map((e) => ({
     data={tabela}
     emptyMessage="Este cliente ainda não tem eventos."
   />
+  <ClienteDrawer slot="overlays" />
 </AppLayout>
 
 <style>
@@ -99,5 +160,41 @@ const tabela = eventos.map((e) => ({
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
     }
+  }
+
+  .topo-acoes {
+    display: flex;
+    gap: 10px;
+  }
+
+  .resumo-cliente {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 20px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .kpi-mini .rotulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .kpi-mini strong {
+    font-size: 20px;
+  }
+
+  .kpi-mini .positivo {
+    color: var(--color-secondary-60);
   }
 </style>

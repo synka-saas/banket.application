@@ -1,0 +1,122 @@
+---
+// Minha conta (UX-154): nome, telefone, troca de senha e as empresas a que a conta pertence.
+import AppLayout from '../layouts/AppLayout.astro';
+import Button from '../components/ui/Button.astro';
+import SectionCard from '../components/ui/SectionCard.astro';
+import Icon from '../components/ui/Icon.astro';
+import { handleFormPost } from '../lib/actions';
+import { ROLE_LABELS } from '../lib/auth';
+import { REGRA_SENHA } from '../lib/senha';
+import { empresasDoUsuario } from '../server/autoatendimento';
+import { atualizarPerfil, carregarPerfil, perfilSchema, trocarSenha } from '../server/conta';
+
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action === 'senha') {
+      await trocarSenha(user.id, String(data.senha_atual ?? ''), String(data.senha ?? ''), String(data.confirma_senha ?? ''));
+      return 'Senha alterada.';
+    }
+    await atualizarPerfil(user.id, user.tenantId, perfilSchema.parse(data));
+    return 'Dados da conta atualizados.';
+  });
+}
+
+const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasDoUsuario(user.id)]);
+---
+
+<AppLayout title="Minha conta" heading="Minha conta">
+  <div class="conta">
+    <SectionCard title="Meus dados" icon="account_circle">
+      <form method="post" class="form-grid">
+        <div class="field span-2">
+          <label for="ct-nome">Nome e sobrenome<span class="obrigatorio">*</span></label>
+          <input id="ct-nome" name="nome" required maxlength="255" value={perfil.nome} />
+        </div>
+        <div class="field">
+          <label for="ct-email">E-mail</label>
+          <input id="ct-email" value={perfil.email} readonly />
+          <span class="field-hint">O e-mail de acesso não pode ser alterado por aqui.</span>
+        </div>
+        <div class="field">
+          <label for="ct-telefone">Telefone</label>
+          <input id="ct-telefone" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" data-mascara="telefone" value={perfil.telefone ?? ''} />
+        </div>
+        <div class="span-2 acoes">
+          <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
+        </div>
+      </form>
+    </SectionCard>
+
+    <SectionCard title="Trocar senha" icon="lock">
+      <form method="post" class="form-grid">
+        <input type="hidden" name="_action" value="senha" />
+        <div class="field span-2">
+          <label for="ct-senha-atual">Senha atual<span class="obrigatorio">*</span></label>
+          <input id="ct-senha-atual" name="senha_atual" type="password" required autocomplete="current-password" />
+        </div>
+        <div class="field">
+          <label for="ct-senha">Nova senha<span class="obrigatorio">*</span></label>
+          <input id="ct-senha" name="senha" type="password" required minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label for="ct-confirma">Confirme a nova senha<span class="obrigatorio">*</span></label>
+          <input id="ct-confirma" name="confirma_senha" type="password" required autocomplete="new-password" />
+        </div>
+        <p class="span-2 field-hint">{REGRA_SENHA}</p>
+        <div class="span-2 acoes">
+          <Button type="submit" variant="primary" data-carregando="Alterando…">Alterar senha</Button>
+        </div>
+      </form>
+    </SectionCard>
+
+    <SectionCard title="Minhas empresas" icon="apartment">
+      <ul class="empresas">
+        {empresas.map((e) => (
+          <li>
+            <Icon name="apartment" size={18} />
+            <span class="empresa-nome">{e.nome}</span>
+            <span class="tag">{ROLE_LABELS[e.role]}</span>
+            {e.id === user.tenantId && <span class="tag tag-ok">Empresa atual</span>}
+          </li>
+        ))}
+      </ul>
+      <p class="field-hint">Para entrar em outra empresa, peça um convite ao administrador dela.</p>
+    </SectionCard>
+  </div>
+</AppLayout>
+
+<style>
+  .conta {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 760px;
+  }
+
+  .acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .empresas {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+    list-style: none;
+    padding: 0;
+  }
+
+  .empresas li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .empresa-nome {
+    font-weight: 600;
+  }
+</style>

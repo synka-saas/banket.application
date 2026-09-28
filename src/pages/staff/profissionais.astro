@@ -55,7 +55,10 @@ const { profissionais, total, servicos } = await withTenant(tenantId, async (db)
 
 const tableData = profissionais.map((p) => ({
   nome: html`${p.nome}${!p.ativo && html` <span class="tag tag-off">Inativo</span>`}`,
-  contato: html`${p.email || '-'}${p.telefone && html`<br /><span class="muted">${p.telefone}</span>`}`,
+  contato: html`${p.email ? html`<a class="link" href="mailto:${p.email}">${p.email}</a>` : '-'}${
+    p.telefone &&
+    html`<br /><a class="link" href="https://wa.me/${(p.telefone.replace(/\D/g, '').length <= 11 ? '55' : '') + p.telefone.replace(/\D/g, '')}" target="_blank" rel="noopener">${p.telefone} · chamar</a>`
+  }`,
   especialidade: html`<form method="post" class="inline-form">
       <input type="hidden" name="id" value="${p.id}" />
       <input type="hidden" name="_action" value="especialidade" />

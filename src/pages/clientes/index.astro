@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button.astro';
 import Table from '../../components/ui/Table.astro';
 import Pagination from '../../components/ui/Pagination.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
-import Drawer from '../../components/ui/Drawer.astro';
+import ClienteDrawer from '../../components/clientes/ClienteDrawer.astro';
 import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
@@ -84,47 +84,5 @@ const filtrando = estaFiltrando(Astro.url);
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 
-  <Drawer
-    slot="overlays"
-    id="drawer-cliente"
-    formId="form-cliente"
-    title="Novo cliente"
-    editTitle="Editar cliente"
-    deleteConfirm="Excluir este cliente? Clientes com eventos não podem ser removidos."
-  >
-    <form id="form-cliente" method="post" class="form-grid">
-      <input type="hidden" name="id" />
-      <div class="field">
-        <label for="cli-tipo">Tipo</label>
-        <select id="cli-tipo" name="tipo_pessoa" required>
-          <option value="PF">Pessoa física</option>
-          <option value="PJ">Pessoa jurídica</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="cli-documento" data-rotulo-documento>CPF</label>
-        <input id="cli-documento" name="documento" inputmode="numeric" placeholder="000.000.000-00" data-mascara="documento" data-mascara-tipo="cli-tipo" />
-      </div>
-      <div class="field span-2">
-        <label for="cli-nome">Nome / Razão social<span class="obrigatorio">*</span></label>
-        <input id="cli-nome" name="nome" required maxlength="255" placeholder="Ex.: Maria Silva, TechCorp Brasil" />
-      </div>
-      <div class="field">
-        <label for="cli-email">E-mail</label>
-        <input id="cli-email" name="email" type="email" placeholder="nome@email.com" />
-      </div>
-      <div class="field">
-        <label for="cli-telefone">Telefone / WhatsApp</label>
-        <input id="cli-telefone" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" data-mascara="telefone" />
-      </div>
-      <div class="field span-2">
-        <label for="cli-endereco">Endereço</label>
-        <input id="cli-endereco" name="endereco" placeholder="Rua, número, bairro, cidade - UF" />
-      </div>
-      <div class="field span-2">
-        <label for="cli-obs">Observações</label>
-        <textarea id="cli-obs" name="observacoes"></textarea>
-      </div>
-    </form>
-  </Drawer>
+  <ClienteDrawer slot="overlays" />
 </AppLayout>

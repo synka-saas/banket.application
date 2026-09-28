@@ -27,6 +27,13 @@ if (Astro.request.method === 'POST') {
 }
 
 const opcoes = await withTenant(user.tenantId, (db) => opcoesFormularioEvento(db));
+// Sugestão: o local padrão da empresa preenche o nome do local em eventos na casa (UX-152/D6)
+if (Astro.request.method !== 'POST' && !valores.local_nome) {
+  const { rows } = await withTenant(user.tenantId, (db) =>
+    db.query<{ local_padrao: string | null }>('SELECT local_padrao FROM configuracoes_tenant')
+  );
+  if (rows[0]?.local_padrao) valores.local_nome = rows[0].local_padrao;
+}
 if (!valores.cliente_id) {
   const clienteDaUrl = Astro.url.searchParams.get('cliente');
   if (clienteDaUrl) valores.cliente_id = clienteDaUrl;
