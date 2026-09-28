@@ -55,16 +55,16 @@ const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.pag
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    border: 1px solid var(--color-neutral-50);
-    border-radius: 3px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--color-border-input);
+    border-radius: var(--border-radius-sm);
     color: var(--color-neutral-65);
   }
 
   .page-btn:hover:not(.disabled) {
     border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-primary-text);
   }
 
   .page-btn.disabled {

@@ -40,7 +40,7 @@
   align-items: center;
   padding: 0 10px;
   background: var(--color-neutral-10);
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
   font-size: 13px;
   white-space: nowrap;
   max-width: 55%;
@@ -79,7 +79,7 @@
 
 .fe-resumo {
   font-size: 13px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .fe-secao {
@@ -123,7 +123,7 @@
 
 .fe-secao-titulo span {
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .fe-inativa .fe-perguntas,
@@ -137,7 +137,7 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -171,7 +171,7 @@
   display: inline-flex;
   border: none;
   background: none;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0 2px;
 }
@@ -197,7 +197,7 @@
 
 .fe-meta {
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .fe-acoes {
@@ -230,7 +230,7 @@
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   cursor: pointer;
 }
 
@@ -285,7 +285,7 @@
 
 .fe-estado {
   font-size: 13px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .fe-barra-acoes {

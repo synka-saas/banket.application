@@ -404,7 +404,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .nome label {
     font-size: 12px;
     text-transform: uppercase;
-    color: var(--color-primary);
+    color: var(--color-primary-text);
   }
 
   .nome input {
@@ -421,6 +421,11 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .nome input:focus {
     border-color: var(--color-neutral-30);
     outline: none;
+  }
+
+  .nome input:focus-visible {
+    border-color: var(--color-primary-50);
+    box-shadow: 0 0 0 1px var(--color-primary-50);
   }
 
   .acoes {

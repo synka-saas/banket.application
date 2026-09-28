@@ -69,7 +69,7 @@ const { id, name, label, checked = false, required = false, type = 'checkbox' } 
     width: 100%;
     height: 100%;
     background-color: var(--color-white);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--color-border-input);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -87,6 +87,12 @@ const { id, name, label, checked = false, required = false, type = 'checkbox' } 
   .checkbox-input:checked ~ .checkbox-box {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
+  }
+
+  /* O input real fica invisível: o foco aparece na caixa desenhada */
+  .checkbox-input:focus-visible ~ .checkbox-box,
+  .toggle-input:focus-visible ~ .toggle-slider {
+    box-shadow: var(--focus-ring);
   }
 
   .checkbox-input:checked ~ .checkbox-box .checkmark {
@@ -115,7 +121,7 @@ const { id, name, label, checked = false, required = false, type = 'checkbox' } 
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--color-neutral-30);
+    background-color: var(--color-border-input);
     border-radius: 20px;
     transition: 0.3s;
   }

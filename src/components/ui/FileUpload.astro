@@ -255,6 +255,10 @@ const {
     outline: none;
   }
 
+  .upload-zona:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
   .upload.arrastando .upload-cartao {
     outline: 2px dashed var(--color-secondary);
     outline-offset: 2px;
@@ -283,7 +287,7 @@ const {
 
   .upload-formatos {
     font-size: 12px;
-    color: var(--color-neutral-50);
+    color: var(--color-text-muted);
   }
 
   .upload.compacto .upload-zona {
@@ -324,7 +328,7 @@ const {
     height: 56px;
     border-radius: var(--border-radius-sm);
     background: var(--color-neutral-10);
-    color: var(--color-neutral-50);
+    color: var(--color-text-muted);
     overflow: hidden;
   }
 
@@ -360,7 +364,7 @@ const {
 
   .upload-info small {
     font-size: 12px;
-    color: var(--color-neutral-50);
+    color: var(--color-text-muted);
   }
 
   .upload-acoes {

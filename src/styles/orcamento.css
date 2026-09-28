@@ -8,7 +8,7 @@
 .orc .rotulo {
   font-size: 12px;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .orc-cabecalho {
@@ -42,7 +42,7 @@
 
 .orc-estado {
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .orc-estado.estado-salvo::before {
@@ -130,7 +130,7 @@
   gap: 4px;
   min-height: 34px;
   padding: 0 8px;
-  border: 1px solid var(--color-neutral-40);
+  border: 1px solid var(--color-border-input);
   border-radius: var(--border-radius-sm);
   background: var(--color-white);
   font-size: 14px;
@@ -153,14 +153,14 @@
 
 .valor-manual .prefixo {
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .valor-manual .restaurar {
   display: inline-flex;
   border: none;
   background: none;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   cursor: pointer;
   font-size: 14px;
   padding: 0 2px;
@@ -196,7 +196,7 @@
 }
 
 .acordeao-icone {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   font-size: 18px;
 }
 
@@ -231,7 +231,7 @@
 }
 
 .vazio {
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -342,7 +342,7 @@ input.cardapio-nome:focus {
   gap: 6px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .escolha {
@@ -369,7 +369,7 @@ input.cardapio-nome:focus {
 
 .chip-preco {
   font-size: 11px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
 }
 
 .adicionar-item {
@@ -412,7 +412,7 @@ input.cardapio-nome:focus {
 .tabela-orc .descricao {
   display: block;
   font-size: 12px;
-  color: var(--color-neutral-50);
+  color: var(--color-text-muted);
   max-width: 360px;
 }
 
@@ -422,12 +422,12 @@ input.cardapio-nome:focus {
   padding: 2px;
   border: none;
   background: none;
-  color: var(--color-neutral-40);
+  color: var(--color-neutral-50);
   cursor: pointer;
 }
 
 .remover:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .locacao {
@@ -525,7 +525,7 @@ input.cardapio-nome:focus {
 }
 
 .versao-card .data {
-  color: var(--color-neutral-40);
+  color: var(--color-text-muted);
 }
 
 .versao-card .valor {
@@ -603,6 +603,22 @@ a.selo-acessar {
   outline: none;
 }
 
+.bloco-kv-linha input:focus-visible,
+.bloco-kv-linha textarea:focus-visible {
+  border-color: var(--color-primary-50);
+  box-shadow: 0 0 0 1px var(--color-primary-50);
+}
+
+input.cardapio-nome:focus-visible {
+  outline: 2px solid var(--color-white);
+  outline-offset: 1px;
+}
+
+.valor-manual:focus-within {
+  border-color: var(--color-primary-50);
+  box-shadow: 0 0 0 1px var(--color-primary-50);
+}
+
 .auto-selo {
   font-size: 11px;
   color: var(--color-secondary-60);
@@ -615,7 +631,7 @@ a.selo-acessar {
   padding: 0;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-primary-text);
   cursor: pointer;
 }
 

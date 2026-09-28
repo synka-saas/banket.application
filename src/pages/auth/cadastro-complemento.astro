@@ -94,7 +94,7 @@ const validado = Astro.url.searchParams.has('validado');
   </form>
 
   <div class="auth-links">
-    <span style="font-size: 12px; color: #888;">*Dados obrigatórios</span><br />
+    <span style="font-size: 12px; color: var(--color-text-muted);">*Dados obrigatórios</span><br />
     <a href="/auth/logout">Sair</a>
   </div>
 </AuthLayout>
@@ -125,7 +125,7 @@ const validado = Astro.url.searchParams.has('validado');
   }
 
   .cabecalho :global(.icone-ok) {
-    color: var(--color-primary);
+    color: var(--color-primary-text);
     margin-bottom: 40px;
   }
 

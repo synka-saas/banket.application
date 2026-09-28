@@ -92,7 +92,7 @@ const preserved = [...params.entries()].filter(
     width: 300px;
     height: 40px;
     background: var(--color-white);
-    border: 1px solid var(--color-neutral-40);
+    border: 1px solid var(--color-border-input);
     border-radius: var(--border-radius-sm);
   }
 
@@ -115,7 +115,8 @@ const preserved = [...params.entries()].filter(
 
   .search-box:focus-within,
   .filter-box:focus-within {
-    border-color: var(--color-primary);
+    border-color: var(--color-primary-50);
+    box-shadow: 0 0 0 1px var(--color-primary-50);
   }
 
   .search-box :global(.search-icon),
