@@ -65,9 +65,23 @@ const preserved = [...params.entries()].filter(
     form.querySelectorAll('[data-autosubmit]').forEach((el) => {
       el.addEventListener('change', () => form.requestSubmit());
     });
+    const busca = form.querySelector<HTMLInputElement>('input[type="search"]');
     // Limpar a busca (botão "x" do input search) recarrega a lista
-    form.querySelector<HTMLInputElement>('input[type="search"]')?.addEventListener('search', (e) => {
+    busca?.addEventListener('search', (e) => {
       if (!(e.target as HTMLInputElement).value) form.requestSubmit();
+    });
+    // Busca aplicada sozinha depois de uma pausa na digitação (UX-105)
+    let timer: number | undefined;
+    busca?.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => form.requestSubmit(), 600);
+    });
+  });
+
+  // Painéis de filtro (details) fecham ao clicar fora
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll<HTMLDetailsElement>('.toolbar details[open]').forEach((d) => {
+      if (!d.contains(e.target as Node)) d.open = false;
     });
   });
 </script>

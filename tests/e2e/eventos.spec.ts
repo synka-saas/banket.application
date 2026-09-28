@@ -174,6 +174,11 @@ test.describe('Eventos e quadro de vendas', () => {
       await page.goto('/eventos');
       await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 1 mês, de hoje até');
 
+      // O intervalo também muda no próprio funil (UX-052)
+      await page.locator('#kanban-intervalo').selectOption({ label: '3 meses' });
+      await expectToast(page, 'Intervalo de trabalho salvo.');
+      await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 3 meses, de hoje até');
+
       // O filtro só tem Data de / Até, e elas valem como recorte temporário
       await page.getByText('Filtros').click();
       await expect(page.locator('input[name=periodo]')).toHaveCount(0);

@@ -11,6 +11,10 @@ import { formatMoney } from '../../lib/money';
 import { dataCurta, hojeSaoPaulo, somarMeses } from '../../lib/datas';
 import { estaFiltrando, pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
 import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
+import { INTERVALOS_KANBAN, intervaloKanbanDoForm, salvarIntervaloKanban } from '../../server/configuracoes';
+import { handleFormPost } from '../../lib/actions';
+import { isAdmin } from '../../lib/auth';
+import { UserError } from '../../lib/forms';
 import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
 import { ROTULOS } from '../../lib/rotulos';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
@@ -19,6 +23,17 @@ import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
 const url = Astro.url;
+
+// Intervalo de trabalho alterável no próprio funil (UX-052); vale para a empresa toda, só admin
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action !== 'intervalo') return '';
+    if (!isAdmin(Astro.locals.user)) throw new UserError('Só administradores alteram o intervalo de trabalho.');
+    const meses = intervaloKanbanDoForm(data.kanban_intervalo_meses);
+    await withTenant(Astro.locals.user.tenantId, (db) => salvarIntervaloKanban(db, meses));
+    return 'Intervalo de trabalho salvo.';
+  });
+}
 const visao = url.searchParams.get('view') === 'lista' ? 'lista' : 'kanban';
 const filtros = filtrosDaUrl(url, searchTerm(url));
 const page = pageParams(url);
@@ -43,6 +58,26 @@ const recorteTexto = recorteManual
 const podeConfigurar = Astro.locals.user.role === 'owner' || Astro.locals.user.role === 'admin';
 const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
 const pad = (n: number) => String(n).padStart(2, '0');
+// Chips dos filtros ativos, cada um com o seu × (UX-105)
+const chipsFiltros = [
+  filtros.busca && { rotulo: `Busca: ${url.searchParams.get('q')}`, href: withQuery(url, { q: null, page: null }) },
+  (filtros.de || filtros.ate) && {
+    rotulo: `Período: ${filtros.de ? dataCurta(filtros.de) : 'início'} → ${filtros.ate ? dataCurta(filtros.ate) : 'sem fim'}`,
+    href: withQuery(url, { de: null, ate: null, page: null }),
+  },
+  filtros.tipoId && {
+    rotulo: `${ROTULOS.tipoEvento}: ${dados.tipos.find((t) => t.id === filtros.tipoId)?.nome ?? ''}`,
+    href: withQuery(url, { tipo: null, page: null }),
+  },
+  filtros.formatoId && {
+    rotulo: `${ROTULOS.formatoServico}: ${dados.formatos.find((f) => f.id === filtros.formatoId)?.nome ?? ''}`,
+    href: withQuery(url, { formato: null, page: null }),
+  },
+  filtros.statusId && {
+    rotulo: `${ROTULOS.etapa}: ${dados.status.find((s) => s.id === filtros.statusId)?.nome ?? ''}`,
+    href: withQuery(url, { status: null, page: null }),
+  },
+].filter((c): c is { rotulo: string; href: string } => Boolean(c));
 const diasNaEtapa = (c: Card) => Math.floor((Date.now() - new Date(c.etapa_desde).getTime()) / 86_400_000);
 type Card = (typeof dados.cards)[number];
 // Verba estimada só conta quando o evento ainda não tem orçamento; os dois totais nunca se misturam
@@ -50,7 +85,9 @@ const verbaSemOrcamento = (c: Card) => (c.valor_orcamento === null ? (c.verba_to
 // Posição de cada card na ordem do servidor (data do evento): ao mover, o card entra no mesmo lugar em que estará após recarregar
 const ordem = new Map(dados.cards.map((c, i) => [c.id, i]));
 
-const colunas = dados.status.map((s) => {
+// Filtro de etapa no funil: mostra só a coluna escolhida (UX-105)
+const statusVisiveis = filtros.statusId ? dados.status.filter((s) => s.id === filtros.statusId) : dados.status;
+const colunas = statusVisiveis.map((s) => {
   const cards = dados.cards.filter((c) => c.status_id === s.id);
   return {
     ...s,
@@ -118,15 +155,13 @@ const filtrando = estaFiltrando(Astro.url);
             {dados.formatos.map((f) => <option value={f.id} selected={f.id === filtros.formatoId}>{f.nome}</option>)}
           </select>
         </div>
-        {visao === 'lista' && (
-          <div class="field">
-            <label for="f-status">{ROTULOS.etapa}</label>
-            <select id="f-status" name="status">
-              <option value="">Todos</option>
-              {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
-            </select>
-          </div>
-        )}
+        <div class="field">
+          <label for="f-status">{ROTULOS.etapa}</label>
+          <select id="f-status" name="status">
+            <option value="">Todas</option>
+            {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
+          </select>
+        </div>
         <div class="filtros-acoes">
           <a href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'} class="btn btn-outline btn-md">Limpar</a>
           <button type="submit" class="btn btn-primary btn-md">Aplicar</button>
@@ -137,6 +172,18 @@ const filtrando = estaFiltrando(Astro.url);
     <Button variant="primary" icon="add_circle" href="/eventos/novo">Novo evento</Button>
   </PageToolbar>
 
+  {chipsFiltros.length > 0 && (
+    <div class="chips-filtros" aria-label="Filtros ativos">
+      {chipsFiltros.map((c) => (
+        <a class="chip-filtro" href={c.href} title="Remover este filtro">
+          {c.rotulo}
+          <Icon name="close" size={16} />
+        </a>
+      ))}
+      <a class="chip-filtro limpar" href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'}>Limpar tudo</a>
+    </div>
+  )}
+
   {visao === 'kanban' ? (
     <>
     <p class="recorte" data-recorte>
@@ -144,9 +191,18 @@ const filtrando = estaFiltrando(Astro.url);
       <span>{recorteTexto}</span>
       {recorteManual ? (
         <a href="/eventos" class="recorte-link">Voltar ao intervalo de trabalho</a>
-      ) : podeConfigurar && (
-        <a href="/configuracoes/status-orcamento#intervalo-kanban" class="recorte-link">Alterar</a>
-      )}
+      ) : podeConfigurar ? (
+        <form method="post" class="recorte-form">
+          <input type="hidden" name="_action" value="intervalo" />
+          <label class="sr-only" for="kanban-intervalo">Intervalo de trabalho</label>
+          <select id="kanban-intervalo" name="kanban_intervalo_meses" class="inline-select" data-autosubmit-row>
+            {INTERVALOS_KANBAN.map((m) => (
+              <option value={String(m)} selected={dados.intervaloMeses === m}>{m === 1 ? '1 mês' : `${m} meses`}</option>
+            ))}
+            <option value="" selected={dados.intervaloMeses === null}>Sem limite</option>
+          </select>
+        </form>
+      ) : null}
     </p>
     <div class="kanban-etapas" data-kanban-etapas role="tablist" aria-label="Etapas do funil">
       {colunas.map((col, i) => (
@@ -845,5 +901,41 @@ const filtrando = estaFiltrando(Astro.url);
     .evento-card-title {
       font-size: 17px;
     }
+  }
+
+  .chips-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: -12px 0 16px;
+  }
+
+  .chip-filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--color-border-input);
+    border-radius: 16px;
+    background: var(--color-white);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+    text-decoration: none;
+  }
+
+  .chip-filtro:hover {
+    border-color: var(--color-primary-50);
+    color: var(--color-primary-text);
+  }
+
+  .chip-filtro.limpar {
+    border-style: dashed;
+    color: var(--color-text-muted);
+  }
+
+  .recorte-form {
+    display: inline-flex;
   }
 </style>

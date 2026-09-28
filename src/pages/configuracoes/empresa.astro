@@ -138,7 +138,19 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
         <div class="field span-2">
           <label for="mail-corpo">Mensagem<span class="obrigatorio">*</span></label>
           <textarea id="mail-corpo" name="email_corpo" required rows="8">{empresa.email_corpo}</textarea>
-          <span class="field-hint">Variáveis disponíveis: {VARIAVEIS_EMAIL.join(', ')}</span>
+          <div class="vars">
+            <span class="field-hint">Clique para inserir no campo:</span>
+            {VARIAVEIS_EMAIL.map((v) => (
+              <button type="button" class="chip-var" data-var={v}>{v}</button>
+            ))}
+          </div>
+        </div>
+        <div class="field span-2">
+          <span class="field-label">Prévia com dados de exemplo</span>
+          <div class="mail-previa" data-mail-previa>
+            <p class="mail-previa-assunto" data-previa-assunto></p>
+            <p class="mail-previa-corpo" data-previa-corpo></p>
+          </div>
         </div>
       </div>
     </SectionCard>
@@ -169,4 +181,86 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
       grid-template-columns: minmax(0, 1fr);
     }
   }
+
+  .vars {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chip-var {
+    padding: 3px 10px;
+    border: 1px solid var(--color-border-input);
+    border-radius: 12px;
+    background: var(--color-white);
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--color-neutral-80);
+    cursor: pointer;
+  }
+
+  .chip-var:hover {
+    border-color: var(--color-primary-50);
+    color: var(--color-primary-text);
+  }
+
+  .mail-previa {
+    padding: 14px 16px;
+    background: var(--color-neutral-10);
+    border: 1px dashed var(--color-neutral-30);
+    border-radius: var(--border-radius);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .mail-previa-assunto {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .mail-previa-corpo {
+    white-space: pre-wrap;
+  }
 </style>
+
+<script>
+  // Modelo de e-mail: chips inserem a variável no cursor e a prévia mostra o resultado com dados de exemplo (UX-151)
+  const assunto = document.getElementById('mail-assunto') as HTMLInputElement | null;
+  const corpo = document.getElementById('mail-corpo') as HTMLTextAreaElement | null;
+  const previaAssunto = document.querySelector<HTMLElement>('[data-previa-assunto]');
+  const previaCorpo = document.querySelector<HTMLElement>('[data-previa-corpo]');
+  if (assunto && corpo && previaAssunto && previaCorpo) {
+    const EXEMPLO: Record<string, string> = {
+      nome_cliente: 'Maria Souza',
+      evento: 'Casamento – Maria Souza',
+      data_evento: '12/06/2027',
+      empresa: (document.getElementById('emp-nome') as HTMLInputElement | null)?.value || 'Sua empresa',
+      valor_total: 'R$ 25.400,00',
+      versao: '02',
+    };
+    const aplicar = (texto: string) => texto.replace(/\{(\w+)\}/g, (m, v: string) => EXEMPLO[v] ?? m);
+    const atualizar = () => {
+      previaAssunto.textContent = aplicar(assunto.value);
+      previaCorpo.textContent = aplicar(corpo.value);
+    };
+    assunto.addEventListener('input', atualizar);
+    corpo.addEventListener('input', atualizar);
+    atualizar();
+
+    let alvo: HTMLInputElement | HTMLTextAreaElement = corpo;
+    assunto.addEventListener('focus', () => (alvo = assunto));
+    corpo.addEventListener('focus', () => (alvo = corpo));
+    document.querySelectorAll<HTMLButtonElement>('.chip-var').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        const v = chip.dataset.var!;
+        const inicio = alvo.selectionStart ?? alvo.value.length;
+        const fim = alvo.selectionEnd ?? alvo.value.length;
+        alvo.value = alvo.value.slice(0, inicio) + v + alvo.value.slice(fim);
+        alvo.focus();
+        alvo.setSelectionRange(inicio + v.length, inicio + v.length);
+        atualizar();
+      })
+    );
+  }
+</script>

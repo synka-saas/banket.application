@@ -55,7 +55,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     <div class="acoes">
       {t.id && (
         <>
-          <a class="btn btn-outline btn-md" href={`/templates/${t.id}/exemplo`} target="_blank" rel="noopener">PDF de exemplo</a>
+          <a class="btn btn-outline btn-md" href={`/templates/${t.id}/exemplo`} target="_blank" rel="noopener" data-pdf-exemplo>PDF de exemplo</a>
           <button type="submit" name="_action" value="duplicar" class="btn btn-outline btn-md" formnovalidate>Duplicar</button>
           <button type="submit" name="_action" value="excluir" class="btn btn-outline btn-md" formnovalidate data-confirm="Excluir este template?">Excluir</button>
         </>
@@ -236,11 +236,34 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       </div>
     </div>
   </SectionCard>
+  <!-- Página longa: o Salvar acompanha a rolagem (UX-148) -->
+  <div class="barra-salvar">
+    <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
+  </div>
 </form>
 
 <script>
-  import { toast } from '../../lib/ui';
+  import { confirmar, toast } from '../../lib/ui';
   const form = document.querySelector<HTMLFormElement>('[data-template-form]');
+
+  // O PDF de exemplo usa a última versão salva: com alterações pendentes, avisa antes (UX-146)
+  if (form) {
+    const serializar = () => JSON.stringify([...new FormData(form)].map(([k, v]) => [k, typeof v === 'string' ? v : `${v.name}:${v.size}`]));
+    let inicial = '';
+    window.addEventListener('load', () => (inicial = serializar()));
+    document.querySelector<HTMLAnchorElement>('[data-pdf-exemplo]')?.addEventListener('click', async (e) => {
+      if (!inicial || serializar() === inicial) return;
+      e.preventDefault();
+      const href = (e.currentTarget as HTMLAnchorElement).href;
+      const gerar = await confirmar({
+        titulo: 'Gerar o exemplo sem salvar?',
+        texto: 'O PDF de exemplo usa a última versão salva: as alterações feitas agora não vão aparecer nele.',
+        confirmar: 'Gerar mesmo assim',
+        cancelar: 'Voltar e salvar',
+      });
+      if (gerar) window.open(href, '_blank', 'noopener');
+    });
+  }
   if (form) {
     const aplicarVars = () => {
       form.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-var]').forEach((el) => {
@@ -742,5 +765,20 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .segmentos input:focus-visible + span {
     outline: 2px solid var(--color-primary);
     outline-offset: -2px;
+  }
+
+  .barra-salvar {
+    position: sticky;
+    bottom: 12px;
+    z-index: 20;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    pointer-events: none;
+  }
+
+  .barra-salvar :global(.btn) {
+    pointer-events: auto;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
   }
 </style>
