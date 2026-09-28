@@ -368,6 +368,11 @@ const primeiroNome = user.nome.split(' ')[0];
 
   /* Celular: a barra do funil desce para a linha de baixo */
   @media (max-width: 768px) {
+    .topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
     .funil li {
       grid-template-columns: minmax(0, 1fr) auto auto;
       grid-template-areas:

@@ -790,6 +790,29 @@ const filtrando = estaFiltrando(Astro.url);
       display: block;
     }
 
+    /* O chip já diz a etapa: o cabeçalho da coluna fica só com contagem e total */
+    .kanban-col-titulo {
+      display: none;
+    }
+
+    .kanban-col-meta {
+      padding: 2px 0;
+    }
+
+    .kanban-col-header {
+      padding: 10px 16px;
+    }
+
+    .filtros-painel {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      top: 76px;
+      width: auto;
+      max-height: calc(100dvh - 170px);
+      overflow-y: auto;
+    }
+
     .evento-card {
       padding: 18px 16px;
     }

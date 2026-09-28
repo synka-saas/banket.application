@@ -154,10 +154,19 @@ const preserved = [...params.entries()].filter(
 
     .toolbar-actions {
       width: 100%;
+      flex-wrap: wrap;
     }
 
     .toolbar-actions :global(.btn) {
       flex: 1;
+    }
+
+    .toolbar-actions > :global(details) {
+      width: 100%;
+    }
+
+    .toolbar-actions > :global(details .btn) {
+      width: 100%;
     }
   }
 </style>

@@ -80,4 +80,31 @@ const abas = [
     background: var(--color-neutral-20);
     color: var(--color-neutral-80);
   }
+
+  @media (max-width: 768px) {
+    .orc-abas {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 8px;
+    }
+
+    .orc-abas-lista {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .orc-abas-lista::-webkit-scrollbar {
+      display: none;
+    }
+
+    .orc-abas-lista a {
+      white-space: nowrap;
+    }
+
+    .orc-abas-versao {
+      align-self: flex-start;
+    }
+  }
 </style>
