@@ -25,6 +25,8 @@ type Props = Omit<HTMLAttributes<'input'>, 'type'> & {
   removerConfirmacao?: string;
   /** Versão mais baixa, para colunas estreitas */
   compacto?: boolean;
+  /** Tamanho máximo conferido no navegador antes de enviar (o servidor confere de novo). Padrão: 5 MB */
+  maxBytes?: number;
 };
 
 const {
@@ -37,6 +39,7 @@ const {
   removerAcao,
   removerConfirmacao = 'Remover o arquivo atual?',
   compacto = false,
+  maxBytes = 5 * 1024 * 1024,
   class: className,
   ...rest
 } = Astro.props;
@@ -47,6 +50,7 @@ const {
   data-upload
   data-atual-url={atualUrl ?? undefined}
   data-atual-nome={atualNome}
+  data-max-bytes={maxBytes}
 >
   <input type="file" name={name} accept={accept} class="upload-input" tabindex="-1" {...rest} />
 
@@ -135,9 +139,23 @@ const {
     const estadoAtual = () =>
       atualUrl ? { url: atualUrl, nome: raiz.dataset.atualNome ?? 'Arquivo atual', detalhe: 'Salvo', novo: false } : null;
 
+    // Tipo e tamanho conferidos antes de enviar: o erro aparece na hora, sem perder o resto do formulário
+    const maxBytes = Number(raiz.dataset.maxBytes) || Infinity;
+    const recusar = (arquivo: File): string | null => {
+      if (!aceita(arquivo, input.accept)) return 'Formato de arquivo não aceito.';
+      if (arquivo.size > maxBytes) return `"${arquivo.name}" tem ${tamanho(arquivo.size)}; o limite é ${tamanho(maxBytes)}.`;
+      return null;
+    };
+
     const atualizar = () => {
       const arquivo = input.files?.[0];
       if (!arquivo) return mostrar(estadoAtual());
+      const erro = recusar(arquivo);
+      if (erro) {
+        input.value = '';
+        toast(erro, 'error');
+        return mostrar(estadoAtual());
+      }
       const url = arquivo.type.startsWith('image/') ? URL.createObjectURL(arquivo) : null;
       mostrar({ url, nome: arquivo.name, detalhe: `${tamanho(arquivo.size)} · será enviado ao salvar`, novo: true });
       urlTemporaria = url;
@@ -196,8 +214,9 @@ const {
       raiz.classList.remove('arrastando');
       const arquivo = e.dataTransfer?.files?.[0];
       if (!arquivo) return;
-      if (!aceita(arquivo, input.accept)) {
-        toast('Formato de arquivo não aceito.', 'error');
+      const erro = recusar(arquivo);
+      if (erro) {
+        toast(erro, 'error');
         return;
       }
       const transferencia = new DataTransfer();

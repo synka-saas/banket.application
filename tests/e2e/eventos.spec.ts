@@ -54,6 +54,23 @@ test.describe('Eventos e quadro de vendas', () => {
     await page.reload();
     await expect(colunaNegociacao.locator('.evento-card', { hasText: cliente })).toBeVisible();
 
+    // Sem arrastar (teclado/toque): menu "⋯" → Mover para; ida e volta
+    const menu = card.locator('[data-card-menu]');
+    await menu.locator('summary').click();
+    await menu.getByRole('button', { name: 'Novo orçamento' }).click();
+    await expectToast(page, 'Evento movido para "Novo orçamento".');
+    await expect(colunaEntrada.locator('.evento-card', { hasText: cliente })).toBeVisible();
+    await menu.locator('summary').click();
+    await expect(menu.getByRole('button', { name: 'Novo orçamento' })).toHaveCount(0);
+    await menu.getByRole('button', { name: 'Em negociação' }).click();
+    await expectToast(page, 'Evento movido para "Em negociação".');
+    await page.reload();
+    await expect(colunaNegociacao.locator('.evento-card', { hasText: cliente })).toBeVisible();
+
+    // O card inteiro abre o resumo
+    await colunaNegociacao.locator('.evento-card', { hasText: cliente }).locator('.evento-card-link').click();
+    await expect(page).toHaveURL(/\/eventos\/[0-9a-f-]{36}$/);
+
     // Lista com filtro de status
     await page.goto('/eventos?view=lista');
     await expect(page.locator('tr', { hasText: cliente })).toContainText('Em negociação');

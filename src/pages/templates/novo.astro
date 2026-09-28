@@ -2,23 +2,54 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import TemplateForm from '../../components/templates/TemplateForm.astro';
 import { withTenant } from '../../lib/db';
-import { handleFormPost } from '../../lib/actions';
+import { setFlash } from '../../lib/flash';
+import { formToObject, userMessage } from '../../lib/forms';
 import { TEMPLATES_SUBMENU } from '../../lib/nav';
 import { removeFile, saveUpload } from '../../lib/storage';
-import { salvarTemplateDoFormulario } from '../../server/templates';
+import { salvarTemplateDoFormulario, type Template } from '../../server/templates';
 
 const { tenantId } = Astro.locals.user;
 
+// Em erro a página é renderizada de novo com o que foi preenchido (nome, textos, cores, fontes);
+// só os arquivos precisam ser escolhidos outra vez, porque o navegador não permite repô-los.
+let template: Partial<Template> = { capa_ativa: true, contracapa_ativa: false };
+let erro: string | null = null;
+let tinhaArquivo = false;
+
 if (Astro.request.method === 'POST') {
-  return handleFormPost(Astro, async (data, raw) => {
+  const raw = await Astro.request.formData();
+  const data = formToObject(raw);
+  try {
     const id = await withTenant(tenantId, (db) =>
       salvarTemplateDoFormulario(db, tenantId, null, data, raw, { saveUpload: (t, f, a) => saveUpload(t, f, a), removeFile })
     );
-    return { message: 'Template criado.', redirect: `/templates/${id}` };
-  });
+    setFlash(Astro.cookies, 'success', 'Template criado.');
+    return Astro.redirect(`/templates/${id}`);
+  } catch (err) {
+    erro = userMessage(err);
+    tinhaArquivo = [...raw.values()].some((v) => v instanceof File && v.size > 0);
+    const marcado = (campo: string) => data[campo] === 'on';
+    template = {
+      // Campos de arquivo ficam de fora (formToObject troca o arquivo pelo nome, que não é um caminho salvo)
+      ...(Object.fromEntries(
+        Object.entries(data).filter(([k, v]) => typeof v === 'string' && v !== '' && !(raw.get(k) instanceof File))
+      ) as Partial<Template>),
+      padrao: marcado('padrao'),
+      capa_ativa: marcado('capa_ativa'),
+      contracapa_ativa: marcado('contracapa_ativa'),
+      rodape_logo_ativo: marcado('rodape_logo_ativo'),
+    };
+    Astro.response.status = 400;
+  }
 }
 ---
 
-<AppLayout title="Novo template" heading="Templates / Novo Template" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
-  <TemplateForm template={{ capa_ativa: true, contracapa_ativa: false }} tenantId={tenantId} />
+<AppLayout title="Novo template" heading="Templates / Novo template" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
+  {erro && (
+    <div class="form-erro" role="alert">
+      {erro}
+      {tinhaArquivo && <> As imagens escolhidas não foram salvas: selecione-as de novo antes de salvar.</>}
+    </div>
+  )}
+  <TemplateForm template={template} tenantId={tenantId} />
 </AppLayout>

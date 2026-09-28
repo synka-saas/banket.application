@@ -12,6 +12,27 @@ test.describe('Templates, blocos e PDF', () => {
     await login(page);
   });
 
+  test('erro ao criar mantém o que foi preenchido; arquivo acima do limite é recusado no navegador', async ({ page }) => {
+    await page.goto('/templates/novo');
+    // Arquivo grande: recusado antes de enviar, com aviso
+    await page.locator('input[name=logo_path]').setInputFiles({ name: 'grande.png', mimeType: 'image/png', buffer: Buffer.alloc(6 * 1024 * 1024) });
+    await expectToast(page, /grande\.png.*limite é 5,0 MB/);
+    await expect(page.locator('input[name=logo_path]')).toHaveValue('');
+
+    // Nome repetido (template padrão da empresa): recusado pelo servidor sem apagar o formulário
+    await page.goto('/templates');
+    const existente = (await page.locator('.info-card .info-card-title span').first().textContent())!.trim();
+    await page.goto('/templates/novo');
+    await page.getByLabel('Nome do template').fill(existente);
+    await page.getByLabel('Descrição').fill('Não deve sumir');
+    await page.getByLabel('Título capa').fill('Capa preservada');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('.form-erro')).toContainText('Já existe um cadastro com este nome.');
+    await expect(page.getByLabel('Nome do template')).toHaveValue(existente);
+    await expect(page.getByLabel('Descrição')).toHaveValue('Não deve sumir');
+    await expect(page.getByLabel('Título capa')).toHaveValue('Capa preservada');
+  });
+
   test('cria, edita, duplica e exclui template; PDF de exemplo', async ({ page, request }) => {
     const nome = `E2E Template ${Date.now()}`;
     await page.goto('/templates');

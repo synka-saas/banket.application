@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { excluirEvento, expectToast, login, waitForIslands } from './helpers';
+import { confirmarModal, excluirEvento, expectToast, login, waitForIslands } from './helpers';
 
 const SHOTS = process.env.SHOTS;
 const shot = (page: Page, nome: string) => (SHOTS ? page.screenshot({ path: `${SHOTS}/${nome}.png`, fullPage: true }) : null);
@@ -91,16 +91,24 @@ test.describe('Agenda, dashboard e envio', () => {
     await drawer.getByLabel('Para*').fill('cliente-e2e@example.com');
     await shot(page, 'envio-drawer');
     await drawer.getByRole('button', { name: 'Enviar' }).click();
+    // Confirmação com o resumo do envio
+    const modal = page.locator('dialog.confirmar[open]');
+    await expect(modal).toContainText('Enviar a proposta para cliente-e2e@example.com?');
+    await expect(modal).toContainText('Versão 01');
+    await confirmarModal(page);
     // Gera o PDF e envia (alguns segundos); @example.com vai para o log do servidor
     await expect(page.locator('#drawer-enviar').getByRole('button', { name: 'Enviando…' })).toBeDisabled();
-    await expect(page.locator('.toast').filter({ hasText: /Proposta enviada para cliente-e2e@example.com|E-mail registrado no log/ })).toBeVisible({
-      timeout: 30_000,
-    });
+    // A versão enviada é congelada e os ajustes seguem na 02
+    await expect(page.locator('.toast').filter({ hasText: /versão 01 foi congelada.*editando a versão 02/ })).toBeVisible({ timeout: 30_000 });
 
+    // A versão 01 guarda o envio
+    await page.goto(`${eventoUrl}/orcamento?versao=1`);
+    await waitForIslands(page);
     await page.getByRole('button', { name: 'Enviar ao cliente' }).click();
-    await expect(page.locator('#drawer-enviar .aviso-envio')).toContainText('cliente-e2e@example.com');
+    await expect(page.locator('#drawer-enviar .aviso-envio').first()).toContainText('cliente-e2e@example.com');
 
     await page.goto(`${eventoUrl}/linha-do-tempo`);
     await expect(page.locator('main')).toContainText('enviada para cliente-e2e@example.com');
+    await expect(page.locator('main')).toContainText('Versão 01 congelada após o envio');
   });
 });

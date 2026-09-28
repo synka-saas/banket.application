@@ -9,6 +9,7 @@ import { formatMoney } from '../lib/money';
 import { dataCurta } from '../lib/datas';
 import { sendMail } from '../lib/mail';
 import { carregarEmpresa } from './empresa';
+import { criarNovaVersao } from './orcamento';
 import { pdfDaVersao } from './pdf';
 import { registrarTimeline } from './timeline';
 
@@ -18,6 +19,9 @@ export interface RascunhoEnvio {
   assunto: string;
   mensagem: string;
   ultimoEnvio: { em: Date; para: string } | null;
+  valorTotal: number;
+  /** Versão ainda em edição: ao enviar, ela é congelada e a próxima é aberta */
+  aberta: boolean;
 }
 
 /** Substitui {variavel} pelos valores; variáveis desconhecidas ficam como estão. */
@@ -48,11 +52,12 @@ async function contextoEnvio(db: Db, eventoId: string, numero: number) {
     total_visivel: boolean;
     enviado_em: Date | null;
     enviado_para: string | null;
+    congelada: boolean;
   }>(
     `SELECT e.titulo, e.data_evento::text, c.nome AS cliente_nome, c.email AS cliente_email,
             e.responsavel_nome, e.responsavel_email, v.valor_total,
             COALESCE((v.conteudo->>'mostrar_valor_total')::boolean, true) AS total_visivel,
-            v.enviado_em, v.enviado_para
+            v.enviado_em, v.enviado_para, v.congelada
        FROM eventos e
        JOIN orcamentos o ON o.evento_id = e.id
        JOIN orcamento_versoes v ON v.orcamento_id = o.id AND v.numero = $2
@@ -80,6 +85,8 @@ export async function rascunhoEnvio(db: Db, eventoId: string, numero: number): P
     assunto: aplicarVariaveis(empresa.email_assunto, valores),
     mensagem: aplicarVariaveis(empresa.email_corpo, valores),
     ultimoEnvio: ctx.enviado_em ? { em: ctx.enviado_em, para: ctx.enviado_para ?? '' } : null,
+    valorTotal: ctx.valor_total,
+    aberta: !ctx.congelada,
   };
 }
 
@@ -99,7 +106,29 @@ export const envioSchema = z.object({
   mensagem: requiredText('Escreva a mensagem.', 10000),
 });
 
-export async function enviarProposta(db: Db, user: SessionUser, eventoId: string, input: z.infer<typeof envioSchema>) {
+const INTERVALO_REENVIO_S = 60;
+
+/**
+ * Envia a proposta com o PDF da versão. Se a versão enviada é a que estava em edição, ela é congelada e a próxima
+ * versão é aberta na mesma transação: o que o cliente recebeu não muda mais (os ajustes seguem na nova versão).
+ */
+export async function enviarProposta(
+  db: Db,
+  user: SessionUser,
+  eventoId: string,
+  input: z.infer<typeof envioSchema>
+): Promise<{ delivered: boolean; novaVersao: number | null }> {
+  const para = input.para.join(', ');
+  // Duplo clique ou reenvio acidental: a mesma versão para os mesmos destinatários há poucos segundos
+  const recente = await db.query(
+    `SELECT 1 FROM orcamento_versoes v JOIN orcamentos o ON o.id = v.orcamento_id
+      WHERE o.evento_id = $1 AND v.numero = $2 AND v.enviado_para = left($3, 255)
+        AND v.enviado_em > now() - make_interval(secs => $4)`,
+    [eventoId, input.numero, para, INTERVALO_REENVIO_S]
+  );
+  if (recente.rowCount) throw new UserError(`Esta versão acabou de ser enviada para ${para}. Aguarde um minuto para reenviar.`);
+
+  const ctx = await contextoEnvio(db, eventoId, input.numero);
   const empresa = await carregarEmpresa(db);
   const pdf = await pdfDaVersao(db, user, eventoId, input.numero);
   const resultado = await sendMail({
@@ -110,7 +139,6 @@ export async function enviarProposta(db: Db, user: SessionUser, eventoId: string
     replyTo: user.email,
     attachments: [{ filename: pdf.nome, content: pdf.arquivo }],
   });
-  const para = input.para.join(', ');
   await db.query(
     `UPDATE orcamento_versoes v SET enviado_em = now(), enviado_para = left($3, 255)
        FROM orcamentos o WHERE o.id = v.orcamento_id AND o.evento_id = $1 AND v.numero = $2`,
@@ -123,5 +151,6 @@ export async function enviarProposta(db: Db, user: SessionUser, eventoId: string
     `Proposta (versão ${String(input.numero).padStart(2, '0')}) enviada para ${para}`,
     { para: input.para, assunto: input.assunto, entregue: resultado.delivered }
   );
-  return resultado;
+  const novaVersao = ctx.congelada ? null : await criarNovaVersao(db, user, eventoId, input.numero, 'envio');
+  return { delivered: resultado.delivered, novaVersao };
 }

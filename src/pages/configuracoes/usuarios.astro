@@ -70,23 +70,13 @@ const papeis = papeisAtribuiveis(actor);
 const podeGerenciar = (alvo: { id: string; role: Role }) =>
   alvo.id !== actor.id && (actor.role === 'owner' || alvo.role !== 'owner');
 
-const roleOptions = (atual: Role) =>
-  (papeis.includes(atual) ? papeis : [atual, ...papeis]).map(
-    (r) => html`<option value="${r}" ${r === atual && html`selected`}>${ROLE_LABELS[r]}</option>`
-  );
-
 const tableData = membros.map((m) => {
   const editavel = podeGerenciar(m);
   return {
     nome: html`${m.nome}${m.id === actor.id ? html` <span class="muted">(você)</span>` : ''}`,
     email: m.email,
-    papel: editavel
-      ? html`<form method="post" class="inline-form">
-          <input type="hidden" name="id" value="${m.id}" />
-          <input type="hidden" name="ativo" value="${m.ativo ? 'on' : ''}" />
-          <select name="role" class="inline-select" aria-label="Papel de ${m.nome}" data-autosubmit-row>${roleOptions(m.role)}</select>
-        </form>`
-      : ROLE_LABELS[m.role],
+    // O papel só muda pelo painel "Editar", com confirmação para conceder Proprietário (UX-160)
+    papel: ROLE_LABELS[m.role],
     status: m.ativo ? html`<span class="tag tag-ok">Ativo</span>` : html`<span class="tag tag-off">Inativo</span>`,
     acoes: editavel
       ? html`<button type="button" class="row-action" data-drawer-open="drawer-membro" data-values="${JSON.stringify({
@@ -207,12 +197,45 @@ const convitesData = convites.map((c) => {
 </AppLayout>
 
 <script>
+  // Conceder Proprietário pede confirmação (acesso total, inclusive sobre outros proprietários)
+  const papelAtual = new Map<string, string>();
+  function exigirConfirmacao(drawerId: string, selectId: string, nome: () => string) {
+    const select = document.getElementById(selectId) as HTMLSelectElement | null;
+    const salvar = document.querySelector<HTMLButtonElement>(`#${drawerId} [data-drawer-save]`);
+    if (!select || !salvar) return () => {};
+    const atualizar = () => {
+      if (select.value === 'owner' && papelAtual.get(drawerId) !== 'owner') {
+        salvar.dataset.confirm = `Tornar ${nome()} Proprietário?`;
+        salvar.dataset.confirmTexto = 'Proprietários têm acesso total à empresa, inclusive para gerenciar e remover outros proprietários.';
+        salvar.dataset.confirmRotulo = 'Tornar proprietário';
+      } else {
+        delete salvar.dataset.confirm;
+        delete salvar.dataset.confirmTexto;
+        delete salvar.dataset.confirmRotulo;
+      }
+    };
+    select.addEventListener('change', atualizar);
+    return atualizar;
+  }
+
+  let nomeMembro = 'este usuário';
+  const atualizarMembro = exigirConfirmacao('drawer-membro', 'mb-role', () => nomeMembro);
+  const atualizarConvite = exigirConfirmacao('drawer-convite', 'conv-role', () => {
+    const nome = (document.getElementById('conv-nome') as HTMLInputElement | null)?.value.trim();
+    return nome || 'o convidado';
+  });
+  document.getElementById('conv-nome')?.addEventListener('input', atualizarConvite);
+
   document.addEventListener('drawer:open', (e) => {
     const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
     const drawer = e.target as HTMLElement;
-    if (drawer.id === 'drawer-membro' && values._nome) {
-      drawer.querySelector('.drawer-title')!.textContent = values._nome;
+    papelAtual.set(drawer.id, values.role ?? '');
+    if (drawer.id === 'drawer-membro') {
+      nomeMembro = values._nome || 'este usuário';
+      if (values._nome) drawer.querySelector('.drawer-title')!.textContent = values._nome;
+      atualizarMembro();
     }
+    if (drawer.id === 'drawer-convite') atualizarConvite();
   });
 </script>
 

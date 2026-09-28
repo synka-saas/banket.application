@@ -13,6 +13,7 @@ import { eventoExiste } from '../../../server/eventos';
 import { catalogoConstrutor, contextoOrcamento, criarNovaVersao, criarOrcamento, definirTemplate } from '../../../server/orcamento';
 import { listarTemplates } from '../../../server/templates';
 import { envioSchema, enviarProposta, rascunhoEnvio } from '../../../server/envio';
+import { formatMoney } from '../../../lib/money';
 import { dataHora } from '../../../lib/datas';
 
 const user = Astro.locals.user;
@@ -44,9 +45,16 @@ if (Astro.request.method === 'POST') {
       if (data._action === 'enviar') {
         const input = envioSchema.parse(data);
         const r = await enviarProposta(db, user, id, input);
-        return r.delivered
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const enviado = r.delivered
           ? `Proposta enviada para ${input.para.join(', ')}.`
-          : 'E-mail registrado no log do servidor (RESEND_API_KEY não configurada). O envio foi anotado na linha do tempo.';
+          : 'E-mail registrado no log do servidor (sem envio real: domínio de teste ou e-mail não configurado). O envio foi anotado na linha do tempo.';
+        return {
+          message: r.novaVersao
+            ? `${enviado} A versão ${pad(input.numero)} foi congelada como enviada; você está editando a versão ${pad(r.novaVersao)}.`
+            : enviado,
+          redirect: base,
+        };
       }
       if (data._action === 'template') {
         await definirTemplate(db, id, optionalUuid().parse(data.template_id) ?? null);
@@ -121,10 +129,22 @@ const { evento, orcamento, versao } = ctx;
   </div>
   {ctx.envio && (
     <Drawer id="drawer-enviar" formId="form-enviar" title={`Enviar proposta · versão ${String(ctx.envio.numero).padStart(2, '0')}`} deletable={false} width="md" saveLabel="Enviar" saveAction="enviar" saveLoadingLabel="Enviando…">
-      <form id="form-enviar" method="post" class="form-envio">
+      <form
+        id="form-enviar"
+        method="post"
+        class="form-envio"
+        data-envio-versao={String(ctx.envio.numero).padStart(2, '0')}
+        data-envio-valor={formatMoney(ctx.envio.valorTotal)}
+      >
         <input type="hidden" name="numero" value={ctx.envio.numero} />
         {ctx.envio.ultimoEnvio && (
           <p class="aviso-envio">Esta versão já foi enviada em {dataHora(ctx.envio.ultimoEnvio.em)} para {ctx.envio.ultimoEnvio.para}.</p>
+        )}
+        {ctx.envio.aberta && (
+          <p class="aviso-envio">
+            Depois do envio, a versão {String(ctx.envio.numero).padStart(2, '0')} fica congelada exatamente como o cliente recebeu e
+            os próximos ajustes seguem numa nova versão.
+          </p>
         )}
         <div class="field">
           <label for="env-para">Para*</label>
@@ -144,6 +164,23 @@ const { evento, orcamento, versao } = ctx;
     </Drawer>
   )}
 </EventoLayout>
+
+<script>
+  // Envio da proposta: confirmação com o resumo do que vai ao cliente (o modal usa data-confirm do botão)
+  const form = document.querySelector<HTMLFormElement>('#form-enviar');
+  const botao = document.querySelector<HTMLButtonElement>('#drawer-enviar [data-drawer-save]');
+  if (form && botao) {
+    const para = form.querySelector<HTMLInputElement>('[name="para"]')!;
+    const atualizar = () => {
+      const destinatarios = para.value.split(/[,;\s]+/).filter(Boolean).join(', ') || 'o cliente';
+      botao.dataset.confirm = `Enviar a proposta para ${destinatarios}?`;
+      botao.dataset.confirmTexto = `Versão ${form.dataset.envioVersao} · total ${form.dataset.envioValor}. O PDF vai em anexo.`;
+      botao.dataset.confirmRotulo = 'Enviar';
+    };
+    para.addEventListener('input', atualizar);
+    atualizar();
+  }
+</script>
 
 <style>
   .grid-evento {

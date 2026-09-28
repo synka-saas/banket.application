@@ -440,7 +440,13 @@ export async function salvarVersao(
  * Cria uma nova versão a partir da versão informada (padrão: a atual), congelando a que estava aberta.
  * Usado tanto para "Criar nova versão" quanto para "restaurar" uma versão antiga como nova.
  */
-export async function criarNovaVersao(db: Db, user: SessionUser, eventoId: string, baseNumero?: number): Promise<number> {
+export async function criarNovaVersao(
+  db: Db,
+  user: SessionUser,
+  eventoId: string,
+  baseNumero?: number,
+  motivo: 'manual' | 'envio' = 'manual'
+): Promise<number> {
   const orc = await carregarOrcamento(db, eventoId);
   if (!orc) throw new UserError('Este evento ainda não tem orçamento.');
   const base = baseNumero ?? orc.versao_atual;
@@ -474,9 +480,11 @@ export async function criarNovaVersao(db: Db, user: SessionUser, eventoId: strin
     db,
     { tenantId: user.tenantId, eventoId, usuarioId: user.id },
     'orcamento_versao',
-    base === orc.versao_atual
-      ? `Nova versão do orçamento criada (versão ${pad(numero)}); versão ${pad(base)} congelada`
-      : `Versão ${pad(base)} restaurada como nova versão (${pad(numero)})`
+    motivo === 'envio'
+      ? `Versão ${pad(base)} congelada após o envio ao cliente; ajustes seguem na versão ${pad(numero)}`
+      : base === orc.versao_atual
+        ? `Nova versão do orçamento criada (versão ${pad(numero)}); versão ${pad(base)} congelada`
+        : `Versão ${pad(base)} restaurada como nova versão (${pad(numero)})`
   );
   return numero;
 }

@@ -162,8 +162,22 @@ const listaData =
               <article class="evento-card" draggable="true" data-evento={c.id} data-ordem={ordem.get(c.id)} data-valor={c.valor_orcamento ?? 0} data-verba={verbaSemOrcamento(c)}>
                 <h3 class="evento-card-title">
                   <Icon name={c.cliente_tipo === 'PJ' ? 'domain' : 'account_box'} size={22} />
-                  <span>{c.cliente_nome ?? 'Sem cliente'}</span>
+                  {/* O link cobre o card inteiro (::after): clicar em qualquer ponto abre o resumo */}
+                  <a href={`/eventos/${c.id}`} class="evento-card-link" draggable="false">{c.cliente_nome ?? 'Sem cliente'}</a>
                 </h3>
+                <details class="card-menu" data-card-menu>
+                  <summary aria-label={`Ações do evento ${c.titulo ?? ''}`}><Icon name="more_horiz" size={20} /></summary>
+                  <div class="card-menu-lista">
+                    <a href={`/eventos/${c.id}/editar`}><Icon name="edit" size={18} /> Editar</a>
+                    <a href={`/eventos/${c.id}/orcamento`}><Icon name="request_quote" size={18} /> {c.valor_orcamento !== null ? 'Abrir orçamento' : 'Orçamento'}</a>
+                    <span class="card-menu-grupo">Mover para</span>
+                    {dados.status.filter((st) => st.id !== c.status_id).map((st) => (
+                      <button type="button" data-mover-para={st.id}>
+                        <span class="dot" style={`background:${st.cor ?? '#888'}`}></span>{st.nome}
+                      </button>
+                    ))}
+                  </div>
+                </details>
                 <p class="evento-card-sub">{c.titulo}</p>
                 <dl class="evento-card-rows">
                   <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
@@ -178,7 +192,6 @@ const listaData =
                 <div class="tag-list">
                   {[c.tipo_nome, c.categoria_nome].filter(Boolean).map((t) => <span class="tag">{t}</span>)}
                 </div>
-                <a href={`/eventos/${c.id}`} class="btn btn-primary btn-md btn-block evento-card-btn">Editar</a>
               </article>
             ))}
             <p class="kanban-vazio">Nenhum evento</p>
@@ -231,6 +244,72 @@ const listaData =
       zona.insertBefore(card, depois ?? zona.querySelector('.kanban-vazio'));
     };
 
+    // Move o card (arrastando ou pelo menu "Mover para"); desfaz se o servidor recusar
+    async function mover(card: HTMLElement, coluna: HTMLElement) {
+      const deOrigem = card.parentElement!;
+      const zona = coluna.querySelector<HTMLElement>('[data-dropzone]')!;
+      if (zona === deOrigem) return;
+      inserirNaOrdem(zona, card);
+      atualizarTotais();
+      atualizarMenu(card, coluna);
+      try {
+        const res = await fetch(`/api/eventos/${card.dataset.evento}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status_id: coluna.dataset.coluna }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
+        toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
+      } catch (err) {
+        inserirNaOrdem(deOrigem, card);
+        atualizarTotais();
+        atualizarMenu(card, deOrigem.closest<HTMLElement>('[data-coluna]')!);
+        toast(err instanceof Error ? err.message : 'Erro ao mover o evento.', 'error');
+      }
+    }
+
+    // O menu lista as outras etapas: depois de mover, a etapa atual sai da lista e a anterior volta
+    const etapas = [...kanban.querySelectorAll<HTMLElement>('[data-coluna]')].map((col) => ({
+      id: col.dataset.coluna!,
+      nome: col.dataset.statusNome!,
+      cor: col.querySelector<HTMLElement>('.kanban-col-titulo .dot')?.style.background ?? '',
+    }));
+    function atualizarMenu(card: HTMLElement, coluna: HTMLElement) {
+      const lista = card.querySelector('.card-menu-lista')!;
+      lista.querySelectorAll('[data-mover-para]').forEach((b) => b.remove());
+      for (const etapa of etapas.filter((e) => e.id !== coluna.dataset.coluna)) {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.dataset.moverPara = etapa.id;
+        const dot = document.createElement('span');
+        dot.className = 'dot';
+        dot.style.background = etapa.cor;
+        botao.append(dot, etapa.nome);
+        lista.appendChild(botao);
+      }
+    }
+
+    kanban.addEventListener('click', (e) => {
+      const botao = (e.target as HTMLElement).closest<HTMLElement>('[data-mover-para]');
+      if (!botao) return;
+      const card = botao.closest<HTMLElement>('[data-evento]')!;
+      card.querySelector('details')!.open = false;
+      mover(card, kanban.querySelector<HTMLElement>(`[data-coluna="${botao.dataset.moverPara}"]`)!);
+    });
+    // Um menu aberto por vez; fecha ao clicar fora ou com Esc
+    document.addEventListener('click', (e) => {
+      kanban.querySelectorAll<HTMLDetailsElement>('[data-card-menu][open]').forEach((d) => {
+        if (!d.contains(e.target as Node)) d.open = false;
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      kanban.querySelectorAll<HTMLDetailsElement>('[data-card-menu][open]').forEach((d) => {
+        d.open = false;
+        d.querySelector('summary')?.focus();
+      });
+    });
+
     let arrastando: HTMLElement | null = null;
     let origem: HTMLElement | null = null;
 
@@ -256,24 +335,7 @@ const listaData =
       const zona = (e.target as HTMLElement).closest<HTMLElement>('[data-dropzone]');
       if (!zona || !arrastando || zona === origem) return;
       e.preventDefault();
-      const card = arrastando;
-      const deOrigem = origem!;
-      const coluna = zona.closest<HTMLElement>('[data-coluna]')!;
-      inserirNaOrdem(zona, card);
-      atualizarTotais();
-      try {
-        const res = await fetch(`/api/eventos/${card.dataset.evento}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status_id: coluna.dataset.coluna }),
-        });
-        if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
-        toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
-      } catch (err) {
-        inserirNaOrdem(deOrigem, card);
-        atualizarTotais();
-        toast(err instanceof Error ? err.message : 'Erro ao mover o evento.', 'error');
-      }
+      mover(arrastando, zona.closest<HTMLElement>('[data-coluna]')!);
     });
   }
 </script>
@@ -482,11 +544,6 @@ const listaData =
     color: var(--color-neutral-80);
   }
 
-  .evento-card-title span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 
   .evento-card-sub {
     margin: 4px 0 14px;
@@ -517,7 +574,116 @@ const listaData =
     text-align: right;
   }
 
-  .evento-card-btn {
-    margin-top: 20px;
+  .evento-card {
+    position: relative;
+  }
+
+  .evento-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  .evento-card-title {
+    padding-right: 28px;
+  }
+
+  .evento-card-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .evento-card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--border-radius);
+  }
+
+  .evento-card-link:focus-visible {
+    outline: none;
+  }
+
+  .evento-card-link:focus-visible::after {
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Menu "⋯" acima do link que cobre o card */
+  .card-menu {
+    position: absolute;
+    top: 14px;
+    right: 12px;
+    z-index: 2;
+  }
+
+  .card-menu summary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--color-neutral-65);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .card-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .card-menu summary:hover,
+  .card-menu[open] summary {
+    background: var(--color-neutral-20);
+    color: var(--color-neutral-100);
+  }
+
+  .card-menu-lista {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    min-width: 220px;
+    padding: 6px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  }
+
+  .card-menu-lista a,
+  .card-menu-lista button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: var(--border-radius-sm);
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    color: var(--color-neutral-80);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .card-menu-lista a:hover,
+  .card-menu-lista button:hover {
+    background: var(--color-neutral-10);
+  }
+
+  .card-menu-grupo {
+    padding: 8px 10px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--border-color);
+    margin-top: 4px;
   }
 </style>
