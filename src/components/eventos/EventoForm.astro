@@ -27,11 +27,14 @@ interface Props {
   formatos: Opcao[];
   status: Opcao[];
   erro?: string;
+  /** Erros do servidor por campo (name → mensagem): aparecem junto de cada campo */
+  erros?: Record<string, string>;
   cancelarHref: string;
   modo: 'criar' | 'editar';
 }
 
-const { valores: v, clientes, tipos, categorias, formatos, status, erro, cancelarHref, modo } = Astro.props;
+const { valores: v, clientes, tipos, categorias, formatos, status, erro, erros = {}, cancelarHref, modo } = Astro.props;
+const qtdErros = Object.keys(erros).length;
 
 const texto = (campo: string) => (v[campo] === null || v[campo] === undefined ? '' : String(v[campo]));
 const lista = (campo: string): string[] => (Array.isArray(v[campo]) ? (v[campo] as string[]) : v[campo] ? [String(v[campo])] : []);
@@ -40,10 +43,14 @@ const decimal = (campo: string) => texto(campo).replace('.', ',');
 const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo === 'criar' && clientes.length === 0);
 ---
 
-<form method="post" class="evento-form" data-evento-form novalidate>
+<form method="post" id="form-evento" class="evento-form" data-evento-form novalidate data-erros={qtdErros ? JSON.stringify(erros) : undefined}>
   <div class="form-topo">
     <div>
-      {erro && <div class="form-erro" role="alert">{erro}</div>}
+      {erro && (
+        <div class="form-erro" role="alert">
+          {qtdErros > 1 ? `Corrija os ${qtdErros} campos destacados abaixo.` : erro}
+        </div>
+      )}
     </div>
     <div class="form-acoes">
       <Button variant="outline" href={cancelarHref}>Cancelar</Button>
@@ -308,8 +315,19 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
 </form>
 
 <script>
+  import { limparErroDoCampo, marcarErrosNosCampos } from '../../lib/ui';
+
   const form = document.querySelector<HTMLFormElement>('[data-evento-form]');
   if (form) {
+    // Erros do servidor junto de cada campo; foco (e rolagem) no primeiro
+    if (form.dataset.erros) {
+      const primeiro = marcarErrosNosCampos(form, JSON.parse(form.dataset.erros) as Record<string, string>);
+      primeiro?.scrollIntoView({ block: 'center' });
+      primeiro?.focus({ preventScroll: true });
+    }
+    form.addEventListener('input', (e) => limparErroDoCampo(e.target as HTMLElement));
+    form.addEventListener('change', (e) => limparErroDoCampo(e.target as HTMLElement));
+
     // Alterna entre escolher cliente existente e cadastrar um novo
     const flag = form.querySelector<HTMLInputElement>('[data-cliente-novo]')!;
     const existente = form.querySelector<HTMLElement>('[data-cliente-existente]')!;

@@ -74,7 +74,7 @@ const {
 </div>
 
 <script>
-  import { confirmar, emCarregamento } from '../../lib/ui';
+  import { confirmar, emCarregamento, limparErroDoCampo, limparErrosDosCampos, marcarErrosNosCampos } from '../../lib/ui';
 
   type Values = Record<string, unknown>;
   type RespostaForm = { ok: true; redirect: string } | { ok: false; error: string; fields?: Record<string, string> };
@@ -112,21 +112,7 @@ const {
   // ---------- Erros vindos do servidor: no topo do painel e junto de cada campo ----------
   function limparErros(drawer: HTMLElement) {
     drawer.querySelector('.drawer-erro')?.remove();
-    drawer.querySelectorAll('.field-erro').forEach((el) => el.remove());
-    drawer.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
-      el.removeAttribute('aria-invalid');
-      el.removeAttribute('aria-describedby');
-    });
-    drawer.querySelectorAll('.field.com-erro').forEach((el) => el.classList.remove('com-erro'));
-  }
-
-  function limparErroDoCampo(campo: HTMLElement) {
-    if (campo.getAttribute('aria-invalid') !== 'true') return;
-    campo.removeAttribute('aria-invalid');
-    const id = campo.getAttribute('aria-describedby');
-    if (id) document.getElementById(id)?.remove();
-    campo.removeAttribute('aria-describedby');
-    campo.closest('.field')?.classList.remove('com-erro');
+    limparErrosDosCampos(drawer);
   }
 
   function mostrarErros(drawer: HTMLElement, form: HTMLFormElement, mensagem: string, campos: Record<string, string> = {}) {
@@ -136,26 +122,9 @@ const {
     topo.setAttribute('role', 'alert');
     topo.textContent = mensagem;
     drawer.querySelector('.drawer-body')!.prepend(topo);
-
-    let primeiro: HTMLElement | null = null;
-    for (const [nome, texto] of Object.entries(campos)) {
-      const item = form.elements.namedItem(nome);
-      const campo = (item instanceof RadioNodeList ? item[0] : item) as HTMLElement | null;
-      if (!campo || (campo as HTMLInputElement).type === 'hidden') continue;
-      const id = `erro-${form.id}-${nome}`;
-      const aviso = document.createElement('p');
-      aviso.className = 'field-erro';
-      aviso.id = id;
-      aviso.textContent = texto;
-      const container = campo.closest<HTMLElement>('.field') ?? campo.parentElement!;
-      container.classList.add('com-erro');
-      container.appendChild(aviso);
-      campo.setAttribute('aria-invalid', 'true');
-      campo.setAttribute('aria-describedby', id);
-      primeiro ??= campo;
-    }
+    const primeiro = marcarErrosNosCampos(form, campos);
     // Um erro só de campo repete a mensagem no topo; basta o destaque no campo
-    if (primeiro && Object.values(campos).includes(mensagem) && Object.keys(campos).length === 1) topo.remove();
+    if (primeiro && Object.keys(campos).length === 1 && Object.values(campos)[0] === mensagem) topo.remove();
     if (primeiro) primeiro.focus();
     else topo.scrollIntoView({ block: 'nearest' });
   }

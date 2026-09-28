@@ -76,3 +76,49 @@ export async function baixarArquivo(url: string, tipoEsperado = 'application/pdf
   setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
   return true;
 }
+
+/** Tira os destaques de erro (mensagens .field-erro e aria-invalid) de um formulário ou painel. */
+export function limparErrosDosCampos(raiz: ParentNode) {
+  raiz.querySelectorAll('.field-erro').forEach((el) => el.remove());
+  raiz.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+    el.removeAttribute('aria-invalid');
+    el.removeAttribute('aria-describedby');
+  });
+  raiz.querySelectorAll('.field.com-erro').forEach((el) => el.classList.remove('com-erro'));
+}
+
+/** Tira o destaque de um campo quando o usuário o corrige. */
+export function limparErroDoCampo(campo: HTMLElement) {
+  if (campo.getAttribute('aria-invalid') !== 'true') return;
+  campo.removeAttribute('aria-invalid');
+  const id = campo.getAttribute('aria-describedby');
+  if (id) document.getElementById(id)?.remove();
+  campo.removeAttribute('aria-describedby');
+  campo.closest('.field')?.classList.remove('com-erro');
+}
+
+/**
+ * Mostra cada mensagem junto do campo de mesmo `name` (abaixo dele, com aria-invalid e aria-describedby).
+ * Devolve o primeiro campo marcado, para receber o foco. Campos ocultos ou inexistentes são ignorados.
+ */
+export function marcarErrosNosCampos(form: HTMLFormElement, campos: Record<string, string>): HTMLElement | null {
+  let primeiro: HTMLElement | null = null;
+  for (const [nome, texto] of Object.entries(campos)) {
+    const item = form.elements.namedItem(nome);
+    const campo = (item instanceof RadioNodeList ? item[0] : item) as HTMLElement | null;
+    if (!campo || (campo as HTMLInputElement).type === 'hidden') continue;
+    const id = `erro-${form.id || 'form'}-${nome}`;
+    document.getElementById(id)?.remove();
+    const aviso = document.createElement('p');
+    aviso.className = 'field-erro';
+    aviso.id = id;
+    aviso.textContent = texto;
+    const container = campo.closest<HTMLElement>('.field') ?? campo.parentElement!;
+    container.classList.add('com-erro');
+    container.appendChild(aviso);
+    campo.setAttribute('aria-invalid', 'true');
+    campo.setAttribute('aria-describedby', id);
+    primeiro ??= campo;
+  }
+  return primeiro;
+}

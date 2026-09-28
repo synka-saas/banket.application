@@ -4,6 +4,7 @@ import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import {
   UserError,
+  fieldErrors,
   optionalEmail,
   optionalInt,
   optionalMoney,
@@ -123,15 +124,49 @@ export const eventoSchema = z
 
 export type EventoInput = z.infer<typeof eventoSchema>;
 
+/**
+ * Valida o formulário do evento e, se for o caso, o cliente novo de uma vez: todos os erros voltam juntos
+ * (o usuário corrige tudo numa só volta).
+ */
+export function validarFormularioEvento(valores: Record<string, unknown>) {
+  const evento = eventoSchema.safeParse(valores);
+  const issues = evento.success ? [] : [...evento.error.issues];
+  let cliente: ReturnType<typeof clienteNovoDoFormulario> | null = null;
+  const querNovo = valores.cliente_novo === '1' || valores.cliente_novo === 'on' || valores.cliente_novo === true;
+  if (querNovo) {
+    try {
+      cliente = clienteNovoDoFormulario(valores);
+    } catch (err) {
+      if (!(err instanceof z.ZodError)) throw err;
+      issues.push(...err.issues);
+    }
+  }
+  if (issues.length || !evento.success) throw new z.ZodError(issues);
+  return { input: evento.data, cliente: evento.data.cliente_novo ? cliente : null };
+}
+
+/**
+ * Erros por campo do formulário do evento. Duplicidade na tabela de clientes (e-mail/documento do cliente novo)
+ * aponta para os campos com prefixo "cliente_".
+ */
+export function errosDoFormularioEvento(err: unknown): Record<string, string> {
+  const campos = fieldErrors(err);
+  if (!String((err as { constraint?: string })?.constraint ?? '').startsWith('clientes_')) return campos;
+  return Object.fromEntries(Object.entries(campos).map(([k, v]) => [`cliente_${k}`, v]));
+}
+
 /** Extrai os campos do cliente novo (prefixo "cliente_") do formulário do evento. */
 export function clienteNovoDoFormulario(data: Record<string, unknown>) {
-  return clienteSchema.parse({
+  const r = clienteSchema.safeParse({
     tipo_pessoa: data.cliente_tipo_pessoa,
     nome: data.cliente_nome,
     documento: data.cliente_documento,
     email: data.cliente_email,
     telefone: data.cliente_telefone,
   });
+  if (r.success) return r.data;
+  // Os campos do cliente novo têm o prefixo "cliente_" no formulário do evento: o erro aponta para eles
+  throw new z.ZodError(r.error.issues.map((i) => ({ ...i, path: i.path.length ? [`cliente_${String(i.path[0])}`, ...i.path.slice(1)] : i.path })));
 }
 
 // ---------------------------------------------------------------------------
