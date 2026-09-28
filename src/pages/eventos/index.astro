@@ -12,6 +12,7 @@ import { dataCurta, hojeSaoPaulo, somarMeses } from '../../lib/datas';
 import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
 import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
 import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
+import { ROTULOS } from '../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 const url = Astro.url;
@@ -72,7 +73,7 @@ const listaData =
   })) ?? [];
 ---
 
-<AppLayout title="Quadro de vendas" heading="Eventos" submenu={[]}>
+<AppLayout title={ROTULOS.funil} heading={ROTULOS.funil} submenu={[]}>
   <Fragment slot="submenu-actions">
     <a href={withQuery(url, { view: 'lista', page: null })} class:list={['view-toggle', { active: visao === 'lista' }]}>
       <Icon name="list" size={18} /> Lista
@@ -114,7 +115,7 @@ const listaData =
         </div>
         {visao === 'lista' && (
           <div class="field">
-            <label for="f-status">Status</label>
+            <label for="f-status">{ROTULOS.etapa}</label>
             <select id="f-status" name="status">
               <option value="">Todos</option>
               {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
@@ -166,11 +167,11 @@ const listaData =
                 <p class="evento-card-sub">{c.titulo}</p>
                 <dl class="evento-card-rows">
                   <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
-                  <div><dt>Estilo</dt><dd>{c.formato_nome ?? '-'}</dd></div>
+                  <div><dt>{ROTULOS.formatoServico}</dt><dd>{c.formato_nome ?? '-'}</dd></div>
                   {c.valor_orcamento !== null ? (
                     <div><dt>Orçamento</dt><dd>{formatMoney(c.valor_orcamento)}</dd></div>
                   ) : (
-                    <div class="verba"><dt>Verba estimada</dt><dd>{c.verba_total !== null ? formatMoney(c.verba_total) : '-'}</dd></div>
+                    <div class="verba"><dt>{ROTULOS.verbaEstimada}</dt><dd>{c.verba_total !== null ? formatMoney(c.verba_total) : '-'}</dd></div>
                   )}
                   <div><dt>Data</dt><dd>{dataCurta(c.data_evento)}</dd></div>
                 </dl>
@@ -193,7 +194,7 @@ const listaData =
         { key: 'evento', label: 'Evento' },
         { key: 'cliente', label: 'Cliente' },
         { key: 'convidados', label: 'Convidados', align: 'center' },
-        { key: 'status', label: 'Status' },
+        { key: 'status', label: ROTULOS.etapa },
         { key: 'valor', label: 'Orçamento', align: 'right' },
         { key: 'acoes', label: 'Ações', align: 'right' },
       ]}
@@ -426,9 +427,7 @@ const listaData =
     display: none;
   }
 
-  /* Verba estimada (evento sem orçamento): valor informativo, visualmente distinto do orçamento */
-  .evento-card-rows .verba dd,
-  :global(td .verba) {
+  .evento-card-rows .verba dd {
     font-style: italic;
     color: var(--color-neutral-65);
   }

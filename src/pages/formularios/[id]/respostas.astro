@@ -8,6 +8,7 @@ import { dataHora } from '../../../lib/datas';
 import { html } from '../../../lib/html';
 import { pageInfo, pageParams } from '../../../lib/pagination';
 import { carregarFormulario, listarRespostas } from '../../../server/formularios';
+import { NATUREZA_PEDIDO, ROTULOS } from '../../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 const id = Astro.params.id!;
@@ -25,7 +26,7 @@ const tableData = rows.map((r) => ({
   data: dataHora(r.created_at),
   nome: r.nome ?? '-',
   email: r.email ?? '-',
-  natureza: r.natureza ?? '-',
+  natureza: (r.natureza && NATUREZA_PEDIDO[r.natureza]) ?? r.natureza ?? '-',
   evento: r.evento_id
     ? html`<a class="link" href="/eventos/${r.evento_id}">${r.evento_titulo ?? 'Abrir evento'}</a>`
     : 'Evento removido',
@@ -43,7 +44,7 @@ const tableData = rows.map((r) => ({
       { key: 'data', label: 'Recebida em' },
       { key: 'nome', label: 'Nome' },
       { key: 'email', label: 'E-mail' },
-      { key: 'natureza', label: 'Natureza' },
+      { key: 'natureza', label: ROTULOS.tipoEvento },
       { key: 'evento', label: 'Evento' },
     ]}
     data={tableData}

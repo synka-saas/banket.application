@@ -81,7 +81,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
       { chave: 'whatsapp', rotulo: 'WhatsApp', tipo: 'telefone', placeholder: '(00) 00000-0000', obrigatoria: true, travada: true },
       {
         chave: 'natureza',
-        rotulo: 'Qual a natureza deste evento?',
+        rotulo: 'Qual o tipo do evento?',
         tipo: 'unica',
         opcoes: [op('B2B', 'Corporativo (B2B)', 'Empresas e negócios.'), op('B2C', 'Social (B2C)', 'Casamentos e festas.')],
         obrigatoria: true,

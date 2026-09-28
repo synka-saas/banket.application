@@ -21,6 +21,7 @@ import {
   salvarCategoriaEvento,
   salvarCategoriaItem,
 } from '../../server/configuracoes';
+import { ROTULOS } from '../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 const aba = Astro.url.searchParams.get('aba') === 'item' ? 'item' : 'evento';
@@ -41,11 +42,11 @@ if (Astro.request.method === 'POST') {
       }
       if (data._action === 'delete' && id) {
         await withTenant(tenantId, (db) => excluirCategoriaEvento(db, id));
-        return 'Categoria removida.';
+        return 'Ocasião removida.';
       }
       const input = categoriaEventoSchema.parse(data);
       await withTenant(tenantId, (db) => salvarCategoriaEvento(db, tenantId, id, input));
-      return id ? 'Categoria atualizada.' : 'Categoria criada.';
+      return id ? 'Ocasião atualizada.' : 'Ocasião criada.';
     },
     { arrays: ['tipos'] }
   );
@@ -81,7 +82,7 @@ const eventoData = categoriasEvento.map((c) => ({
         descricao: c.descricao,
         tipos: c.tipos,
       })}">Editar</button>
-      <button type="submit" name="_action" value="delete" class="row-action danger" data-confirm="Excluir a categoria ${c.nome}?">Excluir</button>
+      <button type="submit" name="_action" value="delete" class="row-action danger" data-confirm="Excluir a ocasião ${c.nome}?">Excluir</button>
     </form>`,
 }));
 
@@ -98,9 +99,9 @@ const itemData = categoriasItem.map((c) => ({
 const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
 ---
 
-<AppLayout title="Categorias" heading="Configurações / Categoria" submenu={CONFIG_SUBMENU} submenuActive="categorias">
+<AppLayout title="Categorias" heading="Configurações / Categorias" submenu={CONFIG_SUBMENU} submenuActive="categorias">
   <nav class="segmented" aria-label="Tipo de categoria">
-    <a href={abaHref('evento')} class:list={{ active: aba === 'evento' }}>Categorias de evento</a>
+    <a href={abaHref('evento')} class:list={{ active: aba === 'evento' }}>{ROTULOS.ocasioes} (eventos)</a>
     <a href={abaHref('item')} class:list={{ active: aba === 'item' }}>Categorias de item do cardápio</a>
   </nav>
 
@@ -113,12 +114,12 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
           options: tipos.map((t) => ({ value: t.id, label: t.nome })),
         }}
       >
-        <Button icon="add_circle" data-drawer-open="drawer-cat-evento">Adicionar categoria</Button>
+        <Button icon="add_circle" data-drawer-open="drawer-cat-evento">Nova ocasião</Button>
       </PageToolbar>
       <Table
         columns={[
-          { key: 'nome', label: 'Nome Categoria', width: '28%' },
-          { key: 'tipos', label: 'Tipo de Evento' },
+          { key: 'nome', label: ROTULOS.ocasiao, width: '28%' },
+          { key: 'tipos', label: ROTULOS.tiposEvento },
           { key: 'eventos', label: 'Eventos', align: 'center' },
           { key: 'acoes', label: 'Ações', align: 'right' },
         ]}
@@ -135,11 +136,11 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
           options: Object.entries(TIPOS_CATEGORIA_ITEM).map(([value, label]) => ({ value, label })),
         }}
       >
-        <Button icon="add_circle" data-drawer-open="drawer-cat-item">Adicionar categoria</Button>
+        <Button icon="add_circle" data-drawer-open="drawer-cat-item">Nova categoria</Button>
       </PageToolbar>
       <Table
         columns={[
-          { key: 'nome', label: 'Nome Categoria' },
+          { key: 'nome', label: 'Categoria' },
           { key: 'tipo', label: 'Aplica-se a' },
           { key: 'acoes', label: 'Ações', align: 'right' },
         ]}
@@ -154,11 +155,11 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
   )}
 
   <Fragment slot="overlays">
-    <Drawer id="drawer-cat-evento" formId="form-cat-evento" title="Nova categoria de evento" editTitle="Editar categoria" width="md">
+    <Drawer id="drawer-cat-evento" formId="form-cat-evento" title="Nova ocasião" editTitle="Editar ocasião" width="md">
       <form id="form-cat-evento" method="post" class="form-grid">
         <input type="hidden" name="id" />
         <div class="field span-2">
-          <label for="cat-nome">Nome da categoria*</label>
+          <label for="cat-nome">Nome da ocasião*</label>
           <input id="cat-nome" name="nome" required maxlength="80" placeholder="Ex.: Casamento, Confraternização" />
         </div>
         <div class="field span-2">

@@ -25,6 +25,7 @@ import {
   moverEvento,
   salvarChecklist,
 } from '../../../server/eventos';
+import { ROTULOS } from '../../../lib/rotulos';
 
 const user = Astro.locals.user;
 const id = Astro.params.id!;
@@ -39,7 +40,7 @@ if (Astro.request.method === 'POST') {
       switch (data._action) {
         case 'status':
           await moverEvento(db, user, id, String(data.status_id));
-          return 'Status atualizado.';
+          return 'Etapa atualizada.';
         case 'excluir':
           await excluirEvento(db, id);
           await removeDir(user.tenantId, `orcamentos/${id}`);
@@ -89,7 +90,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
     </div>
     <form method="post" class="banner-status">
       <input type="hidden" name="_action" value="status" />
-      <label class="banner-label" for="status-evento">Status do evento</label>
+      <label class="banner-label" for="status-evento">{ROTULOS.etapa}</label>
       <select id="status-evento" name="status_id" data-autosubmit-row>
         {status.map((s) => <option value={s.id} selected={s.id === e.status_id}>{s.nome}</option>)}
       </select>
@@ -124,7 +125,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
           <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
           <div><dt>E-mail</dt><dd>{e.responsavel_email ?? '-'}</dd></div>
           <div><dt>WhatsApp</dt><dd>{e.responsavel_whatsapp ?? '-'}</dd></div>
-          <div><dt>Natureza do evento</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
+          <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
           <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
         </dl>
         {e.convite_experiencia && (

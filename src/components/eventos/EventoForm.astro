@@ -11,6 +11,7 @@ import {
   RESTRICOES_EVENTO,
   STAFF_TERCEIROS,
 } from '../../server/eventos';
+import { ROTULOS } from '../../lib/rotulos';
 
 interface Opcao {
   id: string;
@@ -68,7 +69,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
     <div class="form-grid" data-cliente-novo-campos hidden={!clienteNovo}>
       <div class="field">
-        <label for="cn-tipo">Tipo</label>
+        <label for="cn-tipo">Tipo de pessoa</label>
         <select id="cn-tipo" name="cliente_tipo_pessoa">
           <option value="PJ" selected={v.cliente_tipo_pessoa === 'PJ'}>Pessoa jurídica</option>
           <option value="PF" selected={v.cliente_tipo_pessoa !== 'PJ'}>Pessoa física</option>
@@ -112,14 +113,14 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         <input id="ev-titulo" name="titulo" value={texto('titulo')} maxlength="200" placeholder="Ex.: Confraternização de fim de ano (gerado automaticamente se vazio)" />
       </div>
       <div class="field">
-        <label for="ev-tipo">Natureza (tipo)</label>
+        <label for="ev-tipo">{ROTULOS.tipoEvento}</label>
         <select id="ev-tipo" name="tipo_evento_id" data-tipo-evento>
           <option value="">Selecione…</option>
           {tipos.map((t) => <option value={t.id} selected={t.id === v.tipo_evento_id}>{t.nome}</option>)}
         </select>
       </div>
       <div class="field">
-        <label for="ev-categoria">Formato do evento (categoria)</label>
+        <label for="ev-categoria">{ROTULOS.ocasiao}</label>
         <select id="ev-categoria" name="categoria_evento_id" data-categoria-evento>
           <option value="">Selecione…</option>
           {categorias.map((c) => (
@@ -128,7 +129,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         </select>
       </div>
       <div class="field">
-        <label for="ev-status">Status</label>
+        <label for="ev-status">{ROTULOS.etapa}</label>
         <select id="ev-status" name="status_id">
           {modo === 'criar' && <option value="">Entrada (padrão)</option>}
           {status.map((s) => <option value={s.id} selected={s.id === v.status_id}>{s.nome}</option>)}

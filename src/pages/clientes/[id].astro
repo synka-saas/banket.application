@@ -8,6 +8,7 @@ import { formatarDocumento } from '../../lib/documento';
 import { html } from '../../lib/html';
 import { formatMoney } from '../../lib/money';
 import { dataCurta } from '../../lib/datas';
+import { ROTULOS } from '../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 const id = Astro.params.id!;
@@ -35,7 +36,11 @@ const tabela = eventos.map((e) => ({
   evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? 'Evento'}</a>`,
   convidados: e.numero_convidados ?? '-',
   status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
-  valor: formatMoney(e.valor_total ?? e.verba_total),
+  valor: e.valor_total !== null
+      ? formatMoney(e.valor_total)
+      : e.verba_total !== null
+        ? html`<span class="verba" title="Verba estimada pelo cliente (ainda sem orçamento)">${formatMoney(e.verba_total)}</span>`
+        : '-',
 }));
 ---
 
@@ -63,8 +68,8 @@ const tabela = eventos.map((e) => ({
       { key: 'data', label: 'Data' },
       { key: 'evento', label: 'Evento' },
       { key: 'convidados', label: 'Convidados', align: 'center' },
-      { key: 'status', label: 'Status' },
-      { key: 'valor', label: 'Orçamento / Budget', align: 'right' },
+      { key: 'status', label: ROTULOS.etapa },
+      { key: 'valor', label: 'Orçamento', align: 'right' },
     ]}
     data={tabela}
     emptyMessage="Este cliente ainda não tem eventos."

@@ -5,6 +5,7 @@ import { formatMoney } from '../../lib/money';
 import { dataComDiaSemana } from '../../lib/datas';
 import { RESTRICOES_EVENTO } from '../../server/eventos';
 import type { EventoDetalhe } from '../../server/eventos';
+import { ROTULOS } from '../../lib/rotulos';
 
 interface Props {
   evento: EventoDetalhe;
@@ -28,13 +29,13 @@ const restricoes = e.restricoes.map((r) => RESTRICOES_EVENTO[r as keyof typeof R
     <div><dt>Perfil</dt><dd>{e.perfil_convidados ?? '-'}</dd></div>
   </dl>
   <dl class="kv">
-    <div><dt>Formato</dt><dd>{e.categoria_nome ?? e.titulo ?? '-'}</dd></div>
+    <div><dt>{ROTULOS.ocasiao}</dt><dd>{e.categoria_nome ?? '-'}</dd></div>
     <div><dt>Data</dt><dd>{dataComDiaSemana(e.data_evento)}</dd></div>
-    <div><dt>Estimativa de verba</dt><dd>{verba}</dd></div>
-    {e.formato_nome && <div><dt>Formato de serviço</dt><dd>{e.formato_nome}</dd></div>}
+    <div><dt>{ROTULOS.verbaEstimada}</dt><dd>{verba}</dd></div>
+    {e.formato_nome && <div><dt>{ROTULOS.formatoServico}</dt><dd>{e.formato_nome}</dd></div>}
   </dl>
 
-  <h3 class="bloco-titulo"><Icon name="chef_hat" size={18} /> Estilo gastronômico</h3>
+  <h3 class="bloco-titulo"><Icon name="chef_hat" size={18} /> {ROTULOS.estiloGastronomico}</h3>
   <dl class="kv">
     <div><dt>Estilo principal</dt><dd>{e.estilo_principal ?? '-'}</dd></div>
     <div><dt>Estilo secundário</dt><dd>{e.estilo_secundario ?? '-'}</dd></div>

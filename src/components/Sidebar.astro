@@ -1,13 +1,14 @@
 ---
 import Icon from './ui/Icon.astro';
 import { isAdmin } from '../lib/auth';
+import { ROTULOS } from '../lib/rotulos';
 
 const { pathname } = Astro.url;
 const user = Astro.locals.user;
 
 const navItems = [
   { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', match: ['/dashboard'] },
-  { label: 'Quadro de vendas', icon: 'view_kanban', href: '/eventos', match: ['/eventos'] },
+  { label: ROTULOS.funil, icon: 'view_kanban', href: '/eventos', match: ['/eventos'] },
   { label: 'Cardápios', icon: 'menu_book_2', href: '/cardapio/itens', match: ['/cardapio'] },
   { label: 'Clientes', icon: 'account_box', href: '/clientes', match: ['/clientes'] },
   { label: 'Agenda', icon: 'calendar_today', href: '/agenda', match: ['/agenda'] },

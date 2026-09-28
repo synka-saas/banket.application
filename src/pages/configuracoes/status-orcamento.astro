@@ -21,6 +21,7 @@ import {
   salvarStatus,
   statusSchema,
 } from '../../server/configuracoes';
+import { ROTULOS } from '../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 
@@ -38,11 +39,11 @@ if (Astro.request.method === 'POST') {
     }
     if (data._action === 'delete' && id) {
       await withTenant(tenantId, (db) => excluirStatus(db, id));
-      return 'Status removido.';
+      return 'Etapa removida.';
     }
     const input = statusSchema.parse(data);
     await withTenant(tenantId, (db) => salvarStatus(db, tenantId, id, input));
-    return id ? 'Status atualizado.' : 'Status criado.';
+    return id ? 'Etapa atualizada.' : 'Etapa criada.';
   });
 }
 
@@ -70,21 +71,21 @@ const tableData = status.map((s, i) => ({
 }));
 ---
 
-<AppLayout title="Status de orçamento" heading="Configurações / Status de orçamento" submenu={CONFIG_SUBMENU} submenuActive="status">
+<AppLayout title={ROTULOS.etapas} heading={`Configurações / ${ROTULOS.etapas}`} submenu={CONFIG_SUBMENU} submenuActive="status">
   <PageToolbar showSearch={false}>
-    <Button icon="add_circle" data-drawer-open="drawer-status">Adicionar status</Button>
+    <Button icon="add_circle" data-drawer-open="drawer-status">Nova etapa</Button>
   </PageToolbar>
 
   <p class="intro">
-    Cada status é uma coluna do <strong>Quadro de vendas</strong>, na ordem abaixo. O tipo define como o status entra nas
-    métricas: novos pedidos (formulário ou cadastro) caem na primeira coluna de <em>entrada</em>.
+    Cada etapa é uma coluna do <strong>{ROTULOS.funil}</strong>, na ordem abaixo. A função define como a etapa entra nas
+    métricas: novos pedidos (formulário ou cadastro) caem na primeira etapa de <em>entrada</em>.
   </p>
 
   <Table
     columns={[
       { key: 'ordem', label: 'Ordem', width: '90px' },
       { key: 'nome', label: 'Nome' },
-      { key: 'variante', label: 'Tipo' },
+      { key: 'variante', label: 'Função' },
       { key: 'eventos', label: 'Eventos', align: 'center' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
@@ -92,11 +93,11 @@ const tableData = status.map((s, i) => ({
   />
 
   <div class="intervalo-bloco">
-  <SectionCard title="Intervalo de trabalho do Kanban" icon="date_range" id="intervalo-kanban">
+  <SectionCard title="Intervalo de trabalho do funil" icon="date_range" id="intervalo-kanban">
     <form method="post" class="intervalo-form">
       <input type="hidden" name="_action" value="intervalo" />
       <p class="intervalo-ajuda">
-        O Quadro de vendas mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre
+        O {ROTULOS.funil} mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre
         aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.
       </p>
       <div class="intervalo-opcoes" role="radiogroup" aria-label="Intervalo de trabalho">
@@ -118,10 +119,10 @@ const tableData = status.map((s, i) => ({
     slot="overlays"
     id="drawer-status"
     formId="form-status"
-    title="Novo status"
-    editTitle="Editar status"
+    title="Nova etapa"
+    editTitle="Editar etapa"
     width="md"
-    deleteConfirm="Excluir este status? Só é possível excluir colunas sem eventos."
+    deleteConfirm="Excluir esta etapa? Só é possível excluir etapas sem eventos."
   >
     <form id="form-status" method="post" class="form-grid">
       <input type="hidden" name="id" />
@@ -130,7 +131,7 @@ const tableData = status.map((s, i) => ({
         <input id="st-nome" name="nome" required maxlength="50" placeholder="Ex.: Proposta enviada" />
       </div>
       <div class="field">
-        <label for="st-variante">Tipo*</label>
+        <label for="st-variante">Função*</label>
         <select id="st-variante" name="variante" required>
           {Object.entries(VARIANTES_STATUS).map(([value, label]) => <option value={value}>{label}</option>)}
         </select>

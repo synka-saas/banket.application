@@ -193,6 +193,12 @@ select.control {
   box-shadow: 0 0 0 1px var(--color-primary-50);
 }
 
+/* Verba estimada (evento sem orçamento): valor informativo, visualmente distinto do orçamento */
+td .verba {
+  font-style: italic;
+  color: var(--color-neutral-65);
+}
+
 /* ---------- Erros de validação: junto do campo e no topo do formulário/painel ---------- */
 .field [aria-invalid='true'],
 .control[aria-invalid='true'] {

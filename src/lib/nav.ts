@@ -1,10 +1,11 @@
 // Submenus compartilhados entre páginas de um mesmo módulo.
+import { ROTULOS } from './rotulos';
 
 export const CONFIG_SUBMENU = [
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
-  { id: 'tipos', label: 'Tipos de Evento', href: '/configuracoes/tipos-evento' },
+  { id: 'tipos', label: ROTULOS.tiposEvento, href: '/configuracoes/tipos-evento' },
   { id: 'categorias', label: 'Categorias', href: '/configuracoes/categorias' },
-  { id: 'status', label: 'Status de orçamento', href: '/configuracoes/status-orcamento' },
+  { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
   { id: 'locacao', label: 'Locação', href: '/configuracoes/locacao' },
   { id: 'empresa', label: 'Empresa', href: '/configuracoes/empresa' },

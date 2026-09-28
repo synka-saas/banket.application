@@ -10,6 +10,7 @@ import { html } from '../../lib/html';
 import { CONFIG_SUBMENU } from '../../lib/nav';
 import { searchTerm } from '../../lib/pagination';
 import { excluirTipoEvento, listarTiposEvento, salvarTipoEvento, tipoEventoSchema } from '../../server/configuracoes';
+import { ROTULOS } from '../../lib/rotulos';
 
 const { tenantId } = Astro.locals.user;
 
@@ -40,9 +41,9 @@ const tableData = tipos.map((t) => ({
 }));
 ---
 
-<AppLayout title="Tipos de Evento" heading="Configurações / Tipos de Evento" submenu={CONFIG_SUBMENU} submenuActive="tipos">
+<AppLayout title={ROTULOS.tiposEvento} heading={`Configurações / ${ROTULOS.tiposEvento}`} submenu={CONFIG_SUBMENU} submenuActive="tipos">
   <PageToolbar>
-    <Button icon="add_circle" data-drawer-open="drawer-tipo">Adicionar tipo</Button>
+    <Button icon="add_circle" data-drawer-open="drawer-tipo">Novo tipo</Button>
   </PageToolbar>
 
   <Table

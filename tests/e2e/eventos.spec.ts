@@ -25,8 +25,8 @@ test.describe('Eventos e quadro de vendas', () => {
     // Corrige e cria
     await page.getByLabel('Término').fill('23:30');
     await page.getByLabel('Data', { exact: true }).fill('2027-03-15');
-    await page.getByLabel('Natureza (tipo)').selectOption({ label: 'Social' });
-    await page.getByLabel('Formato do evento (categoria)').selectOption({ label: 'Casamento' });
+    await page.getByLabel('Tipo', { exact: true }).selectOption({ label: 'Social' });
+    await page.getByLabel('Ocasião').selectOption({ label: 'Casamento' });
     await page.getByLabel('Sem lactose').check();
     await page.getByRole('button', { name: 'Criar evento' }).first().click();
     await expectToast(page, 'Evento criado.');
@@ -91,8 +91,8 @@ test.describe('Eventos e quadro de vendas', () => {
 
   test('categorias do formulário respeitam o tipo de evento', async ({ page }) => {
     await page.goto('/eventos/novo');
-    await page.getByLabel('Natureza (tipo)').selectOption({ label: 'Corporativo' });
-    const categoria = page.getByLabel('Formato do evento (categoria)');
+    await page.getByLabel('Tipo', { exact: true }).selectOption({ label: 'Corporativo' });
+    const categoria = page.getByLabel('Ocasião');
     await expect(categoria.locator('option', { hasText: 'Casamento' })).toBeHidden();
     await expect(categoria.locator('option', { hasText: 'Confraternização de fim de ano' })).not.toHaveAttribute('hidden');
   });

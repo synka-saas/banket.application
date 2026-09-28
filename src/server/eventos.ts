@@ -283,7 +283,7 @@ export async function statusDeEntrada(db: Db): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
     `SELECT id FROM status_orcamento WHERE variante = 'novo' ORDER BY ordem LIMIT 1`
   );
-  if (!rows[0]) throw new UserError('Configure um status de entrada em Configurações › Status de orçamento.');
+  if (!rows[0]) throw new UserError('Configure uma etapa de entrada em Configurações › Etapas do funil.');
   return rows[0].id;
 }
 
@@ -513,7 +513,7 @@ export async function exportarEventosCsv(db: Db, filtros: FiltrosEventos): Promi
     params
   );
   const cabecalho = [
-    'Evento', 'Cliente', 'Status', 'Data', 'Horário', 'Convidados', 'Tipo', 'Categoria', 'Formato', 'Local',
+    'Evento', 'Cliente', 'Etapa', 'Data', 'Horário', 'Convidados', 'Tipo', 'Ocasião', 'Formato de serviço', 'Local',
     'Verba', 'Orçamento', 'Responsável', 'E-mail', 'WhatsApp',
   ];
   const linhas = rows.map((r) =>
