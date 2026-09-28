@@ -1,6 +1,7 @@
 ---
 import Icon from '../../../components/ui/Icon.astro';
 import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Button from '../../../components/ui/Button.astro';
 import { withTenant } from '../../../lib/db';
 import { dataHora } from '../../../lib/datas';
 import { carregarEvento, eventoExiste } from '../../../server/eventos';
@@ -54,7 +55,7 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
         <textarea id="an-texto" name="texto" rows="3" required maxlength="2000" placeholder="Ex.: Liguei para a cliente; prefere degustação no sábado de manhã."></textarea>
       </div>
       <div class="anotacao-acoes">
-        <button type="submit" class="btn btn-primary btn-md" data-carregando="Registrando…">Registrar anotação</button>
+        <Button type="submit" variant="primary" data-carregando="Registrando…">Registrar anotação</Button>
       </div>
     </form>
   </section>

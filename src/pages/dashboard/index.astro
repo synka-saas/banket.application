@@ -2,6 +2,7 @@
 import Icon from '../../components/ui/Icon.astro';
 import AppLayout from '../../layouts/AppLayout.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
+import Button from '../../components/ui/Button.astro';
 import { withTenant } from '../../lib/db';
 import { formatMoney } from '../../lib/money';
 import { dataComDiaSemana, dataHora } from '../../lib/datas';
@@ -62,7 +63,7 @@ const primeiroNome = user.nome.split(' ')[0];
         <h3>Primeiros passos</h3>
         <span class="muted">{passos.length - pendentes} de {passos.length} concluídos</span>
         <form method="post" class="passos-ocultar">
-          <button type="submit" name="_action" value="ocultar_passos" class="btn btn-text btn-sm">Ocultar</button>
+          <Button type="submit" name="_action" value="ocultar_passos" variant="text" size="sm">Ocultar</Button>
         </form>
       </div>
       <ol>
@@ -192,7 +193,7 @@ const primeiroNome = user.nome.split(' ')[0];
 
   {pendentes > 0 && passosOcultos && (
     <form method="post" class="passos-reexibir">
-      <button type="submit" name="_action" value="mostrar_passos" class="btn btn-text btn-sm">Mostrar primeiros passos</button>
+      <Button type="submit" name="_action" value="mostrar_passos" variant="text" size="sm">Mostrar primeiros passos</Button>
     </form>
   )}
 </AppLayout>
