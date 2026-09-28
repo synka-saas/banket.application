@@ -8,7 +8,8 @@ import { invalidateMembership } from '../lib/membership';
 import { invalidarEmpresas } from './autoatendimento';
 
 export const perfilSchema = z.object({
-  nome: requiredText('Informe seu nome e sobrenome.', 255).refine((v) => v.split(/\s+/).length >= 2, 'Informe nome e sobrenome.'),
+  // Sem exigir sobrenome: contas antigas com um só nome poderiam travar nesta tela
+  nome: requiredText('Informe seu nome.', 255),
   telefone: optionalText(20),
 });
 
