@@ -60,4 +60,32 @@ test.describe('Drawer', () => {
     await drawer.getByRole('button', { name: 'Fechar' }).click();
     await expect(drawer).toBeHidden();
   });
+
+  test('prende o foco no painel e o devolve a quem abriu; menu do usuário fecha com Esc', async ({ page }) => {
+    await login(page);
+    await page.goto('/clientes');
+    await page.getByRole('button', { name: 'Novo cliente' }).click();
+    const drawer = page.locator('#drawer-cliente');
+    await expect(drawer).toHaveClass(/open/);
+
+    // Tab circula só pelos controles do painel (o fundo fica inerte)
+    for (let i = 0; i < 25; i++) {
+      await page.keyboard.press('Tab');
+      expect(await drawer.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    }
+
+    // Esc fecha e o foco volta ao botão que abriu
+    await page.keyboard.press('Escape');
+    await expect(drawer).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Novo cliente' })).toBeFocused();
+
+    // Menu do usuário: botão de verdade, abre e fecha com Esc devolvendo o foco
+    const usuario = page.locator('#user-profile-btn');
+    await usuario.click();
+    await expect(usuario).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('menuitem', { name: 'Sair' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(usuario).toHaveAttribute('aria-expanded', 'false');
+    await expect(usuario).toBeFocused();
+  });
 });

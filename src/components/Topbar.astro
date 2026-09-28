@@ -33,23 +33,25 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
   </div>
   
   <div class="topbar-right">
-    <div class="user-profile" id="user-profile-btn">
-      <div class="avatar">{initials}</div>
-      <div class="user-info">
-        <span class="user-name">{userName}</span>
-        <span class="user-role">{userRole}{empresas.length > 1 && empresaAtual && ` · ${empresaAtual.nome}`}</span>
-      </div>
-      <Icon name="expand_more" size={16} class="dropdown-icon" />
+    <div class="user-profile-area">
+      <button type="button" class="user-profile" id="user-profile-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="user-dropdown">
+        <div class="avatar">{initials}</div>
+        <div class="user-info">
+          <span class="user-name">{userName}</span>
+          <span class="user-role">{userRole}{empresas.length > 1 && empresaAtual && ` · ${empresaAtual.nome}`}</span>
+        </div>
+        <Icon name="expand_more" size={16} class="dropdown-icon" />
+      </button>
 
       <!-- Menu Dropdown -->
-      <div class="dropdown-menu" id="user-dropdown">
+      <div class="dropdown-menu" id="user-dropdown" role="menu" aria-label={`Conta de ${userName}`}>
         {empresas.length > 1 && (
           <>
             <span class="dropdown-rotulo">Trocar de empresa</span>
             {empresas.map((e) => (
               <form method="post" action="/api/sessao/empresa">
                 <input type="hidden" name="tenant_id" value={e.id} />
-                <button type="submit" class:list={['dropdown-item', 'empresa-item', { atual: e.id === user?.tenantId }]} disabled={e.id === user?.tenantId}>
+                <button type="submit" role="menuitem" class:list={['dropdown-item', 'empresa-item', { atual: e.id === user?.tenantId }]} disabled={e.id === user?.tenantId}>
                   <Icon name={e.id === user?.tenantId ? 'check' : 'apartment'} size={16} /> {e.nome}
                 </button>
               </form>
@@ -57,7 +59,7 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
             <div class="dropdown-divider"></div>
           </>
         )}
-        <a href="/auth/logout" class="dropdown-item logout-item">
+        <a href="/auth/logout" class="dropdown-item logout-item" role="menuitem">
           <Icon name="logout" size={16} /> Sair
         </a>
       </div>
@@ -66,25 +68,40 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 </header>
 
 <script>
-  // Lógica para abrir/fechar o dropdown
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('user-profile-btn');
-    const dropdown = document.getElementById('user-dropdown');
+  // Menu do usuário acessível: botão com aria-expanded, Esc fecha e devolve o foco, setas percorrem os itens
+  const btn = document.getElementById('user-profile-btn');
+  const dropdown = document.getElementById('user-dropdown');
 
-    if (btn && dropdown) {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('active');
-      });
-
-      // Fecha o dropdown se clicar fora dele
-      document.addEventListener('click', (e) => {
-        if (!btn.contains(e.target as Node)) {
-          dropdown.classList.remove('active');
-        }
-      });
-    }
-  });
+  if (btn && dropdown) {
+    const itens = () => [...dropdown.querySelectorAll<HTMLElement>('.dropdown-item:not(:disabled)')];
+    const alternar = (abrir: boolean) => {
+      dropdown.classList.toggle('active', abrir);
+      btn.setAttribute('aria-expanded', String(abrir));
+    };
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      alternar(!dropdown.classList.contains('active'));
+    });
+    document.addEventListener('click', (e) => {
+      if (!btn.contains(e.target as Node) && !dropdown.contains(e.target as Node)) alternar(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!dropdown.classList.contains('active')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        alternar(false);
+        btn.focus();
+        return;
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const lista = itens();
+        const atual = lista.indexOf(document.activeElement as HTMLElement);
+        const proximo = e.key === 'ArrowDown' ? Math.min(atual + 1, lista.length - 1) : Math.max(atual - 1, 0);
+        (atual === -1 ? lista[0] : lista[proximo])?.focus();
+      }
+    });
+  }
 </script>
 
 <style>
@@ -136,12 +153,19 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
     align-items: center;
   }
 
+  .user-profile-area {
+    position: relative;
+  }
+
   .user-profile {
     display: flex;
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    position: relative;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: left;
     padding: 8px;
     border-radius: 8px;
     transition: background-color 0.2s;

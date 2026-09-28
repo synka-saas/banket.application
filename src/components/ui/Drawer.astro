@@ -130,7 +130,18 @@ const {
   }
 
   // ---------- Abrir e fechar ----------
+  // Com um painel aberto, o resto da página fica inerte (Tab não passeia por trás) e o foco volta a quem abriu
+  let focoAnterior: HTMLElement | null = null;
+  function isolarFundo(ativo: boolean) {
+    document.querySelectorAll<HTMLElement>('.sidebar, .main-content, .mnav').forEach((el) => {
+      if (ativo) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  }
+
   function openDrawer(drawer: HTMLElement, values: Values | null) {
+    focoAnterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    isolarFundo(true);
     const form = formDo(drawer);
     const isEdit = Boolean(values && values.id);
     limparErros(drawer);
@@ -157,6 +168,9 @@ const {
   function closeDrawer(drawer: HTMLElement) {
     drawer.classList.remove('open');
     instantaneos.delete(drawer);
+    isolarFundo(false);
+    focoAnterior?.focus({ preventScroll: true });
+    focoAnterior = null;
     setTimeout(() => (drawer.hidden = true), 250);
   }
 
@@ -247,6 +261,32 @@ const {
       return;
     }
     if (target.matches('[data-drawer]')) pedirParaFechar(target);
+  });
+
+  // Foco preso: Tab circula pelos controles do painel aberto
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const aberto = document.querySelector<HTMLElement>('[data-drawer].open');
+    if (!aberto || document.querySelector('dialog[open]')) return;
+    const focaveis = [
+      ...aberto.querySelectorAll<HTMLElement>(
+        'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      ),
+    ].filter((el) => el.offsetParent !== null);
+    if (!focaveis.length) return;
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    const atual = document.activeElement;
+    if (e.shiftKey && atual === primeiro) {
+      e.preventDefault();
+      ultimo.focus();
+    } else if (!e.shiftKey && atual === ultimo) {
+      e.preventDefault();
+      primeiro.focus();
+    } else if (!aberto.contains(atual)) {
+      e.preventDefault();
+      primeiro.focus();
+    }
   });
 
   document.addEventListener('keydown', (e) => {
