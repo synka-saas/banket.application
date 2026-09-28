@@ -98,7 +98,7 @@ test.describe('Orçamento', () => {
     // Pré-visualização: as páginas do PDF renderizadas na tela (UX-122)
     await page.goto(`${eventoUrl}/orcamento/previa`);
     await expect(page.locator('[data-previa-quadro]').first()).toBeVisible();
-    await expect(page.frameLocator('[data-previa-iframe]').first().locator('body')).toContainText('Brunch', { timeout: 15_000 });
+    await expect(page.frameLocator('iframe[src*="parte=miolo"]').locator('body')).toContainText('Brunch', { timeout: 15_000 });
 
     // Nova versão congela a anterior
     await page.goto(`${eventoUrl}/orcamento`);
