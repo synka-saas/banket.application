@@ -229,7 +229,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                 <button type="button" class="btn btn-outline btn-md" onClick={excluir} disabled={salvando}>Excluir</button>
               </>
             )}
-            <button type="submit" class="btn btn-success btn-md" disabled={salvando || carregando}>
+            <button type="submit" class="btn btn-primary btn-md" disabled={salvando || carregando}>
               {salvando ? 'Salvando…' : 'Salvar'}
             </button>
             <button type="button" class="ed-close" onClick={() => setAberto(false)} aria-label="Fechar"><Icon name="close" size={24} /></button>

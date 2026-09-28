@@ -47,7 +47,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
     <div class="form-acoes">
       <Button variant="outline" href={cancelarHref}>Cancelar</Button>
-      <Button type="submit" variant="success" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+      <Button type="submit" variant="primary" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
     </div>
   </div>
 
@@ -55,7 +55,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     <input type="hidden" name="cliente_novo" value={clienteNovo ? '1' : '0'} data-cliente-novo />
     <div class="form-grid" data-cliente-existente hidden={clienteNovo}>
       <div class="field span-2">
-        <label for="ev-cliente">Cliente*</label>
+        <label for="ev-cliente">Cliente<span class="obrigatorio">*</span></label>
         <select id="ev-cliente" name="cliente_id">
           <option value="">Selecione…</option>
           {clientes.map((c) => (
@@ -89,7 +89,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         />
       </div>
       <div class="field span-2">
-        <label for="cn-nome">Nome / Razão social*</label>
+        <label for="cn-nome">Nome / Razão social<span class="obrigatorio">*</span></label>
         <input id="cn-nome" name="cliente_nome" value={texto('cliente_nome')} maxlength="255" />
       </div>
       <div class="field">
@@ -303,7 +303,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
 
   <div class="form-rodape">
     <Button variant="outline" href={cancelarHref}>Cancelar</Button>
-    <Button type="submit" variant="success" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+    <Button type="submit" variant="primary" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
   </div>
 </form>
 

@@ -159,7 +159,7 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
       <form id="form-cat-evento" method="post" class="form-grid">
         <input type="hidden" name="id" />
         <div class="field span-2">
-          <label for="cat-nome">Nome da ocasião*</label>
+          <label for="cat-nome">Nome da ocasião<span class="obrigatorio">*</span></label>
           <input id="cat-nome" name="nome" required maxlength="80" placeholder="Ex.: Casamento, Confraternização" />
         </div>
         <div class="field span-2">
@@ -181,11 +181,11 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
       <form id="form-cat-item" method="post" action="?aba=item" class="form-grid">
         <input type="hidden" name="id" />
         <div class="field span-2">
-          <label for="cati-nome">Nome da categoria*</label>
+          <label for="cati-nome">Nome da categoria<span class="obrigatorio">*</span></label>
           <input id="cati-nome" name="nome" required maxlength="80" placeholder="Ex.: Salgado, Entrada" />
         </div>
         <div class="field span-2">
-          <label for="cati-tipo">Aplica-se a*</label>
+          <label for="cati-tipo">Aplica-se a<span class="obrigatorio">*</span></label>
           <select id="cati-tipo" name="tipo" required>
             {Object.entries(TIPOS_CATEGORIA_ITEM).map(([value, label]) => <option value={value}>{label}</option>)}
           </select>

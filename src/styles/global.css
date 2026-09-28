@@ -199,6 +199,14 @@ td .verba {
   color: var(--color-neutral-65);
 }
 
+/* Campo obrigatório: o asterisco faz parte do rótulo (e do nome acessível), com um só estilo */
+.obrigatorio,
+.required {
+  margin-left: 2px;
+  color: var(--color-primary-text);
+  font-weight: 700;
+}
+
 /* ---------- Erros de validação: junto do campo e no topo do formulário/painel ---------- */
 .field [aria-invalid='true'],
 .control[aria-invalid='true'] {

@@ -87,10 +87,6 @@ const {
     margin-bottom: 8px;
   }
 
-  .required {
-    color: #E35336;
-  }
-
   .input-wrapper {
     position: relative;
     display: flex;
@@ -104,7 +100,7 @@ const {
     color: var(--color-neutral-80);
     background-color: var(--color-white);
     border: 1px solid var(--color-border-input);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-sm);
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
@@ -144,12 +140,13 @@ const {
   }
 
   .has-error .input-field {
-    border-color: #E35336;
+    border-color: var(--color-primary-50);
   }
 
   .input-error {
-    font-size: 12px;
-    color: #E35336;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary-50);
     margin-top: 4px;
   }
 </style>

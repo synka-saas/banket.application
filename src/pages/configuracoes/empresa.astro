@@ -42,13 +42,13 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
 <AppLayout title="Empresa" heading="Configurações / Empresa" submenu={CONFIG_SUBMENU} submenuActive="empresa">
   <form method="post" enctype="multipart/form-data" class="empresa-form">
     <div class="form-actions">
-      <Button type="submit" variant="success" data-carregando="Salvando…">Salvar</Button>
+      <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
     </div>
 
     <SectionCard title="Dados da empresa" icon="domain">
       <div class="form-grid">
         <div class="field">
-          <label for="emp-nome">Nome fantasia*</label>
+          <label for="emp-nome">Nome fantasia<span class="obrigatorio">*</span></label>
           <input id="emp-nome" name="nome" required maxlength="255" value={empresa.nome} />
         </div>
         <div class="field">
@@ -94,15 +94,15 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
     <SectionCard title="Parâmetros comerciais" icon="room_service">
       <div class="form-grid cols-3">
         <div class="field">
-          <label for="cfg-validade">Validade da proposta (dias)*</label>
+          <label for="cfg-validade">Validade da proposta (dias)<span class="obrigatorio">*</span></label>
           <input id="cfg-validade" name="validade_proposta_dias" type="number" min="1" required value={empresa.validade_proposta_dias} />
         </div>
         <div class="field">
-          <label for="cfg-isenta">Criança não paga até (anos)*</label>
+          <label for="cfg-isenta">Criança não paga até (anos)<span class="obrigatorio">*</span></label>
           <input id="cfg-isenta" name="criancas_isentas_ate" type="number" min="0" required value={empresa.criancas_isentas_ate} />
         </div>
         <div class="field">
-          <label for="cfg-meia">Criança paga meia até (anos)*</label>
+          <label for="cfg-meia">Criança paga meia até (anos)<span class="obrigatorio">*</span></label>
           <input id="cfg-meia" name="criancas_meia_ate" type="number" min="0" required value={empresa.criancas_meia_ate} />
         </div>
         <div class="field span-3">
@@ -132,11 +132,11 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
     <SectionCard title="E-mail de envio do orçamento" icon="description">
       <div class="form-grid">
         <div class="field span-2">
-          <label for="mail-assunto">Assunto*</label>
+          <label for="mail-assunto">Assunto<span class="obrigatorio">*</span></label>
           <input id="mail-assunto" name="email_assunto" required maxlength="255" value={empresa.email_assunto} />
         </div>
         <div class="field span-2">
-          <label for="mail-corpo">Mensagem*</label>
+          <label for="mail-corpo">Mensagem<span class="obrigatorio">*</span></label>
           <textarea id="mail-corpo" name="email_corpo" required rows="8">{empresa.email_corpo}</textarea>
           <span class="field-hint">Variáveis disponíveis: {VARIAVEIS_EMAIL.join(', ')}</span>
         </div>

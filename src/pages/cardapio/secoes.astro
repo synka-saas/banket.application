@@ -80,7 +80,7 @@ const tableData = secoes.map((s) => ({
     <form id="form-secao" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field span-2">
-        <label for="se-nome">Nome da seção*</label>
+        <label for="se-nome">Nome da seção<span class="obrigatorio">*</span></label>
         <input id="se-nome" name="nome" required maxlength="120" placeholder="Ex.: Saladas, Mesa de pães" />
       </div>
       <div class="field span-2">

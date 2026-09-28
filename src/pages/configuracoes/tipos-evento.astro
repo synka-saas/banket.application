@@ -61,7 +61,7 @@ const tableData = tipos.map((t) => ({
     <form id="form-tipo" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field span-2">
-        <label for="tipo-nome">Nome*</label>
+        <label for="tipo-nome">Nome<span class="obrigatorio">*</span></label>
         <input id="tipo-nome" name="nome" required maxlength="50" placeholder="Ex.: Social, Corporativo" />
       </div>
       <div class="field span-2">

@@ -150,13 +150,14 @@ export default function OrcamentoBuilder(props: Props) {
           <div class="orc-botoes">
             <button
               type="button"
-              class="btn btn-outline btn-sm"
+              class="btn btn-primary btn-md"
               data-drawer-open="drawer-enviar"
               onClick={() => estado === 'pendente' && salvarAgora()}
             >
-              Enviar ao cliente
+              <Icon name="send" size={18} /> Enviar ao cliente
             </button>
-            <button type="button" class="btn btn-success btn-sm" onClick={baixarPdf} disabled={gerandoPdf}>
+            <button type="button" class="btn btn-outline btn-md" onClick={baixarPdf} disabled={gerandoPdf}>
+              <Icon name="download" size={18} />
               {gerandoPdf ? 'Gerando PDF…' : disabled ? 'Baixar PDF' : 'Salvar e baixar PDF'}
             </button>
           </div>
@@ -169,7 +170,7 @@ export default function OrcamentoBuilder(props: Props) {
               </span>
               <form method="post" ref={formRef} onSubmit={novaVersao}>
                 <input type="hidden" name="_action" value="nova_versao" />
-                <button type="submit" class="btn btn-primary btn-sm">
+                <button type="submit" class="btn btn-text btn-md">
                   Criar nova versão
                 </button>
               </form>

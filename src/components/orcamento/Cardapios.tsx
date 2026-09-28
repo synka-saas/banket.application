@@ -201,7 +201,7 @@ function CardapioBloco(props: {
                   <option value={s.id}>{s.nome}{s.preco !== null ? ` · ${formatMoney(s.preco)}/pessoa` : ''}</option>
                 ))}
               </select>
-              <button type="button" class="btn btn-dark btn-md" onClick={adicionarSecao} disabled={!novaSecao}>
+              <button type="button" class="btn btn-outline btn-md" onClick={adicionarSecao} disabled={!novaSecao}>
                 <Icon name="add_circle" size={18} /> Adicionar nova seção ao cardápio
               </button>
             </div>

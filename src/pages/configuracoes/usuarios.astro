@@ -152,15 +152,15 @@ const convitesData = convites.map((c) => {
       <form id="form-convite" method="post" class="form-grid">
         <input type="hidden" name="_form" value="convite" />
         <div class="field span-2">
-          <label for="conv-nome">Nome*</label>
+          <label for="conv-nome">Nome<span class="obrigatorio">*</span></label>
           <input id="conv-nome" name="nome" required maxlength="255" placeholder="Nome e sobrenome" />
         </div>
         <div class="field span-2">
-          <label for="conv-email">E-mail*</label>
+          <label for="conv-email">E-mail<span class="obrigatorio">*</span></label>
           <input id="conv-email" name="email" type="email" required placeholder="nome@empresa.com.br" />
         </div>
         <div class="field span-2">
-          <label for="conv-role">Papel*</label>
+          <label for="conv-role">Papel<span class="obrigatorio">*</span></label>
           <select id="conv-role" name="role" required>
             {papeis.map((r) => <option value={r} selected={r === 'usuario'}>{ROLE_LABELS[r]}</option>)}
           </select>
@@ -182,7 +182,7 @@ const convitesData = convites.map((c) => {
       <form id="form-membro" method="post" class="form-grid">
         <input type="hidden" name="id" />
         <div class="field span-2">
-          <label for="mb-role">Papel*</label>
+          <label for="mb-role">Papel<span class="obrigatorio">*</span></label>
           <select id="mb-role" name="role" required>
             {papeis.map((r) => <option value={r}>{ROLE_LABELS[r]}</option>)}
           </select>

@@ -68,7 +68,7 @@ const tableData = formatos.map((f) => ({
     <form id="form-formato" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field span-2">
-        <label for="fmt-nome">Nome*</label>
+        <label for="fmt-nome">Nome<span class="obrigatorio">*</span></label>
         <input id="fmt-nome" name="nome" required maxlength="80" placeholder="Ex.: Serviço volante" />
       </div>
       <div class="field span-2">

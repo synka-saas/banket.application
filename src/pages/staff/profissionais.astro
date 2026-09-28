@@ -108,7 +108,7 @@ const tableData = profissionais.map((p) => ({
     <form id="form-profissional" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field span-2">
-        <label for="pr-nome">Nome*</label>
+        <label for="pr-nome">Nome<span class="obrigatorio">*</span></label>
         <input id="pr-nome" name="nome" required maxlength="255" />
       </div>
       <div class="field">

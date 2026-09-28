@@ -49,7 +49,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
       <form method="post" class="form-bloco" data-bloco-form>
         <input type="hidden" name="id" value={atual.id} />
         <div class="field">
-          <label for="bl-titulo">Título*</label>
+          <label for="bl-titulo">Título<span class="obrigatorio">*</span></label>
           <input id="bl-titulo" name="titulo" required maxlength="150" value={atual.titulo} placeholder="Título" />
         </div>
         <div class="field">
@@ -74,7 +74,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
           {selecionado && (
             <button type="submit" name="_action" value="delete" formnovalidate class="btn btn-outline btn-md" data-confirm="Excluir este bloco? Propostas já criadas mantêm a cópia do texto.">Excluir</button>
           )}
-          <Button type="submit" variant="success">Salvar</Button>
+          <Button type="submit" variant="primary">Salvar</Button>
         </div>
         <div class="previa">
           <span class="field-label">Pré-visualização</span>

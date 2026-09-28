@@ -109,7 +109,7 @@ const tableData = status.map((s, i) => ({
         ))}
       </div>
       <div>
-        <Button type="submit" variant="success">Salvar intervalo</Button>
+        <Button type="submit" variant="primary">Salvar intervalo</Button>
       </div>
     </form>
   </SectionCard>
@@ -127,11 +127,11 @@ const tableData = status.map((s, i) => ({
     <form id="form-status" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field span-2">
-        <label for="st-nome">Nome*</label>
+        <label for="st-nome">Nome<span class="obrigatorio">*</span></label>
         <input id="st-nome" name="nome" required maxlength="50" placeholder="Ex.: Proposta enviada" />
       </div>
       <div class="field">
-        <label for="st-variante">Função*</label>
+        <label for="st-variante">Função<span class="obrigatorio">*</span></label>
         <select id="st-variante" name="variante" required>
           {Object.entries(VARIANTES_STATUS).map(([value, label]) => <option value={value}>{label}</option>)}
         </select>

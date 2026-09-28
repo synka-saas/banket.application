@@ -440,7 +440,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
           <a class="btn btn-outline btn-md" href={`/formularios/${formulario.id}/respostas`}>Respostas</a>
           <button type="button" class="btn btn-outline btn-md" onClick={duplicar} disabled={salvando}>Duplicar</button>
           <button type="button" class="btn btn-outline btn-md" onClick={excluir} disabled={salvando}>Excluir</button>
-          <button type="submit" class="btn btn-success btn-md" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
+          <button type="submit" class="btn btn-primary btn-md" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
         </div>
       </div>
     </form>

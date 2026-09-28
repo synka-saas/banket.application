@@ -73,7 +73,7 @@ const tableData = faixas.map((f) => ({
     <form id="form-faixa" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field">
-        <label for="fx-min">Mínimo de convidados*</label>
+        <label for="fx-min">Mínimo de convidados<span class="obrigatorio">*</span></label>
         <input id="fx-min" name="min_convidados" type="number" min="0" step="1" required />
       </div>
       <div class="field">
@@ -81,7 +81,7 @@ const tableData = faixas.map((f) => ({
         <input id="fx-max" name="max_convidados" type="number" min="0" step="1" placeholder="Sem limite" />
       </div>
       <div class="field span-2">
-        <label for="fx-valor">Valor da locação (R$)*</label>
+        <label for="fx-valor">Valor da locação (R$)<span class="obrigatorio">*</span></label>
         <input id="fx-valor" name="valor" inputmode="decimal" required placeholder="0,00" data-mascara="dinheiro" />
       </div>
       <div class="field span-2">

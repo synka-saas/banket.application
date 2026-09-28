@@ -103,7 +103,7 @@ const { evento, orcamento, versao } = ctx;
           </p>
           <form method="post">
             <input type="hidden" name="_action" value="criar" />
-            <Button type="submit" variant="success" data-carregando="Criando…">Criar orçamento</Button>
+            <Button type="submit" variant="primary" data-carregando="Criando…">Criar orçamento</Button>
           </form>
         </section>
       )}
@@ -147,16 +147,16 @@ const { evento, orcamento, versao } = ctx;
           </p>
         )}
         <div class="field">
-          <label for="env-para">Para*</label>
+          <label for="env-para">Para<span class="obrigatorio">*</span></label>
           <input id="env-para" name="para" required value={ctx.envio.para} placeholder="email@cliente.com.br" />
           <span class="field-hint">Vários destinatários separados por vírgula. As respostas chegam no seu e-mail ({user.email}).</span>
         </div>
         <div class="field">
-          <label for="env-assunto">Assunto*</label>
+          <label for="env-assunto">Assunto<span class="obrigatorio">*</span></label>
           <input id="env-assunto" name="assunto" required maxlength="255" value={ctx.envio.assunto} />
         </div>
         <div class="field">
-          <label for="env-mensagem">Mensagem*</label>
+          <label for="env-mensagem">Mensagem<span class="obrigatorio">*</span></label>
           <textarea id="env-mensagem" name="mensagem" required rows="12" maxlength="10000">{ctx.envio.mensagem}</textarea>
           <span class="field-hint">O PDF da proposta vai em anexo. O modelo da mensagem fica em Configurações › Empresa.</span>
         </div>

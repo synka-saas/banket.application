@@ -47,7 +47,7 @@ const tabela = eventos.map((e) => ({
 <AppLayout title={cliente.nome} heading={`Clientes / ${cliente.nome}`}>
   <div class="topo">
     <Button variant="outline" href="/clientes">Voltar</Button>
-    <Button variant="success" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
+    <Button variant="primary" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
   </div>
 
   <SectionCard title="Dados do cliente" icon="account_box">

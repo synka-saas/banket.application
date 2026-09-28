@@ -127,11 +127,11 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     <form id="form-item" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field">
-        <label for="it-nome">Nome do item*</label>
+        <label for="it-nome">Nome do item<span class="obrigatorio">*</span></label>
         <input id="it-nome" name="nome" required maxlength="200" placeholder="Ex.: Coxinha de frango" />
       </div>
       <div class="field">
-        <label for="it-secao">Seção*</label>
+        <label for="it-secao">Seção<span class="obrigatorio">*</span></label>
         <select id="it-secao" name="secao_id" required>
           <option value="">Selecione…</option>
           {secoes.map((s) => <option value={s.id}>{s.nome}</option>)}
