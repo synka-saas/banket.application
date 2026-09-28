@@ -207,8 +207,7 @@ const listaData =
 
 <script>
   import { formatMoney } from '../../lib/money';
-  const toast = (m: string, t = 'info') =>
-    (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(m, t);
+  import { toast } from '../../lib/ui';
 
   const kanban = document.querySelector<HTMLElement>('[data-kanban]');
   if (kanban) {

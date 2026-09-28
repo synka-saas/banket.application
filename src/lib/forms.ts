@@ -20,15 +20,59 @@ export function validationMessage(error: z.ZodError): string {
   return error.issues[0]?.message ?? 'Dados inválidos.';
 }
 
-/** Erro de negócio com mensagem segura para o usuário. */
-export class UserError extends Error {}
+/** Erro de negócio com mensagem segura para o usuário; `campo` aponta o campo do formulário, quando houver. */
+export class UserError extends Error {
+  constructor(
+    message: string,
+    readonly campo?: string
+  ) {
+    super(message);
+  }
+}
+
+// Duplicidade (23505): o nome da restrição única indica o campo (ex.: clientes_email_unique → email)
+const CAMPOS_UNICOS: [RegExp, string, string][] = [
+  [/_email_/, 'email', 'Este e-mail já está cadastrado.'],
+  [/_documento_/, 'documento', 'Este CPF/CNPJ já está cadastrado.'],
+  [/_funcao_/, 'funcao', 'Já existe uma função com este nome.'],
+  [/_slug_/, 'slug', 'Este endereço já está em uso.'],
+  [/_chave_/, 'chave', 'Já existe um registro com esta chave.'],
+  [/_nome_/, 'nome', 'Já existe um cadastro com este nome.'],
+];
+
+function duplicidade(err: unknown): { campo: string; mensagem: string } | null {
+  const e = err as { code?: string; constraint?: string };
+  if (e?.code !== '23505' || !e.constraint) return null;
+  const achado = CAMPOS_UNICOS.find(([re]) => re.test(`${e.constraint}_`));
+  return achado ? { campo: achado[1], mensagem: achado[2] } : null;
+}
+
+/**
+ * Erros por campo ({ nome: 'mensagem' }) para exibir junto de cada campo do formulário.
+ * Usa o primeiro segmento do caminho do zod, que corresponde ao `name` do campo.
+ */
+export function fieldErrors(err: unknown): Record<string, string> {
+  const campos: Record<string, string> = {};
+  if (err instanceof z.ZodError) {
+    for (const issue of err.issues) {
+      const campo = issue.path[0];
+      if (typeof campo === 'string' && !(campo in campos)) campos[campo] = issue.message;
+    }
+  } else if (err instanceof UserError && err.campo) {
+    campos[err.campo] = err.message;
+  } else {
+    const dup = duplicidade(err);
+    if (dup) campos[dup.campo] = dup.mensagem;
+  }
+  return campos;
+}
 
 /** Traduz erros conhecidos do Postgres para mensagens de negócio. */
 export function userMessage(err: unknown, fallback = 'Ocorreu um erro ao processar a requisição.'): string {
   if (err instanceof UserError) return err.message;
   if (err instanceof z.ZodError) return validationMessage(err);
   const code = (err as { code?: string })?.code;
-  if (code === '23505') return 'Já existe um registro com esses dados.';
+  if (code === '23505') return duplicidade(err)?.mensagem ?? 'Já existe um registro com esses dados.';
   if (code === '23503') return 'Este registro está em uso e não pode ser removido.';
   if (code === '22P02') return 'Identificador inválido.';
   console.error(err);

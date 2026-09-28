@@ -10,6 +10,7 @@ import Bebidas from './Bebidas';
 import Staff from './Staff';
 import LocacaoExtras from './LocacaoExtras';
 import { Icon } from '../ui/Icon';
+import { baixarArquivo, confirmar, toast } from '../../lib/ui';
 import '../../styles/orcamento.css';
 
 interface Props {
@@ -27,10 +28,6 @@ interface Props {
 type Estado = 'salvo' | 'pendente' | 'salvando' | 'erro';
 
 const pad = (n: number) => String(n).padStart(2, '0');
-
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(message, type);
-}
 
 export default function OrcamentoBuilder(props: Props) {
   const [conteudo, setConteudo] = useState<ConteudoOrcamento>(() => calcularOrcamento(props.conteudo, props.faixas));
@@ -108,14 +105,24 @@ export default function OrcamentoBuilder(props: Props) {
     setGerandoPdf(true);
     if (estado === 'pendente') await salvarAgora();
     else if (salvando.current) await salvando.current;
-    window.location.href = props.pdfUrl;
-    // O download não troca de página; libera o botão depois de alguns segundos
-    setTimeout(() => setGerandoPdf(false), 6000);
+    // Libera o botão quando o PDF chega (gerar leva alguns segundos), não por tempo fixo
+    try {
+      await baixarArquivo(props.pdfUrl);
+    } catch {
+      toast('Não foi possível baixar o PDF. Tente novamente.', 'error');
+    } finally {
+      setGerandoPdf(false);
+    }
   }
 
   async function novaVersao(e: Event) {
     e.preventDefault();
-    if (!window.confirm(`Criar a versão ${pad(props.numero + 1)}? A versão ${pad(props.numero)} ficará congelada, somente para consulta.`)) return;
+    const sim = await confirmar({
+      titulo: `Criar a versão ${pad(props.numero + 1)}?`,
+      texto: `A versão ${pad(props.numero)} ficará congelada, somente para consulta.`,
+      confirmar: 'Criar versão',
+    });
+    if (!sim) return;
     if (estado === 'pendente') await salvarAgora();
     else if (salvando.current) await salvando.current;
     formRef.current?.submit();

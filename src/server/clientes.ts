@@ -17,6 +17,7 @@ export const clienteSchema = z
   .transform((c) => ({ ...c, documento: c.documento ? somenteDigitos(c.documento) : null }))
   .refine((c) => !c.documento || (c.tipo_pessoa === 'PF' ? cpfValido(c.documento) : cnpjValido(c.documento)), {
     message: 'CPF/CNPJ inválido.',
+    path: ['documento'],
   });
 
 export type ClienteInput = z.infer<typeof clienteSchema>;

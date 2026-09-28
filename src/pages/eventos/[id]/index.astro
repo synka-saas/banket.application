@@ -113,7 +113,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         ) : (
           <form method="post" action={`/eventos/${id}/orcamento`}>
             <input type="hidden" name="_action" value="criar" />
-            <Button type="submit" variant="success">Criar orçamento</Button>
+            <Button type="submit" variant="success" data-carregando="Criando…">Criar orçamento</Button>
           </form>
         )}
       </section>

@@ -21,6 +21,11 @@ export async function login(page: Page, usuario = USUARIO_DEMO) {
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith('/auth')), page.click('button[type=submit]')]);
 }
 
+/** Confirma o modal de confirmação do sistema (components/ui/Confirmar.astro), aberto pela ação anterior. */
+export async function confirmarModal(page: Page) {
+  await page.locator('dialog.confirmar[open] [data-confirmar-ok]').click();
+}
+
 export async function expectToast(page: Page, texto: string | RegExp) {
   await expect(page.locator('.toast').filter({ hasText: texto }).first()).toBeVisible();
 }
@@ -34,7 +39,7 @@ export async function waitForIslands(page: Page) {
 export async function excluirEvento(page: Page, eventoUrl: string) {
   const id = new URL(eventoUrl, 'http://localhost').pathname.split('/')[2];
   await page.goto(`/eventos/${id}`);
-  page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Excluir evento' }).click();
+  await confirmarModal(page);
   await expectToast(page, 'Evento excluído.');
 }

@@ -1,0 +1,132 @@
+---
+// Modal de confirmação do sistema (substitui o window.confirm).
+// Uso: confirmar({ titulo, texto, confirmar, perigo }) de lib/ui.ts, ou data-confirm="Pergunta?" em botão/link
+// (opcionais: data-confirm-texto com o impacto e data-confirm-rotulo com o rótulo do botão).
+---
+
+<dialog class="confirmar" aria-labelledby="confirmar-titulo" aria-describedby="confirmar-texto">
+  <form method="dialog" class="confirmar-caixa">
+    <h2 id="confirmar-titulo" class="confirmar-titulo"></h2>
+    <p id="confirmar-texto" class="confirmar-texto"></p>
+    <div class="confirmar-acoes">
+      <button type="submit" value="cancelar" class="btn btn-outline btn-md" data-confirmar-cancelar>Voltar</button>
+      <button type="submit" value="ok" class="btn btn-md" data-confirmar-ok>Confirmar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  import type { ConfirmarOpcoes } from '../../lib/ui';
+
+  const dialog = document.querySelector<HTMLDialogElement>('dialog.confirmar')!;
+  const titulo = dialog.querySelector<HTMLElement>('.confirmar-titulo')!;
+  const texto = dialog.querySelector<HTMLElement>('.confirmar-texto')!;
+  const ok = dialog.querySelector<HTMLButtonElement>('[data-confirmar-ok]')!;
+  const cancelar = dialog.querySelector<HTMLButtonElement>('[data-confirmar-cancelar]')!;
+  let pendente: ((sim: boolean) => void) | null = null;
+
+  function abrir(opcoes: ConfirmarOpcoes): Promise<boolean> {
+    pendente?.(false);
+    titulo.textContent = opcoes.titulo;
+    texto.textContent = opcoes.texto ?? '';
+    texto.hidden = !opcoes.texto;
+    ok.textContent = opcoes.confirmar ?? 'Confirmar';
+    ok.className = `btn btn-md ${opcoes.perigo ? 'btn-danger' : 'btn-primary'}`;
+    cancelar.textContent = opcoes.cancelar ?? 'Voltar';
+    dialog.returnValue = '';
+    dialog.showModal();
+    // Ação destrutiva: o foco começa em "Voltar" (Enter não apaga por engano)
+    (opcoes.perigo ? cancelar : ok).focus();
+    return new Promise((resolve) => (pendente = resolve));
+  }
+
+  dialog.addEventListener('close', () => {
+    pendente?.(dialog.returnValue === 'ok');
+    pendente = null;
+  });
+  // Clique fora da caixa fecha como "Voltar"
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close('cancelar');
+  });
+
+  window.banketConfirmar = abrir;
+
+  // data-confirm: intercepta o clique, pergunta e, se confirmado, refaz a ação original
+  const PERIGO = /^(excluir|remover|cancelar|descartar)\b/i;
+  const confirmados = new WeakSet<HTMLElement>();
+
+  document.addEventListener(
+    'click',
+    async (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-confirm]');
+      if (!el) return;
+      if (confirmados.has(el)) {
+        confirmados.delete(el);
+        return;
+      }
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const pergunta = el.dataset.confirm!;
+      const verbo = pergunta.match(PERIGO)?.[1];
+      const sim = await abrir({
+        titulo: pergunta,
+        texto: el.dataset.confirmTexto,
+        confirmar: el.dataset.confirmRotulo ?? (verbo ? verbo[0].toUpperCase() + verbo.slice(1).toLowerCase() : 'Confirmar'),
+        perigo: Boolean(verbo),
+      });
+      if (!sim) return;
+      if (el instanceof HTMLButtonElement && el.type === 'submit' && el.form) {
+        el.form.requestSubmit(el);
+      } else if (el instanceof HTMLAnchorElement && el.href) {
+        window.location.assign(el.href);
+      } else {
+        confirmados.add(el);
+        el.click();
+      }
+    },
+    true
+  );
+</script>
+
+<style is:global>
+  .confirmar {
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+    border: 0;
+    border-radius: var(--border-radius);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+    color: var(--color-neutral-80);
+  }
+
+  .confirmar::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .confirmar-caixa {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+  }
+
+  .confirmar-titulo {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--color-neutral-100);
+  }
+
+  .confirmar-texto {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .confirmar-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+  }
+</style>

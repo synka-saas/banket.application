@@ -10,6 +10,7 @@ import {
   type TipoPergunta,
 } from '../../lib/formularios/modelo';
 import { Icon } from '../ui/Icon';
+import { confirmar, toast } from '../../lib/ui';
 import '../../styles/formularios.css';
 
 interface Formulario {
@@ -37,10 +38,6 @@ interface Rascunho {
   obrigatoria: boolean;
   placeholder: string;
   ajuda: string;
-}
-
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(message, type);
 }
 
 const novoId = () => `c_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
@@ -89,8 +86,14 @@ export default function FormularioEditor({ formulario, origem }: Props) {
     });
   }
 
-  function removerPergunta(secao: string, p: PerguntaResolvida) {
-    if (!window.confirm(`Remover a pergunta "${p.rotulo}"? As respostas já recebidas continuam guardadas.`)) return;
+  async function removerPergunta(secao: string, p: PerguntaResolvida) {
+    const sim = await confirmar({
+      titulo: `Remover a pergunta "${p.rotulo}"?`,
+      texto: 'As respostas já recebidas continuam guardadas.',
+      confirmar: 'Remover',
+      perigo: true,
+    });
+    if (!sim) return;
     alterarSecao(secao, (s) => ({ ...s, perguntas: s.perguntas.filter((x) => x.id !== p.id) }));
   }
 
@@ -181,13 +184,19 @@ export default function FormularioEditor({ formulario, origem }: Props) {
   }
 
   async function duplicar() {
-    if (alterado && !window.confirm('Há alterações não salvas que não irão para a cópia. Continuar?')) return;
+    if (alterado && !(await confirmar({ titulo: 'Duplicar sem as alterações?', texto: 'Há alterações não salvas que não irão para a cópia.', confirmar: 'Duplicar' }))) return;
     const data = await enviar('POST');
     if (data?.id) window.location.href = `/formularios/${data.id}`;
   }
 
   async function excluir() {
-    if (!window.confirm(`Excluir o formulário "${formulario.nome}"? O link público deixa de funcionar.`)) return;
+    const sim = await confirmar({
+      titulo: `Excluir o formulário "${formulario.nome}"?`,
+      texto: 'O link público deixa de funcionar.',
+      confirmar: 'Excluir',
+      perigo: true,
+    });
+    if (!sim) return;
     const data = await enviar('DELETE');
     if (data) {
       setAlterado(false);

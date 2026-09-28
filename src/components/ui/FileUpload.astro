@@ -87,6 +87,7 @@ const {
 </div>
 
 <script>
+  import { toast } from '../../lib/ui';
   const tamanho = (bytes: number) =>
     bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
@@ -196,7 +197,7 @@ const {
       const arquivo = e.dataTransfer?.files?.[0];
       if (!arquivo) return;
       if (!aceita(arquivo, input.accept)) {
-        (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.('Formato de arquivo não aceito.', 'error');
+        toast('Formato de arquivo não aceito.', 'error');
         return;
       }
       const transferencia = new DataTransfer();

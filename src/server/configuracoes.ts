@@ -216,6 +216,7 @@ export const faixaLocacaoSchema = z
   })
   .refine((f) => f.max_convidados === null || f.max_convidados >= (f.min_convidados ?? 0), {
     message: 'O máximo de convidados deve ser maior ou igual ao mínimo.',
+    path: ['max_convidados'],
   });
 
 export interface FaixaLocacao {

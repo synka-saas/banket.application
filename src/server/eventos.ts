@@ -114,9 +114,10 @@ export const eventoSchema = z
     staff_terceiros: optionalText(255),
     comentario_cliente: optionalText(5000),
   })
-  .refine((e) => e.cliente_novo || e.cliente_id, { message: 'Selecione o cliente ou cadastre um novo.' })
+  .refine((e) => e.cliente_novo || e.cliente_id, { message: 'Selecione o cliente ou cadastre um novo.', path: ['cliente_id'] })
   .refine((e) => !e.hora_inicio || !e.hora_fim || e.hora_fim > e.hora_inicio || e.hora_fim < '06:00', {
     message: 'O horário de término deve ser depois do início.',
+    path: ['hora_fim'],
   });
 
 export type EventoInput = z.infer<typeof eventoSchema>;

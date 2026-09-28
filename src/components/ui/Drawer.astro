@@ -6,6 +6,9 @@
 // Os valores preenchem os campos do form pelo atributo name (checkbox múltiplo aceita array).
 // O form deve ter o id informado em formId; SALVAR envia _action=save e EXCLUIR envia _action=delete.
 // Evento "drawer:open" (detail: { values }) permite ajustes específicos da página.
+// O envio é feito por fetch (Accept: application/json, ver handleFormPost): em erro o painel continua aberto,
+// com a mensagem no topo e junto de cada campo; em sucesso a página recarrega com o flash.
+// Fechar com alterações não salvas pede confirmação. data-drawer-nativo no form mantém o POST tradicional.
 import Icon from './Icon.astro';
 
 interface Props {
@@ -67,7 +70,22 @@ const {
 </div>
 
 <script>
+  import { confirmar, emCarregamento } from '../../lib/ui';
+
   type Values = Record<string, unknown>;
+  type RespostaForm = { ok: true; redirect: string } | { ok: false; error: string; fields?: Record<string, string> };
+
+  const formDo = (drawer: HTMLElement) => document.getElementById(drawer.dataset.form!) as HTMLFormElement | null;
+
+  // Instantâneo do formulário ao abrir: fechar com alterações pede confirmação
+  const instantaneos = new WeakMap<HTMLElement, string>();
+  function serializar(form: HTMLFormElement): string {
+    return JSON.stringify([...new FormData(form)].map(([k, v]) => [k, typeof v === 'string' ? v : `${v.name}:${v.size}`]));
+  }
+  const alterado = (drawer: HTMLElement) => {
+    const form = formDo(drawer);
+    return Boolean(form && instantaneos.has(drawer) && instantaneos.get(drawer) !== serializar(form));
+  };
 
   function fillForm(form: HTMLFormElement, values: Values) {
     form.reset();
@@ -87,9 +105,62 @@ const {
     }
   }
 
+  // ---------- Erros vindos do servidor: no topo do painel e junto de cada campo ----------
+  function limparErros(drawer: HTMLElement) {
+    drawer.querySelector('.drawer-erro')?.remove();
+    drawer.querySelectorAll('.field-erro').forEach((el) => el.remove());
+    drawer.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+      el.removeAttribute('aria-invalid');
+      el.removeAttribute('aria-describedby');
+    });
+    drawer.querySelectorAll('.field.com-erro').forEach((el) => el.classList.remove('com-erro'));
+  }
+
+  function limparErroDoCampo(campo: HTMLElement) {
+    if (campo.getAttribute('aria-invalid') !== 'true') return;
+    campo.removeAttribute('aria-invalid');
+    const id = campo.getAttribute('aria-describedby');
+    if (id) document.getElementById(id)?.remove();
+    campo.removeAttribute('aria-describedby');
+    campo.closest('.field')?.classList.remove('com-erro');
+  }
+
+  function mostrarErros(drawer: HTMLElement, form: HTMLFormElement, mensagem: string, campos: Record<string, string> = {}) {
+    limparErros(drawer);
+    const topo = document.createElement('div');
+    topo.className = 'drawer-erro';
+    topo.setAttribute('role', 'alert');
+    topo.textContent = mensagem;
+    drawer.querySelector('.drawer-body')!.prepend(topo);
+
+    let primeiro: HTMLElement | null = null;
+    for (const [nome, texto] of Object.entries(campos)) {
+      const item = form.elements.namedItem(nome);
+      const campo = (item instanceof RadioNodeList ? item[0] : item) as HTMLElement | null;
+      if (!campo || (campo as HTMLInputElement).type === 'hidden') continue;
+      const id = `erro-${form.id}-${nome}`;
+      const aviso = document.createElement('p');
+      aviso.className = 'field-erro';
+      aviso.id = id;
+      aviso.textContent = texto;
+      const container = campo.closest<HTMLElement>('.field') ?? campo.parentElement!;
+      container.classList.add('com-erro');
+      container.appendChild(aviso);
+      campo.setAttribute('aria-invalid', 'true');
+      campo.setAttribute('aria-describedby', id);
+      primeiro ??= campo;
+    }
+    // Um erro só de campo repete a mensagem no topo; basta o destaque no campo
+    if (primeiro && Object.values(campos).includes(mensagem) && Object.keys(campos).length === 1) topo.remove();
+    if (primeiro) primeiro.focus();
+    else topo.scrollIntoView({ block: 'nearest' });
+  }
+
+  // ---------- Abrir e fechar ----------
   function openDrawer(drawer: HTMLElement, values: Values | null) {
-    const form = document.getElementById(drawer.dataset.form!) as HTMLFormElement | null;
+    const form = formDo(drawer);
     const isEdit = Boolean(values && values.id);
+    limparErros(drawer);
     if (form) {
       form.reset();
       form.querySelectorAll<HTMLInputElement>('input[type="hidden"][data-reset]').forEach((i) => (i.value = ''));
@@ -104,14 +175,83 @@ const {
     drawer.hidden = false;
     requestAnimationFrame(() => drawer.classList.add('open'));
     drawer.dispatchEvent(new CustomEvent('drawer:open', { detail: { values: values ?? {} }, bubbles: true }));
+    // Depois dos ajustes da página (drawer:open), o estado atual é o "não alterado"
+    setTimeout(() => form && instantaneos.set(drawer, serializar(form)));
     const first = drawer.querySelector<HTMLElement>('.drawer-body input:not([type=hidden]), .drawer-body select, .drawer-body textarea');
     first?.focus({ preventScroll: true });
   }
 
   function closeDrawer(drawer: HTMLElement) {
     drawer.classList.remove('open');
+    instantaneos.delete(drawer);
     setTimeout(() => (drawer.hidden = true), 250);
   }
+
+  async function pedirParaFechar(drawer: HTMLElement) {
+    if (alterado(drawer)) {
+      const sim = await confirmar({
+        titulo: 'Descartar as alterações?',
+        texto: 'O que foi digitado neste painel ainda não foi salvo.',
+        confirmar: 'Descartar',
+        cancelar: 'Continuar editando',
+        perigo: true,
+      });
+      if (!sim) return;
+    }
+    closeDrawer(drawer);
+  }
+
+  // ---------- Envio por fetch: em erro o painel continua aberto com o que foi digitado ----------
+  async function enviar(drawer: HTMLElement, form: HTMLFormElement, submitter: HTMLElement | null) {
+    const botao = submitter instanceof HTMLButtonElement ? submitter : null;
+    const rotulo = botao?.value === 'delete' ? 'Excluindo…' : 'Salvando…';
+    const restaurar = botao ? emCarregamento(botao, rotulo) : () => {};
+    drawer.querySelectorAll<HTMLButtonElement>('.drawer-actions button[type=submit]').forEach((b) => (b.disabled = true));
+    let concluido = false;
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form, submitter),
+        headers: { Accept: 'application/json' },
+        redirect: 'manual',
+      });
+      // Página que ainda não responde JSON: segue o fluxo antigo (recarrega e mostra o flash)
+      if (res.type === 'opaqueredirect' || !(res.headers.get('Content-Type') ?? '').includes('application/json')) {
+        concluido = true;
+        window.location.reload();
+        return;
+      }
+      const dados = (await res.json()) as RespostaForm;
+      if (dados.ok) {
+        concluido = true;
+        instantaneos.delete(drawer);
+        window.location.assign(dados.redirect);
+        return;
+      }
+      mostrarErros(drawer, form, dados.error, dados.fields);
+    } catch {
+      mostrarErros(drawer, form, 'Não foi possível salvar. Verifique a conexão e tente novamente.');
+    } finally {
+      // Sucesso: mantém os botões travados até a página trocar
+      if (!concluido) {
+        restaurar();
+        drawer.querySelectorAll<HTMLButtonElement>('.drawer-actions button[type=submit]').forEach((b) => (b.disabled = false));
+      }
+    }
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-drawer]').forEach((drawer) => {
+    const form = formDo(drawer);
+    if (!form || form.hasAttribute('data-drawer-nativo')) return;
+    form.addEventListener('submit', (e) => {
+      // Respeita validações da página que já cancelaram o envio
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      enviar(drawer, form, (e as SubmitEvent).submitter);
+    });
+    form.addEventListener('input', (e) => limparErroDoCampo(e.target as HTMLElement));
+    form.addEventListener('change', (e) => limparErroDoCampo(e.target as HTMLElement));
+  });
 
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
@@ -128,15 +268,16 @@ const {
     const closer = target.closest<HTMLElement>('[data-drawer-close]');
     if (closer) {
       const drawer = closer.closest<HTMLElement>('[data-drawer]');
-      if (drawer) closeDrawer(drawer);
+      if (drawer) pedirParaFechar(drawer);
       return;
     }
-    if (target.matches('[data-drawer]')) closeDrawer(target);
+    if (target.matches('[data-drawer]')) pedirParaFechar(target);
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    document.querySelectorAll<HTMLElement>('[data-drawer].open').forEach(closeDrawer);
+    // Esc com o modal de confirmação aberto fecha só o modal
+    if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
+    document.querySelectorAll<HTMLElement>('[data-drawer].open').forEach(pedirParaFechar);
   });
 </script>
 

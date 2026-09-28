@@ -5,6 +5,7 @@ import { novaChave, precoSecao, type CardapioOrcamento, type ItemOrcamento, type
 import type { CatalogoConstrutor } from '../../server/orcamento';
 import { Acordeao, ValorManual } from './controles';
 import { Icon } from '../ui/Icon';
+import { confirmar } from '../../lib/ui';
 
 type SecaoCatalogo = CatalogoConstrutor['secoes'][number];
 
@@ -100,7 +101,7 @@ export default function Cardapios({ cardapios, catalogo, equivalentes, total, di
           disabled={disabled}
           onChange={(patch) => atualizar(c.key, patch)}
           onSecao={(secaoKey, patch) => atualizarSecao(c, secaoKey, patch)}
-          onRemover={() => window.confirm(`Remover o cardápio "${c.nome}"?`) && onChange(cardapios.filter((x) => x.key !== c.key))}
+          onRemover={async () => (await confirmar({ titulo: `Remover o cardápio "${c.nome}"?`, confirmar: 'Remover', perigo: true })) && onChange(cardapios.filter((x) => x.key !== c.key))}
         />
       ))}
 

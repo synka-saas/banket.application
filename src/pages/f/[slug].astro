@@ -132,6 +132,7 @@ const mensagemSucesso =
 )}
 
 <script>
+  import { toast as mostrarToast, type ToastTipo } from '../../lib/ui';
   const form = document.getElementById('fp-form') as HTMLFormElement | null;
   if (form) iniciar(form);
 
@@ -145,8 +146,7 @@ const mensagemSucesso =
     let atual = 0;
     let enviando = false;
 
-    const toast = (m: string, t = 'error') =>
-      (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(m, t);
+    const toast = (m: string, t: ToastTipo = 'error') => mostrarToast(m, t);
 
     const natureza = () => form.querySelector<HTMLInputElement>('input[name="natureza"]:checked')?.value ?? null;
 

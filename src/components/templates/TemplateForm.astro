@@ -60,7 +60,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
           <button type="submit" name="_action" value="excluir" class="btn btn-outline btn-md" formnovalidate data-confirm="Excluir este template?">Excluir</button>
         </>
       )}
-      <Button type="submit" variant="success">Salvar</Button>
+      <Button type="submit" variant="success" data-carregando="Salvando…">Salvar</Button>
     </div>
     <div class="form-grid gerais">
       <div class="field">
@@ -239,6 +239,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 </form>
 
 <script>
+  import { toast } from '../../lib/ui';
   const form = document.querySelector<HTMLFormElement>('[data-template-form]');
   if (form) {
     const aplicarVars = () => {
@@ -306,8 +307,6 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       return canvas.toDataURL('image/png');
     };
 
-    const toast = (msg: string, tipo: 'success' | 'error' | 'info') =>
-      (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(msg, tipo);
 
     const valoresAtuais = () =>
       Object.fromEntries(

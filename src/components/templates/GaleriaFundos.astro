@@ -24,6 +24,7 @@ const { pagina, campo } = Astro.props;
 </div>
 
 <script>
+  import { confirmar, toast } from '../../lib/ui';
   interface Fundo {
     id: string;
     pagina: string;
@@ -33,8 +34,6 @@ const { pagina, campo } = Astro.props;
   }
 
   const galerias = [...document.querySelectorAll<HTMLElement>('[data-galeria]')];
-  const toast = (msg: string, tipo: 'success' | 'error' | 'info') =>
-    (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(msg, tipo);
   const statusAnterior = new Map<string, Fundo['status']>();
   let espera: ReturnType<typeof setTimeout> | null = null;
 
@@ -62,7 +61,7 @@ const { pagina, campo } = Astro.props;
   }
 
   async function excluir(fundo: Fundo) {
-    if (!confirm('Excluir esta imagem da galeria?')) return;
+    if (!(await confirmar({ titulo: 'Excluir esta imagem da galeria?', confirmar: 'Excluir', perigo: true }))) return;
     const res = await fetch(`/api/templates/imagem-fundo/${fundo.id}`, { method: 'DELETE' });
     const dados = await res.json().catch(() => ({}));
     if (!res.ok) return toast(dados.error ?? 'Não foi possível excluir.', 'error');

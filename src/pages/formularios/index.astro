@@ -65,16 +65,17 @@ const pad = (n: number) => String(n).padStart(2, '0');
 </AppLayout>
 
 <script>
+  import { toast } from '../../lib/ui';
+
   // Copia o link público do formulário
   document.addEventListener('click', async (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>('[data-copiar]');
     if (!el) return;
-    const toast = (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast;
     try {
       await navigator.clipboard.writeText(el.dataset.copiar!);
-      toast?.('Link copiado.', 'success');
+      toast('Link copiado.', 'success');
     } catch {
-      toast?.('Não foi possível copiar. Copie o endereço manualmente.', 'error');
+      toast('Não foi possível copiar. Copie o endereço manualmente.', 'error');
     }
   });
 </script>

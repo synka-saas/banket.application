@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, login, waitForIslands } from './helpers';
+import { confirmarModal, expectToast, login, waitForIslands } from './helpers';
 
 test.describe('Formulários', () => {
   test('configura um formulário e recebe um pedido pela página pública', async ({ page }) => {
@@ -94,14 +94,14 @@ test.describe('Formulários', () => {
 
     // ---------- Limpeza ----------
     await page.goBack();
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir evento' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Evento excluído.');
 
     await page.goto(`/formularios/${formId}`);
     await waitForIslands(page);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Formulário removido.');
     await expect(page.locator('.info-card', { hasText: nome })).toHaveCount(0);
 

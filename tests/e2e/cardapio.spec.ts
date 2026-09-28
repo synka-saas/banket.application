@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, login, waitForIslands } from './helpers';
+import { confirmarModal, expectToast, login, waitForIslands } from './helpers';
 
 test.describe('Cardápio', () => {
   test.beforeEach(async ({ page }) => {
@@ -43,8 +43,8 @@ test.describe('Cardápio', () => {
     await expectToast(page, 'Cardápio duplicado.');
     for (const titulo of [`${nome} (cópia)`, nome]) {
       await waitForIslands(page);
-      page.once('dialog', (d) => d.accept());
       await page.locator('.info-card', { hasText: titulo }).last().getByRole('button', { name: 'Editar' }).click();
+      await confirmarModal(page);
       await page.locator('.ed-drawer').getByRole('button', { name: 'Excluir' }).click();
       await expectToast(page, 'Cardápio removido.');
     }
@@ -69,8 +69,8 @@ test.describe('Cardápio', () => {
     await expect(linha).toContainText('R$ 9,90');
     await linha.getByRole('button', { name: 'Editar' }).click();
     await expect(drawer.getByLabel('Sem lactose')).toBeChecked();
-    page.once('dialog', (d) => d.accept());
     await drawer.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Item removido.');
   });
 });

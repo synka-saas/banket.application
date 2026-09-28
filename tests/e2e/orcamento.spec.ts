@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectToast, login, waitForIslands } from './helpers';
+import { confirmarModal, expectToast, login, waitForIslands } from './helpers';
 
 // Valores esperados com os dados de referência (seeds): 100 convidados, local "no nosso espaço".
 // Staff padrão para 100 convidados: Garçom 7×250 + Maître 1×450 + Copeira 2×200 + Aux. cozinha 4×200
@@ -89,8 +89,8 @@ test.describe('Orçamento', () => {
     // Nova versão congela a anterior
     await page.goto(`${eventoUrl}/orcamento`);
     await waitForIslands(page);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Criar nova versão' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Versão 02 criada.');
     await waitForIslands(page);
     await expect(resumo(page)).toContainText('Versão: 02');
@@ -119,8 +119,8 @@ test.describe('Orçamento', () => {
     // Limpeza
     await page.goto(eventoUrl);
     await expect(page.locator('.cabecalho-card')).toContainText('R$ 31.550,00');
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir evento' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Evento excluído.');
   });
 });

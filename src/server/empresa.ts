@@ -26,9 +26,11 @@ export const empresaSchema = z
   .transform((e) => ({ ...e, documento: e.documento ? somenteDigitos(e.documento) : null }))
   .refine((e) => !e.documento || (e.tipo_pessoa === 'PF' ? cpfValido(e.documento) : cnpjValido(e.documento)), {
     message: 'CPF/CNPJ inválido.',
+    path: ['documento'],
   })
   .refine((e) => (e.criancas_meia_ate ?? 0) >= (e.criancas_isentas_ate ?? 0), {
     message: 'A idade limite para meia deve ser maior ou igual à de isenção.',
+    path: ['criancas_meia_ate'],
   });
 
 export type EmpresaInput = z.infer<typeof empresaSchema>;

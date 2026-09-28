@@ -165,6 +165,43 @@ select.control {
   box-shadow: 0 0 0 2px rgba(227, 83, 54, 0.12);
 }
 
+/* ---------- Erros de validação: junto do campo e no topo do formulário/painel ---------- */
+.field [aria-invalid='true'],
+.control[aria-invalid='true'] {
+  border-color: var(--color-primary-50);
+  box-shadow: 0 0 0 1px var(--color-primary-50);
+}
+
+.field-erro {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-50);
+}
+
+.field-erro::before {
+  content: 'error';
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.drawer-erro,
+.form-erro {
+  margin-bottom: 24px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-primary-10);
+  color: var(--color-primary-60);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .field-section-title {
   font-size: 14px;
   font-weight: 600;

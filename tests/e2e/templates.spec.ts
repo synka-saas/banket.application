@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { excluirEvento, expectToast, login, waitForIslands } from './helpers';
+import { confirmarModal, excluirEvento, expectToast, login, waitForIslands } from './helpers';
 
 const SHOTS = process.env.SHOTS;
 const shot = (page: Page, nome: string) => (SHOTS ? page.screenshot({ path: `${SHOTS}/${nome}.png`, fullPage: true }) : null);
@@ -39,14 +39,14 @@ test.describe('Templates, blocos e PDF', () => {
     await page.getByRole('button', { name: 'Duplicar' }).click();
     await expectToast(page, 'Template duplicado.');
     expect(page.url()).not.toBe(templateUrl);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Template excluído.');
 
     // Excluir o original
     await page.goto(templateUrl);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Template excluído.');
     await expect(page.locator('main')).not.toContainText(nome);
 
@@ -69,8 +69,8 @@ test.describe('Templates, blocos e PDF', () => {
     await expect(page.locator('.chip-bloco.atual')).toHaveText(new RegExp(titulo, 'i'));
     await shot(page, 'template-blocos');
 
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Bloco removido.');
     await expect(page.locator('.chip-bloco', { hasText: titulo })).toHaveCount(0);
   });
@@ -114,8 +114,8 @@ test.describe('Templates, blocos e PDF', () => {
     // Nova versão congela a 01; o PDF dela passa a ser o arquivo salvo
     await page.goto(base);
     await waitForIslands(page);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Criar nova versão' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Versão 02 criada.');
     const congelada = await page.request.get(`${base}/pdf?versao=1`);
     expect(congelada.status()).toBe(200);

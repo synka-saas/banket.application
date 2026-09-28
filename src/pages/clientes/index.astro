@@ -6,8 +6,7 @@ import Pagination from '../../components/ui/Pagination.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
 import Drawer from '../../components/ui/Drawer.astro';
 import { withTenant } from '../../lib/db';
-import { setFlash } from '../../lib/flash';
-import { formToObject, userMessage } from '../../lib/forms';
+import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
 import { formatarDocumento } from '../../lib/documento';
 import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
@@ -16,21 +15,16 @@ import { clienteSchema, excluirCliente, listarClientes, salvarCliente } from '..
 const { tenantId } = Astro.locals.user;
 
 if (Astro.request.method === 'POST') {
-  const data = formToObject(await Astro.request.formData());
-  const id = (data.id as string) || null;
-  try {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
     if (data._action === 'delete' && id) {
       await withTenant(tenantId, (db) => excluirCliente(db, id));
-      setFlash(Astro.cookies, 'success', 'Cliente removido.');
-    } else {
-      const input = clienteSchema.parse(data);
-      await withTenant(tenantId, (db) => salvarCliente(db, tenantId, id, input));
-      setFlash(Astro.cookies, 'success', id ? 'Cliente atualizado.' : 'Cliente cadastrado.');
+      return 'Cliente removido.';
     }
-  } catch (err) {
-    setFlash(Astro.cookies, 'error', userMessage(err));
-  }
-  return Astro.redirect(Astro.url.pathname + Astro.url.search);
+    const input = clienteSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarCliente(db, tenantId, id, input));
+    return id ? 'Cliente atualizado.' : 'Cliente cadastrado.';
+  });
 }
 
 const page = pageParams(Astro.url);

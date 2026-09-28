@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, login } from './helpers';
+import { confirmarModal, expectToast, login } from './helpers';
 
 test.describe('Eventos e quadro de vendas', () => {
   test.beforeEach(async ({ page }) => {
@@ -77,15 +77,15 @@ test.describe('Eventos e quadro de vendas', () => {
 
     // Exclusão do evento e depois do cliente (sem eventos)
     await page.goto(eventoUrl);
-    page.once('dialog', (d) => d.accept());
     await page.getByRole('button', { name: 'Excluir evento' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Evento excluído.');
     await expect(page).toHaveURL(/\/eventos$/);
 
     await page.goto(`/clientes?q=${encodeURIComponent(cliente)}`);
     await page.locator('tr', { hasText: cliente }).getByRole('button', { name: 'Editar' }).click();
-    page.once('dialog', (d) => d.accept());
     await page.locator('#drawer-cliente').getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Cliente removido.');
   });
 

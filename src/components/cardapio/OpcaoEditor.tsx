@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { moneyInput, parseMoney } from '../../lib/money';
 import { Icon } from '../ui/Icon';
+import { confirmar, toast } from '../../lib/ui';
 import '../../styles/editor.css';
 
 interface CatalogoItem {
@@ -56,10 +57,6 @@ const vazio: FormState = {
 
 let seq = 0;
 const novaChave = () => `s${++seq}`;
-
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(message, type);
-}
 
 export default function OpcaoEditor({ catalogo, formatos }: Props) {
   const [aberto, setAberto] = useState(false);
@@ -199,8 +196,9 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
     enviar(form.id ? 'PUT' : 'POST', form.id ? `/api/cardapio/opcoes/${form.id}` : '/api/cardapio/opcoes', payload);
   }
 
-  function excluir() {
-    if (form.id && window.confirm(`Excluir o cardápio "${form.nome}"?`)) enviar('DELETE', `/api/cardapio/opcoes/${form.id}`);
+  async function excluir() {
+    if (!form.id) return;
+    if (await confirmar({ titulo: `Excluir o cardápio "${form.nome}"?`, confirmar: 'Excluir', perigo: true })) enviar('DELETE', `/api/cardapio/opcoes/${form.id}`);
   }
 
   function duplicar() {

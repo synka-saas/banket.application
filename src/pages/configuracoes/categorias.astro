@@ -195,9 +195,10 @@ const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
 </AppLayout>
 
 <script>
+  import { toast } from '../../lib/ui';
+
   document.querySelectorAll<HTMLInputElement>('[data-toggle-tipo]').forEach((input) => {
     input.addEventListener('change', async () => {
-      const toast = (window as unknown as { banketToast: (m: string, t?: string) => void }).banketToast;
       input.disabled = true;
       try {
         const res = await fetch('/api/configuracoes/categorias/tipos', {

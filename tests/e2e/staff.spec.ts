@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectToast, login } from './helpers';
+import { confirmarModal, expectToast, login } from './helpers';
 
 test.describe('Staff', () => {
   test.beforeEach(async ({ page }) => {
@@ -32,8 +32,8 @@ test.describe('Staff', () => {
     await expect(card).toContainText('02 profissionais');
 
     await card.getByRole('button', { name: 'Editar' }).click();
-    page.once('dialog', (d) => d.accept());
     await drawer.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Serviço removido.');
     await expect(page.locator('.info-card', { hasText: funcao })).toHaveCount(0);
   });
@@ -62,8 +62,8 @@ test.describe('Staff', () => {
     await expect(page.getByLabel(`Especialidade de ${nome}`).locator('option:checked')).toHaveText('Copeira');
 
     await page.locator('tr', { hasText: nome }).getByRole('button', { name: 'Editar' }).click();
-    page.once('dialog', (d) => d.accept());
     await drawer.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
     await expectToast(page, 'Profissional removido.');
   });
 });

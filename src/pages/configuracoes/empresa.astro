@@ -42,7 +42,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
 <AppLayout title="Empresa" heading="Configurações / Empresa" submenu={CONFIG_SUBMENU} submenuActive="empresa">
   <form method="post" enctype="multipart/form-data" class="empresa-form">
     <div class="form-actions">
-      <Button type="submit" variant="success">Salvar</Button>
+      <Button type="submit" variant="success" data-carregando="Salvando…">Salvar</Button>
     </div>
 
     <SectionCard title="Dados da empresa" icon="domain">

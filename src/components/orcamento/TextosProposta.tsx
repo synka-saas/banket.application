@@ -3,6 +3,7 @@
 import { useRef, useState } from 'preact/hooks';
 import { novaChave, type BlocoTexto } from '../../lib/calculo/orcamento';
 import { Acordeao } from './controles';
+import { toast } from '../../lib/ui';
 import '../../styles/orcamento.css';
 
 interface BlocoCadastro {
@@ -19,10 +20,6 @@ interface Props {
   textos: BlocoTexto[];
   cadastro: BlocoCadastro[];
   paginas: Record<BlocoTexto['pagina'], string>;
-}
-
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(message, type);
 }
 
 export default function TextosProposta({ eventoId, numero, congelada, textos: inicial, cadastro, paginas }: Props) {

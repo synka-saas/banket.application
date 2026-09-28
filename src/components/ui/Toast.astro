@@ -8,59 +8,158 @@ interface Props {
 const { flash } = Astro.props;
 ---
 
-<div id="toast-root" class="toast-root" aria-live="polite">
-  {flash && <div class:list={['toast', `toast-${flash.type}`]} role="status">{flash.message}</div>}
-</div>
+<div id="toast-root" class="toast-root" aria-live="polite" data-flash={flash ? JSON.stringify(flash) : undefined}></div>
 
 <script>
-  // API global para feedback em telas interativas: window.banketToast('Salvo!', 'success')
-  type ToastType = 'success' | 'error' | 'info';
+  // API global: window.banketToast(mensagem, tipo, { acao }) — use toast() de lib/ui.ts.
+  // Erros ficam até o usuário fechar (role="alert"); sucesso e informação somem sozinhos, pausando com o mouse em cima.
+  import type { ToastOpcoes, ToastTipo } from '../../lib/ui';
+
+  const DURACAO = 5000;
   const root = document.getElementById('toast-root')!;
 
-  function dismiss(el: Element) {
+  function dismiss(el: HTMLElement) {
+    if (el.classList.contains('leaving')) return;
     el.classList.add('leaving');
     setTimeout(() => el.remove(), 300);
   }
 
-  function show(message: string, type: ToastType = 'info') {
+  function show(message: string, type: ToastTipo = 'info', opcoes: ToastOpcoes = {}) {
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
-    el.setAttribute('role', 'status');
-    el.textContent = message;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+    const texto = document.createElement('span');
+    texto.className = 'toast-texto';
+    texto.textContent = message;
+    el.appendChild(texto);
+
+    if (opcoes.acao) {
+      const { rotulo, executar } = opcoes.acao;
+      const acao = document.createElement('button');
+      acao.type = 'button';
+      acao.className = 'toast-acao';
+      acao.textContent = rotulo;
+      acao.addEventListener('click', () => {
+        dismiss(el);
+        executar();
+      });
+      el.appendChild(acao);
+    }
+
+    const fechar = document.createElement('button');
+    fechar.type = 'button';
+    fechar.className = 'toast-fechar';
+    fechar.setAttribute('aria-label', 'Fechar aviso');
+    fechar.innerHTML = '<span class="icon" aria-hidden="true" translate="no">close</span>';
+    fechar.addEventListener('click', () => dismiss(el));
+    el.appendChild(fechar);
+
     root.appendChild(el);
-    setTimeout(() => dismiss(el), 4500);
+
+    // Erro fica até fechar; com ação (ex.: Desfazer) o prazo é maior
+    if (type !== 'error') {
+      let restante = opcoes.acao ? DURACAO * 2 : DURACAO;
+      let inicio = Date.now();
+      let timer = window.setTimeout(() => dismiss(el), restante);
+      el.addEventListener('mouseenter', () => {
+        clearTimeout(timer);
+        restante -= Date.now() - inicio;
+      });
+      el.addEventListener('mouseleave', () => {
+        inicio = Date.now();
+        timer = window.setTimeout(() => dismiss(el), Math.max(restante, 1500));
+      });
+    }
   }
 
-  (window as unknown as { banketToast: typeof show }).banketToast = show;
-  root.querySelectorAll('.toast').forEach((el) => setTimeout(() => dismiss(el), 4500));
+  window.banketToast = show;
+
+  // Mensagem do flash (POST → redirect)
+  if (root.dataset.flash) {
+    try {
+      const flash = JSON.parse(root.dataset.flash) as { type: ToastTipo; message: string };
+      show(flash.message, flash.type);
+    } catch {
+      // flash inválido: ignora
+    }
+  }
 </script>
 
 <style is:global>
+  /* Embaixo à direita: não cobre os botões do cabeçalho dos drawers */
   .toast-root {
     position: fixed;
-    top: 24px;
+    bottom: 24px;
     right: 24px;
     z-index: 2000;
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
     gap: 8px;
     pointer-events: none;
   }
 
   .toast {
     pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     min-width: 280px;
-    max-width: 420px;
-    padding: 14px 18px;
+    max-width: 440px;
+    padding: 12px 8px 12px 18px;
     border-radius: var(--border-radius);
     font-size: 14px;
     font-weight: 600;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
     background: var(--color-white);
     border-left: 4px solid var(--color-neutral-50);
     color: var(--color-neutral-80);
     animation: toast-in 0.25s ease;
     transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .toast-texto {
+    flex: 1;
+  }
+
+  .toast-acao {
+    padding: 6px 10px;
+    border: 0;
+    border-radius: var(--border-radius-sm);
+    background: var(--color-neutral-10);
+    color: var(--color-neutral-100);
+    font: inherit;
+    font-size: 13px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .toast-acao:hover {
+    background: var(--color-neutral-20);
+  }
+
+  .toast-fechar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--color-neutral-65);
+    cursor: pointer;
+  }
+
+  .toast-fechar:hover {
+    background: var(--color-neutral-10);
+    color: var(--color-neutral-100);
+  }
+
+  .toast-fechar .icon {
+    font-size: 20px;
   }
 
   .toast.leaving {
@@ -72,8 +171,22 @@ const { flash } = Astro.props;
   .toast-error { border-left-color: var(--color-primary); color: var(--color-primary-60); }
   .toast-info { border-left-color: var(--color-neutral-65); }
 
+  @media (max-width: 640px) {
+    .toast-root {
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      align-items: stretch;
+    }
+
+    .toast {
+      min-width: 0;
+      max-width: none;
+    }
+  }
+
   @keyframes toast-in {
-    from { opacity: 0; transform: translateX(16px); }
-    to { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>

@@ -1,10 +1,11 @@
 ---
-// Casca das telas autenticadas: sidebar, topbar, submenu opcional, toast de feedback e área de conteúdo.
+// Casca das telas autenticadas: sidebar, topbar, submenu opcional, toast, modal de confirmação e área de conteúdo.
 import Layout from './Layout.astro';
 import Sidebar from '../components/Sidebar.astro';
 import Topbar from '../components/Topbar.astro';
 import Submenu from '../components/Submenu.astro';
 import Toast from '../components/ui/Toast.astro';
+import Confirmar from '../components/ui/Confirmar.astro';
 
 interface SubmenuItem {
   id: string;
@@ -39,21 +40,26 @@ const { title, heading = title, submenu, submenuActive } = Astro.props;
   </main>
   <slot name="overlays" />
   <Toast flash={Astro.locals.flash} />
+  <Confirmar />
 </Layout>
 
 <script>
-  // Qualquer botão/link com data-confirm pede confirmação antes de agir.
-  document.addEventListener(
-    'click',
-    (e) => {
-      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-confirm]');
-      if (el && !window.confirm(el.dataset.confirm!)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
-    },
-    true
-  );
+  import { emCarregamento } from '../lib/ui';
+
+  // Botão de envio com data-carregando="Enviando…": fica desabilitado, com spinner, até a página trocar.
+  // Roda depois dos outros handlers (setTimeout) para respeitar quem cancelou o envio.
+  const restaurar: (() => void)[] = [];
+  document.addEventListener('submit', (e) => {
+    const botao = (e as SubmitEvent).submitter;
+    if (!(botao instanceof HTMLButtonElement) || botao.dataset.carregando === undefined) return;
+    setTimeout(() => {
+      if (!e.defaultPrevented) restaurar.push(emCarregamento(botao, botao.dataset.carregando || undefined));
+    });
+  });
+  // Voltar pelo histórico (bfcache) não pode deixar botões presos em carregamento
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) restaurar.splice(0).forEach((fn) => fn());
+  });
 
   // Selects editáveis dentro de tabelas (papel, categoria, especialidade) enviam o formulário ao mudar.
   document.addEventListener('change', (e) => {

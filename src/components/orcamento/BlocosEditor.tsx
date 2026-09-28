@@ -4,6 +4,7 @@ import { useRef, useState } from 'preact/hooks';
 import { calcularOrcamento, novaChave, type BlocoInfo, type ConteudoOrcamento, type FaixaLocacaoRef } from '../../lib/calculo/orcamento';
 import { Acordeao } from './controles';
 import { Icon } from '../ui/Icon';
+import { confirmar, toast } from '../../lib/ui';
 import '../../styles/orcamento.css';
 
 interface Props {
@@ -13,10 +14,6 @@ interface Props {
   campo: 'informacoes_complementares' | 'condicoes_gerais';
   conteudo: ConteudoOrcamento;
   faixas: FaixaLocacaoRef[];
-}
-
-function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {
-  (window as unknown as { banketToast?: (m: string, t: string) => void }).banketToast?.(message, type);
 }
 
 export default function BlocosEditor({ eventoId, numero, congelada, campo, conteudo: inicial, faixas }: Props) {
@@ -75,7 +72,7 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
             <div class="adicionar-linha">
               <input class="control" value={b.titulo} aria-label="Título do bloco" maxLength={200}
                 onBlur={(e) => e.currentTarget.value.trim() && e.currentTarget.value !== b.titulo && atualizarBloco(b.key, { titulo: e.currentTarget.value.trim() })} />
-              <button type="button" class="link-perigo" onClick={() => window.confirm(`Remover o bloco "${b.titulo}"?`) && alterar(blocos.filter((x) => x.key !== b.key))}>
+              <button type="button" class="link-perigo" onClick={async () => (await confirmar({ titulo: `Remover o bloco "${b.titulo}"?`, confirmar: 'Remover', perigo: true })) && alterar(blocos.filter((x) => x.key !== b.key))}>
                 Remover bloco
               </button>
             </div>

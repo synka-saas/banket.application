@@ -46,7 +46,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
     <div class="form-acoes">
       <Button variant="outline" href={cancelarHref}>Cancelar</Button>
-      <Button type="submit" variant="success">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+      <Button type="submit" variant="success" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
     </div>
   </div>
 
@@ -301,7 +301,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
 
   <div class="form-rodape">
     <Button variant="outline" href={cancelarHref}>Cancelar</Button>
-    <Button type="submit" variant="success">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
+    <Button type="submit" variant="success" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
   </div>
 </form>
 

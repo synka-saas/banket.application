@@ -36,10 +36,10 @@ export const servicoSchema = z
   })
   .superRefine((s, ctx) => {
     if (s.regra === 'por_evento' && !s.quantidade_fixa) {
-      ctx.addIssue({ code: 'custom', message: 'Informe quantos profissionais por evento.' });
+      ctx.addIssue({ code: 'custom', message: 'Informe quantos profissionais por evento.', path: ['quantidade_fixa'] });
     }
     if (s.regra === 'proporcional' && !s.convidados_por_profissional && !s.minimo) {
-      ctx.addIssue({ code: 'custom', message: 'Informe a proporção de convidados por profissional ou um mínimo.' });
+      ctx.addIssue({ code: 'custom', message: 'Informe a proporção de convidados por profissional ou um mínimo.', path: ['convidados_por_profissional'] });
     }
   });
 
@@ -134,7 +134,7 @@ export const profissionalSchema = z
     ativo: checkbox(),
   })
   .transform((p) => ({ ...p, documento: p.documento ? somenteDigitos(p.documento) : null }))
-  .refine((p) => !p.documento || cpfValido(p.documento), { message: 'CPF inválido.' });
+  .refine((p) => !p.documento || cpfValido(p.documento), { message: 'CPF inválido.', path: ['documento'] });
 
 export type ProfissionalInput = z.infer<typeof profissionalSchema>;
 
