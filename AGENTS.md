@@ -344,6 +344,7 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `013_auth_autoatendimento` | token `link_acesso`, `usuarios.telefone`, documento de tenant único |
 | `014_template_rodape_logo` | `rodape_logo_ativo` + `rodape_logo_posicao`; `rodape_logo_path` fica sem uso (remover num deploy futuro) |
 | `015_template_fundos_ia` | galeria `template_fundos_ia` (fundos gerados por IA, status gerando/pronto/erro) |
+| `016_fase4_ux` | `eventos.motivo_perda`/`fechado_em` (etapas recusado/aprovado), `evento_timeline.retorno_em` (anotações), `tenant_usuarios.ocultar_primeiros_passos` |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -421,6 +422,23 @@ Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): evento
 pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médio, próximos eventos e **orçamentos parados**
 (enviados há mais de 7 dias sem mudança). Valor do evento = total da versão atual do orçamento. Também mostra
 "primeiros passos" para empresas novas.
+
+### Fase 4 de UX (resumo do que existe além do descrito abaixo)
+- **Etapas de fechamento**: mover para `recusado` pede o motivo e `aprovado` a data (`EtapaDialogo`, `moverEvento`
+  com extras); sair da etapa limpa `motivo_perda`/`fechado_em`. A faixa do resumo troca etapa via fetch com Desfazer.
+- **Anotações**: linha do tempo aceita anotações manuais (`registrarAnotacao`, tipo `anotacao`) com `retorno_em`;
+  o dashboard lista os "Retornos combinados". Primeiros passos para todos, com "Ocultar" por usuário.
+- **Formulários**: `/f/:slug?previa=1` mostra prévia ao dono logado (até inativo, sem envio); respostas com
+  detalhe, filtro por período e CSV (`/formularios/:id/respostas-exportar`); "Compartilhar" com QR (lib `qrcode`),
+  iframe e WhatsApp; confirmação por e-mail a quem preencheu; rascunho em `sessionStorage`.
+- **Importação CSV** (`server/importacao.ts` + `lib/csv.ts`): `/clientes/importar` e `/cardapio/importar`
+  (modelo para baixar; válidas entram, inválidas voltam por linha; seções criadas pelo nome).
+- **Minha conta** (`/conta`, `server/conta.ts`, conexão de sistema): perfil, troca de senha, empresas.
+- **Termos**: `/termos` e `/privacidade` (públicas), aceite com link no cadastro/convite.
+- **Login**: "Manter conectado" (cookie de sessão vs 7 dias, `setSessionCookie(…, persistente)`).
+- **Categorias de item**: em Cardápios › Categorias (`/cardapio/categorias`); Configurações ficou com Ocasiões.
+- **Prévias**: `/eventos/:id/orcamento/previa` (proposta) e a prévia real no editor de template, ambas via
+  `/print/*` com print token; `FileUpload` comprime imagem no navegador (`comprimirKb`).
 
 ### Quadro de vendas (eventos) — `/eventos` (`server/eventos.ts`)
 - Kanban com colunas = `status_orcamento` (arrastar e soltar → `PATCH /api/eventos/:id/status`, registra na timeline)
@@ -607,7 +625,8 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 - Funções puras que rodam no navegador (cálculo, modelo de formulário, money) não podem importar `db` nem Node.
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
-  (agenda-dashboard, autoatendimento, cardápio, drawer, eventos, formulários, orçamento, segurança, staff, templates).
+  (agenda-dashboard, autoatendimento, cardápio, conta, drawer, eventos, formulários, listas, mobile, orçamento,
+  segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
