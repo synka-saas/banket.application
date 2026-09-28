@@ -17,12 +17,19 @@ test.describe('Eventos e quadro de vendas', () => {
     await page.getByLabel('Convidados', { exact: true }).fill('120');
     await page.getByLabel('Início').fill('20:00');
     await page.getByLabel('Término').fill('19:00');
+    await page.getByLabel('CPF', { exact: true }).fill('123.456.789-00');
     await page.getByRole('button', { name: 'Criar evento' }).first().click();
-    await expect(page.locator('.form-erro')).toContainText('O horário de término deve ser depois do início.');
+    // Todos os erros de uma vez (evento e cliente novo), cada um junto do seu campo
+    await expect(page.locator('.form-erro')).toContainText('Corrija os 2 campos destacados');
+    await expect(page.locator('#erro-form-evento-hora_fim')).toHaveText('O horário de término deve ser depois do início.');
+    await expect(page.locator('#erro-form-evento-cliente_documento')).toHaveText('CPF/CNPJ inválido.');
+    await expect(page.getByLabel('Término')).toHaveAttribute('aria-invalid', 'true');
     await expect(page.getByLabel('Nome / Razão social*')).toHaveValue(cliente);
     await expect(page.getByLabel('Convidados', { exact: true })).toHaveValue('120');
 
-    // Corrige e cria
+    // Corrige e cria (corrigir o campo tira o destaque)
+    await page.getByLabel('CPF', { exact: true }).fill('');
+    await expect(page.locator('#erro-form-evento-cliente_documento')).toHaveCount(0);
     await page.getByLabel('Término').fill('23:30');
     await page.getByLabel('Data', { exact: true }).fill('2027-03-15');
     await page.getByLabel('Tipo', { exact: true }).selectOption({ label: 'Social' });
