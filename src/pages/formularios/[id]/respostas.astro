@@ -14,15 +14,18 @@ const { tenantId } = Astro.locals.user;
 const id = Astro.params.id!;
 const page = pageParams(Astro.url);
 
+const de = Astro.url.searchParams.get('de') || null;
+const ate = Astro.url.searchParams.get('ate') || null;
 const dados = await withTenant(tenantId, async (db) => {
   const formulario = await carregarFormulario(db, id).catch(() => null);
   if (!formulario) return null;
-  return { formulario, ...(await listarRespostas(db, id, page)) };
+  return { formulario, ...(await listarRespostas(db, id, page, { de, ate })) };
 });
 if (!dados) return new Response(null, { status: 404 });
 
 const { formulario, rows, total } = dados;
 const tableData = rows.map((r) => ({
+  _detalhe: r,
   data: dataHora(r.created_at),
   nome: r.nome ?? '-',
   email: r.email ?? '-',
@@ -30,14 +33,35 @@ const tableData = rows.map((r) => ({
   evento: r.evento_id
     ? html`<a class="link" href="/eventos/${r.evento_id}">${r.evento_titulo ?? 'Abrir evento'}</a>`
     : 'Evento removido',
+  acoes: html`<button type="button" class="row-action" data-ver-resposta="${JSON.stringify({
+    quando: dataHora(r.created_at),
+    linhas: r.dados,
+  })}">Ver resposta</button>`,
 }));
+const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new URLSearchParams({ ...(de ? { de } : {}), ...(ate ? { ate } : {}) })}` : ''}`;
 ---
 
 <AppLayout title={`Respostas · ${formulario.nome}`} heading={`Formulários / ${formulario.nome} / Respostas`}>
   <div class="topo">
-    <p class="muted">{total} {total === 1 ? 'resposta recebida' : 'respostas recebidas'}. Cada resposta cria um evento na coluna de entrada do quadro de vendas.</p>
-    <Button variant="outline" icon="edit" href={`/formularios/${id}`}>Editar formulário</Button>
+    <p class="muted">{total} {total === 1 ? 'resposta recebida' : 'respostas recebidas'}. Cada resposta cria um evento na coluna de entrada do funil.</p>
+    <div class="topo-acoes">
+      <Button variant="outline" icon="download" href={exportarHref}>Exportar CSV</Button>
+      <Button variant="outline" icon="edit" href={`/formularios/${id}`}>Editar formulário</Button>
+    </div>
   </div>
+
+  <form method="get" class="filtro-periodo">
+    <div class="field">
+      <label for="fr-de">De</label>
+      <input id="fr-de" type="date" name="de" value={de ?? ''} />
+    </div>
+    <div class="field">
+      <label for="fr-ate">Até</label>
+      <input id="fr-ate" type="date" name="ate" value={ate ?? ''} />
+    </div>
+    <button type="submit" class="btn btn-outline btn-md">Aplicar</button>
+    {(de || ate) && <a class="btn btn-text btn-md" href={`/formularios/${id}/respostas`}>Limpar</a>}
+  </form>
 
   <Table
     columns={[
@@ -46,13 +70,122 @@ const tableData = rows.map((r) => ({
       { key: 'email', label: 'E-mail' },
       { key: 'natureza', label: ROTULOS.tipoEvento },
       { key: 'evento', label: 'Evento' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
     emptyMessage="Nenhuma resposta recebida ainda. Compartilhe o link público do formulário."
   >
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
+
+  <dialog class="dialogo-form dialogo-resposta" data-dialogo-resposta aria-labelledby="resp-titulo">
+    <div class="dialogo-caixa">
+      <h2 id="resp-titulo">Resposta completa</h2>
+      <p class="muted" data-resp-quando></p>
+      <div class="resp-linhas" data-resp-linhas></div>
+      <div class="dialogo-acoes">
+        <button type="button" class="btn btn-primary btn-md" data-fechar-resposta>Fechar</button>
+      </div>
+    </div>
+  </dialog>
 </AppLayout>
+
+<script>
+  // Detalhe da resposta sem sair da lista (UX-078)
+  interface Linha {
+    secao: string;
+    rotulo: string;
+    valor: string;
+  }
+  const dialogo = document.querySelector<HTMLDialogElement>('[data-dialogo-resposta]')!;
+  const quando = dialogo.querySelector<HTMLElement>('[data-resp-quando]')!;
+  const corpo = dialogo.querySelector<HTMLElement>('[data-resp-linhas]')!;
+
+  document.addEventListener('click', (e) => {
+    const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-ver-resposta]');
+    if (alvo) {
+      const dados = JSON.parse(alvo.dataset.verResposta!) as { quando: string; linhas: Linha[] };
+      quando.textContent = `Recebida em ${dados.quando}`;
+      corpo.replaceChildren();
+      let secaoAnterior = '';
+      for (const linha of dados.linhas) {
+        if (linha.secao !== secaoAnterior) {
+          const h = document.createElement('h3');
+          h.textContent = linha.secao;
+          corpo.appendChild(h);
+          secaoAnterior = linha.secao;
+        }
+        const dt = document.createElement('dt');
+        dt.textContent = linha.rotulo;
+        const dd = document.createElement('dd');
+        dd.textContent = linha.valor || '—';
+        const par = document.createElement('div');
+        par.append(dt, dd);
+        corpo.appendChild(par);
+      }
+      dialogo.showModal();
+      return;
+    }
+    if ((e.target as HTMLElement).closest('[data-fechar-resposta]')) dialogo.close();
+  });
+  dialogo.addEventListener('click', (e) => e.target === dialogo && dialogo.close());
+</script>
+
+<style>
+  .topo-acoes {
+    display: flex;
+    gap: 10px;
+  }
+
+  .filtro-periodo {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .filtro-periodo .field {
+    max-width: 170px;
+  }
+
+  .dialogo-resposta {
+    width: min(640px, calc(100vw - 32px));
+  }
+
+  .resp-linhas {
+    max-height: 55vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .resp-linhas h3 {
+    margin: 12px 0 2px;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--color-primary-text);
+  }
+
+  .resp-linhas div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+
+  .resp-linhas dt {
+    color: var(--color-text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .filtro-periodo {
+      flex-wrap: wrap;
+    }
+  }
+</style>
 
 <style>
   .topo {

@@ -1,6 +1,7 @@
 // Formulários públicos de captação: configuração (a partir do modelo), página pública e respostas.
 import { z } from 'zod';
 import { systemQuery, withTenant, type Db } from '../lib/db';
+import { sendMail } from '../lib/mail';
 import { UserError, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../lib/formularios/modelo';
 import { clienteSchema, salvarCliente } from './clientes';
 import { criarEvento, eventoSchema } from './eventos';
+import { emailLayout } from './emails';
 
 // ---------------------------------------------------------------------------
 // Administração
@@ -154,9 +156,18 @@ export async function excluirFormulario(db: Db, id: string) {
   if (res.rowCount === 0) throw new UserError('Formulário não encontrado.');
 }
 
+/** Linha do snapshot legível gravado em formulario_respostas.dados */
+export interface LinhaResposta {
+  secao: string;
+  chave: string;
+  rotulo: string;
+  valor: string;
+}
+
 export interface RespostaRow {
   id: string;
   created_at: Date;
+  dados: LinhaResposta[];
   nome: string | null;
   email: string | null;
   natureza: string | null;
@@ -164,23 +175,45 @@ export interface RespostaRow {
   evento_titulo: string | null;
 }
 
-export async function listarRespostas(db: Db, formularioId: string, page: PageParams) {
+export interface FiltroRespostas {
+  de?: string | null;
+  ate?: string | null;
+}
+
+const WHERE_RESPOSTAS = `WHERE r.formulario_id = $1
+        AND ($2::date IS NULL OR r.created_at >= $2::date)
+        AND ($3::date IS NULL OR r.created_at < $3::date + 1)`;
+
+export async function listarRespostas(db: Db, formularioId: string, page: PageParams, filtro: FiltroRespostas = {}) {
+  const params = [formularioId, filtro.de ?? null, filtro.ate ?? null];
   const [lista, total] = await Promise.all([
     db.query<RespostaRow>(
-      `SELECT r.id, r.created_at, e.id AS evento_id, e.titulo AS evento_titulo,
+      `SELECT r.id, r.created_at, r.dados, e.id AS evento_id, e.titulo AS evento_titulo,
               (SELECT d->>'valor' FROM jsonb_array_elements(r.dados) d WHERE d->>'chave' = 'nome') AS nome,
               (SELECT d->>'valor' FROM jsonb_array_elements(r.dados) d WHERE d->>'chave' = 'email') AS email,
               (SELECT d->>'valor' FROM jsonb_array_elements(r.dados) d WHERE d->>'chave' = 'natureza') AS natureza
          FROM formulario_respostas r
          LEFT JOIN eventos e ON e.id = r.evento_id
-        WHERE r.formulario_id = $1
+        ${WHERE_RESPOSTAS}
         ORDER BY r.created_at DESC
-        LIMIT $2 OFFSET $3`,
-      [formularioId, page.pageSize, page.offset]
+        LIMIT $4 OFFSET $5`,
+      [...params, page.pageSize, page.offset]
     ),
-    db.query<{ total: number }>('SELECT count(*)::int AS total FROM formulario_respostas WHERE formulario_id = $1', [formularioId]),
+    db.query<{ total: number }>(`SELECT count(*)::int AS total FROM formulario_respostas r ${WHERE_RESPOSTAS}`, params),
   ]);
   return { rows: lista.rows, total: total.rows[0].total };
+}
+
+/** Todas as respostas do recorte, para a exportação CSV (mais antigas primeiro). */
+export async function respostasParaExportar(db: Db, formularioId: string, filtro: FiltroRespostas = {}) {
+  const { rows } = await db.query<{ created_at: Date; dados: LinhaResposta[]; evento_id: string | null }>(
+    `SELECT r.created_at, r.dados, r.evento_id
+       FROM formulario_respostas r
+      ${WHERE_RESPOSTAS}
+      ORDER BY r.created_at`,
+    [formularioId, filtro.de ?? null, filtro.ate ?? null]
+  );
+  return rows;
 }
 
 /** Respostas que originaram o evento (a mais recente, se houver mais de uma). */
@@ -327,6 +360,25 @@ export async function receberResposta(formulario: FormularioPublico, dados: Reco
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [formulario.tenantId, formulario.id, eventoId, clienteId, JSON.stringify(resumirRespostas(formulario.secoes, respostas)), ip]
     );
+    return eventoId;
+  }).then(async (eventoId) => {
+    // Confirmação para quem preencheu (UX-072): melhor esforço, o pedido já foi registrado
+    const email = typeof respostas.email === 'string' ? respostas.email.trim() : '';
+    const nome = typeof respostas.nome === 'string' ? respostas.nome.trim().split(/\s+/)[0] : '';
+    if (email) {
+      const { html, text } = emailLayout({
+        titulo: 'Recebemos o seu pedido!',
+        paragrafos: [
+          `Olá${nome ? `, ${nome}` : ''}!`,
+          `O seu pedido de orçamento chegou para a equipe de ${formulario.empresa.nome}, que vai analisar os detalhes do seu evento e retornar em breve.`,
+          'Se lembrar de algum detalhe importante, é só responder este e-mail.',
+        ],
+        rodape: `Você recebeu esta mensagem porque preencheu o formulário de ${formulario.empresa.nome}.`,
+      });
+      await sendMail({ to: email, subject: `Recebemos o seu pedido — ${formulario.empresa.nome}`, html, text }).catch((err: unknown) =>
+        console.error('Falha ao enviar a confirmação do formulário:', err)
+      );
+    }
     return eventoId;
   });
 }

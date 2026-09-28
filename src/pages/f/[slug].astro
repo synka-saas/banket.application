@@ -35,6 +35,7 @@ const mensagemSucesso =
 ) : (
   <FormularioLayout title={formulario.nome} empresa={formulario.empresa.nome} logo={logo} subtitulo={formulario.nome}>
     <div class="fp-progresso"><div class="fp-progresso-barra" id="fp-progresso"></div></div>
+    <p class="fp-etapa-info" id="fp-etapa-info" aria-live="polite"></p>
 
     <form id="fp-form" class="fp-conteudo" novalidate data-slug={Astro.params.slug}>
       <input type="text" name="_website" class="fp-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
@@ -121,6 +122,11 @@ const mensagemSucesso =
         <div class="fp-sucesso-icone"><Icon name="auto_awesome" size={36} /></div>
         <h2>Tudo certo!</h2>
         <p>{mensagemSucesso}</p>
+        <p class="fp-sucesso-email" data-fp-sucesso-email hidden>Enviamos uma cópia da confirmação para o seu e-mail.</p>
+        <div class="fp-resumo" data-fp-resumo hidden>
+          <h3>Resumo do seu pedido</h3>
+          <dl data-fp-resumo-linhas></dl>
+        </div>
       </section>
     </form>
 
@@ -167,6 +173,8 @@ const mensagemSucesso =
       });
     }
 
+    const etapaInfo = document.getElementById('fp-etapa-info')!;
+
     function mostrar() {
       const lista = caminho();
       etapas.forEach((e) => e.classList.toggle('ativa', e === lista[atual]));
@@ -175,7 +183,23 @@ const mensagemSucesso =
       const ultima = atual === lista.length - 1;
       btnAvancar.textContent = ultima ? (natureza() === 'B2B' ? 'Solicitar proposta' : 'Finalizar solicitação') : 'Avançar';
       barra.style.width = `${Math.round(((atual + 1) / (lista.length + 1)) * 100)}%`;
+      etapaInfo.textContent = `Etapa ${atual + 1} de ${lista.length} · ${lista[atual]?.querySelector('h2')?.textContent ?? ''}`;
       form.scrollTop = 0;
+    }
+
+    // A mensagem fica junto da pergunta (o aviso some sozinho, a mensagem não — UX-070)
+    function marcarErro(el: HTMLElement, mensagem: string) {
+      el.classList.add('fp-erro');
+      let aviso = el.querySelector<HTMLElement>('.fp-erro-msg');
+      if (!aviso) {
+        aviso = document.createElement('p');
+        aviso.className = 'fp-erro-msg';
+        aviso.setAttribute('role', 'alert');
+        el.appendChild(aviso);
+      }
+      aviso.textContent = mensagem;
+      el.querySelector<HTMLElement>('input, select, textarea')?.focus();
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
 
     function validar(etapa: HTMLElement): boolean {
@@ -183,19 +207,56 @@ const mensagemSucesso =
         if (el.hidden) continue;
         const v = valor(el.dataset.pergunta!);
         const vazio = v === null || (Array.isArray(v) && v.length === 0);
-        el.classList.toggle('fp-erro', Boolean(el.dataset.obrigatoria && vazio));
+        el.classList.remove('fp-erro');
+        el.querySelector('.fp-erro-msg')?.remove();
         if (el.dataset.obrigatoria && vazio) {
-          toast(`Preencha "${el.dataset.rotulo}" para avançar.`);
-          el.querySelector<HTMLElement>('input, select, textarea')?.focus();
+          marcarErro(el, `Preencha "${el.dataset.rotulo}" para avançar.`);
           return false;
         }
         if (!vazio && el.dataset.tipo === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v))) {
-          el.classList.add('fp-erro');
-          toast('Informe um e-mail válido.');
+          marcarErro(el, 'Informe um e-mail válido.');
           return false;
         }
       }
       return true;
+    }
+
+    // ---------- Rascunho: recarregar a página não perde as respostas (UX-071) ----------
+    const chaveRascunho = `banket-fp-${form.dataset.slug}`;
+    function salvarRascunho() {
+      try {
+        const dados: Record<string, unknown> = {};
+        form.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
+          const v = valor(el.dataset.pergunta!);
+          if (v !== null && !(Array.isArray(v) && v.length === 0)) dados[el.dataset.pergunta!] = v;
+        });
+        sessionStorage.setItem(chaveRascunho, JSON.stringify(dados));
+      } catch {
+        // sem armazenamento (janela privada): segue sem rascunho
+      }
+    }
+    function restaurarRascunho() {
+      try {
+        const bruto = sessionStorage.getItem(chaveRascunho);
+        if (!bruto) return;
+        const dados = JSON.parse(bruto) as Record<string, string | string[]>;
+        for (const [nome, v] of Object.entries(dados)) {
+          const campos = [...form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`)];
+          if (!campos.length) continue;
+          if (campos[0].type === 'checkbox') campos.forEach((c) => (c.checked = Array.isArray(v) && v.includes(c.value)));
+          else if (campos[0].type === 'radio') campos.forEach((c) => (c.checked = c.value === v));
+          else campos[0].value = String(v);
+        }
+      } catch {
+        // rascunho inválido: ignora
+      }
+    }
+    function limparRascunho() {
+      try {
+        sessionStorage.removeItem(chaveRascunho);
+      } catch {
+        // nada a limpar
+      }
     }
 
     function coletar(): Record<string, unknown> {
@@ -206,6 +267,53 @@ const mensagemSucesso =
         });
       }
       return dados;
+    }
+
+    // Resumo do que foi enviado, na tela de sucesso (UX-072)
+    function montarResumo() {
+      const dl = form.querySelector<HTMLElement>('[data-fp-resumo-linhas]')!;
+      dl.replaceChildren();
+      let linhas = 0;
+      for (const etapa of caminho()) {
+        etapa.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
+          if (el.hidden) return;
+          const legivel = valorLegivel(el);
+          if (!legivel) return;
+          const dt = document.createElement('dt');
+          dt.textContent = el.dataset.rotulo ?? '';
+          const dd = document.createElement('dd');
+          dd.textContent = legivel;
+          const par = document.createElement('div');
+          par.append(dt, dd);
+          dl.appendChild(par);
+          linhas++;
+        });
+      }
+      form.querySelector<HTMLElement>('[data-fp-resumo]')!.hidden = linhas === 0;
+      const email = valor('email');
+      form.querySelector<HTMLElement>('[data-fp-sucesso-email]')!.hidden = !email;
+    }
+
+    /** Valor da pergunta com o rótulo da opção (não o código) para selects, escolhas e múltiplas. */
+    function valorLegivel(el: HTMLElement): string {
+      const nome = el.dataset.pergunta!;
+      const campos = [...form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`)];
+      if (!campos.length) return '';
+      if (campos[0].type === 'checkbox') {
+        return campos
+          .filter((c) => c.checked)
+          .map((c) => c.closest('label')?.textContent?.trim() ?? c.value)
+          .join(', ');
+      }
+      if (campos[0].type === 'radio') {
+        const marcado = campos.find((c) => c.checked);
+        return marcado ? (marcado.closest('label')?.querySelector('strong')?.textContent ?? marcado.value).trim() : '';
+      }
+      if (campos[0] instanceof HTMLSelectElement) {
+        const sel = campos[0] as unknown as HTMLSelectElement;
+        return sel.value ? (sel.selectedOptions[0]?.textContent ?? sel.value).trim() : '';
+      }
+      return campos[0].value.trim();
     }
 
     async function enviar() {
@@ -221,10 +329,13 @@ const mensagemSucesso =
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error ?? 'Não foi possível enviar. Tente novamente.');
+        montarResumo();
+        limparRascunho();
         etapas.forEach((e) => e.classList.remove('ativa'));
         sucesso.classList.add('ativa');
         rodape.hidden = true;
         barra.style.width = '100%';
+        etapaInfo.textContent = 'Pedido enviado';
       } catch (err) {
         toast(err instanceof Error ? err.message : 'Não foi possível enviar. Tente novamente.');
         btnAvancar.disabled = false;
@@ -264,6 +375,10 @@ const mensagemSucesso =
       btnAvancar.click();
     });
 
+    form.addEventListener('input', salvarRascunho);
+    form.addEventListener('change', salvarRascunho);
+
+    restaurarRascunho();
     atualizarCondicionais();
     mostrar();
   }
@@ -588,5 +703,62 @@ const mensagemSucesso =
     .fp-rodape {
       padding: 12px 16px;
     }
+  }
+
+  .fp-etapa-info {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .fp-erro-msg {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary-50);
+  }
+
+  .fp-sucesso-email {
+    color: var(--color-text-muted);
+    font-size: 14px;
+  }
+
+  .fp-resumo {
+    margin-top: 24px;
+    padding: 16px 20px;
+    text-align: left;
+    background: var(--color-neutral-10);
+    border-radius: var(--border-radius);
+  }
+
+  .fp-resumo h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    text-transform: uppercase;
+    color: var(--color-primary-text);
+  }
+
+  .fp-resumo dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fp-resumo dl div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .fp-resumo dt {
+    color: var(--color-text-muted);
+  }
+
+  .fp-resumo dd {
+    margin: 0;
   }
 </style>

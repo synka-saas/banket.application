@@ -583,3 +583,63 @@ td .verba {
   h1 { font-size: 24px; }
   h2 { font-size: 19px; }
 }
+
+/* ---------- Diálogo simples de formulário (novo formulário, compartilhar…) ---------- */
+.dialogo-form {
+  width: min(480px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+  color: var(--color-neutral-80);
+}
+
+.dialogo-form::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dialogo-caixa {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dialogo-caixa h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.dialogo-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.linha-copiar {
+  display: flex;
+  gap: 8px;
+}
+
+.linha-copiar input,
+.linha-copiar textarea {
+  flex: 1;
+  font-size: 13px;
+}
+
+.comp-qr {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.comp-qr canvas {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.comp-qr-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

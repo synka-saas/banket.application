@@ -12,9 +12,11 @@ import { criarFormulario, listarFormularios } from '../../server/formularios';
 const { tenantId } = Astro.locals.user;
 
 if (Astro.request.method === 'POST') {
-  return handleFormPost(Astro, async () => {
-    const id = await withTenant(tenantId, (db) => criarFormulario(db, tenantId));
-    return { message: 'Formulário criado a partir do modelo padrão.', redirect: `/formularios/${id}` };
+  return handleFormPost(Astro, async (data) => {
+    // O nome vem antes de criar: quem desiste não deixa "Novo formulário" na lista (UX-075)
+    const nome = String(data.nome ?? '').trim().slice(0, 120) || 'Formulário de contato';
+    const id = await withTenant(tenantId, (db) => criarFormulario(db, tenantId, nome));
+    return { message: `Formulário "${nome}" criado a partir do modelo padrão.`, redirect: `/formularios/${id}` };
   });
 }
 
@@ -24,10 +26,23 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 <AppLayout title="Formulários" heading="Formulários">
   <PageToolbar searchPlaceholder="Pesquisar por nome ou endereço">
-    <form method="post">
-      <Button type="submit" icon="add_circle">Novo formulário</Button>
-    </form>
+    <Button icon="add_circle" data-abrir-novo>Novo formulário</Button>
   </PageToolbar>
+
+  <dialog class="dialogo-form" data-dialogo-novo aria-labelledby="novo-form-titulo">
+    <form method="post" class="dialogo-caixa">
+      <h2 id="novo-form-titulo">Novo formulário</h2>
+      <div class="field">
+        <label for="nf-nome">Nome do formulário<span class="obrigatorio">*</span></label>
+        <input id="nf-nome" name="nome" required maxlength="120" placeholder="Ex.: Casamentos 2027" />
+        <span class="field-hint">Ele nasce com o modelo padrão de captação; ajuste as perguntas em seguida.</span>
+      </div>
+      <div class="dialogo-acoes">
+        <button type="button" class="btn btn-outline btn-md" data-fechar-novo>Voltar</button>
+        <button type="submit" class="btn btn-primary btn-md" data-carregando="Criando…">Criar formulário</button>
+      </div>
+    </form>
+  </dialog>
 
   {formularios.length === 0 ? (
     <div class="empty">Nenhum formulário encontrado. Crie um a partir do modelo padrão de captação.</div>
@@ -48,8 +63,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
         >
           <p slot="subtitle" class="descricao">{f.descricao ?? 'Sem descrição.'}</p>
           <div class="link-publico">
-            <span class="link-url" title={`${Astro.url.origin}/f/${f.slug}`}>/f/{f.slug}</span>
+            <span class="link-url" title={`${Astro.url.origin}/f/${f.slug}`}>{Astro.url.origin}/f/{f.slug}</span>
             <button type="button" class="row-action" data-copiar={`${Astro.url.origin}/f/${f.slug}`}>Copiar link</button>
+            <button type="button" class="row-action" data-compartilhar={`${Astro.url.origin}/f/${f.slug}`} data-nome={f.nome}>
+              Compartilhar
+            </button>
           </div>
           <div slot="footer" class="acoes">
             <Button block href={`/formularios/${f.id}`}>Editar</Button>
@@ -62,10 +80,93 @@ const pad = (n: number) => String(n).padStart(2, '0');
       ))}
     </div>
   )}
+  <dialog class="dialogo-form dialogo-compartilhar" data-dialogo-compartilhar aria-labelledby="comp-titulo">
+    <div class="dialogo-caixa">
+      <h2 id="comp-titulo">Compartilhar formulário</h2>
+      <div class="field">
+        <label for="comp-url">Link público</label>
+        <div class="linha-copiar">
+          <input id="comp-url" readonly data-comp-url />
+          <button type="button" class="btn btn-outline btn-md" data-copiar-de="comp-url">Copiar</button>
+        </div>
+      </div>
+      <div class="comp-qr">
+        <canvas data-comp-qr width="180" height="180" aria-label="QR code do formulário"></canvas>
+        <div class="comp-qr-acoes">
+          <a class="btn btn-outline btn-md" data-comp-whatsapp target="_blank" rel="noopener">Enviar no WhatsApp</a>
+          <a class="btn btn-outline btn-md" data-comp-baixar-qr download="qr-formulario.png">Baixar QR code</a>
+        </div>
+      </div>
+      <div class="field">
+        <label for="comp-iframe">Incorporar no seu site</label>
+        <div class="linha-copiar">
+          <textarea id="comp-iframe" readonly rows="3" data-comp-iframe></textarea>
+          <button type="button" class="btn btn-outline btn-md" data-copiar-de="comp-iframe">Copiar</button>
+        </div>
+      </div>
+      <div class="dialogo-acoes">
+        <button type="button" class="btn btn-primary btn-md" data-fechar-compartilhar>Fechar</button>
+      </div>
+    </div>
+  </dialog>
 </AppLayout>
 
 <script>
+  import { toDataURL } from 'qrcode';
   import { toast } from '../../lib/ui';
+
+  // Novo formulário: pede o nome num diálogo antes de criar (UX-075)
+  const dialogoNovo = document.querySelector<HTMLDialogElement>('[data-dialogo-novo]')!;
+  document.querySelector('[data-abrir-novo]')?.addEventListener('click', () => {
+    dialogoNovo.showModal();
+    dialogoNovo.querySelector<HTMLInputElement>('#nf-nome')?.focus();
+  });
+  dialogoNovo.querySelector('[data-fechar-novo]')?.addEventListener('click', () => dialogoNovo.close());
+  dialogoNovo.addEventListener('click', (e) => e.target === dialogoNovo && dialogoNovo.close());
+
+  // Compartilhar: link, WhatsApp, QR e código de incorporação (UX-077)
+  const dialogoComp = document.querySelector<HTMLDialogElement>('[data-dialogo-compartilhar]')!;
+  const compUrl = dialogoComp.querySelector<HTMLInputElement>('[data-comp-url]')!;
+  const compIframe = dialogoComp.querySelector<HTMLTextAreaElement>('[data-comp-iframe]')!;
+  const compWhats = dialogoComp.querySelector<HTMLAnchorElement>('[data-comp-whatsapp]')!;
+  const compQr = dialogoComp.querySelector<HTMLCanvasElement>('[data-comp-qr]')!;
+  const compBaixar = dialogoComp.querySelector<HTMLAnchorElement>('[data-comp-baixar-qr]')!;
+
+  document.addEventListener('click', async (e) => {
+    const alvo = e.target as HTMLElement;
+    const abrir = alvo.closest<HTMLElement>('[data-compartilhar]');
+    if (abrir) {
+      const url = abrir.dataset.compartilhar!;
+      const nome = abrir.dataset.nome ?? 'formulário';
+      compUrl.value = url;
+      compIframe.value = `<iframe src="${url}" style="width:100%;min-height:900px;border:0" title="${nome}"></iframe>`;
+      compWhats.href = `https://wa.me/?text=${encodeURIComponent(`Conte o que você imagina para o seu evento: ${url}`)}`;
+      try {
+        const dataUrl = await toDataURL(url, { width: 180, margin: 1 });
+        const img = new Image();
+        img.onload = () => compQr.getContext('2d')?.drawImage(img, 0, 0, 180, 180);
+        img.src = dataUrl;
+        compBaixar.href = dataUrl;
+      } catch {
+        // sem QR: os demais atalhos seguem funcionando
+      }
+      dialogoComp.showModal();
+      return;
+    }
+    if (alvo.closest('[data-fechar-compartilhar]')) dialogoComp.close();
+    const copiarDe = alvo.closest<HTMLElement>('[data-copiar-de]');
+    if (copiarDe) {
+      const campo = document.getElementById(copiarDe.dataset.copiarDe!) as HTMLInputElement | HTMLTextAreaElement;
+      try {
+        await navigator.clipboard.writeText(campo.value);
+        toast('Copiado.', 'success');
+      } catch {
+        campo.select();
+        toast('Não foi possível copiar automaticamente. O texto está selecionado.', 'info');
+      }
+    }
+  });
+  dialogoComp.addEventListener('click', (e) => e.target === dialogoComp && dialogoComp.close());
 
   // Copia o link público do formulário
   document.addEventListener('click', async (e) => {

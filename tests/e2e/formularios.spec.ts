@@ -10,6 +10,9 @@ test.describe('Formulários', () => {
     await login(page);
     await page.goto('/formularios');
     await page.getByRole('button', { name: 'Novo formulário' }).click();
+    // O nome vem antes de criar (UX-075)
+    await page.fill('#nf-nome', nome);
+    await page.getByRole('button', { name: 'Criar formulário' }).click();
     await page.waitForURL(/\/formularios\/[0-9a-f-]{36}$/);
     const formId = page.url().split('/').pop()!;
     await waitForIslands(page);
@@ -40,6 +43,7 @@ test.describe('Formulários', () => {
     // ---------- Página pública (sem login) ----------
     await page.context().clearCookies();
     await page.goto(`/f/${slug}`);
+    await expect(page.locator('#fp-etapa-info')).toContainText('Etapa 1 de');
     await page.getByLabel('Nome / Responsável').fill('Cliente E2E');
     await page.getByLabel('E-mail').fill(email);
     await page.getByLabel('WhatsApp').fill('11988887777');
@@ -67,19 +71,38 @@ test.describe('Formulários', () => {
     await page.getByText('Ilhas gastronômicas').click();
     await page.getByText('Open bar completo').click();
     await page.getByRole('button', { name: 'Avançar' }).click();
-    await expectToast(page, 'Preencha "Tema da festa" para avançar.');
+    // Mensagem junto da pergunta, não só num aviso passageiro (UX-070)
+    await expect(page.locator('.fp-erro-msg')).toHaveText('Preencha "Tema da festa" para avançar.');
+
+    // Recarregar não perde as respostas: o rascunho volta (UX-071)
+    await page.reload();
+    await expect(page.locator('#fp-etapa-info')).toContainText('Etapa 1 de');
+    await expect(page.getByLabel('Nome / Responsável')).toHaveValue('Cliente E2E');
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Avançar' }).click();
+    await expect(page.getByLabel('Tema da festa')).toBeVisible();
     await page.getByLabel('Tema da festa').fill('Jardim encantado');
     await page.getByRole('button', { name: 'Avançar' }).click();
 
     await page.getByLabel('Detalhes e desejos específicos').fill('Cerimônia ao ar livre.');
     await page.getByRole('button', { name: 'Finalizar solicitação' }).click();
     await expect(page.getByRole('heading', { name: 'Tudo certo!' })).toBeVisible();
+    // Resumo do pedido e aviso da cópia por e-mail (UX-072)
+    await expect(page.locator('.fp-resumo')).toContainText('Jardim encantado');
+    await expect(page.locator('[data-fp-sucesso-email]')).toBeVisible();
 
     // ---------- Resposta registrada e evento criado ----------
     await login(page);
     await page.goto(`/formularios/${formId}/respostas`);
     const linha = page.locator('tr', { hasText: email });
     await expect(linha).toContainText('Social (B2C)');
+    // Detalhe da resposta sem sair da lista (UX-078)
+    await linha.getByRole('button', { name: 'Ver resposta' }).click();
+    await expect(page.locator('[data-dialogo-resposta]')).toContainText('Jardim encantado');
+    await page.getByRole('button', { name: 'Fechar', exact: true }).click();
+    // Exportação CSV traz a resposta
+    const csv = await page.request.get(`/formularios/${formId}/respostas-exportar`);
+    expect(csv.headers()['content-type']).toContain('text/csv');
+    expect(await csv.text()).toContain('Jardim encantado');
     await linha.getByRole('link').click();
     await page.waitForURL(/\/eventos\/[0-9a-f-]{36}$/);
 
