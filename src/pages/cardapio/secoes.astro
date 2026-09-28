@@ -12,6 +12,7 @@ import { formatMoney, moneyInput } from '../../lib/money';
 import { CARDAPIO_SUBMENU } from '../../lib/nav';
 import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import { UNIDADES_COBRANCA, excluirSecao, listarSecoes, salvarSecao, secaoSchema } from '../../server/cardapio';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 
 const { tenantId } = Astro.locals.user;
 
@@ -46,6 +47,7 @@ const tableData = secoes.map((s) => ({
     ordem: s.ordem,
   })}">Editar</button>`,
 }));
+const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
 ---
 
 <AppLayout title="Seções do cardápio" heading="Cardápios / Seções" submenu={CARDAPIO_SUBMENU} submenuActive="secoes">
@@ -63,8 +65,10 @@ const tableData = secoes.map((s) => ({
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
-    emptyMessage="Nenhuma seção encontrada."
   >
+    <EstadoVazio slot="empty" icon="category" titulo={filtrando ? 'Nenhuma seção para esta busca' : 'Nenhuma seção cadastrada'} texto={filtrando ? undefined : 'Seções organizam o cardápio (ex.: Entradas, Pratos principais, Bebidas). Depois de criar uma seção, cadastre os itens dela.'}>
+      {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar busca</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-secao">Nova seção</button>}
+    </EstadoVazio>
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 

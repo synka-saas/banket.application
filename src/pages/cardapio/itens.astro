@@ -23,6 +23,7 @@ import {
   salvarItem,
 } from '../../server/cardapio';
 import { listarCategoriasItem, listarFormatosServico } from '../../server/configuracoes';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 
 const { tenantId } = Astro.locals.user;
 
@@ -97,6 +98,7 @@ const tableData = itens.map((i) => ({
   })}">Editar</button>`,
 }));
 
+const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
 // Novo item já vem na seção filtrada (se houver) e ativo
 const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa' });
 ---
@@ -118,8 +120,20 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
-    emptyMessage="Nenhum item encontrado."
   >
+    {secoes.length === 0 ? (
+      <EstadoVazio slot="empty" icon="category" titulo="Crie primeiro uma seção" texto="Todo item pertence a uma seção do cardápio (ex.: Entradas, Pratos principais, Bebidas).">
+        <a class="btn btn-primary btn-md" href="/cardapio/secoes">Criar seção</a>
+      </EstadoVazio>
+    ) : filtrando ? (
+      <EstadoVazio slot="empty" icon="search_off" titulo="Nenhum item para este filtro">
+        <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar filtros</a>
+      </EstadoVazio>
+    ) : (
+      <EstadoVazio slot="empty" icon="restaurant_menu" titulo="Nenhum item cadastrado" texto="Cadastre os pratos, bebidas e serviços que você oferece para montar cardápios e orçamentos.">
+        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</button>
+      </EstadoVazio>
+    )}
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 

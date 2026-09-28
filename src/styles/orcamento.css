@@ -13,7 +13,7 @@
 
 .orc-cabecalho {
   display: grid;
-  grid-template-columns: 1.1fr 1fr auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   align-items: center;
   gap: 20px;
   padding: 26px 28px;
@@ -35,9 +35,22 @@
   color: var(--color-neutral-80);
 }
 
+/* Ações numa faixa própria abaixo de cliente e total: os botões não espremem o nome do cliente */
 .orc-acoes {
-  align-items: flex-end;
-  gap: 8px !important;
+  grid-column: 1 / -1;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px !important;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.orc-versao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .orc-estado {
@@ -669,6 +682,5 @@ input.cardapio-nome:focus-visible {
 .orc-botoes {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 8px;
 }

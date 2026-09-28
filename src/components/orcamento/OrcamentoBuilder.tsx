@@ -164,7 +164,7 @@ export default function OrcamentoBuilder(props: Props) {
           {disabled ? (
             <span class="selo-congelada">Versão congelada · somente leitura</span>
           ) : (
-            <>
+            <div class="orc-versao">
               <span class={`orc-estado estado-${estado}`} role="status" title={erro ?? undefined}>
                 {rotuloEstado}
               </span>
@@ -174,7 +174,7 @@ export default function OrcamentoBuilder(props: Props) {
                   Criar nova versão
                 </button>
               </form>
-            </>
+            </div>
           )}
         </div>
       </section>

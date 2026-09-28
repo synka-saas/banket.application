@@ -1,0 +1,64 @@
+---
+// Estado vazio com orientação: o que é esta lista, por que está vazia e o que fazer (slot = ações).
+import Icon from './Icon.astro';
+
+interface Props {
+  icon?: string;
+  titulo: string;
+  texto?: string;
+}
+
+const { icon = 'inbox', titulo, texto } = Astro.props;
+---
+
+<div class="estado-vazio">
+  <span class="estado-vazio-icone"><Icon name={icon} size={28} /></span>
+  <p class="estado-vazio-titulo">{titulo}</p>
+  {texto && <p class="estado-vazio-texto">{texto}</p>}
+  {Astro.slots.has('default') && <div class="estado-vazio-acoes"><slot /></div>}
+</div>
+
+<style>
+  .estado-vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    text-align: center;
+  }
+
+  .estado-vazio-icone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--color-primary-10);
+    color: var(--color-primary-text);
+  }
+
+  .estado-vazio-titulo {
+    margin: 4px 0 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-neutral-80);
+  }
+
+  .estado-vazio-texto {
+    max-width: 480px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+
+  .estado-vazio-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+</style>

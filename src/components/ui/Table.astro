@@ -12,6 +12,7 @@ interface Props {
   columns: Column[];
   /** Valores comuns são renderizados como texto; use html`` (lib/html) para marcação confiável. */
   data: Record<string, unknown>[];
+  /** Texto simples para lista vazia; para orientação com ação, use o slot "empty" com EstadoVazio */
   emptyMessage?: string;
 }
 
@@ -43,7 +44,9 @@ const { columns, data, emptyMessage = 'Nenhum registro encontrado.' } = Astro.pr
           ))
         ) : (
           <tr>
-            <td colspan={columns.length} class="empty-state">{emptyMessage}</td>
+            <td colspan={columns.length} class="empty-state">
+              {Astro.slots.has('empty') ? <slot name="empty" /> : emptyMessage}
+            </td>
           </tr>
         )}
       </tbody>

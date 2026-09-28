@@ -11,6 +11,7 @@ import { html } from '../../lib/html';
 import { formatarDocumento } from '../../lib/documento';
 import { pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import { clienteSchema, excluirCliente, listarClientes, salvarCliente } from '../../server/clientes';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 
 const { tenantId } = Astro.locals.user;
 
@@ -48,6 +49,7 @@ const tableData = rows.map((c) => ({
     observacoes: c.observacoes,
   })}">Editar</button>`,
 }));
+const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
 ---
 
 <AppLayout title="Clientes" heading="Clientes">
@@ -74,8 +76,10 @@ const tableData = rows.map((c) => ({
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
-    emptyMessage="Nenhum cliente encontrado."
   >
+    <EstadoVazio slot="empty" icon="group" titulo={filtrando ? 'Nenhum cliente para esta busca' : 'Nenhum cliente cadastrado'} texto={filtrando ? undefined : 'Clientes entram pelo formulário de captação, ao cadastrar um evento ou aqui.'}>
+      {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar filtros</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-cliente">Novo cliente</button>}
+    </EstadoVazio>
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 

@@ -1,44 +1,73 @@
 ---
 import Icon from './Icon.astro';
-import { withQuery, type PageInfo } from '../../lib/pagination';
+import { TAMANHOS_PAGINA, paginasVisiveis, withQuery, type PageInfo } from '../../lib/pagination';
 
 interface Props {
   info: PageInfo;
 }
 
 const { info } = Astro.props;
-const pad = (n: number) => String(n).padStart(2, '0');
 const prev = info.page > 1 ? withQuery(Astro.url, { page: info.page - 1 }) : null;
 const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.page + 1 }) : null;
+const inicio = (info.page - 1) * info.pageSize + 1;
+const fim = Math.min(info.page * info.pageSize, info.total);
 ---
 
 {info.total > 0 && (
-<div class="pagination">
+<nav class="pagination" aria-label="Paginação">
   <span class="pagination-status">
-    Página {pad(info.page)} de {pad(info.totalPages)} · {info.total} {info.total === 1 ? 'registro' : 'registros'}
+    {info.total <= info.pageSize ? `${info.total} ${info.total === 1 ? 'registro' : 'registros'}` : `${inicio}–${fim} de ${info.total} registros`}
   </span>
+
   <div class="pagination-controls">
-    {prev ? (
-      <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron_left" size={16} /></a>
-    ) : (
-      <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_left" size={16} /></span>
+    {info.totalPages > 1 && (
+      <>
+        {prev ? (
+          <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron_left" size={18} /></a>
+        ) : (
+          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_left" size={18} /></span>
+        )}
+        {paginasVisiveis(info.page, info.totalPages).map((p) =>
+          p === null ? (
+            <span class="page-salto" aria-hidden="true">…</span>
+          ) : p === info.page ? (
+            <span class="page-btn atual" aria-current="page">{p}</span>
+          ) : (
+            <a href={withQuery(Astro.url, { page: p })} class="page-btn" aria-label={`Página ${p}`}>{p}</a>
+          )
+        )}
+        {next ? (
+          <a href={next} class="page-btn" aria-label="Próxima página"><Icon name="chevron_right" size={18} /></a>
+        ) : (
+          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_right" size={18} /></span>
+        )}
+      </>
     )}
-    <span class="page-current">{pad(info.page)}</span>
-    {next ? (
-      <a href={next} class="page-btn" aria-label="Próxima página"><Icon name="chevron_right" size={16} /></a>
-    ) : (
-      <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_right" size={16} /></span>
+
+    {info.total > TAMANHOS_PAGINA[0] && (
+      <span class="page-tamanhos">
+        Por página:
+        {TAMANHOS_PAGINA.map((t) =>
+          t === info.pageSize ? (
+            <span class="page-tamanho atual" aria-current="true">{t}</span>
+          ) : (
+            <a class="page-tamanho" href={withQuery(Astro.url, { por: t === TAMANHOS_PAGINA[0] ? null : t, page: null })}>{t}</a>
+          )
+        )}
+      </span>
     )}
   </div>
-</div>
+</nav>
 )}
 
 <style>
   .pagination {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 36px;
+    gap: 12px;
+    padding: 14px 36px;
     background: var(--color-neutral-20);
     font-size: 14px;
     font-weight: 600;
@@ -47,27 +76,62 @@ const next = info.page < info.totalPages ? withQuery(Astro.url, { page: info.pag
 
   .pagination-controls {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
   }
 
   .page-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    min-width: 32px;
     height: 32px;
+    padding: 0 6px;
     border: 1px solid var(--color-border-input);
     border-radius: var(--border-radius-sm);
-    color: var(--color-neutral-65);
+    background: var(--color-white);
+    color: var(--color-neutral-80);
+    text-decoration: none;
   }
 
-  .page-btn:hover:not(.disabled) {
-    border-color: var(--color-primary);
+  .page-btn:hover:not(.disabled):not(.atual) {
+    border-color: var(--color-primary-50);
     color: var(--color-primary-text);
+  }
+
+  .page-btn.atual {
+    border-color: var(--color-primary-action);
+    background: var(--color-primary-action);
+    color: var(--color-white);
   }
 
   .page-btn.disabled {
     opacity: 0.4;
+  }
+
+  .page-salto {
+    padding: 0 2px;
+    color: var(--color-text-muted);
+  }
+
+  .page-tamanhos {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 16px;
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .page-tamanho {
+    padding: 4px 6px;
+    border-radius: var(--border-radius-sm);
+    color: var(--color-primary-text);
+  }
+
+  .page-tamanho.atual {
+    font-weight: 700;
+    color: var(--color-neutral-100);
   }
 </style>

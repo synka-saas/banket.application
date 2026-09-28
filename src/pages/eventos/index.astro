@@ -13,6 +13,7 @@ import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/paginatio
 import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
 import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
 import { ROTULOS } from '../../lib/rotulos';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 
 const { tenantId } = Astro.locals.user;
 const url = Astro.url;
@@ -71,6 +72,7 @@ const listaData =
           : '-',
     acoes: html`<a class="row-action" href="/eventos/${e.id}">Abrir</a>`,
   })) ?? [];
+const filtrando = [...Astro.url.searchParams.keys()].some((k) => !['page', 'view'].includes(k));
 ---
 
 <AppLayout title={ROTULOS.funil} heading={ROTULOS.funil} submenu={[]}>
@@ -212,8 +214,10 @@ const listaData =
         { key: 'acoes', label: 'Ações', align: 'right' },
       ]}
       data={listaData}
-      emptyMessage="Nenhum evento encontrado."
     >
+      <EstadoVazio slot="empty" icon="event_busy" titulo={filtrando ? 'Nenhum evento para estes filtros' : 'Nenhum evento ainda'} texto={filtrando ? undefined : 'Os pedidos chegam pelo formulário de captação ou pelo cadastro manual.'}>
+        {filtrando ? <a class="btn btn-outline btn-md" href="/eventos?view=lista">Limpar filtros</a> : <a class="btn btn-primary btn-md" href="/eventos/novo">Novo evento</a>}
+      </EstadoVazio>
       {dados.lista && <Pagination slot="footer" info={pageInfo(page, dados.lista.total)} />}
     </Table>
   )}
