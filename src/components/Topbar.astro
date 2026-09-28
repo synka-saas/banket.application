@@ -5,10 +5,11 @@ import { empresasDoUsuario } from '../server/autoatendimento';
 
 interface Props {
   title: string;
-  showInfo?: boolean;
+  /** Link de volta antes do título (ex.: Funil de vendas / Casamento Ana) */
+  voltar?: { href: string; label: string };
 }
 
-const { title, showInfo = true } = Astro.props;
+const { title, voltar } = Astro.props;
 
 const user = Astro.locals.user;
 const userName = user?.nome || 'Usuário';
@@ -22,8 +23,13 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 
 <header class="topbar">
   <div class="topbar-left">
+    {voltar && (
+      <>
+        <a href={voltar.href} class="topbar-voltar">{voltar.label}</a>
+        <span class="topbar-sep" aria-hidden="true">/</span>
+      </>
+    )}
     <h2 class="topbar-title">{title}</h2>
-    {showInfo && <Icon name="info" size={18} class="info-icon" />}
   </div>
   
   <div class="topbar-right">
@@ -82,6 +88,25 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 </script>
 
 <style>
+  .topbar-voltar {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .topbar-voltar:hover {
+    color: var(--color-primary-text);
+    text-decoration: underline;
+  }
+
+  .topbar-sep {
+    margin: 0 8px;
+    font-size: 22px;
+    color: var(--color-text-muted);
+  }
+
   .topbar {
     height: 80px;
     background-color: var(--color-white);
@@ -104,10 +129,6 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
     margin: 0;
   }
 
-  .info-icon {
-    color: var(--color-text-muted);
-    cursor: pointer;
-  }
 
   .topbar-right {
     display: flex;

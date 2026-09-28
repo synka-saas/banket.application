@@ -79,7 +79,7 @@ test.describe.serial('Cadastro self-service', () => {
 
     await page.goto(ultimoLink('/auth/verificar', email));
     await expect(page).toHaveURL(/\/auth\/cadastro-complemento\?validado=1/);
-    await expect(page.getByRole('heading', { name: 'E-mail Validado' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'E-mail validado' })).toBeVisible();
     await expect(page.getByLabel('E-MAIL')).toHaveValue(email);
 
     // CNPJ inválido
@@ -160,7 +160,7 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page).toHaveURL(/\/dashboard/);
     const telas = [
       '/dashboard', '/eventos', '/eventos?view=lista', '/eventos/novo', '/agenda', '/clientes',
-      '/cardapio/itens', '/cardapio/sessoes', '/cardapio/opcoes', '/staff/profissionais', '/staff/servicos',
+      '/cardapio/itens', '/cardapio/secoes', '/cardapio/opcoes', '/staff/profissionais', '/staff/servicos',
       '/templates', '/templates/blocos', '/formularios', '/configuracoes/usuarios', '/configuracoes/tipos-evento',
       '/configuracoes/categorias', '/configuracoes/status-orcamento', '/configuracoes/formatos-servico',
       '/configuracoes/locacao', '/configuracoes/empresa',

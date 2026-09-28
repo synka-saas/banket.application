@@ -19,9 +19,9 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
 }));
 ---
 
-<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="timeline">
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="timeline">
   <section class="timeline-card">
-    <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Linha do tempo</h3>
+    <h3 class="bloco-titulo"><Icon name="timeline" size={18} /> Linha do tempo</h3>
     {registros.length === 0 ? (
       <p class="muted">Nenhum registro ainda.</p>
     ) : (

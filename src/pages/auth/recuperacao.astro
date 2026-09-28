@@ -22,7 +22,7 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<AuthLayout title="Recuperação de senha - Banket" showOverlay={false}>
+<AuthLayout title="Recuperação de senha" showOverlay={false}>
   <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
   <h1 class="auth-title">Esqueceu a sua senha?</h1>
   <p class="auth-subtitle">
@@ -30,7 +30,7 @@ if (Astro.request.method === 'POST') {
   </p>
 
   <form class="auth-form" method="post">
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" autocomplete="email" required />
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" autocomplete="email" required />
     <Button variant="primary" size="large" type="submit">ENVIAR</Button>
   </form>
 

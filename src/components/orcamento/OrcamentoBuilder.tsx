@@ -250,7 +250,7 @@ export default function OrcamentoBuilder(props: Props) {
       />
 
       <section class="orc-totais">
-        <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Resumo do orçamento</h3>
+        <h3 class="bloco-titulo"><Icon name="receipt_long" size={18} /> Resumo do orçamento</h3>
         <dl>
           <div>
             <dt>Alimentos</dt>

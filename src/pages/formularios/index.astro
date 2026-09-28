@@ -25,7 +25,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 <AppLayout title="Formulários" heading="Formulários">
   <PageToolbar searchPlaceholder="Pesquisar por nome ou endereço">
     <form method="post">
-      <Button type="submit" icon="add_circle">Criar formulário</Button>
+      <Button type="submit" icon="add_circle">Novo formulário</Button>
     </form>
   </PageToolbar>
 
@@ -39,7 +39,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
           icon="layers"
           muted={!f.ativo}
           rows={[
-            { label: 'Sessões ativas', value: pad(f.secoes_ativas) },
+            { label: 'Seções ativas', value: pad(f.secoes_ativas) },
             { label: 'Perguntas ativas', value: pad(f.perguntas_ativas) },
             { label: 'Respostas', value: pad(f.respostas) },
             { label: 'Última resposta', value: dataBR(f.ultima_resposta) },

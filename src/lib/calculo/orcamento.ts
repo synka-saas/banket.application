@@ -176,7 +176,7 @@ export function pagantesEquivalentes(p: Pagantes): number {
   return inteira + meia * 0.5;
 }
 
-/** Preço por pessoa de uma sessão: preço próprio (manual ou catálogo) ou soma dos itens selecionados com preço. */
+/** Preço por pessoa de uma seção: preço próprio (manual ou catálogo) ou soma dos itens selecionados com preço. */
 export function precoSecao(secao: SecaoOrcamento): number {
   if (secao.preco_manual !== null) return secao.preco_manual;
   if (secao.preco_catalogo !== null) return secao.preco_catalogo;
@@ -274,7 +274,7 @@ export const NOMES_RESTRICOES: Record<string, string> = {
   alergenicos: 'Contém alergênicos',
 };
 
-/** Atualiza linhas/blocos automáticos das Informações Complementares (restrições e equipe). */
+/** Atualiza linhas/blocos automáticos das Informações complementares (restrições e equipe). */
 function preencherAutomaticos(blocos: BlocoInfo[], conteudo: ConteudoOrcamento): BlocoInfo[] {
   const restricoes = contarRestricoes(conteudo);
   return blocos.map((b) => {

@@ -78,7 +78,7 @@ const ctx = await withTenant(user.tenantId, async (db) => {
 const { evento, orcamento, versao } = ctx;
 ---
 
-<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="orcamento">
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="orcamento">
   <div class="grid-evento">
     <div>
       {orcamento && versao && ctx.catalogo ? (

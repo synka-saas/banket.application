@@ -17,19 +17,21 @@ interface SubmenuItem {
 interface Props {
   /** Título da aba do navegador */
   title: string;
-  /** Texto do topo (ex.: "Cardápios / Itens do Cardápio"); padrão = title */
+  /** Texto do topo (ex.: "Cardápios / Itens do cardápio"); padrão = title */
   heading?: string;
   submenu?: SubmenuItem[];
   submenuActive?: string;
+  /** Link de volta mostrado antes do título no topo */
+  voltar?: { href: string; label: string };
 }
 
-const { title, heading = title, submenu, submenuActive } = Astro.props;
+const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
 ---
 
 <Layout title={title}>
   <Sidebar />
   <main class="main-content">
-    <Topbar title={heading} />
+    <Topbar title={heading} voltar={voltar} />
     {submenu && (
       <Submenu items={submenu} activeId={submenuActive}>
         <slot name="submenu-actions" />

@@ -50,10 +50,10 @@ const tipo = v('tipo_pessoa') === 'PF' ? 'PF' : 'PJ';
 const validado = Astro.url.searchParams.has('validado');
 ---
 
-<AuthLayout title="Cadastro da empresa - Banket" showOverlay={true}>
+<AuthLayout title="Cadastro da empresa" showOverlay={true}>
   <div class="cabecalho">
     {validado && <Icon name="check_circle" size={32} class="icone-ok" />}
-    <h1 class="auth-title">{validado ? 'E-mail Validado' : 'Complete seu cadastro'}</h1>
+    <h1 class="auth-title">{validado ? 'E-mail validado' : 'Complete seu cadastro'}</h1>
   </div>
   <p class="auth-subtitle">
     Para finalizar, selecione o seu tipo de conta (PF ou PJ) e preencha as informações abaixo para começarmos a preparar o

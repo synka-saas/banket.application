@@ -38,7 +38,7 @@ const { evento, orcamento, versao, faixas } = await withTenant(user.tenantId, (d
 const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
-<EventoLayout eventoId={id} titulo={evento.cliente_nome ?? 'Evento'} aba="informacoes">
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="informacoes">
   <div class="grid-evento">
     <div class="coluna-principal">
       {orcamento && versao ? (

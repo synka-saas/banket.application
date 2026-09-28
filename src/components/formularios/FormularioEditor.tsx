@@ -1,5 +1,5 @@
-// Editor de formulário de captação: dados gerais, sessões (ativar/desativar) e perguntas
-// (ativar/desativar as padrão, reordenar e incluir perguntas personalizadas em cada sessão).
+// Editor de formulário de captação: dados gerais, seções (ativar/desativar) e perguntas
+// (ativar/desativar as padrão, reordenar e incluir perguntas personalizadas em cada seção).
 import { useEffect, useState } from 'preact/hooks';
 import {
   TIPOS_COM_OPCOES,
@@ -278,7 +278,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       </section>
 
       <p class="fe-resumo">
-        {ativas.length} de {secoes.length} sessões ativas · {totalPerguntas} perguntas ativas. As sessões de dimensionamento B2B e B2C aparecem conforme a natureza escolhida pelo cliente.
+        {ativas.length} de {secoes.length} seções ativas · {totalPerguntas} perguntas ativas. As seções de dimensionamento B2B e B2C aparecem conforme a natureza escolhida pelo cliente.
       </p>
 
       {secoes.map((s, n) => (
@@ -291,16 +291,16 @@ export default function FormularioEditor({ formulario, origem }: Props) {
             </div>
             {s.fluxo !== 'todos' && <span class="tag">Somente {s.fluxo}</span>}
             {s.travada ? (
-              <span class="fe-travada" title="Sessão obrigatória: dados de contato usados para criar o cliente e o evento"><Icon name="lock" size={14} /> Sempre ativa</span>
+              <span class="fe-travada" title="Seção obrigatória: dados de contato usados para criar o cliente e o evento"><Icon name="lock" size={14} /> Sempre ativa</span>
             ) : (
               <label class="switch">
                 <input
                   type="checkbox"
                   checked={s.ativa}
-                  aria-label={`Sessão ${s.titulo} ${s.fluxo !== 'todos' ? s.fluxo : ''} ativa`}
+                  aria-label={`Seção ${s.titulo} ${s.fluxo !== 'todos' ? s.fluxo : ''} ativa`}
                   onChange={(e) => alterarSecao(s.chave, (x) => ({ ...x, ativa: e.currentTarget.checked }))}
                 />
-                Sessão ativa
+                Seção ativa
               </label>
             )}
           </header>

@@ -71,7 +71,7 @@ const e = evento;
 const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIANCE] ?? c);
 ---
 
-<EventoLayout eventoId={id} titulo={e.cliente_nome ?? 'Evento'} aba="resumo">
+<EventoLayout eventoId={id} titulo={e.titulo ?? e.cliente_nome ?? 'Evento'} aba="resumo">
   <section class="banner">
     <div>
       <span class="banner-label">{e.cliente_tipo === 'PJ' ? 'Empresa' : 'Cliente'}</span>
@@ -185,7 +185,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       <EventoInfoLateral evento={e} />
 
       <section class="checklist">
-        <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Checklist operacional</h3>
+        <h3 class="bloco-titulo"><Icon name="checklist" size={18} /> Checklist operacional</h3>
         {checklist.length === 0 && <p class="muted vazio">Nenhum item. Adicione o que precisa acontecer antes do evento.</p>}
         <ul class="checklist-lista">
           {checklist.map((c) => (

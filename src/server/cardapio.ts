@@ -1,4 +1,4 @@
-// Catálogo do cardápio: sessões, itens e opções prontas (pacotes).
+// Catálogo do cardápio: seções, itens e opções prontas (pacotes).
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import {
@@ -37,10 +37,10 @@ const codigos = <T extends Record<string, string>>(mapa: T) =>
   stringArray().transform((lista) => lista.filter((v) => v in mapa));
 
 // ---------------------------------------------------------------------------
-// Sessões
+// Seções
 // ---------------------------------------------------------------------------
 export const secaoSchema = z.object({
-  nome: requiredText('Informe o nome da sessão.', 120),
+  nome: requiredText('Informe o nome da seção.', 120),
   descricao: optionalText(1000),
   preco: optionalMoney(),
   unidade_cobranca: unidade,
@@ -82,7 +82,7 @@ export async function salvarSecao(db: Db, tenantId: string, id: string | null, i
         WHERE id = $6`,
       [input.nome, input.descricao, input.preco, input.unidade_cobranca, input.ordem, id]
     );
-    if (!res.rowCount) throw new UserError('Sessão não encontrada.');
+    if (!res.rowCount) throw new UserError('Seção não encontrada.');
     return;
   }
   await db.query(
@@ -98,11 +98,11 @@ export async function excluirSecao(db: Db, id: string) {
     [id]
   );
   if (rows[0].n) {
-    throw new UserError(`Esta sessão é usada em ${rows[0].n} opção(ões) de cardápio. Remova-a das opções antes de excluir.`);
+    throw new UserError(`Esta seção é usada em ${rows[0].n} opção(ões) de cardápio. Remova-a das opções antes de excluir.`);
   }
-  // Os itens da sessão são removidos junto (ON DELETE CASCADE)
+  // Os itens da seção são removidos junto (ON DELETE CASCADE)
   const res = await db.query('DELETE FROM catalogo_secoes WHERE id = $1', [id]);
-  if (!res.rowCount) throw new UserError('Sessão não encontrada.');
+  if (!res.rowCount) throw new UserError('Seção não encontrada.');
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ export async function excluirSecao(db: Db, id: string) {
 // ---------------------------------------------------------------------------
 export const itemSchema = z.object({
   nome: requiredText('Informe o nome do item.', 200),
-  secao_id: z.uuid('Selecione a sessão do item.'),
+  secao_id: z.uuid('Selecione a seção do item.'),
   descricao: optionalText(2000),
   composicao: optionalText(2000),
   categoria_principal_id: optionalUuid(),
@@ -272,11 +272,11 @@ export async function carregarCatalogo(db: Db): Promise<CatalogoSecao[]> {
 // Opções prontas (pacotes)
 // ---------------------------------------------------------------------------
 const opcaoSecaoSchema = z.object({
-  secao_id: z.uuid('Sessão inválida.'),
+  secao_id: z.uuid('Seção inválida.'),
   titulo: optionalText(120),
   escolha_qtd: optionalInt(),
   preco: optionalMoney(),
-  itens: z.array(z.uuid()).min(1, 'Cada sessão da opção precisa de pelo menos um item.'),
+  itens: z.array(z.uuid()).min(1, 'Cada seção da opção precisa de pelo menos um item.'),
 });
 
 export const opcaoSchema = z.object({
@@ -290,7 +290,7 @@ export const opcaoSchema = z.object({
   formato_servico_id: optionalUuid(),
   tags: tagList(),
   ativo: z.boolean().default(true),
-  secoes: z.array(opcaoSecaoSchema).min(1, 'Adicione pelo menos uma sessão ao cardápio.'),
+  secoes: z.array(opcaoSecaoSchema).min(1, 'Adicione pelo menos uma seção ao cardápio.'),
 });
 
 export type OpcaoInput = z.infer<typeof opcaoSchema>;
@@ -384,12 +384,12 @@ export async function salvarOpcao(db: Db, tenantId: string, id: string | null, i
   }
 
   for (const [ordem, secao] of input.secoes.entries()) {
-    // Só aceita itens que pertencem de fato à sessão do catálogo
+    // Só aceita itens que pertencem de fato à seção do catálogo
     const { rows: validos } = await db.query<{ id: string }>(
       'SELECT id FROM catalogo_itens WHERE secao_id = $1 AND id = ANY($2::uuid[])',
       [secao.secao_id, secao.itens]
     );
-    if (!validos.length) throw new UserError('Há sessões sem itens válidos no cardápio.');
+    if (!validos.length) throw new UserError('Há seções sem itens válidos no cardápio.');
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO cardapio_opcao_secoes (tenant_id, opcao_id, secao_id, titulo, escolha_qtd, preco, ordem)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,

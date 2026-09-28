@@ -72,7 +72,7 @@ describe('pagantesEquivalentes', () => {
 });
 
 describe('precoSecao', () => {
-  it('usa o preço da sessão quando existe (catálogo ou manual)', () => {
+  it('usa o preço da seção quando existe (catálogo ou manual)', () => {
     expect(precoSecao(secao('Soft drinks', [item('Água', { preco_catalogo: 5 })], { preco_catalogo: 20 }))).toBe(20);
     expect(precoSecao(secao('Soft drinks', [], { preco_catalogo: 20, preco_manual: 18 }))).toBe(18);
   });
@@ -89,7 +89,7 @@ describe('precoSecao', () => {
 });
 
 describe('calcularOrcamento', () => {
-  it('cardápio: preço base da opção + sessões com preço, multiplicado pelos pagantes', () => {
+  it('cardápio: preço base da opção + seções com preço, multiplicado pelos pagantes', () => {
     const r = calcularOrcamento(
       base({
         pagantes: { convidados: 100, criancas_meia: 10, criancas_isentas: 0 },

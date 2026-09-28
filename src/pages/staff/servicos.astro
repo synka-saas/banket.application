@@ -35,8 +35,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const plural = (n: number) => `${pad(n)} ${n === 1 ? 'profissional' : 'profissionais'}`;
 
 const linhas = (s: (typeof servicos)[number]) => [
-  { label: 'Cachê / Diária Fixo', value: formatMoney(s.cache_diaria) },
-  { label: 'Hora Extra', value: formatMoney(s.hora_extra) },
+  { label: 'Cachê / diária fixa', value: formatMoney(s.cache_diaria) },
+  { label: 'Hora extra', value: formatMoney(s.hora_extra) },
   { label: 'Auxílio', value: formatMoney(s.auxilio) },
   s.por_evento
     ? { label: 'Por evento', value: plural(s.quantidade_fixa) }
@@ -64,9 +64,9 @@ const valores = (s: (typeof servicos)[number]) =>
 const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir_por_padrao: true, ativo: true });
 ---
 
-<AppLayout title="Serviços e Custos" heading="Staff / Serviços e Custos" submenu={STAFF_SUBMENU} submenuActive="servicos">
+<AppLayout title="Serviços e custos" heading="Staff / Serviços e custos" submenu={STAFF_SUBMENU} submenuActive="servicos">
   <PageToolbar filter={{ name: 'tag', placeholder: 'Tag', options: tags.map((t) => ({ value: t, label: t })) }}>
-    <Button icon="add_circle" data-drawer-open="drawer-servico" data-values={novo}>Adicionar serviço</Button>
+    <Button icon="add_circle" data-drawer-open="drawer-servico" data-values={novo}>Novo serviço</Button>
   </PageToolbar>
 
   {servicos.length === 0 ? (

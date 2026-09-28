@@ -25,15 +25,15 @@ if (Astro.request.method === 'POST') {
 const email = await tokenResetValido(token);
 ---
 
-<AuthLayout title="Nova senha - Banket" showOverlay={false}>
+<AuthLayout title="Nova senha" showOverlay={false}>
   <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
   {email ? (
     <>
       <h1 class="auth-title">Crie uma nova senha</h1>
       <p class="auth-subtitle">Conta: <strong>{email}</strong></p>
       <form class="auth-form" method="post">
-        <Input id="senha" name="senha" type="password" label="NOVA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" minlength="8" required />
-        <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A NOVA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" required />
+        <Input id="senha" name="senha" type="password" label="NOVA SENHA" autocomplete="new-password" minlength="8" required />
+        <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A NOVA SENHA" autocomplete="new-password" required />
         <p class="auth-hint">{REGRA_SENHA}</p>
         <Button variant="primary" size="large" type="submit">SALVAR NOVA SENHA</Button>
       </form>

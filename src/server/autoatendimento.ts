@@ -69,7 +69,7 @@ export const cadastroSchema = z
     email: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.email('E-mail inválido.')),
     senha: z.string({ error: 'Informe a senha.' }),
     confirma_senha: z.string({ error: 'Confirme a senha.' }),
-    termos: z.literal('on', { error: 'É preciso aceitar os Termos e Condições de Uso.' }),
+    termos: z.literal('on', { error: 'É preciso aceitar os Termos e condições de uso.' }),
   })
   .superRefine((d, ctx) => {
     if (d.nome.split(/\s+/).length < 2) ctx.addIssue({ code: 'custom', message: 'Informe nome e sobrenome.' });

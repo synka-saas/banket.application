@@ -24,7 +24,7 @@ const modoLog = import.meta.env.DEV && !process.env.RESEND_API_KEY;
 const ehGmail = /@(gmail|googlemail)\.com$/i.test(email);
 ---
 
-<AuthLayout title="Confirme seu e-mail - Banket" showOverlay={true}>
+<AuthLayout title="Confirme seu e-mail" showOverlay={true}>
   <h1 class="auth-title">Acabamos de enviar um link de<br />confirmação para o seu e-mail.</h1>
   <p class="auth-subtitle">
     {email ? <>Acesse a caixa de entrada de <strong>{email}</strong> e clique no link</> : 'Acesse a sua caixa de entrada e clique no link'}

@@ -37,7 +37,7 @@ test.describe('Templates, blocos e PDF', () => {
     const nome = `E2E Template ${Date.now()}`;
     await page.goto('/templates');
     await shot(page, 'templates-lista');
-    await page.getByRole('link', { name: /Criar novo template/i }).click();
+    await page.getByRole('link', { name: /Novo template/i }).click();
     await page.getByLabel('Nome do template').fill(nome);
     await page.getByLabel('Descrição').fill('Criado pelo teste');
     await page.getByLabel('Título capa').fill('Proposta E2E');

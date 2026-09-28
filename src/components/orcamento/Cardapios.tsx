@@ -1,4 +1,4 @@
-// Acordeão "Cardápios": cardápios vindos de opções prontas ou montados do zero, com sessões e itens.
+// Acordeão "Cardápios": cardápios vindos de opções prontas ou montados do zero, com seções e itens.
 import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, precoSecao, type CardapioOrcamento, type ItemOrcamento, type SecaoOrcamento } from '../../lib/calculo/orcamento';
@@ -31,7 +31,7 @@ function itemDoCatalogo(i: SecaoCatalogo['itens'][number], comPreco: boolean, se
   };
 }
 
-/** Sessão inteira do catálogo, com os preços do catálogo (acréscimo ao cardápio). */
+/** Seção inteira do catálogo, com os preços do catálogo (acréscimo ao cardápio). */
 function secaoDoCatalogo(s: SecaoCatalogo): SecaoOrcamento {
   return {
     key: novaChave('s'),
@@ -195,14 +195,14 @@ function CardapioBloco(props: {
 
           {!disabled && (
             <div class="adicionar-linha">
-              <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label={`Sessão a adicionar em ${c.nome}`}>
-                <option value="">Adicionar sessão do catálogo…</option>
+              <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label={`Seção a adicionar em ${c.nome}`}>
+                <option value="">Adicionar seção do catálogo…</option>
                 {props.secoesComida.map((s) => (
                   <option value={s.id}>{s.nome}{s.preco !== null ? ` · ${formatMoney(s.preco)}/pessoa` : ''}</option>
                 ))}
               </select>
               <button type="button" class="btn btn-dark btn-md" onClick={adicionarSecao} disabled={!novaSecao}>
-                <Icon name="add_circle" size={18} /> Adicionar nova sessão ao cardápio
+                <Icon name="add_circle" size={18} /> Adicionar nova seção ao cardápio
               </button>
             </div>
           )}
@@ -256,8 +256,8 @@ function SecaoBloco(props: {
         {preco > 0 && <span class="secao-orc-preco">+ {formatMoney(preco)}/pessoa</span>}
         {!disabled && (
           <>
-            <ValorManual label={`Preço da sessão ${s.nome}`} manual={s.preco_manual} calculado={s.preco_catalogo ?? (preco || null)} onChange={(v) => props.onChange({ preco_manual: v })} compacto placeholder="sem preço" />
-            <button type="button" class="link-perigo" onClick={props.onRemover} aria-label={`Remover sessão ${s.nome}`}>Remover</button>
+            <ValorManual label={`Preço da seção ${s.nome}`} manual={s.preco_manual} calculado={s.preco_catalogo ?? (preco || null)} onChange={(v) => props.onChange({ preco_manual: v })} compacto placeholder="sem preço" />
+            <button type="button" class="link-perigo" onClick={props.onRemover} aria-label={`Remover seção ${s.nome}`}>Remover</button>
           </>
         )}
       </div>

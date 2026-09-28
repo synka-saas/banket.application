@@ -97,22 +97,22 @@ const tableData = itens.map((i) => ({
   })}">Editar</button>`,
 }));
 
-// Novo item já vem na sessão filtrada (se houver) e ativo
+// Novo item já vem na seção filtrada (se houver) e ativo
 const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa' });
 ---
 
-<AppLayout title="Itens do Cardápio" heading="Cardápios / Itens do Cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
+<AppLayout title="Itens do cardápio" heading="Cardápios / Itens do cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
   <PageToolbar
-    filter={{ name: 'secao', placeholder: 'Sessão', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
+    filter={{ name: 'secao', placeholder: 'Seção', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
   >
-    <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Adicionar item</Button>
+    <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</Button>
   </PageToolbar>
 
   <Table
     columns={[
       { key: 'nome', label: 'Nome', width: '24%' },
       { key: 'descricao', label: 'Descrição', width: '28%' },
-      { key: 'secao', label: 'Sessão' },
+      { key: 'secao', label: 'Seção' },
       { key: 'preco', label: 'Preço' },
       { key: 'categoria', label: 'Categoria' },
       { key: 'acoes', label: 'Ações', align: 'right' },
@@ -131,7 +131,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
         <input id="it-nome" name="nome" required maxlength="200" placeholder="Ex.: Coxinha de frango" />
       </div>
       <div class="field">
-        <label for="it-secao">Sessão*</label>
+        <label for="it-secao">Seção*</label>
         <select id="it-secao" name="secao_id" required>
           <option value="">Selecione…</option>
           {secoes.map((s) => <option value={s.id}>{s.nome}</option>)}

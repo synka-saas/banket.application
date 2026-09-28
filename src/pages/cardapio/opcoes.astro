@@ -28,15 +28,15 @@ const semRepetir = (tags: string[]) =>
 const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.', ',')} ${h === 1 ? 'hora' : 'horas'}`);
 ---
 
-<AppLayout title="Opções de Cardápio" heading="Cardápios / Opções de Cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="opcoes">
+<AppLayout title="Opções de cardápio" heading="Cardápios / Opções de cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="opcoes">
   <PageToolbar
-    filter={{ name: 'secao', placeholder: 'Sessão', options: catalogo.map((s) => ({ value: s.id, label: s.nome })) }}
+    filter={{ name: 'secao', placeholder: 'Seção', options: catalogo.map((s) => ({ value: s.id, label: s.nome })) }}
   >
-    <Button icon="add_circle" data-opcao-editar="">Criar cardápio</Button>
+    <Button icon="add_circle" data-opcao-editar="">Nova opção de cardápio</Button>
   </PageToolbar>
 
   {opcoes.length === 0 ? (
-    <div class="empty">Nenhum cardápio encontrado. Crie opções prontas combinando sessões e itens do catálogo.</div>
+    <div class="empty">Nenhum cardápio encontrado. Crie opções prontas combinando seções e itens do catálogo.</div>
   ) : (
     <div class="cards-grid">
       {opcoes.map((o) => (
@@ -47,7 +47,7 @@ const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.'
           rows={[
             { label: 'Preço por pessoa', value: formatMoney(o.preco_por_pessoa) },
             { label: 'Duração', value: horas(o.duracao_horas) },
-            { label: 'Sessões', value: pad(o.secoes) },
+            { label: 'Seções', value: pad(o.secoes) },
             { label: 'Itens', value: pad(o.itens) },
           ]}
           tags={semRepetir([...(o.formato_nome ? [o.formato_nome] : []), ...o.tags, ...(o.ativo ? [] : ['Inativo'])])}

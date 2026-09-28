@@ -67,7 +67,7 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
       )}
 
       {blocos.map((b) => (
-        <Acordeao key={b.key} titulo={b.titulo}>
+        <Acordeao key={b.key} titulo={b.titulo} icone="info">
           {!congelada && (
             <div class="adicionar-linha">
               <input class="control" value={b.titulo} aria-label="Título do bloco" maxLength={200}

@@ -1,4 +1,4 @@
-// Acordeão "Staff": funções calculadas pelas regras de Serviços e Custos, com ajuste manual.
+// Acordeão "Staff": funções calculadas pelas regras de Serviços e custos, com ajuste manual.
 import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { descreverRegra } from '../../lib/calculo/staff';
@@ -29,7 +29,7 @@ export default function Staff({ staff, catalogo, convidados, total, disabled, on
   }
 
   return (
-    <Acordeao titulo="Staff" resumo={formatMoney(total)} aberto={staff.length > 0}>
+    <Acordeao titulo="Staff" icone="groups" resumo={formatMoney(total)} aberto={staff.length > 0}>
       {staff.length === 0 ? (
         <p class="vazio">Nenhum profissional incluído.</p>
       ) : (

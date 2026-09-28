@@ -9,7 +9,7 @@ test.describe('Formulários', () => {
 
     await login(page);
     await page.goto('/formularios');
-    await page.getByRole('button', { name: 'Criar formulário' }).click();
+    await page.getByRole('button', { name: 'Novo formulário' }).click();
     await page.waitForURL(/\/formularios\/[0-9a-f-]{36}$/);
     const formId = page.url().split('/').pop()!;
     await waitForIslands(page);

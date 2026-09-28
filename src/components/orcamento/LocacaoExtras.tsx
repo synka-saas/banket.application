@@ -21,7 +21,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
     onExtras(extras.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
   return (
-    <Acordeao titulo="Locação e extras" resumo={formatMoney(totalLocacao + totalExtras)} aberto={locacao.incluir || extras.length > 0}>
+    <Acordeao titulo="Locação e extras" icone="storefront" resumo={formatMoney(totalLocacao + totalExtras)} aberto={locacao.incluir || extras.length > 0}>
       <div class="locacao">
         <label class="switch">
           <input type="checkbox" checked={locacao.incluir} disabled={disabled} onChange={(e) => onLocacao({ ...locacao, incluir: e.currentTarget.checked })} />

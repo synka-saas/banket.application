@@ -1,4 +1,4 @@
-// Acordeão "Bebidas": pacotes por pessoa (sessões com preço) e itens avulsos por unidade.
+// Acordeão "Bebidas": pacotes por pessoa (seções com preço) e itens avulsos por unidade.
 import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, type BebidaOrcamento } from '../../lib/calculo/orcamento';

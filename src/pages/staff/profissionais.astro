@@ -75,12 +75,12 @@ const tableData = profissionais.map((p) => ({
 }));
 ---
 
-<AppLayout title="Base de Profissionais" heading="Staff / Base de Profissionais" submenu={STAFF_SUBMENU} submenuActive="profissionais">
+<AppLayout title="Profissionais" heading="Staff / Profissionais" submenu={STAFF_SUBMENU} submenuActive="profissionais">
   <PageToolbar
     filter={{ name: 'especialidade', placeholder: 'Especialidade', options: servicos.map((s) => ({ value: s.id, label: s.funcao })) }}
   >
     <Button icon="add_circle" data-drawer-open="drawer-profissional" data-values={JSON.stringify({ ativo: true })}>
-      Adicionar profissional
+      Novo profissional
     </Button>
   </PageToolbar>
 

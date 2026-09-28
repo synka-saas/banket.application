@@ -9,7 +9,7 @@ test.describe('Staff', () => {
   test('serviço: simula o dimensionamento, cria, valida e exclui', async ({ page }) => {
     const funcao = `E2E Recepcionista ${Date.now()}`;
     await page.goto('/staff/servicos');
-    await page.getByRole('button', { name: 'Adicionar serviço' }).click();
+    await page.getByRole('button', { name: 'Novo serviço' }).click();
     const drawer = page.locator('#drawer-servico');
 
     await drawer.getByLabel('Função*').fill(funcao);
@@ -41,7 +41,7 @@ test.describe('Staff', () => {
   test('profissional: cadastra, troca especialidade inline e rejeita CPF inválido', async ({ page }) => {
     const nome = `E2E Profissional ${Date.now()}`;
     await page.goto('/staff/profissionais');
-    await page.getByRole('button', { name: 'Adicionar profissional' }).click();
+    await page.getByRole('button', { name: 'Novo profissional' }).click();
     const drawer = page.locator('#drawer-profissional');
     await drawer.getByLabel('Nome*').fill(nome);
     await drawer.getByLabel('CPF').fill('111.111.111-11');

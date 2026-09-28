@@ -10,7 +10,7 @@ test.describe('Drawer', () => {
     const nome = `Cliente Drawer E2E ${Date.now()}`;
     const drawer = page.locator('#drawer-cliente');
 
-    await page.getByRole('button', { name: 'Adicionar cliente' }).click();
+    await page.getByRole('button', { name: 'Novo cliente' }).click();
     await page.selectOption('#cli-tipo', 'PF');
     await page.fill('#cli-nome', nome);
     await page.fill('#cli-documento', '123.456.789-00');
@@ -42,7 +42,7 @@ test.describe('Drawer', () => {
     await page.goto('/clientes');
     const drawer = page.locator('#drawer-cliente');
 
-    await page.getByRole('button', { name: 'Adicionar cliente' }).click();
+    await page.getByRole('button', { name: 'Novo cliente' }).click();
     await page.fill('#cli-nome', 'Rascunho');
     await page.keyboard.press('Escape');
     const modal = page.locator('dialog.confirmar[open]');
@@ -56,7 +56,7 @@ test.describe('Drawer', () => {
     await expect(drawer).toBeHidden();
 
     // Sem alterações, fecha direto
-    await page.getByRole('button', { name: 'Adicionar cliente' }).click();
+    await page.getByRole('button', { name: 'Novo cliente' }).click();
     await drawer.getByRole('button', { name: 'Fechar' }).click();
     await expect(drawer).toBeHidden();
   });

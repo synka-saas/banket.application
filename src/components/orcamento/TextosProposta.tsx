@@ -1,4 +1,4 @@
-// Textos da proposta: blocos de Templates › Blocos de Informação incluídos nesta versão.
+// Textos da proposta: blocos de Templates › Blocos de informação incluídos nesta versão.
 // Cada bloco incluído é uma cópia: editar o texto aqui não altera o cadastro, e vice-versa.
 import { useRef, useState } from 'preact/hooks';
 import { novaChave, type BlocoTexto } from '../../lib/calculo/orcamento';
@@ -63,7 +63,7 @@ export default function TextosProposta({ eventoId, numero, congelada, textos: in
   const avulsos = textos.filter((t) => !t.bloco_id || !cadastro.some((b) => b.id === t.bloco_id));
 
   return (
-    <Acordeao titulo="Textos da proposta" resumo={`${textos.length} incluído${textos.length === 1 ? '' : 's'}`}>
+    <Acordeao titulo="Textos da proposta" icone="notes" resumo={`${textos.length} incluído${textos.length === 1 ? '' : 's'}`}>
       <div class="textos-proposta">
         <p class="muted">
           Blocos de texto impressos no PDF, na página indicada. Marque para incluir nesta versão; o texto pode ser ajustado só para este orçamento.

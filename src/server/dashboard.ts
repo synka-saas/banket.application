@@ -152,7 +152,7 @@ export async function primeirosPassos(db: Db): Promise<PassoInicial[]> {
   const r = rows[0];
   return [
     { titulo: 'Dados da empresa', descricao: 'Logo, telefone e assinatura que aparecem nas propostas.', href: '/configuracoes/empresa', feito: Boolean(r.empresa) },
-    { titulo: 'Itens do cardápio', descricao: 'Cadastre os itens e sessões que você oferece.', href: '/cardapio/itens', feito: r.itens },
+    { titulo: 'Itens do cardápio', descricao: 'Cadastre os itens e seções que você oferece.', href: '/cardapio/itens', feito: r.itens },
     { titulo: 'Opções de cardápio', descricao: 'Monte cardápios prontos para usar nos orçamentos.', href: '/cardapio/opcoes', feito: r.opcoes },
     { titulo: 'Staff', descricao: 'Funções, cachês e regras de dimensionamento da equipe.', href: '/staff/servicos', feito: r.staff },
     { titulo: 'Locação', descricao: 'Valores do espaço por faixa de convidados.', href: '/configuracoes/locacao', feito: r.faixas },

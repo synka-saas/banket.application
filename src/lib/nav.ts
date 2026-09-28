@@ -12,17 +12,18 @@ export const CONFIG_SUBMENU = [
 ];
 
 export const CARDAPIO_SUBMENU = [
-  { id: 'itens', label: 'Itens do Cardápio', href: '/cardapio/itens' },
-  { id: 'sessoes', label: 'Sessão do Cardápio', href: '/cardapio/sessoes' },
-  { id: 'opcoes', label: 'Opções de Cardápio', href: '/cardapio/opcoes' },
+  // Na ordem em que se monta o catálogo: seção → itens → opções prontas
+  { id: 'secoes', label: 'Seções', href: '/cardapio/secoes' },
+  { id: 'itens', label: 'Itens do cardápio', href: '/cardapio/itens' },
+  { id: 'opcoes', label: 'Opções de cardápio', href: '/cardapio/opcoes' },
 ];
 
 export const STAFF_SUBMENU = [
-  { id: 'profissionais', label: 'Base de Profissionais', href: '/staff/profissionais' },
-  { id: 'servicos', label: 'Serviços e Custos', href: '/staff/servicos' },
+  { id: 'profissionais', label: 'Profissionais', href: '/staff/profissionais' },
+  { id: 'servicos', label: 'Serviços e custos', href: '/staff/servicos' },
 ];
 
 export const TEMPLATES_SUBMENU = [
-  { id: 'templates', label: 'Opções de Templates', href: '/templates' },
-  { id: 'blocos', label: 'Blocos de Informação', href: '/templates/blocos' },
+  { id: 'templates', label: 'Templates', href: '/templates' },
+  { id: 'blocos', label: 'Blocos de informação', href: '/templates/blocos' },
 ];

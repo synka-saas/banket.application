@@ -15,7 +15,7 @@ const templates = await withTenant(tenantId, (db) => listarTemplates(db, searchT
 
 <AppLayout title="Templates" heading="Templates" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
   <PageToolbar>
-    <Button icon="add_circle" href="/templates/novo">Criar novo template</Button>
+    <Button icon="add_circle" href="/templates/novo">Novo template</Button>
   </PageToolbar>
 
   {templates.length === 0 ? (

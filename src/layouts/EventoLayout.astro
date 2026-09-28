@@ -1,6 +1,7 @@
 ---
-// Casca das páginas de um evento: título "Eventos / Cliente" e as abas do evento.
+// Casca das páginas de um evento: "Funil de vendas / título do evento" (com link de volta) e as abas do evento.
 import AppLayout from './AppLayout.astro';
+import { ROTULOS } from '../lib/rotulos';
 
 interface Props {
   eventoId: string;
@@ -12,15 +13,15 @@ const { eventoId, titulo, aba } = Astro.props;
 const base = `/eventos/${eventoId}`;
 
 const abas = [
-  { id: 'resumo', label: 'Resumo do Evento', href: base },
+  { id: 'resumo', label: 'Resumo do evento', href: base },
   { id: 'orcamento', label: 'Orçamento', href: `${base}/orcamento` },
-  { id: 'informacoes', label: 'Informações Complementares', href: `${base}/informacoes-complementares` },
-  { id: 'condicoes', label: 'Condições Gerais', href: `${base}/condicoes-gerais` },
+  { id: 'informacoes', label: 'Informações complementares', href: `${base}/informacoes-complementares` },
+  { id: 'condicoes', label: 'Condições gerais', href: `${base}/condicoes-gerais` },
   { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
 ];
 ---
 
-<AppLayout title={`${titulo} · Evento`} heading={`Eventos / ${titulo}`} submenu={abas} submenuActive={aba}>
+<AppLayout title={titulo} heading={titulo} voltar={{ href: '/eventos', label: ROTULOS.funil }} submenu={abas} submenuActive={aba}>
   <slot />
   <slot name="overlays" slot="overlays" />
 </AppLayout>

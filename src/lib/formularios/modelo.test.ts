@@ -25,7 +25,7 @@ const baseB2C = {
 };
 
 describe('montarFormulario', () => {
-  it('sem configuração, usa todas as sessões e perguntas do modelo ativas', () => {
+  it('sem configuração, usa todas as seções e perguntas do modelo ativas', () => {
     const form = montarFormulario({});
     expect(form.map((s) => s.chave)).toEqual([
       'contato', 'local', 'dimensionamento_b2b', 'dimensionamento_b2c', 'gastronomia', 'detalhes',
@@ -33,7 +33,7 @@ describe('montarFormulario', () => {
     expect(form.every((s) => s.ativa && s.perguntas.every((p) => p.ativa))).toBe(true);
   });
 
-  it('não permite desativar sessão ou perguntas travadas', () => {
+  it('não permite desativar seção ou perguntas travadas', () => {
     const form = montarFormulario({
       secoes: [{ chave: 'contato', ativa: false, perguntas: [{ chave: 'email', ativa: false, obrigatoria: false }] }],
     });

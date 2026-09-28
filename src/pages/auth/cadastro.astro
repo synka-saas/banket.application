@@ -39,16 +39,16 @@ nome = Astro.url.searchParams.get('nome') ?? '';
 email = Astro.url.searchParams.get('email') ?? '';
 ---
 
-<AuthLayout title="Cadastro - Banket" showOverlay={true}>
+<AuthLayout title="Cadastro" showOverlay={true}>
   <h1 class="auth-title">Crie sua conta e teste grátis<br />por 30 dias.</h1>
 
   <form class="auth-form" method="post">
-    <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Nome Sobrenome" value={nome} autocomplete="name" maxlength="255" required />
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" value={email} autocomplete="email" required />
-    <Input id="senha" name="senha" type="password" label="SENHA" placeholder="XXXXXXXX" autocomplete="new-password" minlength="8" required />
-    <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME SUA SENHA" placeholder="XXXXXXXX" autocomplete="new-password" required />
+    <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Ex.: Maria Souza" value={nome} autocomplete="name" maxlength="255" required />
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
+    <Input id="senha" name="senha" type="password" label="SENHA" autocomplete="new-password" minlength="8" required />
+    <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME SUA SENHA" autocomplete="new-password" required />
     <p class="auth-hint">{REGRA_SENHA}</p>
-    <Checkbox id="termos" name="termos" label="Termos e Condições de Uso" required />
+    <Checkbox id="termos" name="termos" label="Termos e condições de uso" required />
 
     <Button variant="primary" size="large" type="submit">CRIAR CONTA</Button>
   </form>

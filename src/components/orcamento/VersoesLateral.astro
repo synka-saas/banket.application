@@ -16,7 +16,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <section class="versoes">
-  <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Histórico de versões</h3>
+  <h3 class="bloco-titulo"><Icon name="history" size={18} /> Histórico de versões</h3>
   <div class="versoes-lista">
     {orcamento.versoes.map((v) => (
       <div class:list={['versao-card', { visualizando: v.numero === visualizando }]}>

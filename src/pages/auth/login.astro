@@ -60,15 +60,15 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<AuthLayout title="Login - Banket" showOverlay={false}>
+<AuthLayout title="Login" showOverlay={false}>
   <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
   <h1 class="auth-title">Faça login para continuar</h1>
 
   <form class="auth-form" method="post">
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="xxxx@xxxx.com.br" value={email} autocomplete="email" required />
+    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
 
     <div class="campo-senha">
-      <Input id="senha" name="senha" type="password" label="SENHA" placeholder="XXXXXXXX" autocomplete="current-password" required />
+      <Input id="senha" name="senha" type="password" label="SENHA" autocomplete="current-password" required />
       <a href="/auth/recuperacao" class="forgot-password">Esqueceu a senha?</a>
     </div>
 

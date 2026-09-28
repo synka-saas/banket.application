@@ -93,7 +93,7 @@ export function Acordeao(props: { titulo: string; icone?: string; resumo?: strin
   return (
     <section class={`acordeao ${aberto ? 'aberto' : ''}`}>
       <button type="button" class="acordeao-cabecalho" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
-        <Icon name={props.icone ?? 'account_circle'} size={18} class="acordeao-icone" />
+        <Icon name={props.icone ?? 'expand_circle_right'} size={18} class="acordeao-icone" />
         <span class="acordeao-titulo">{props.titulo}</span>
         {props.resumo && <span class="acordeao-resumo">{props.resumo}</span>}
         <Icon name="expand_circle_down" size={22} class="acordeao-seta" />

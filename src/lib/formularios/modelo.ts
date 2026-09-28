@@ -1,8 +1,8 @@
 // Modelo do formulário de captação (baseado no formulario-template.html) e regras de configuração.
 // Compartilhado entre servidor, editor (ilha Preact) e página pública: não acessa o banco.
 //
-// As sessões e perguntas padrão vivem aqui. No banco (formularios.config) ficam só os ajustes:
-// sessão ativa/inativa, perguntas padrão ativas/obrigatórias, ordem e perguntas personalizadas.
+// As seções e perguntas padrão vivem aqui. No banco (formularios.config) ficam só os ajustes:
+// seção ativa/inativa, perguntas padrão ativas/obrigatórias, ordem e perguntas personalizadas.
 import { z } from 'zod';
 
 export type TipoPergunta =
@@ -397,8 +397,8 @@ export function lerConfig(raw: unknown): FormularioConfig {
 }
 
 /**
- * Junta o modelo com a configuração: as sessões seguem a ordem do modelo; as perguntas seguem a ordem salva.
- * Perguntas padrão que ainda não estão na configuração entram no fim da sessão; chaves desconhecidas são ignoradas.
+ * Junta o modelo com a configuração: as seções seguem a ordem do modelo; as perguntas seguem a ordem salva.
+ * Perguntas padrão que ainda não estão na configuração entram no fim da seção; chaves desconhecidas são ignoradas.
  */
 export function montarFormulario(raw: unknown): SecaoResolvida[] {
   const config = lerConfig(raw);
@@ -466,7 +466,7 @@ export function extrairConfig(secoes: SecaoResolvida[]): FormularioConfig {
 export type ValorResposta = string | string[] | null;
 export type Respostas = Record<string, ValorResposta>;
 
-/** Sessões exibidas para a natureza escolhida (ativas e do mesmo fluxo). */
+/** Seções exibidas para a natureza escolhida (ativas e do mesmo fluxo). */
 export function secoesVisiveis(secoes: SecaoResolvida[], natureza: string | null | undefined): SecaoResolvida[] {
   return secoes.filter((s) => s.ativa && (s.fluxo === 'todos' || s.fluxo === natureza));
 }

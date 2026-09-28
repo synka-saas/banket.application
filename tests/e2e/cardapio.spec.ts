@@ -10,17 +10,17 @@ test.describe('Cardápio', () => {
     const nome = `E2E Coquetel ${Date.now()}`;
     await page.goto('/cardapio/opcoes');
     await waitForIslands(page);
-    await page.getByRole('button', { name: 'Criar cardápio' }).click();
+    await page.getByRole('button', { name: 'Nova opção de cardápio' }).click();
 
     const editor = page.locator('.ed-drawer');
     await expect(editor).toBeVisible();
     await editor.getByLabel('Nome do cardápio').fill(nome);
     await editor.getByLabel('Preço base por pessoa').fill('45,90');
     // O rótulo traz a contagem de itens, que varia com o catálogo
-    const opcaoCoquetel = editor.getByLabel('Sessão do catálogo').locator('option', { hasText: /^Coquetel \(/ });
+    const opcaoCoquetel = editor.getByLabel('Seção do catálogo').locator('option', { hasText: /^Coquetel \(/ });
     const itensCoquetel = Number((await opcaoCoquetel.textContent())!.match(/\((\d+) itens\)/)![1]);
-    await editor.getByLabel('Sessão do catálogo').selectOption((await opcaoCoquetel.getAttribute('value'))!);
-    await editor.getByRole('button', { name: /Adicionar sessão/ }).click();
+    await editor.getByLabel('Seção do catálogo').selectOption((await opcaoCoquetel.getAttribute('value'))!);
+    await editor.getByRole('button', { name: /Adicionar seção/ }).click();
 
     const secao = editor.locator('.ed-secao').first();
     await expect(secao).toContainText('Coquetel');
@@ -32,14 +32,14 @@ test.describe('Cardápio', () => {
     await expectToast(page, 'Cardápio criado.');
     const card = page.locator('.info-card', { hasText: nome });
     await expect(card).toContainText('R$ 45,90');
-    await expect(card).toContainText(String(itensCoquetel - 1).padStart(2, '0')); // itens da sessão Coquetel menos o desmarcado
+    await expect(card).toContainText(String(itensCoquetel - 1).padStart(2, '0')); // itens da seção Coquetel menos o desmarcado
 
-    // Edita: remove a sessão e tenta salvar sem sessões (deve recusar)
+    // Edita: remove a seção e tenta salvar sem seções (deve recusar)
     await card.getByRole('button', { name: 'Editar' }).click();
     await expect(editor.getByLabel('Nome do cardápio')).toHaveValue(nome);
     await editor.locator('.ed-secao').first().getByRole('button', { name: /Remover/ }).click();
     await editor.getByRole('button', { name: 'Salvar' }).click();
-    await expectToast(page, 'Adicione pelo menos uma sessão ao cardápio.');
+    await expectToast(page, 'Adicione pelo menos uma seção ao cardápio.');
 
     // Duplica e depois exclui as duas
     await editor.getByRole('button', { name: 'Duplicar' }).click();
@@ -57,10 +57,10 @@ test.describe('Cardápio', () => {
   test('cria e remove um item pelo drawer', async ({ page }) => {
     const nome = `E2E Coxinha ${Date.now()}`;
     await page.goto('/cardapio/itens');
-    await page.getByRole('button', { name: 'Adicionar item' }).click();
+    await page.getByRole('button', { name: 'Novo item' }).click();
     const drawer = page.locator('#drawer-item');
     await drawer.getByLabel('Nome do item*').fill(nome);
-    await drawer.getByLabel('Sessão*').selectOption({ label: 'Coquetel' });
+    await drawer.getByLabel('Seção*').selectOption({ label: 'Coquetel' });
     await drawer.getByLabel('Preço de venda (R$)').fill('9,90');
     await drawer.getByLabel('Sem lactose').check();
     await drawer.getByRole('button', { name: 'Salvar' }).click();

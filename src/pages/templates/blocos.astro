@@ -37,11 +37,11 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
   .filter((g) => g.blocos.length);
 ---
 
-<AppLayout title="Blocos de Informação" heading="Templates / Blocos de Informação" submenu={TEMPLATES_SUBMENU} submenuActive="blocos">
+<AppLayout title="Blocos de informação" heading="Templates / Blocos de informação" submenu={TEMPLATES_SUBMENU} submenuActive="blocos">
   <PageToolbar
     filter={{ name: 'pagina', placeholder: 'Página da proposta', options: Object.entries(PAGINAS_BLOCO).map(([value, label]) => ({ value, label })) }}
   >
-    <Button icon="add_circle" href="/templates/blocos?novo=1">Criar novo bloco</Button>
+    <Button icon="add_circle" href="/templates/blocos?novo=1">Novo bloco</Button>
   </PageToolbar>
 
   <div class="grid-blocos">
@@ -84,7 +84,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
     </SectionCard>
 
     <aside class="lista">
-      <h3 class="bloco-titulo"><Icon name="account_circle" size={18} /> Blocos</h3>
+      <h3 class="bloco-titulo"><Icon name="view_agenda" size={18} /> Blocos</h3>
       {grupos.length === 0 && <p class="muted">Nenhum bloco encontrado.</p>}
       {grupos.map((g) => (
         <div class="grupo">

@@ -1,4 +1,4 @@
-// Editor de opção de cardápio (pacote): nome, preço base, duração, formato, tags e sessões com itens.
+// Editor de opção de cardápio (pacote): nome, preço base, duração, formato, tags e seções com itens.
 // Abre ao clicar em qualquer elemento [data-opcao-editar="<id>"] (vazio = nova opção).
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { moneyInput, parseMoney } from '../../lib/money';
@@ -128,7 +128,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
   function adicionarSecao() {
     const secao = secoesPorId.get(novaSecao);
     if (!secao) {
-      toast('Escolha uma sessão do catálogo para adicionar.', 'info');
+      toast('Escolha uma seção do catálogo para adicionar.', 'info');
       return;
     }
     setForm((f) => ({
@@ -270,20 +270,20 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
             </div>
 
             <div class="ed-add">
-              <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label="Sessão do catálogo">
-                <option value="">Escolha uma sessão do catálogo…</option>
+              <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label="Seção do catálogo">
+                <option value="">Escolha uma seção do catálogo…</option>
                 {catalogo.map((s) => <option value={s.id}>{s.nome} ({s.itens.length} itens)</option>)}
               </select>
               <button type="button" class="btn btn-primary btn-md" onClick={adicionarSecao}>
-                <Icon name="add_circle" size={18} /> Adicionar sessão
+                <Icon name="add_circle" size={18} /> Adicionar seção
               </button>
             </div>
 
             <p class="ed-summary">
-              {form.secoes.length} sessão(ões) · {totalItens} item(ns)
+              {form.secoes.length} seção(ões) · {totalItens} item(ns)
             </p>
 
-            {form.secoes.length === 0 && <div class="ed-empty">Adicione sessões do catálogo para montar o cardápio.</div>}
+            {form.secoes.length === 0 && <div class="ed-empty">Adicione seções do catálogo para montar o cardápio.</div>}
 
             {form.secoes.map((s, idx) => {
               const secao = secoesPorId.get(s.secao_id);
@@ -294,7 +294,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                 <section class="ed-secao" key={s.key}>
                   <header class="ed-secao-header">
                     <div class="ed-secao-nome">
-                      <strong>{secao?.nome ?? 'Sessão removida'}</strong>
+                      <strong>{secao?.nome ?? 'Seção removida'}</strong>
                       <input
                         class="ed-inline"
                         value={s.titulo}
@@ -335,7 +335,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                     <div class="ed-secao-footer">
                       <button type="button" class="ed-link" onClick={() => setSecao(s.key, { itens: itens.map((i) => i.id) })}>Marcar todos</button>
                       <button type="button" class="ed-link" onClick={() => setSecao(s.key, { itens: [] })}>Desmarcar todos</button>
-                      {alerta && <span class="ed-alerta">A sessão tem menos itens do que o cliente deve escolher.</span>}
+                      {alerta && <span class="ed-alerta">A seção tem menos itens do que o cliente deve escolher.</span>}
                     </div>
                   </div>
                 </section>
