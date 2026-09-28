@@ -129,3 +129,140 @@ export function Acordeao(props: { titulo: string; icone?: string; resumo?: strin
     </section>
   );
 }
+
+export interface OpcaoAdicionar {
+  valor: string;
+  rotulo: string;
+  /** Texto secundário (preço, regra…) */
+  detalhe?: string;
+  grupo?: string;
+}
+
+const normalizar = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+let seqAdicionar = 0;
+
+/**
+ * "Adicionar ▾" com busca: um só padrão para incluir cardápio, seção, item, bebida e função no orçamento.
+ * Escolher uma opção já adiciona. Teclado: ↑/↓ percorre, Enter escolhe, Esc fecha (combobox acessível).
+ */
+export function AdicionarBusca(props: {
+  rotulo: string;
+  opcoes: OpcaoAdicionar[];
+  onEscolher: (valor: string) => void;
+  disabled?: boolean;
+  compacto?: boolean;
+  vazio?: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [ativo, setAtivo] = useState(0);
+  const raiz = useRef<HTMLDivElement>(null);
+  const botao = useRef<HTMLButtonElement>(null);
+  const campo = useRef<HTMLInputElement>(null);
+  const id = useRef(`adicionar-${++seqAdicionar}`).current;
+
+  const termo = normalizar(busca.trim());
+  const filtradas = termo
+    ? props.opcoes.filter((o) => normalizar(`${o.rotulo} ${o.detalhe ?? ''} ${o.grupo ?? ''}`).includes(termo))
+    : props.opcoes;
+
+  useEffect(() => {
+    if (!aberto) return;
+    campo.current?.focus();
+    const fora = (e: MouseEvent) => !raiz.current?.contains(e.target as Node) && setAberto(false);
+    document.addEventListener('mousedown', fora);
+    return () => document.removeEventListener('mousedown', fora);
+  }, [aberto]);
+
+  function fechar(devolverFoco = true) {
+    setAberto(false);
+    setBusca('');
+    setAtivo(0);
+    if (devolverFoco) botao.current?.focus();
+  }
+
+  function escolher(o: OpcaoAdicionar | undefined) {
+    if (!o) return;
+    fechar();
+    props.onEscolher(o.valor);
+  }
+
+  function teclado(e: KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setAtivo((a) => Math.min(a + 1, filtradas.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setAtivo((a) => Math.max(a - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      escolher(filtradas[ativo]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      fechar();
+    }
+  }
+
+  let grupoAnterior: string | undefined;
+  return (
+    <div class={`adicionar${props.compacto ? ' compacto' : ''}`} ref={raiz}>
+      <button
+        type="button"
+        ref={botao}
+        class={`btn btn-outline ${props.compacto ? 'btn-sm' : 'btn-md'}`}
+        aria-haspopup="listbox"
+        aria-expanded={aberto}
+        disabled={props.disabled}
+        onClick={() => (aberto ? fechar() : setAberto(true))}
+      >
+        <Icon name="add_circle" size={18} /> {props.rotulo} <Icon name="expand_more" size={18} />
+      </button>
+      {aberto && (
+        <div class="adicionar-painel">
+          <input
+            ref={campo}
+            class="control"
+            type="search"
+            role="combobox"
+            aria-label={`${props.rotulo}: buscar`}
+            aria-expanded="true"
+            aria-controls={`${id}-lista`}
+            aria-activedescendant={filtradas[ativo] ? `${id}-${ativo}` : undefined}
+            placeholder="Buscar…"
+            value={busca}
+            onInput={(e) => {
+              setBusca(e.currentTarget.value);
+              setAtivo(0);
+            }}
+            onKeyDown={teclado}
+          />
+          <ul id={`${id}-lista`} role="listbox" class="adicionar-lista" aria-label={props.rotulo}>
+            {filtradas.length === 0 && <li class="adicionar-vazio">{props.vazio ?? 'Nada encontrado.'}</li>}
+            {filtradas.map((o, i) => {
+              const cabecalho = o.grupo && o.grupo !== grupoAnterior ? o.grupo : null;
+              grupoAnterior = o.grupo;
+              return (
+                <>
+                  {cabecalho && <li class="adicionar-grupo" role="presentation">{cabecalho}</li>}
+                  <li
+                    id={`${id}-${i}`}
+                    role="option"
+                    aria-selected={i === ativo}
+                    class={i === ativo ? 'ativo' : ''}
+                    onMouseEnter={() => setAtivo(i)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => escolher(o)}
+                  >
+                    <span>{o.rotulo}</span>
+                    {o.detalhe && <span class="adicionar-detalhe">{o.detalhe}</span>}
+                  </li>
+                </>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

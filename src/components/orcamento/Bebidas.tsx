@@ -1,9 +1,8 @@
 // Acordeão "Bebidas": pacotes por pessoa (seções com preço) e itens avulsos por unidade.
-import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, type BebidaOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
+import { Acordeao, AdicionarBusca, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -17,13 +16,12 @@ interface Props {
 
 export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabled, onChange }: Props) {
   const remover = useRemoverComDesfazer(bebidas, onChange);
-  const [escolha, setEscolha] = useState('');
   const secoes = catalogo.secoes.filter((s) => s.bebida);
 
   const atualizar = (key: string, patch: Partial<BebidaOrcamento>) =>
     onChange(bebidas.map((b) => (b.key === key ? { ...b, ...patch } : b)));
 
-  function adicionar() {
+  function adicionar(escolha: string) {
     const [tipo, id] = escolha.split(':');
     if (tipo === 'secao') {
       const s = secoes.find((x) => x.id === id);
@@ -51,7 +49,6 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
         { key: novaChave('b'), ref_id: null, nome: 'Bebida', descricao: null, unidade: 'unidade', quantidade: 1, preco_catalogo: null, preco_manual: null, subtotal_manual: null },
       ]);
     }
-    setEscolha('');
   }
 
   return (
@@ -113,20 +110,23 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
 
       {!disabled && (
         <div class="adicionar-linha">
-          <select class="control" value={escolha} onChange={(e) => setEscolha(e.currentTarget.value)} aria-label="Bebida a adicionar">
-            <option value="">Escolha uma bebida ou pacote…</option>
-            {secoes.map((s) => (
-              <optgroup label={s.nome}>
-                {s.preco !== null && <option value={`secao:${s.id}`}>Pacote {s.nome} · {formatMoney(s.preco)} {s.unidade === 'pessoa' ? '/pessoa' : '/unid.'}</option>}
-                {s.preco === null &&
-                  s.itens.map((i) => (
-                    <option value={`item:${i.id}`}>{i.nome}{i.preco !== null ? ` · ${formatMoney(i.preco)}${i.unidade === 'pessoa' ? '/pessoa' : '/unid.'}` : ''}</option>
-                  ))}
-              </optgroup>
-            ))}
-            <option value="custom">+ Bebida avulsa (valor manual)</option>
-          </select>
-          <button type="button" class="btn btn-primary btn-md" onClick={adicionar} disabled={!escolha}>Adicionar bebida</button>
+          <AdicionarBusca
+            rotulo="Adicionar bebida"
+            opcoes={[
+              ...secoes.flatMap((s) =>
+                s.preco !== null
+                  ? [{ valor: `secao:${s.id}`, rotulo: `Pacote ${s.nome}`, detalhe: `${formatMoney(s.preco)} ${s.unidade === 'pessoa' ? '/pessoa' : '/unid.'}`, grupo: s.nome }]
+                  : s.itens.map((i) => ({
+                      valor: `item:${i.id}`,
+                      rotulo: i.nome,
+                      detalhe: i.preco !== null ? `${formatMoney(i.preco)}${i.unidade === 'pessoa' ? '/pessoa' : '/unid.'}` : undefined,
+                      grupo: s.nome,
+                    }))
+              ),
+              { valor: 'custom', rotulo: 'Bebida avulsa (valor manual)', grupo: 'Outro' },
+            ]}
+            onEscolher={adicionar}
+          />
         </div>
       )}
     </Acordeao>

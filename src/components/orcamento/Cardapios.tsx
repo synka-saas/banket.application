@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, precoSecao, type CardapioOrcamento, type ItemOrcamento, type SecaoOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, ValorManual, useRemoverComDesfazer } from './controles';
+import { Acordeao, AdicionarBusca, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 import { confirmar } from '../../lib/ui';
 
@@ -45,7 +45,6 @@ function secaoDoCatalogo(s: SecaoCatalogo): SecaoOrcamento {
 }
 
 export default function Cardapios({ cardapios, catalogo, equivalentes, total, disabled, onChange }: Props) {
-  const [adicionando, setAdicionando] = useState('');
   const secoesComida = catalogo.secoes.filter((s) => !s.bebida);
   const secaoPorId = new Map(catalogo.secoes.map((s) => [s.id, s]));
 
@@ -54,15 +53,15 @@ export default function Cardapios({ cardapios, catalogo, equivalentes, total, di
   const atualizarSecao = (c: CardapioOrcamento, secaoKey: string, patch: Partial<SecaoOrcamento>) =>
     atualizar(c.key, { secoes: c.secoes.map((s) => (s.key === secaoKey ? { ...s, ...patch } : s)) });
 
-  function adicionarCardapio() {
-    if (!adicionando) return;
-    if (adicionando === 'zero') {
+  function adicionarCardapio(valor: string) {
+    if (!valor) return;
+    if (valor === 'zero') {
       onChange([
         ...cardapios,
         { key: novaChave('c'), opcao_id: null, nome: 'Novo cardápio', preco_base: null, preco_pp_manual: null, subtotal_manual: null, secoes: [] },
       ]);
     } else {
-      const opcao = catalogo.opcoes.find((o) => o.id === adicionando);
+      const opcao = catalogo.opcoes.find((o) => o.id === valor);
       if (!opcao) return;
       // Itens da opção pronta estão incluídos no preço base: entram sem preço próprio
       const secoes: SecaoOrcamento[] = opcao.secoes.flatMap((os) => {
@@ -84,7 +83,6 @@ export default function Cardapios({ cardapios, catalogo, equivalentes, total, di
         { key: novaChave('c'), opcao_id: opcao.id, nome: opcao.nome, preco_base: opcao.preco_por_pessoa, preco_pp_manual: null, subtotal_manual: null, secoes },
       ]);
     }
-    setAdicionando('');
   }
 
   return (
@@ -107,16 +105,19 @@ export default function Cardapios({ cardapios, catalogo, equivalentes, total, di
 
       {!disabled && (
         <div class="adicionar-linha">
-          <select class="control" value={adicionando} onChange={(e) => setAdicionando(e.currentTarget.value)} aria-label="Cardápio a adicionar">
-            <option value="">Escolha uma opção de cardápio…</option>
-            {catalogo.opcoes.map((o) => (
-              <option value={o.id}>{o.nome}{o.preco_por_pessoa !== null ? ` · ${formatMoney(o.preco_por_pessoa)}/pessoa` : ''}</option>
-            ))}
-            <option value="zero">+ Montar cardápio do zero</option>
-          </select>
-          <button type="button" class="btn btn-primary btn-md" onClick={adicionarCardapio} disabled={!adicionando}>
-            <Icon name="add_circle" size={18} /> Adicionar cardápio
-          </button>
+          <AdicionarBusca
+            rotulo="Adicionar cardápio"
+            opcoes={[
+              ...catalogo.opcoes.map((o) => ({
+                valor: o.id,
+                rotulo: o.nome,
+                detalhe: o.preco_por_pessoa !== null ? `${formatMoney(o.preco_por_pessoa)}/pessoa` : undefined,
+                grupo: 'Opções prontas',
+              })),
+              { valor: 'zero', rotulo: 'Montar cardápio do zero', grupo: 'Outro' },
+            ]}
+            onEscolher={adicionarCardapio}
+          />
         </div>
       )}
     </Acordeao>
@@ -136,15 +137,13 @@ function CardapioBloco(props: {
   const removerSecao = useRemoverComDesfazer(props.cardapio.secoes, (secoes) => props.onChange({ secoes }));
   const { cardapio: c, disabled } = props;
   const [aberto, setAberto] = useState(true);
-  const [novaSecao, setNovaSecao] = useState('');
   const pp = c.preco_pp_manual ?? c.preco_pp_calc ?? 0;
   const subtotal = c.subtotal_manual ?? c.subtotal_calc ?? 0;
 
-  function adicionarSecao() {
-    const s = props.secaoPorId.get(novaSecao);
+  function adicionarSecao(id: string) {
+    const s = props.secaoPorId.get(id);
     if (!s) return;
     props.onChange({ secoes: [...c.secoes, secaoDoCatalogo(s)] });
-    setNovaSecao('');
   }
 
   return (
@@ -196,15 +195,15 @@ function CardapioBloco(props: {
 
           {!disabled && (
             <div class="adicionar-linha">
-              <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label={`Seção a adicionar em ${c.nome}`}>
-                <option value="">Adicionar seção do catálogo…</option>
-                {props.secoesComida.map((s) => (
-                  <option value={s.id}>{s.nome}{s.preco !== null ? ` · ${formatMoney(s.preco)}/pessoa` : ''}</option>
-                ))}
-              </select>
-              <button type="button" class="btn btn-outline btn-md" onClick={adicionarSecao} disabled={!novaSecao}>
-                <Icon name="add_circle" size={18} /> Adicionar nova seção ao cardápio
-              </button>
+              <AdicionarBusca
+                rotulo="Adicionar seção"
+                opcoes={props.secoesComida.map((s) => ({
+                  valor: s.id,
+                  rotulo: s.nome,
+                  detalhe: s.preco !== null ? `${formatMoney(s.preco)}/pessoa` : `${s.itens.length} itens`,
+                }))}
+                onEscolher={adicionarSecao}
+              />
             </div>
           )}
         </div>
@@ -221,7 +220,6 @@ function SecaoBloco(props: {
   onRemover: () => void;
 }) {
   const { secao: s, disabled } = props;
-  const [novoItem, setNovoItem] = useState('');
   const presentes = new Set(s.itens.map((i) => i.item_id));
   const disponiveis = props.catalogo?.itens.filter((i) => !presentes.has(i.id)) ?? [];
   const preco = precoSecao(s);
@@ -230,8 +228,8 @@ function SecaoBloco(props: {
   const alternar = (key: string) =>
     props.onChange({ itens: s.itens.map((i) => (i.key === key ? { ...i, selecionado: !i.selecionado } : i)) });
 
-  function adicionarItem() {
-    if (novoItem === 'custom') {
+  function adicionarItem(valor: string) {
+    if (valor === 'custom') {
       const nome = window.prompt('Nome do item personalizado:')?.trim();
       if (nome) {
         props.onChange({
@@ -239,10 +237,9 @@ function SecaoBloco(props: {
         });
       }
     } else {
-      const item = props.catalogo?.itens.find((i) => i.id === novoItem);
+      const item = props.catalogo?.itens.find((i) => i.id === valor);
       if (item) props.onChange({ itens: [...s.itens, itemDoCatalogo(item, true)] });
     }
-    setNovoItem('');
   }
 
   return (
@@ -273,14 +270,15 @@ function SecaoBloco(props: {
       </div>
       {!disabled && (
         <div class="adicionar-item">
-          <select class="control compacto" value={novoItem} onChange={(e) => setNovoItem(e.currentTarget.value)} aria-label={`Item a adicionar em ${s.nome}`}>
-            <option value="">+ Adicionar item…</option>
-            {disponiveis.map((i) => (
-              <option value={i.id}>{i.nome}{i.preco !== null ? ` · ${formatMoney(i.preco)}` : ''}</option>
-            ))}
-            <option value="custom">Item personalizado…</option>
-          </select>
-          {novoItem && <button type="button" class="btn btn-outline btn-sm" onClick={adicionarItem}>Adicionar</button>}
+          <AdicionarBusca
+            rotulo="Adicionar item"
+            compacto
+            opcoes={[
+              ...disponiveis.map((i) => ({ valor: i.id, rotulo: i.nome, detalhe: i.preco !== null ? formatMoney(i.preco) : undefined, grupo: s.nome })),
+              { valor: 'custom', rotulo: 'Item personalizado…', grupo: 'Outro' },
+            ]}
+            onEscolher={adicionarItem}
+          />
         </div>
       )}
     </div>

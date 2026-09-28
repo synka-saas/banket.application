@@ -15,6 +15,7 @@ import { listarTemplates } from '../../../server/templates';
 import { envioSchema, enviarProposta, rascunhoEnvio } from '../../../server/envio';
 import { formatMoney } from '../../../lib/money';
 import { dataHora } from '../../../lib/datas';
+import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
 
 const user = Astro.locals.user;
 const id = Astro.params.id!;
@@ -79,6 +80,7 @@ const { evento, orcamento, versao } = ctx;
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="orcamento">
+  {orcamento && <OrcamentoAbas eventoId={id} ativa="itens" versao={versao ? { numero: versao.numero, congelada: versao.congelada } : null} />}
   <div class="grid-evento">
     <div>
       {orcamento && versao && ctx.catalogo ? (

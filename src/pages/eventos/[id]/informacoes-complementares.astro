@@ -10,6 +10,7 @@ import { formatarDocumento } from '../../../lib/documento';
 import { formatMoney } from '../../../lib/money';
 import { eventoExiste } from '../../../server/eventos';
 import { contextoOrcamento, criarNovaVersao } from '../../../server/orcamento';
+import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
 
 // Informações complementares da versão do orçamento (frame "Orçamento | Informações complementares")
 const user = Astro.locals.user;
@@ -39,6 +40,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="informacoes">
+  {orcamento && <OrcamentoAbas eventoId={id} ativa="informacoes" versao={versao ? { numero: versao.numero, congelada: versao.congelada } : null} />}
   <div class="grid-evento">
     <div class="coluna-principal">
       {orcamento && versao ? (

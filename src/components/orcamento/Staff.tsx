@@ -1,10 +1,9 @@
 // Acordeão "Staff": funções calculadas pelas regras de Serviços e custos, com ajuste manual.
-import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { descreverRegra } from '../../lib/calculo/staff';
 import { novaChave, type StaffOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
+import { Acordeao, AdicionarBusca, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -18,15 +17,13 @@ interface Props {
 
 export default function Staff({ staff, catalogo, convidados, total, disabled, onChange }: Props) {
   const remover = useRemoverComDesfazer(staff, onChange);
-  const [servicoId, setServicoId] = useState('');
   const atualizar = (key: string, patch: Partial<StaffOrcamento>) =>
     onChange(staff.map((s) => (s.key === key ? { ...s, ...patch } : s)));
 
-  function adicionar() {
+  function adicionar(servicoId: string) {
     const s = catalogo.servicos.find((x) => x.id === servicoId);
     if (!s) return;
     onChange([...staff, { key: novaChave('s'), servico_id: s.id, funcao: s.funcao, regra: s.regra, quantidade_manual: null, valor_unit_manual: null }]);
-    setServicoId('');
   }
 
   return (
@@ -69,13 +66,12 @@ export default function Staff({ staff, catalogo, convidados, total, disabled, on
       )}
       {!disabled && (
         <div class="adicionar-linha">
-          <select class="control" value={servicoId} onChange={(e) => setServicoId(e.currentTarget.value)} aria-label="Função a adicionar">
-            <option value="">Adicionar função do staff…</option>
-            {catalogo.servicos.map((s) => (
-              <option value={s.id}>{s.funcao} · {descreverRegra(s.regra)}</option>
-            ))}
-          </select>
-          <button type="button" class="btn btn-primary btn-md" onClick={adicionar} disabled={!servicoId}>Adicionar função</button>
+          <AdicionarBusca
+            rotulo="Adicionar função"
+            opcoes={catalogo.servicos.map((s) => ({ valor: s.id, rotulo: s.funcao, detalhe: descreverRegra(s.regra) }))}
+            onEscolher={adicionar}
+            vazio="Nenhuma função cadastrada em Staff › Serviços e custos."
+          />
         </div>
       )}
     </Acordeao>

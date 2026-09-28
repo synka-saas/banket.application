@@ -1,4 +1,5 @@
 // Acordeão "Locação e extras": locação por faixa de convidados e taxas avulsas (hora adicional, rolha…).
+import { useEffect, useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, type ExtraOrcamento, type LocacaoOrcamento } from '../../lib/calculo/orcamento';
 import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
@@ -18,6 +19,18 @@ interface Props {
 
 export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtras, disabled, onLocacao, onExtras }: Props) {
   const remover = useRemoverComDesfazer(extras, onExtras);
+  // Linha nova nasce vazia, com o foco na descrição (as sugestões aparecem na lista do campo)
+  const [focar, setFocar] = useState<string | null>(null);
+  useEffect(() => {
+    if (!focar) return;
+    document.querySelector<HTMLInputElement>(`[data-extra="${focar}"]`)?.focus();
+    setFocar(null);
+  }, [focar]);
+  function adicionarExtra() {
+    const key = novaChave('e');
+    onExtras([...extras, { key, descricao: '', quantidade: 1, valor_unit: 0 }]);
+    setFocar(key);
+  }
   const atualizar = (key: string, patch: Partial<ExtraOrcamento>) =>
     onExtras(extras.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
@@ -54,6 +67,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
               <tr key={e.key}>
                 <td>
                   <input class="control compacto" list="sugestoes-extras" value={e.descricao} disabled={disabled} aria-label="Descrição do extra" maxLength={300}
+                    data-extra={e.key} placeholder="Ex.: Hora adicional"
                     onBlur={(ev) => atualizar(e.key, { descricao: ev.currentTarget.value.trim() || 'Extra' })} />
                 </td>
                 <td class="num">
@@ -75,7 +89,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
       )}
       <datalist id="sugestoes-extras">{SUGESTOES.map((s) => <option value={s} />)}</datalist>
       {!disabled && (
-        <button type="button" class="btn btn-outline btn-md" onClick={() => onExtras([...extras, { key: novaChave('e'), descricao: 'Hora adicional', quantidade: 1, valor_unit: 0 }])}>
+        <button type="button" class="btn btn-outline btn-md" onClick={adicionarExtra}>
           <Icon name="add_circle" size={18} /> Adicionar extra
         </button>
       )}

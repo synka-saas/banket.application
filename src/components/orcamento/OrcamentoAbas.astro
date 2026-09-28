@@ -1,0 +1,83 @@
+---
+// Sub-abas do orçamento (tudo o que muda com a versão fica dentro de Orçamento), com a versão sempre à vista.
+// Preserva ?versao= ao trocar de sub-aba.
+interface Props {
+  eventoId: string;
+  ativa: 'itens' | 'informacoes' | 'condicoes';
+  versao: { numero: number; congelada: boolean } | null;
+}
+
+const { eventoId, ativa, versao } = Astro.props;
+const base = `/eventos/${eventoId}`;
+const sufixo = Astro.url.searchParams.get('versao') ? `?versao=${encodeURIComponent(Astro.url.searchParams.get('versao')!)}` : '';
+const abas = [
+  { id: 'itens', label: 'Itens e valores', href: `${base}/orcamento${sufixo}` },
+  { id: 'informacoes', label: 'Informações complementares', href: `${base}/informacoes-complementares${sufixo}` },
+  { id: 'condicoes', label: 'Condições gerais e textos', href: `${base}/condicoes-gerais${sufixo}` },
+];
+---
+
+<nav class="orc-abas" aria-label="Partes do orçamento">
+  <div class="orc-abas-lista">
+    {abas.map((a) => (
+      <a href={a.href} class:list={{ ativa: a.id === ativa }} aria-current={a.id === ativa ? 'page' : undefined}>{a.label}</a>
+    ))}
+  </div>
+  {versao && (
+    <span class:list={['orc-abas-versao', { congelada: versao.congelada }]}>
+      Versão {String(versao.numero).padStart(2, '0')} · {versao.congelada ? 'congelada' : 'em edição'}
+    </span>
+  )}
+</nav>
+
+<style>
+  .orc-abas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .orc-abas-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .orc-abas-lista a {
+    padding: 10px 14px;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-neutral-65);
+    text-decoration: none;
+  }
+
+  .orc-abas-lista a:hover {
+    color: var(--color-primary-text);
+  }
+
+  .orc-abas-lista a.ativa {
+    border-bottom-color: var(--color-primary-action);
+    color: var(--color-primary-text);
+  }
+
+  .orc-abas-versao {
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #e8f2ea;
+    color: var(--color-secondary-80);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .orc-abas-versao.congelada {
+    background: var(--color-neutral-20);
+    color: var(--color-neutral-80);
+  }
+</style>

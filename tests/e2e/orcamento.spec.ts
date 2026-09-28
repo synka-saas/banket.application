@@ -45,8 +45,10 @@ test.describe('Orçamento', () => {
     await expect(resumo(page)).toContainText('R$ 6.850,00');
 
     // Cardápio Brunch (R$ 250/pessoa × 100)
-    await page.getByLabel('Cardápio a adicionar').selectOption({ label: 'Brunch · R$ 250,00/pessoa' });
+    // "Adicionar ▾" com busca: digitar filtra, Enter escolhe
     await page.getByRole('button', { name: /Adicionar cardápio/ }).click();
+    await page.getByRole('combobox', { name: /Adicionar cardápio/ }).fill('brunch');
+    await page.getByRole('combobox', { name: /Adicionar cardápio/ }).press('Enter');
     await expect(page.locator('.cardapio-subtotal')).toContainText('R$ 25.000,00');
 
     // 10 crianças pagando meia → 95 pagantes
@@ -57,8 +59,8 @@ test.describe('Orçamento', () => {
 
     // Pacote de soft drinks por pessoa (R$ 20 × 95 = 1.900)
     await page.locator('.acordeao-cabecalho', { hasText: 'Bebidas' }).click();
-    await page.getByLabel('Bebida a adicionar').selectOption({ label: 'Pacote Soft drinks · R$ 20,00 /pessoa' });
-    await page.getByRole('button', { name: 'Adicionar bebida' }).click();
+    await page.getByRole('button', { name: /Adicionar bebida/ }).click();
+    await page.getByRole('option', { name: /Pacote Soft drinks/ }).click();
 
     // 23.750 + 1.900 + 4.350 + 2.500 = 32.500
     await expect(resumo(page)).toContainText('R$ 32.500,00');

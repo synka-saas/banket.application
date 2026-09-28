@@ -684,3 +684,64 @@ input.cardapio-nome:focus-visible {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* "Adicionar ▾" com busca (controles.tsx AdicionarBusca) */
+.adicionar {
+  position: relative;
+  display: inline-block;
+}
+
+.adicionar-painel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  width: min(420px, 90vw);
+  padding: 8px;
+  background: var(--color-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.adicionar-lista {
+  max-height: 300px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.adicionar-lista li[role='option'] {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.adicionar-lista li.ativo {
+  background: var(--color-primary-10);
+  color: var(--color-primary-60);
+}
+
+.adicionar-detalhe {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.adicionar-grupo {
+  padding: 10px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.adicionar-vazio {
+  padding: 10px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
