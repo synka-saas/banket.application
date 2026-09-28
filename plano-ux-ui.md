@@ -20,7 +20,7 @@
 | 1 — Correções críticas | **Concluída**: UX-001, 002, 003, 010, 011, 012, 100, 101, 103, 112, 120, 121, 150, 160 |
 | 2 — Consistência | **Concluída**: UX-004–009, 013–019, 020–029, 050, 113, 124, 125, 140, 141, 144, 145, 149, 153 (+ UX-067 pelo menu Mover para) |
 | 3 — Acessibilidade e celular | **Concluída** (28/09): UX-030 (barra inferior, cartões, funil por etapa, drawers em tela cheia), UX-063, UX-064, UX-067, UX-102 (no celular). Adiados para não alterar o visual do desktop (pedido do usuário): UX-066 (legenda da agenda) e o card compacto do desktop |
-| 4 — Fluxos | A fazer |
+| 4 — Fluxos | **Concluída** (28/09): 4.1 UX-041–047 · 4.2 UX-050–053 · 4.3 UX-070–079 · 4.4 UX-104–117 · 4.5 UX-122–130 · 4.6 UX-090–093 · 4.7 UX-142–154. Fora: UX-094 (visão lista/iCal da agenda), UX-092 (KPIs clicáveis/variação) e a seção 4.8 (oportunidades), que seguem como backlog. UX-076 entregue como prévia da versão salva (painel lado a lado fica como evolução) |
 
 Decisões aplicadas com a recomendação: D1 glossário, D2 congelar ao enviar, D3 título do card, D5 hora extra oculta,
 D7 ordem por data. D4, D6 e D8 entram nas fases 3–4.

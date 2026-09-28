@@ -93,7 +93,9 @@ test.describe('Versão mobile', () => {
     await page.locator('#drawer-cliente').getByRole('button', { name: 'Salvar' }).click();
     await expectToast(page, 'Cliente cadastrado.');
 
-    // Limpeza
+    // Limpeza (a lista é paginada: busca antes)
+    await page.getByPlaceholder(/Pesquisar/).fill(nome);
+    await page.getByPlaceholder(/Pesquisar/).press('Enter');
     await page.locator('tr', { hasText: nome }).getByRole('button', { name: 'Editar' }).click();
     await page.locator('#drawer-cliente').getByRole('button', { name: 'Excluir' }).click();
     await confirmarModal(page);
