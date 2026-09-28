@@ -347,4 +347,25 @@ const {
     overflow-y: auto;
     padding: 36px 42px 48px;
   }
+
+  /* Celular: painel em tela cheia */
+  @media (max-width: 768px) {
+    .drawer-lg,
+    .drawer-md {
+      width: 100%;
+    }
+
+    .drawer-header {
+      flex-wrap: wrap;
+      padding: 12px 16px;
+    }
+
+    .drawer-title {
+      font-size: 18px;
+    }
+
+    .drawer-body {
+      padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+    }
+  }
 </style>

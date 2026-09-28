@@ -425,4 +425,10 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
   [hidden] {
     display: none !important;
   }
+
+  @media (max-width: 768px) {
+    .cols-3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 </style>

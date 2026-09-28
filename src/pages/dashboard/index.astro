@@ -365,4 +365,20 @@ const primeiroNome = user.nome.split(' ')[0];
     font-size: 14px;
     color: var(--color-primary-text);
   }
+
+  /* Celular: a barra do funil desce para a linha de baixo */
+  @media (max-width: 768px) {
+    .funil li {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-areas:
+        'nome num valor'
+        'barra barra barra';
+      gap: 8px 12px;
+    }
+
+    .funil-nome { grid-area: nome; }
+    .funil li .barra { grid-area: barra; }
+    .funil-num { grid-area: num; }
+    .funil-valor { grid-area: valor; }
+  }
 </style>

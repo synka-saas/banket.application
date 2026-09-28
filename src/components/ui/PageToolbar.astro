@@ -135,4 +135,29 @@ const preserved = [...params.entries()].filter(
     display: flex;
     gap: 12px;
   }
+
+  @media (max-width: 768px) {
+    .toolbar {
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .toolbar-filters {
+      width: 100%;
+      gap: 10px;
+    }
+
+    .search-box,
+    .filter-box {
+      width: 100%;
+    }
+
+    .toolbar-actions {
+      width: 100%;
+    }
+
+    .toolbar-actions :global(.btn) {
+      flex: 1;
+    }
+  }
 </style>

@@ -108,6 +108,7 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
   }
 
   .topbar {
+    min-height: 80px;
     height: 80px;
     background-color: var(--color-white);
     border-bottom: 1px solid var(--border-color);
@@ -257,5 +258,47 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
   .user-role {
     font-size: 12px;
     color: var(--color-neutral-65);
+  }
+
+  @media (max-width: 1024px) {
+    .topbar {
+      padding: 0 24px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .topbar {
+      height: 60px;
+      min-height: 60px;
+      padding: 0 16px;
+      gap: 8px;
+    }
+
+    .topbar-left {
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .topbar-title {
+      font-size: 17px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topbar-voltar,
+    .topbar-sep {
+      font-size: 15px;
+    }
+
+    .topbar-sep {
+      margin: 0 2px;
+    }
+
+    /* Só o avatar; nome e papel ficam no menu */
+    .user-info,
+    .dropdown-icon {
+      display: none;
+    }
   }
 </style>

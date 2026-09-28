@@ -1,34 +1,25 @@
 ---
+// Navegação lateral (desktop). Em telas até 1024px encolhe para só ícones; no celular (≤768px) some
+// e a navegação passa a ser a barra inferior (MobileNav.astro).
 import Icon from './ui/Icon.astro';
 import { isAdmin } from '../lib/auth';
-import { ROTULOS } from '../lib/rotulos';
+import { NAV_PRINCIPAL, navAtiva } from '../lib/nav';
 
 const { pathname } = Astro.url;
 const user = Astro.locals.user;
 
-const navItems = [
-  { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', match: ['/dashboard'] },
-  { label: ROTULOS.funil, icon: 'view_kanban', href: '/eventos', match: ['/eventos'] },
-  { label: 'Cardápios', icon: 'menu_book_2', href: '/cardapio/itens', match: ['/cardapio'] },
-  { label: 'Clientes', icon: 'account_box', href: '/clientes', match: ['/clientes'] },
-  { label: 'Agenda', icon: 'calendar_today', href: '/agenda', match: ['/agenda'] },
-  { label: 'Formulários', icon: 'layers', href: '/formularios', match: ['/formularios'] },
-  { label: 'Staff', icon: 'group', href: '/staff/profissionais', match: ['/staff'] },
-  { label: 'Templates', icon: 'description', href: '/templates', match: ['/templates'] },
-  { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
-].filter((item) => !item.adminOnly || isAdmin(user));
-
-const isActive = (match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
+const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user));
 ---
 
 <aside class="sidebar">
   <a href="/dashboard" class="sidebar-logo">
     <img src="/logo-dark.png" alt="Banket" class="brand-logo" />
+    <img src="/favicon.svg" alt="Banket" class="brand-icone" />
   </a>
 
   <nav class="sidebar-nav">
     {navItems.map((item) => (
-      <a href={item.href} class:list={['nav-item', { active: isActive(item.match) }]}>
+      <a href={item.href} class:list={['nav-item', { active: navAtiva(pathname, item.match) }]}>
         <Icon name={item.icon} size={20} class="nav-icon" />
         <span class="nav-label">{item.label}</span>
       </a>
@@ -41,6 +32,7 @@ const isActive = (match: string[]) => match.some((m) => pathname === m || pathna
     width: 265px;
     background-color: var(--color-primary-10);
     height: 100vh;
+    height: 100dvh;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -57,6 +49,12 @@ const isActive = (match: string[]) => match.some((m) => pathname === m || pathna
 
   .brand-logo {
     height: 44px;
+    width: auto;
+  }
+
+  .brand-icone {
+    display: none;
+    height: 32px;
     width: auto;
   }
 
@@ -85,5 +83,52 @@ const isActive = (match: string[]) => match.some((m) => pathname === m || pathna
 
   .nav-item.active {
     color: var(--color-primary-50);
+  }
+
+  /* Tablet: só ícones */
+  @media (max-width: 1024px) {
+    .sidebar {
+      width: 76px;
+    }
+
+    .sidebar-logo {
+      height: 80px;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .brand-logo {
+      display: none;
+    }
+
+    .brand-icone {
+      display: block;
+    }
+
+    .nav-item {
+      justify-content: center;
+      padding: 14px 0;
+    }
+
+    .sidebar-nav {
+      overflow-y: auto;
+    }
+
+    /* Rótulo escondido visualmente, mas mantido para leitores de tela */
+    .nav-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+
+  /* Celular: a navegação é a barra inferior */
+  @media (max-width: 768px) {
+    .sidebar {
+      display: none;
+    }
   }
 </style>

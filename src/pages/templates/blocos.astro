@@ -211,4 +211,10 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
     font-weight: 700;
     text-transform: uppercase;
   }
+
+  @media (max-width: 1024px) {
+    .grid-blocos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 </style>

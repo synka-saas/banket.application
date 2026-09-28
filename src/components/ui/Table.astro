@@ -80,7 +80,7 @@ const linkOrdem = (campo: string) =>
                 </td>
               )}
               {columns.map((col) => (
-                <td class={`text-${col.align || 'left'}`}>
+                <td class={`text-${col.align || 'left'}`} data-key={col.key} data-rotulo={col.key === 'acoes' ? undefined : col.label || undefined}>
                   {isRawHtml(row[col.key])
                     ? <Fragment set:html={(row[col.key] as { __html: string }).__html} />
                     : String(row[col.key] ?? '')}
@@ -181,5 +181,71 @@ const linkOrdem = (campo: string) =>
     text-align: center;
     color: var(--color-text-muted);
     padding: 40px;
+  }
+
+  /* Celular: cada linha vira um cartão "rótulo: valor" */
+  @media (max-width: 768px) {
+    .data-table thead {
+      display: none;
+    }
+
+    .data-table,
+    .data-table tbody,
+    .data-table tr,
+    .data-table td {
+      display: block;
+      width: 100%;
+    }
+
+    .data-table tr {
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table tr:last-child {
+      border-bottom: 0;
+    }
+
+    .data-table td {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 7px 0;
+      border-bottom: 0;
+      text-align: right;
+    }
+
+    .data-table td[data-rotulo]::before {
+      content: attr(data-rotulo);
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      text-align: left;
+    }
+
+    /* Célula sem valor não ocupa linha */
+    .data-table td[data-rotulo]:empty {
+      display: none;
+    }
+
+    /* Ações no rodapé do cartão */
+    .data-table td[data-key='acoes'] {
+      justify-content: flex-end;
+      padding-top: 10px;
+      margin-top: 4px;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .data-table td.col-ordem {
+      justify-content: flex-end;
+    }
+
+    .data-table td.empty-state {
+      display: block;
+      text-align: center;
+    }
   }
 </style>

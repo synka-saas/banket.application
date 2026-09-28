@@ -1,0 +1,175 @@
+---
+// Barra de navegação inferior do celular (≤768px): os módulos mais usados no alcance do polegar
+// e o botão "Mais" com os demais, num painel que sobe do rodapé.
+import Icon from './ui/Icon.astro';
+import { isAdmin } from '../lib/auth';
+import { NAV_PRINCIPAL, navAtiva } from '../lib/nav';
+
+const { pathname } = Astro.url;
+const user = Astro.locals.user;
+
+const itens = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user));
+const naBarra = itens.filter((i) => i.barra);
+const noPainel = itens.filter((i) => !i.barra);
+const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
+---
+
+<nav class="mnav" aria-label="Navegação principal">
+  {naBarra.map((item) => (
+    <a href={item.href} class:list={['mnav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
+      <Icon name={item.icon} size={22} />
+      <span>{item.label === 'Funil de vendas' ? 'Funil' : item.label}</span>
+    </a>
+  ))}
+  <button type="button" class:list={['mnav-item', { active: painelAtivo }]} data-mnav-mais aria-expanded="false" aria-controls="mnav-painel">
+    <Icon name="apps" size={22} />
+    <span>Mais</span>
+  </button>
+</nav>
+
+<div class="mnav-fundo" data-mnav-fundo hidden></div>
+<div class="mnav-painel" id="mnav-painel" data-mnav-painel hidden aria-label="Outros módulos">
+  <div class="mnav-painel-alca" aria-hidden="true"></div>
+  {noPainel.map((item) => (
+    <a href={item.href} class:list={['mnav-painel-item', { active: navAtiva(pathname, item.match) }]}>
+      <Icon name={item.icon} size={22} />
+      <span>{item.label}</span>
+      <Icon name="chevron_right" size={20} class="mnav-seta" />
+    </a>
+  ))}
+</div>
+
+<script>
+  const botao = document.querySelector<HTMLButtonElement>('[data-mnav-mais]');
+  const painel = document.querySelector<HTMLElement>('[data-mnav-painel]');
+  const fundo = document.querySelector<HTMLElement>('[data-mnav-fundo]');
+  if (botao && painel && fundo) {
+    const alternar = (abrir: boolean) => {
+      painel.hidden = !abrir;
+      fundo.hidden = !abrir;
+      botao.setAttribute('aria-expanded', String(abrir));
+      if (abrir) painel.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+      else botao.focus({ preventScroll: true });
+    };
+    botao.addEventListener('click', () => alternar(Boolean(painel.hidden)));
+    fundo.addEventListener('click', () => alternar(false));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !painel.hidden) {
+        e.preventDefault();
+        alternar(false);
+      }
+    });
+  }
+</script>
+
+<style>
+  .mnav,
+  .mnav-fundo,
+  .mnav-painel {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .mnav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 950;
+      display: flex;
+      background: var(--color-white);
+      border-top: 1px solid var(--border-color);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mnav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-height: 60px;
+      padding: 8px 2px;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-neutral-65);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .mnav-item.active {
+      color: var(--color-primary-50);
+    }
+
+    .mnav-fundo {
+      position: fixed;
+      inset: 0;
+      z-index: 951;
+      display: block;
+      background: rgba(40, 20, 16, 0.45);
+    }
+
+    .mnav-fundo[hidden],
+    .mnav-painel[hidden] {
+      display: none;
+    }
+
+    .mnav-painel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 952;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 12px calc(16px + env(safe-area-inset-bottom));
+      background: var(--color-white);
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+      animation: mnav-subir 0.2s ease;
+    }
+
+    .mnav-painel-alca {
+      width: 40px;
+      height: 4px;
+      margin: 6px auto 10px;
+      border-radius: 2px;
+      background: var(--color-neutral-30);
+    }
+
+    .mnav-painel-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 52px;
+      padding: 0 10px;
+      border-radius: var(--border-radius);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--color-neutral-80);
+      text-decoration: none;
+    }
+
+    .mnav-painel-item:active {
+      background: var(--color-neutral-10);
+    }
+
+    .mnav-painel-item.active {
+      color: var(--color-primary-50);
+    }
+
+    .mnav-seta {
+      margin-left: auto;
+      color: var(--color-neutral-40);
+    }
+
+    @keyframes mnav-subir {
+      from { transform: translateY(24px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  }
+</style>

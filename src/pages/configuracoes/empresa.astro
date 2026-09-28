@@ -163,4 +163,10 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
   .cols-3 .span-3 {
     grid-column: 1 / -1;
   }
+
+  @media (max-width: 768px) {
+    .cols-3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 </style>

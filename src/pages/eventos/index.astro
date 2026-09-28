@@ -146,9 +146,24 @@ const filtrando = estaFiltrando(Astro.url);
         <a href="/configuracoes/status-orcamento#intervalo-kanban" class="recorte-link">Alterar</a>
       )}
     </p>
+    <div class="kanban-etapas" data-kanban-etapas role="tablist" aria-label="Etapas do funil">
+      {colunas.map((col, i) => (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={i === 0 ? 'true' : 'false'}
+          class:list={['kanban-etapa-chip', { ativa: i === 0 }]}
+          data-etapa-chip={col.id}
+        >
+          <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
+          {col.nome}
+          <span class="kanban-etapa-qtd" data-chip-contagem>{col.cards.length}</span>
+        </button>
+      ))}
+    </div>
     <div class="kanban" data-kanban>
-      {colunas.map((col) => (
-        <section class="kanban-col" data-coluna={col.id} data-status-nome={col.nome}>
+      {colunas.map((col, i) => (
+        <section class:list={['kanban-col', { 'mobile-ativa': i === 0 }]} data-coluna={col.id} data-status-nome={col.nome}>
           <header class="kanban-col-header">
             <h2 class="kanban-col-titulo">
               <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
@@ -230,10 +245,25 @@ const filtrando = estaFiltrando(Astro.url);
 
   const kanban = document.querySelector<HTMLElement>('[data-kanban]');
   if (kanban) {
+    // Celular: os chips mostram uma etapa por vez (no desktop ficam escondidos e todas as colunas aparecem)
+    document.querySelectorAll<HTMLButtonElement>('[data-etapa-chip]').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        document.querySelectorAll<HTMLElement>('[data-etapa-chip]').forEach((c) => {
+          c.classList.toggle('ativa', c === chip);
+          c.setAttribute('aria-selected', String(c === chip));
+        });
+        kanban.querySelectorAll<HTMLElement>('.kanban-col').forEach((col) =>
+          col.classList.toggle('mobile-ativa', col.dataset.coluna === chip.dataset.etapaChip)
+        );
+      })
+    );
+
     const atualizarTotais = () => {
       kanban.querySelectorAll<HTMLElement>('.kanban-col').forEach((col) => {
         const cards = [...col.querySelectorAll<HTMLElement>('[data-evento]')];
         col.querySelector('[data-contagem]')!.textContent = `${String(cards.length).padStart(2, '0')} ${cards.length === 1 ? 'evento' : 'eventos'}`;
+        const chipQtd = document.querySelector(`[data-etapa-chip="${col.dataset.coluna}"] [data-chip-contagem]`);
+        if (chipQtd) chipQtd.textContent = String(cards.length);
         col.querySelector('[data-soma]')!.textContent = formatMoney(cards.reduce((a, c) => a + Number(c.dataset.valor || 0), 0));
         const verba = cards.reduce((a, c) => a + Number(c.dataset.verba || 0), 0);
         const verbaEl = col.querySelector<HTMLElement>('[data-verba-total]')!;
@@ -690,5 +720,82 @@ const filtrando = estaFiltrando(Astro.url);
     color: var(--color-text-muted);
     border-top: 1px solid var(--border-color);
     margin-top: 4px;
+  }
+
+  /* ---------- Funil no celular: chips de etapa + uma coluna por vez ---------- */
+  .kanban-etapas {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .kanban-etapas {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .kanban-etapas::-webkit-scrollbar {
+      display: none;
+    }
+
+    .kanban-etapa-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 1px solid var(--color-border-input);
+      border-radius: 20px;
+      background: var(--color-white);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-neutral-80);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .kanban-etapa-chip.ativa {
+      border-color: var(--color-primary-action);
+      background: var(--color-primary-10);
+      color: var(--color-primary-60);
+    }
+
+    .kanban-etapa-qtd {
+      padding: 1px 8px;
+      border-radius: 10px;
+      background: var(--color-neutral-20);
+      font-size: 12px;
+    }
+
+    .kanban-etapa-chip.ativa .kanban-etapa-qtd {
+      background: var(--color-white);
+    }
+
+    .kanban {
+      display: block;
+      overflow: visible;
+      padding-bottom: 0;
+    }
+
+    .kanban-col {
+      display: none;
+      max-width: none;
+    }
+
+    .kanban-col.mobile-ativa {
+      display: block;
+    }
+
+    .evento-card {
+      padding: 18px 16px;
+    }
+
+    .evento-card-title {
+      font-size: 17px;
+    }
   }
 </style>

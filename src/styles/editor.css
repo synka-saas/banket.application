@@ -249,3 +249,25 @@
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+/* ---------- Celular ---------- */
+@media (max-width: 768px) {
+  .ed-drawer {
+    width: 100%;
+  }
+
+  .ed-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .ed-body {
+    padding: 16px;
+  }
+
+  .ed-row,
+  .ed-row-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

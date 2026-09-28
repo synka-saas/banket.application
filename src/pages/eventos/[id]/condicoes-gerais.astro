@@ -152,4 +152,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
   }
+
+  @media (max-width: 1024px) {
+    .grid-evento {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 </style>

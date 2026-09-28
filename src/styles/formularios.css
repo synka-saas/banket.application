@@ -292,3 +292,15 @@
   display: flex;
   gap: 10px;
 }
+
+/* ---------- Celular ---------- */
+@media (max-width: 768px) {
+  .fe-card {
+    padding: 20px 16px;
+  }
+
+  .fe-geral,
+  .fe-rascunho-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

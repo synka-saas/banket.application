@@ -391,4 +391,18 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
     font-size: 16px;
     color: var(--color-neutral-65);
   }
+
+  @media (max-width: 1024px) {
+    .resumo-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .banner {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      padding: 20px 16px;
+    }
+  }
 </style>

@@ -60,4 +60,31 @@ const { items = [], activeId } = Astro.props;
     display: flex;
     gap: 8px;
   }
+
+  @media (max-width: 1024px) {
+    .submenu-container {
+      padding: 0 24px;
+    }
+
+    .submenu-nav {
+      gap: 32px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .submenu-container {
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    .submenu-nav {
+      gap: 20px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .submenu-nav::-webkit-scrollbar {
+      display: none;
+    }
+  }
 </style>

@@ -172,10 +172,11 @@ const { flash } = Astro.props;
   .toast-info { border-left-color: var(--color-neutral-65); }
 
   @media (max-width: 640px) {
+    /* Acima da barra de navegação inferior */
     .toast-root {
       left: 16px;
       right: 16px;
-      bottom: 16px;
+      bottom: calc(76px + env(safe-area-inset-bottom));
       align-items: stretch;
     }
 

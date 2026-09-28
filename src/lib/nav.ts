@@ -1,5 +1,30 @@
-// Submenus compartilhados entre páginas de um mesmo módulo.
+// Navegação principal e submenus compartilhados entre páginas de um mesmo módulo.
 import { ROTULOS } from './rotulos';
+
+export interface ItemNavegacao {
+  label: string;
+  icon: string;
+  href: string;
+  match: string[];
+  adminOnly?: boolean;
+  /** Entra na barra inferior do celular (os demais ficam no painel "Mais") */
+  barra?: boolean;
+}
+
+// Uma só lista para a sidebar (desktop) e a barra inferior + painel "Mais" (celular)
+export const NAV_PRINCIPAL: ItemNavegacao[] = [
+  { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', match: ['/dashboard'], barra: true },
+  { label: ROTULOS.funil, icon: 'view_kanban', href: '/eventos', match: ['/eventos'], barra: true },
+  { label: 'Cardápios', icon: 'menu_book_2', href: '/cardapio/secoes', match: ['/cardapio'] },
+  { label: 'Clientes', icon: 'account_box', href: '/clientes', match: ['/clientes'], barra: true },
+  { label: 'Agenda', icon: 'calendar_today', href: '/agenda', match: ['/agenda'], barra: true },
+  { label: 'Formulários', icon: 'layers', href: '/formularios', match: ['/formularios'] },
+  { label: 'Staff', icon: 'group', href: '/staff/profissionais', match: ['/staff'] },
+  { label: 'Templates', icon: 'description', href: '/templates', match: ['/templates'] },
+  { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
+];
+
+export const navAtiva = (pathname: string, match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 
 export const CONFIG_SUBMENU = [
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
