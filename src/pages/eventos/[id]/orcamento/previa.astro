@@ -1,0 +1,120 @@
+---
+// Pré-visualização da proposta na tela (UX-122): as mesmas páginas do PDF (/print/*), em miniatura,
+// sem precisar baixar o arquivo a cada ajuste.
+import EventoLayout from '../../../../layouts/EventoLayout.astro';
+import OrcamentoAbas from '../../../../components/orcamento/OrcamentoAbas.astro';
+import Button from '../../../../components/ui/Button.astro';
+import EstadoVazio from '../../../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../../../lib/db';
+import { signPrintToken } from '../../../../lib/printToken';
+import { eventoExiste } from '../../../../server/eventos';
+import { contextoOrcamento } from '../../../../server/orcamento';
+import { templateDaProposta } from '../../../../server/templates';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+const ctx = await withTenant(user.tenantId, async (db) => {
+  const c = await contextoOrcamento(db, id, Astro.url.searchParams.get('versao'));
+  const template = c.orcamento ? await templateDaProposta(db, c.orcamento.template_id) : null;
+  return { ...c, template };
+});
+const { evento, orcamento, versao, template } = ctx;
+
+// As mesmas partes que compõem o PDF (capa e contracapa só quando ativas no template)
+const partes = template
+  ? ([template.capa_ativa && 'capa', 'miolo', template.contracapa_ativa && 'contracapa'] as const).filter(
+      (p): p is 'capa' | 'miolo' | 'contracapa' => Boolean(p)
+    )
+  : [];
+// O print token de 5 minutos autoriza os iframes de /print/* (mesma renderização do PDF)
+const token = versao ? await signPrintToken({ tenantId: user.tenantId, alvo: 'versao', id: versao.id }) : null;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="orcamento">
+  {orcamento && <OrcamentoAbas eventoId={id} ativa="previa" versao={versao ? { numero: versao.numero, congelada: versao.congelada } : null} />}
+
+  {orcamento && versao && token ? (
+    <>
+      <div class="previa-topo">
+        <p class="muted">
+          É assim que a versão {pad(versao.numero)} chega ao cliente{versao.congelada ? '' : ' (com o conteúdo salvo até agora)'}.
+        </p>
+        <Button variant="outline" icon="download" href={`/eventos/${id}/orcamento/pdf?versao=${versao.numero}`}>Baixar PDF</Button>
+      </div>
+      <div class="previa-paginas">
+        {partes.map((parte) => (
+          <div class="previa-quadro" data-previa-quadro>
+            <iframe
+              src={`/print/orcamento/${versao.id}?parte=${parte}&token=${encodeURIComponent(token)}`}
+              title={`Página da proposta: ${parte}`}
+              loading="lazy"
+              data-previa-iframe
+            ></iframe>
+          </div>
+        ))}
+      </div>
+    </>
+  ) : (
+    <EstadoVazio icon="request_quote" titulo="Este evento ainda não tem orçamento" texto="Crie o orçamento para pré-visualizar a proposta.">
+      <a class="btn btn-primary btn-md" href={`/eventos/${id}/orcamento`}>Ir para o orçamento</a>
+    </EstadoVazio>
+  )}
+</EventoLayout>
+
+<script>
+  // Escala cada página A4 (794×1123 css px) para caber na largura disponível
+  const LARGURA_A4 = 794;
+  const RAZAO_A4 = 1123 / 794;
+  function ajustar() {
+    document.querySelectorAll<HTMLElement>('[data-previa-quadro]').forEach((quadro) => {
+      const escala = Math.min(1, quadro.clientWidth / LARGURA_A4);
+      const iframe = quadro.querySelector<HTMLIFrameElement>('[data-previa-iframe]')!;
+      iframe.style.transform = `scale(${escala})`;
+      quadro.style.height = `${Math.round(LARGURA_A4 * RAZAO_A4 * escala)}px`;
+    });
+  }
+  window.addEventListener('resize', ajustar);
+  ajustar();
+</script>
+
+<style>
+  .previa-topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 900px;
+    margin-bottom: 20px;
+  }
+
+  .previa-paginas {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 900px;
+  }
+
+  .previa-quadro {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .previa-quadro iframe {
+    width: 794px;
+    height: 1123px;
+    border: 0;
+    transform-origin: top left;
+    pointer-events: none;
+  }
+</style>

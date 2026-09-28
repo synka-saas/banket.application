@@ -95,6 +95,11 @@ test.describe('Orçamento', () => {
     await expect(page.locator('.orc-estado')).toHaveText('Todas as alterações salvas', { timeout: 10_000 });
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/informacoes.png`, fullPage: true });
 
+    // Pré-visualização: as páginas do PDF renderizadas na tela (UX-122)
+    await page.goto(`${eventoUrl}/orcamento/previa`);
+    await expect(page.locator('[data-previa-quadro]').first()).toBeVisible();
+    await expect(page.frameLocator('[data-previa-iframe]').first().locator('body')).toContainText('Brunch', { timeout: 15_000 });
+
     // Nova versão congela a anterior
     await page.goto(`${eventoUrl}/orcamento`);
     await waitForIslands(page);

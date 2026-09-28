@@ -1,6 +1,6 @@
 // Textos da proposta: blocos de Templates › Blocos de informação incluídos nesta versão.
 // Cada bloco incluído é uma cópia: editar o texto aqui não altera o cadastro, e vice-versa.
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { novaChave, type BlocoTexto } from '../../lib/calculo/orcamento';
 import { Acordeao } from './controles';
 import { toast } from '../../lib/ui';
@@ -49,6 +49,28 @@ export default function TextosProposta({ eventoId, numero, congelada, textos: in
       }
     }, 500);
   }
+
+  // Fechar a aba logo após digitar não perde a última edição (UX-126)
+  const ultimoRef = useRef(textos);
+  ultimoRef.current = textos;
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
+  useEffect(() => {
+    const despachar = () => {
+      if (congelada) return;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      if (estadoRef.current === 'salvo') return;
+      void fetch(`/api/orcamentos/${eventoId}/versoes/${numero}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blocos_texto: ultimoRef.current }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    window.addEventListener('pagehide', despachar);
+    return () => window.removeEventListener('pagehide', despachar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const incluido = (id: string) => textos.find((t) => t.bloco_id === id);
 

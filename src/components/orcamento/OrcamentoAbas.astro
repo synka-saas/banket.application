@@ -3,7 +3,7 @@
 // Preserva ?versao= ao trocar de sub-aba.
 interface Props {
   eventoId: string;
-  ativa: 'itens' | 'informacoes' | 'condicoes';
+  ativa: 'itens' | 'informacoes' | 'condicoes' | 'previa';
   versao: { numero: number; congelada: boolean } | null;
 }
 
@@ -14,6 +14,7 @@ const abas = [
   { id: 'itens', label: 'Itens e valores', href: `${base}/orcamento${sufixo}` },
   { id: 'informacoes', label: 'Informações complementares', href: `${base}/informacoes-complementares${sufixo}` },
   { id: 'condicoes', label: 'Condições gerais e textos', href: `${base}/condicoes-gerais${sufixo}` },
+  { id: 'previa', label: 'Pré-visualização', href: `${base}/orcamento/previa${sufixo}` },
 ];
 ---
 

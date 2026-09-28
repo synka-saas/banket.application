@@ -261,10 +261,15 @@ function SecaoBloco(props: {
       </div>
       <div class="chip-group">
         {s.itens.map((i) => (
-          <label class="chip" key={i.key} title={i.descricao ?? undefined}>
+          <label class="chip chip-item" key={i.key}>
             <input type="checkbox" checked={i.selecionado} disabled={disabled} onChange={() => alternar(i.key)} />
-            {i.nome}
-            {(i.preco_manual ?? i.preco_catalogo) !== null && <span class="chip-preco">{formatMoney(i.preco_manual ?? i.preco_catalogo)}</span>}
+            <span class="chip-item-textos">
+              <span>
+                {i.nome}
+                {(i.preco_manual ?? i.preco_catalogo) !== null && <span class="chip-preco">{formatMoney(i.preco_manual ?? i.preco_catalogo)}</span>}
+              </span>
+              {i.descricao && <span class="chip-descricao">{i.descricao}</span>}
+            </span>
           </label>
         ))}
       </div>

@@ -101,6 +101,12 @@ const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
     }
   });
 
+  // Rolar a página com o cursor sobre um campo numérico focado não pode mudar o valor (UX-128)
+  document.addEventListener('wheel', (e) => {
+    const alvo = e.target as HTMLElement;
+    if (alvo instanceof HTMLInputElement && alvo.type === 'number' && document.activeElement === alvo) alvo.blur();
+  });
+
   // Selects editáveis dentro de tabelas (papel, categoria, especialidade) enviam o formulário ao mudar.
   document.addEventListener('change', (e) => {
     const el = e.target as HTMLElement;

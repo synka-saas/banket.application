@@ -40,6 +40,19 @@ export default function OrcamentoBuilder(props: Props) {
   const disabled = props.congelada;
   const totais = conteudo.totais!;
 
+  const corpo = (c: ConteudoOrcamento) =>
+    JSON.stringify({
+      pagantes: c.pagantes,
+      cardapios: c.cardapios,
+      bebidas: c.bebidas,
+      staff: c.staff,
+      locacao: c.locacao,
+      extras: c.extras,
+      total_manual: c.total_manual,
+      mostrar_valor_total: c.mostrar_valor_total,
+      observacoes: c.observacoes,
+    });
+
   async function salvarAgora() {
     if (timer.current) {
       clearTimeout(timer.current);
@@ -52,17 +65,7 @@ export default function OrcamentoBuilder(props: Props) {
         const res = await fetch(`/api/orcamentos/${props.eventoId}/versoes/${props.numero}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            pagantes: c.pagantes,
-            cardapios: c.cardapios,
-            bebidas: c.bebidas,
-            staff: c.staff,
-            locacao: c.locacao,
-            extras: c.extras,
-            total_manual: c.total_manual,
-            mostrar_valor_total: c.mostrar_valor_total,
-            observacoes: c.observacoes,
-          }),
+          body: corpo(c),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar');
@@ -99,6 +102,27 @@ export default function OrcamentoBuilder(props: Props) {
     window.addEventListener('beforeunload', aviso);
     return () => window.removeEventListener('beforeunload', aviso);
   }, [estado]);
+
+  // Fechar a aba logo após digitar não perde a última edição: o campo ativo é aplicado (blur)
+  // e o conteúdo segue num envio keepalive, que sobrevive à saída da página (UX-126)
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
+  useEffect(() => {
+    const despachar = () => {
+      if (disabled) return;
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      if (estadoRef.current === 'salvo') return;
+      void fetch(`/api/orcamentos/${props.eventoId}/versoes/${props.numero}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: corpo(ultimo.current),
+        keepalive: true,
+      }).catch(() => {});
+    };
+    window.addEventListener('pagehide', despachar);
+    return () => window.removeEventListener('pagehide', despachar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [gerandoPdf, setGerandoPdf] = useState(false);
   async function baixarPdf() {
@@ -211,7 +235,9 @@ export default function OrcamentoBuilder(props: Props) {
           />
         </label>
         <div class="orc-equivalentes">
-          <span class="rotulo">Pagantes</span>
+          <span class="rotulo" title="Pagantes = convidados − isentas − meia + meia × 0,5">
+            Pagantes <Icon name="help" size={14} />
+          </span>
           <strong>{totais.pagantes_equivalentes.toLocaleString('pt-BR')}</strong>
         </div>
       </section>

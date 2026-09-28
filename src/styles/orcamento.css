@@ -778,3 +778,37 @@ input.cardapio-nome:focus-visible {
     width: min(420px, calc(100vw - 48px));
   }
 }
+
+/* Descrição do item visível no próprio chip (também no toque — UX-129) */
+.chip-item {
+  align-items: flex-start;
+}
+
+.chip-item-textos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chip-descricao {
+  display: block;
+  max-width: 320px;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linha-acoes {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.linha-acoes .remover:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
