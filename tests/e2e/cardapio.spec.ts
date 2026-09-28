@@ -17,8 +17,9 @@ test.describe('Cardápio', () => {
     await editor.getByLabel('Nome do cardápio').fill(nome);
     await editor.getByLabel('Preço base por pessoa').fill('45,90');
     // O rótulo traz a contagem de itens, que varia com o catálogo
-    const coquetel = await editor.getByLabel('Sessão do catálogo').locator('option', { hasText: /^Coquetel \(/ }).getAttribute('value');
-    await editor.getByLabel('Sessão do catálogo').selectOption(coquetel!);
+    const opcaoCoquetel = editor.getByLabel('Sessão do catálogo').locator('option', { hasText: /^Coquetel \(/ });
+    const itensCoquetel = Number((await opcaoCoquetel.textContent())!.match(/\((\d+) itens\)/)![1]);
+    await editor.getByLabel('Sessão do catálogo').selectOption((await opcaoCoquetel.getAttribute('value'))!);
     await editor.getByRole('button', { name: /Adicionar sessão/ }).click();
 
     const secao = editor.locator('.ed-secao').first();
@@ -31,7 +32,7 @@ test.describe('Cardápio', () => {
     await expectToast(page, 'Cardápio criado.');
     const card = page.locator('.info-card', { hasText: nome });
     await expect(card).toContainText('R$ 45,90');
-    await expect(card).toContainText('06'); // 7 itens da sessão Coquetel menos 1
+    await expect(card).toContainText(String(itensCoquetel - 1).padStart(2, '0')); // itens da sessão Coquetel menos o desmarcado
 
     // Edita: remove a sessão e tenta salvar sem sessões (deve recusar)
     await card.getByRole('button', { name: 'Editar' }).click();
