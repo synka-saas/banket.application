@@ -91,8 +91,11 @@ test.describe('Agenda, dashboard e envio', () => {
     await drawer.getByLabel('Para*').fill('cliente-e2e@example.com');
     await shot(page, 'envio-drawer');
     await drawer.getByRole('button', { name: 'Enviar' }).click();
-    // Sem RESEND_API_KEY o e-mail vai para o log do servidor
-    await expectToast(page, /Proposta enviada para cliente-e2e@example.com|E-mail registrado no log/);
+    // Gera o PDF e envia (alguns segundos); @example.com vai para o log do servidor
+    await expect(page.locator('#drawer-enviar').getByRole('button', { name: 'Enviando…' })).toBeDisabled();
+    await expect(page.locator('.toast').filter({ hasText: /Proposta enviada para cliente-e2e@example.com|E-mail registrado no log/ })).toBeVisible({
+      timeout: 30_000,
+    });
 
     await page.getByRole('button', { name: 'Enviar ao cliente' }).click();
     await expect(page.locator('#drawer-enviar .aviso-envio')).toContainText('cliente-e2e@example.com');

@@ -120,7 +120,7 @@ const { evento, orcamento, versao } = ctx;
     </div>
   </div>
   {ctx.envio && (
-    <Drawer id="drawer-enviar" formId="form-enviar" title={`Enviar proposta · versão ${String(ctx.envio.numero).padStart(2, '0')}`} deletable={false} width="md" saveLabel="Enviar" saveAction="enviar">
+    <Drawer id="drawer-enviar" formId="form-enviar" title={`Enviar proposta · versão ${String(ctx.envio.numero).padStart(2, '0')}`} deletable={false} width="md" saveLabel="Enviar" saveAction="enviar" saveLoadingLabel="Enviando…">
       <form id="form-enviar" method="post" class="form-envio">
         <input type="hidden" name="numero" value={ctx.envio.numero} />
         {ctx.envio.ultimoEnvio && (

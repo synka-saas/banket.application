@@ -22,6 +22,8 @@ interface Props {
   /** Rótulo e _action do botão principal (padrão: Salvar / save) */
   saveLabel?: string;
   saveAction?: string;
+  /** Rótulo do botão principal enquanto envia (padrão: Salvando…) */
+  saveLoadingLabel?: string;
 }
 
 const {
@@ -34,6 +36,7 @@ const {
   width = 'lg',
   saveLabel = 'Salvar',
   saveAction = 'save',
+  saveLoadingLabel = 'Salvando…',
 } = Astro.props;
 ---
 
@@ -52,12 +55,13 @@ const {
             formnovalidate
             class="btn btn-outline btn-md drawer-delete"
             data-confirm={deleteConfirm}
+            data-carregando="Excluindo…"
             data-edit-only
           >
             Excluir
           </button>
         )}
-        <button type="submit" form={formId} name="_action" value={saveAction} class="btn btn-success btn-md" data-drawer-save>{saveLabel}</button>
+        <button type="submit" form={formId} name="_action" value={saveAction} class="btn btn-success btn-md" data-drawer-save data-carregando={saveLoadingLabel}>{saveLabel}</button>
         <button type="button" class="drawer-close" data-drawer-close aria-label="Fechar">
           <Icon name="close" size={22} />
         </button>
@@ -206,7 +210,7 @@ const {
     // Antes de desabilitar os botões: botão desabilitado não entra no FormData (perderia o _action)
     const corpo = new FormData(form, submitter);
     const botao = submitter instanceof HTMLButtonElement ? submitter : null;
-    const rotulo = botao?.value === 'delete' ? 'Excluindo…' : 'Salvando…';
+    const rotulo = botao?.dataset.carregando || 'Salvando…';
     const restaurar = botao ? emCarregamento(botao, rotulo) : () => {};
     drawer.querySelectorAll<HTMLButtonElement>('.drawer-actions button[type=submit]').forEach((b) => (b.disabled = true));
     let concluido = false;

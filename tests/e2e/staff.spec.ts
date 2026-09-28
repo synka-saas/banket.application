@@ -46,10 +46,11 @@ test.describe('Staff', () => {
     await drawer.getByLabel('Nome*').fill(nome);
     await drawer.getByLabel('CPF').fill('111.111.111-11');
     await drawer.getByRole('button', { name: 'Salvar' }).click();
-    await expectToast(page, 'CPF inválido.');
+    // O erro aparece junto do campo e o painel continua aberto com o que foi digitado
+    await expect(drawer.locator('.field-erro')).toHaveText('CPF inválido.');
+    await expect(drawer.getByLabel('Nome*')).toHaveValue(nome);
 
-    await page.getByRole('button', { name: 'Adicionar profissional' }).click();
-    await drawer.getByLabel('Nome*').fill(nome);
+    await drawer.getByLabel('CPF').fill('');
     await drawer.getByLabel('Especialidade').selectOption({ label: 'Garçom' });
     await drawer.getByRole('button', { name: 'Salvar' }).click();
     await expectToast(page, 'Profissional cadastrado.');

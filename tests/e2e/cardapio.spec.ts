@@ -16,7 +16,9 @@ test.describe('Cardápio', () => {
     await expect(editor).toBeVisible();
     await editor.getByLabel('Nome do cardápio').fill(nome);
     await editor.getByLabel('Preço base por pessoa').fill('45,90');
-    await editor.getByLabel('Sessão do catálogo').selectOption({ label: 'Coquetel (7 itens)' });
+    // O rótulo traz a contagem de itens, que varia com o catálogo
+    const coquetel = await editor.getByLabel('Sessão do catálogo').locator('option', { hasText: /^Coquetel \(/ }).getAttribute('value');
+    await editor.getByLabel('Sessão do catálogo').selectOption(coquetel!);
     await editor.getByRole('button', { name: /Adicionar sessão/ }).click();
 
     const secao = editor.locator('.ed-secao').first();
