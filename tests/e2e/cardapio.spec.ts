@@ -68,12 +68,27 @@ test.describe('Cardápio', () => {
 
     await page.getByPlaceholder(/Pesquisar/).fill(nome);
     await page.getByPlaceholder(/Pesquisar/).press('Enter');
-    const linha = page.locator('tr', { hasText: nome });
+    const linha = page.locator('tr', { hasText: nome }).filter({ hasNotText: 'cópia' });
     await expect(linha).toContainText('R$ 9,90');
+
+    // Duplicar: cópia na mesma seção, com os mesmos dados
+    await linha.getByRole('button', { name: 'Editar' }).click();
+    await expect(drawer.locator('.drawer-title')).toHaveText(`Editar item · ${nome}`);
+    await drawer.getByRole('button', { name: 'Duplicar' }).click();
+    await expectToast(page, `Item duplicado como "${nome} (cópia)".`);
+    const copia = page.locator('tr', { hasText: `${nome} (cópia)` });
+    await expect(copia).toContainText('R$ 9,90');
+    await copia.getByRole('button', { name: 'Editar' }).click();
+    await expect(drawer.getByLabel('Sem lactose')).toBeChecked();
+    await drawer.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
+    await expectToast(page, 'Item removido.');
+
     await linha.getByRole('button', { name: 'Editar' }).click();
     await expect(drawer.getByLabel('Sem lactose')).toBeChecked();
     await drawer.getByRole('button', { name: 'Excluir' }).click();
     await confirmarModal(page);
     await expectToast(page, 'Item removido.');
+    await expect(page.locator('tr', { hasText: nome })).toHaveCount(0);
   });
 });
