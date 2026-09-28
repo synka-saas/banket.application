@@ -561,6 +561,20 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 - **Orçamento**: sub-abas `OrcamentoAbas` (itens, informações, condições); incluir itens com `AdicionarBusca`;
   remoções sem modal com `useRemoverComDesfazer` (Desfazer no aviso).
 
+### Versão mobile (Fase 3 de UX)
+- **Tudo em media queries** — `≤768px` celular, `769–1024px` tablet — para o desktop permanecer intocado.
+  Nada de estilo mobile fora de `@media (max-width: …)`.
+- Navegação: `NAV_PRINCIPAL` (`lib/nav.ts`) alimenta a `Sidebar` (desktop; só ícones no tablet) e a
+  `MobileNav.astro` (barra inferior com Dashboard, Funil, Agenda, Clientes + painel "Mais" com o resto).
+  O `.page-content` reserva espaço para a barra; toast sobe acima dela.
+- `Table.astro`: cada célula sai com `data-key`/`data-rotulo`; no celular a linha vira cartão rótulo→valor,
+  a coluna `acoes` vai para o rodapé do cartão e célula vazia some. Cabeçalho (e ordenação) só no desktop.
+- Funil: chips `[data-etapa-chip]` mostram uma coluna por vez (`.kanban-col.mobile-ativa`); mover é pelo menu ⋯.
+- `Drawer`: tela cheia no celular; ao abrir, os irmãos da cadeia de ancestrais ficam `inert` (toast e `dialog`
+  preservados), Tab circula dentro e o foco volta a quem abriu. Menu do usuário: botão com `aria-expanded`,
+  Esc e setas.
+- E2e mobile em `tests/e2e/mobile.spec.ts` (viewport 390×844).
+
 ### Regra de salvamento (UX-013)
 - Ilhas de edição contínua (orçamento, blocos, textos da proposta): salvamento automático com indicador de estado.
 - Formulários (drawer, empresa, template, evento): botão Salvar; alterações não salvas pedem confirmação ao sair
