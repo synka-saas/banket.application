@@ -26,7 +26,7 @@ test.describe('Templates, blocos e PDF', () => {
     await page.getByLabel('Nome do template').fill(existente);
     await page.getByLabel('Descrição').fill('Não deve sumir');
     await page.getByLabel('Título capa').fill('Capa preservada');
-    await page.getByRole('button', { name: 'Salvar' }).click();
+    await page.getByRole('button', { name: 'Salvar' }).first().click();
     await expect(page.locator('.form-erro')).toContainText('Já existe um cadastro com este nome.');
     await expect(page.getByLabel('Nome do template')).toHaveValue(existente);
     await expect(page.getByLabel('Descrição')).toHaveValue('Não deve sumir');
@@ -42,7 +42,7 @@ test.describe('Templates, blocos e PDF', () => {
     await page.getByLabel('Descrição').fill('Criado pelo teste');
     await page.getByLabel('Título capa').fill('Proposta E2E');
     await page.locator('input[name=logo_path]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
-    await page.getByRole('button', { name: 'Salvar' }).click();
+    await page.getByRole('button', { name: 'Salvar' }).first().click();
     await expectToast(page, 'Template criado.');
     await expect(page.getByLabel('Nome do template')).toHaveValue(nome);
     // A logo enviada aparece na pré-visualização
@@ -85,7 +85,7 @@ test.describe('Templates, blocos e PDF', () => {
     await expect(page.locator('[data-previa] strong')).toHaveText('forte');
     await page.getByLabel('Página a ser inserido').selectOption('condicoes');
     await page.getByLabel('Incluído por padrão em novos orçamentos').uncheck();
-    await page.getByRole('button', { name: 'Salvar' }).click();
+    await page.getByRole('button', { name: 'Salvar' }).first().click();
     await expectToast(page, 'Bloco criado.');
     await expect(page.locator('.chip-bloco.atual')).toHaveText(new RegExp(titulo, 'i'));
     await shot(page, 'template-blocos');

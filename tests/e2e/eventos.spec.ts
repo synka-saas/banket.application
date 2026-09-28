@@ -178,6 +178,9 @@ test.describe('Eventos e quadro de vendas', () => {
       await page.locator('#kanban-intervalo').selectOption({ label: '3 meses' });
       await expectToast(page, 'Intervalo de trabalho salvo.');
       await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 3 meses, de hoje até');
+      await page.locator('#kanban-intervalo').selectOption({ label: '1 mês' });
+      await expectToast(page, 'Intervalo de trabalho salvo.');
+      await expect(page.locator('[data-recorte]')).toContainText('Intervalo de trabalho: 1 mês, de hoje até');
 
       // O filtro só tem Data de / Até, e elas valem como recorte temporário
       await page.getByText('Filtros').click();
