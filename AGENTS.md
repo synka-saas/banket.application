@@ -529,8 +529,30 @@ Remoção: `removerName` (checkbox aplicado ao salvar) ou `removerAcao` (submit 
 `upload:externo` ({url, nome}) mostra uma imagem vinda de outra origem (galeria de IA).
 
 ### E-mail (`lib/mail.ts`, `server/emails.ts`)
-`sendMail` usa `https://api.resend.com/emails` com `RESEND_API_KEY`/`MAIL_FROM`; sem chave, registra no log e retorna
-`delivered: false`. E-mails transacionais usam `emailLayout` (título, parágrafos, botão, rodapé). Links usam `APP_URL`.
+`sendMail` usa `https://api.resend.com/emails` com `RESEND_API_KEY`/`MAIL_FROM`; sem chave, ou quando todos os
+destinatários são de domínio reservado (`example.com`, `.test`…, ver `dominioReservado`), registra no log e retorna
+`delivered: false` — é assim que os e2e leem os links mesmo com a chave ativa. E-mails transacionais usam `emailLayout` (título, parágrafos, botão, rodapé). Links usam `APP_URL`.
+
+### Componentes de interface compartilhados
+- **Drawer** (`components/ui/Drawer.astro`): envia o form por `fetch` com `Accept: application/json`; `handleFormPost`
+  responde `{ok, redirect}` (flash no cookie) ou `{ok:false, error, fields}`. Em erro o painel continua aberto com a
+  mensagem no topo e junto de cada campo (`.field-erro`, `aria-invalid`); fechar com alterações pede confirmação.
+  `data-drawer-nativo` no form mantém o POST tradicional. `saveLoadingLabel` define o rótulo durante o envio.
+- **Erros por campo**: `fieldErrors(err)` (`lib/forms.ts`) usa o `path` do zod (dê `path: ['campo']` aos `refine`),
+  `UserError(msg, campo)` e o nome da restrição única do Postgres (`*_email_*`, `*_documento_*`, `*_nome_*`…).
+- **`lib/ui.ts`** (navegador): `toast(msg, tipo, {acao})`, `confirmar({titulo, texto, confirmar, perigo})`,
+  `emCarregamento(botao, rotulo)`, `baixarArquivo(url)`. Nunca use `window.confirm`/`window.banketToast` direto.
+- **Toast**: erro fica até fechar (`role="alert"`); sucesso some em 5 s; ação opcional (ex.: Desfazer).
+- **Confirmar** (`components/ui/Confirmar.astro`, `<dialog>`): também via `data-confirm="Pergunta?"`
+  (+ `data-confirm-texto`, `data-confirm-rotulo`); verbos Excluir/Remover/Cancelar/Descartar deixam o botão vermelho.
+- **Carregando**: `data-carregando="Salvando…"` no botão de envio de formulário comum.
+- **Máscaras** (`lib/mascaras.ts` + `components/ui/Mascaras.astro`): `data-mascara="telefone|cep|numero|cpf|cnpj|dinheiro"`;
+  `data-mascara="documento" data-mascara-tipo="<id do select PF/PJ>"` (+ `data-rotulo-documento` no label).
+- **Glossário** (`lib/rotulos.ts`): Tipo, Ocasião, Formato de serviço, Estilo gastronômico, Etapa, Funil de vendas.
+  A interface usa estes nomes; o banco continua com `tipos_evento`, `categorias_evento`, `status_orcamento`.
+- **Cores** (`global.css`): texto laranja = `--color-primary-text`, auxiliar = `--color-text-muted`, borda de controle =
+  `--color-border-input`, botão principal = `--color-primary-action`; `--color-primary` só para bordas/fundos/ícones.
+  Foco: `:focus-visible` global; campos com estilo próprio precisam de um `:focus-visible` explícito.
 
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
@@ -556,8 +578,10 @@ Remoção: `removerName` (checkbox aplicado ao salvar) ou `removerAcao` (submit 
 - Funções puras que rodam no navegador (cálculo, modelo de formulário, money) não podem importar `db` nem Node.
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
-  (agenda-dashboard, autoatendimento, cardápio, eventos, formulários, orçamento, segurança, staff, templates).
-  Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam.
+  (agenda-dashboard, autoatendimento, cardápio, drawer, eventos, formulários, orçamento, segurança, staff, templates).
+  Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
+  `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
+  npx playwright test` (e-mails de teste sempre em `@example.com`).
 
 ---
 
