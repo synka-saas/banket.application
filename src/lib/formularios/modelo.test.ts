@@ -13,7 +13,7 @@ const custom = {
 
 const baseB2C = {
   nome: 'Ana',
-  email: 'ana@exemplo.com',
+  email: 'ana@example.com',
   whatsapp: '(11) 99999-0000',
   natureza: 'B2C',
   local_tipo: 'espaco_proprio',

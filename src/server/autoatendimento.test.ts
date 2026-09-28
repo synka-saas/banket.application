@@ -8,8 +8,8 @@ describe('autoatendimento', () => {
   });
 
   it('cadastro exige nome e sobrenome, senha forte e termos', () => {
-    const base = { nome: 'Ana Souza', email: ' Ana@Exemplo.com ', senha: 'Senha.123', confirma_senha: 'Senha.123', termos: 'on' };
-    expect(cadastroSchema.parse(base).email).toBe('ana@exemplo.com');
+    const base = { nome: 'Ana Souza', email: ' Ana@Example.com ', senha: 'Senha.123', confirma_senha: 'Senha.123', termos: 'on' };
+    expect(cadastroSchema.parse(base).email).toBe('ana@example.com');
     expect(() => cadastroSchema.parse({ ...base, nome: 'Ana' })).toThrow(/sobrenome/);
     expect(() => cadastroSchema.parse({ ...base, senha: 'fraca', confirma_senha: 'fraca' })).toThrow();
     expect(() => cadastroSchema.parse({ ...base, confirma_senha: 'Outra.123' })).toThrow(/conferem/);
