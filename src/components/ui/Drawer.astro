@@ -203,6 +203,8 @@ const {
 
   // ---------- Envio por fetch: em erro o painel continua aberto com o que foi digitado ----------
   async function enviar(drawer: HTMLElement, form: HTMLFormElement, submitter: HTMLElement | null) {
+    // Antes de desabilitar os botões: botão desabilitado não entra no FormData (perderia o _action)
+    const corpo = new FormData(form, submitter);
     const botao = submitter instanceof HTMLButtonElement ? submitter : null;
     const rotulo = botao?.value === 'delete' ? 'Excluindo…' : 'Salvando…';
     const restaurar = botao ? emCarregamento(botao, rotulo) : () => {};
@@ -211,7 +213,7 @@ const {
     try {
       const res = await fetch(form.action, {
         method: 'POST',
-        body: new FormData(form, submitter),
+        body: corpo,
         headers: { Accept: 'application/json' },
         redirect: 'manual',
       });
@@ -277,7 +279,11 @@ const {
   document.addEventListener('keydown', (e) => {
     // Esc com o modal de confirmação aberto fecha só o modal
     if (e.key !== 'Escape' || document.querySelector('dialog[open]')) return;
-    document.querySelectorAll<HTMLElement>('[data-drawer].open').forEach(pedirParaFechar);
+    const abertos = document.querySelectorAll<HTMLElement>('[data-drawer].open');
+    if (!abertos.length) return;
+    // Sem isso, o mesmo Esc fecharia na hora o modal de confirmação aberto a seguir
+    e.preventDefault();
+    abertos.forEach(pedirParaFechar);
   });
 </script>
 

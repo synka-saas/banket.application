@@ -44,8 +44,8 @@ test.describe('Cardápio', () => {
     for (const titulo of [`${nome} (cópia)`, nome]) {
       await waitForIslands(page);
       await page.locator('.info-card', { hasText: titulo }).last().getByRole('button', { name: 'Editar' }).click();
-      await confirmarModal(page);
       await page.locator('.ed-drawer').getByRole('button', { name: 'Excluir' }).click();
+      await confirmarModal(page);
       await expectToast(page, 'Cardápio removido.');
     }
     await expect(page.locator('.info-card', { hasText: nome })).toHaveCount(0);
