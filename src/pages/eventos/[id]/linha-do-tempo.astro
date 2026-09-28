@@ -4,7 +4,9 @@ import EventoLayout from '../../../layouts/EventoLayout.astro';
 import { withTenant } from '../../../lib/db';
 import { dataHora } from '../../../lib/datas';
 import { carregarEvento, eventoExiste } from '../../../server/eventos';
-import { ICONES_TIMELINE, listarTimeline } from '../../../server/timeline';
+import { ICONES_TIMELINE, TIPOS_ANOTACAO, anotacaoSchema, listarTimeline, registrarAnotacao } from '../../../server/timeline';
+import { handleFormPost } from '../../../lib/actions';
+import { dataCurta, hojeSaoPaulo } from '../../../lib/datas';
 
 const user = Astro.locals.user;
 const id = Astro.params.id!;
@@ -13,6 +15,17 @@ if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
   return new Response(null, { status: 404 });
 }
 
+// Anotação manual (ligação, visita, degustação…), o básico de um CRM (UX-090)
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const input = anotacaoSchema.parse(data);
+    await withTenant(user.tenantId, (db) => registrarAnotacao(db, user, id, input));
+    return input.retorno_em ? `Anotação registrada, com retorno em ${dataCurta(input.retorno_em)}.` : 'Anotação registrada.';
+  });
+}
+
+const hoje = hojeSaoPaulo();
+
 const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
   evento: await carregarEvento(db, id),
   registros: await listarTimeline(db, id),
@@ -20,6 +33,32 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="timeline">
+  <section class="timeline-card anotacao-card">
+    <h3 class="bloco-titulo"><Icon name="edit_note" size={18} /> Nova anotação</h3>
+    <form method="post" class="anotacao-form">
+      <div class="anotacao-linha">
+        <div class="field">
+          <label for="an-tipo">Tipo</label>
+          <select id="an-tipo" name="tipo_contato">
+            {Object.entries(TIPOS_ANOTACAO).map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="an-retorno">Retornar em (opcional)</label>
+          <input id="an-retorno" name="retorno_em" type="date" min={hoje} />
+          <span class="field-hint">Aparece como lembrete no dashboard.</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="an-texto">Anotação<span class="obrigatorio">*</span></label>
+        <textarea id="an-texto" name="texto" rows="3" required maxlength="2000" placeholder="Ex.: Liguei para a cliente; prefere degustação no sábado de manhã."></textarea>
+      </div>
+      <div class="anotacao-acoes">
+        <button type="submit" class="btn btn-primary btn-md" data-carregando="Registrando…">Registrar anotação</button>
+      </div>
+    </form>
+  </section>
+
   <section class="timeline-card">
     <h3 class="bloco-titulo"><Icon name="timeline" size={18} /> Linha do tempo</h3>
     {registros.length === 0 ? (
@@ -34,6 +73,11 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
               <p class="tl-meta">
                 {dataHora(r.created_at)}
                 {r.usuario_nome ? ` · ${r.usuario_nome}` : r.tipo === 'formulario' ? ' · Formulário público' : ''}
+                {r.retorno_em && (
+                  <span class:list={['tl-retorno', { vencido: r.retorno_em < hoje }]}>
+                    Retorno: {dataCurta(r.retorno_em)}
+                  </span>
+                )}
               </p>
             </div>
           </li>
@@ -102,5 +146,47 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
     font-size: 12px;
     color: var(--color-text-muted);
     margin-top: 2px;
+  }
+
+  .anotacao-card {
+    margin-bottom: 24px;
+  }
+
+  .anotacao-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .anotacao-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .anotacao-acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .tl-retorno {
+    margin-left: 10px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: #e8f2ea;
+    color: var(--color-secondary-80);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tl-retorno.vencido {
+    background: var(--color-primary-10);
+    color: var(--color-primary-60);
+  }
+
+  @media (max-width: 768px) {
+    .anotacao-linha {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

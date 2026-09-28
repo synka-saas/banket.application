@@ -5,18 +5,38 @@ import SectionCard from '../../components/ui/SectionCard.astro';
 import { withTenant } from '../../lib/db';
 import { formatMoney } from '../../lib/money';
 import { dataComDiaSemana, dataHora } from '../../lib/datas';
-import { DIAS_SEM_RESPOSTA, PERIODOS, carregarIndicadores, primeirosPassos, type Periodo } from '../../server/dashboard';
+import {
+  DIAS_SEM_RESPOSTA,
+  PERIODOS,
+  carregarIndicadores,
+  definirPrimeirosPassosOcultos,
+  primeirosPassos,
+  primeirosPassosOcultos,
+  type Periodo,
+} from '../../server/dashboard';
+import { handleFormPost } from '../../lib/actions';
+import { dataCurta, hojeSaoPaulo } from '../../lib/datas';
 import { isAdmin } from '../../lib/auth';
 
 const user = Astro.locals.user;
+// Ocultar/reexibir os primeiros passos (preferência por usuário — UX-051)
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    await withTenant(user.tenantId, (db) => definirPrimeirosPassosOcultos(db, user.id, data._action === 'ocultar_passos'));
+    return data._action === 'ocultar_passos' ? 'Primeiros passos ocultados. Você pode reexibi-los no fim da página.' : '';
+  });
+}
+
 const p = Astro.url.searchParams.get('periodo');
 const periodo: Periodo = p && p in PERIODOS ? (p as Periodo) : '90';
-const { ind, passos } = await withTenant(user.tenantId, async (db) => ({
+const { ind, passos, passosOcultos } = await withTenant(user.tenantId, async (db) => ({
   ind: await carregarIndicadores(db, periodo),
-  // Configuração inicial: só para quem pode configurar a empresa
-  passos: isAdmin(user) ? await primeirosPassos(db) : [],
+  // Configuração inicial para todos os papéis; passos de Configurações só para quem pode abri-las (UX-051)
+  passos: (await primeirosPassos(db)).filter((passo) => !passo.adminOnly || isAdmin(user)),
+  passosOcultos: await primeirosPassosOcultos(db, user.id),
 }));
 const pendentes = passos.filter((p) => !p.feito).length;
+const hoje = hojeSaoPaulo();
 
 const maxEventos = Math.max(1, ...ind.porStatus.map((s) => s.eventos));
 const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
@@ -27,7 +47,7 @@ const primeiroNome = user.nome.split(' ')[0];
   <div class="topo">
     <div>
       <h2>Olá, {primeiroNome}</h2>
-      <p class="muted">Indicadores dos pedidos que entraram no período. Valores = versão atual de cada orçamento.</p>
+      <p class="muted">Indicadores dos pedidos que entraram no período escolhido. Os valores vêm do orçamento mais recente de cada evento.</p>
     </div>
     <form method="get">
       <select name="periodo" class="control" aria-label="Período" data-autosubmit-row>
@@ -36,11 +56,14 @@ const primeiroNome = user.nome.split(' ')[0];
     </form>
   </div>
 
-  {pendentes > 0 && (
+  {pendentes > 0 && !passosOcultos && (
     <section class="passos">
       <div class="passos-topo">
         <h3>Primeiros passos</h3>
         <span class="muted">{passos.length - pendentes} de {passos.length} concluídos</span>
+        <form method="post" class="passos-ocultar">
+          <button type="submit" name="_action" value="ocultar_passos" class="btn btn-text btn-sm">Ocultar</button>
+        </form>
       </div>
       <ol>
         {passos.map((p) => (
@@ -86,7 +109,8 @@ const primeiroNome = user.nome.split(' ')[0];
 
   <div class="grade">
     <div class="coluna">
-    <SectionCard title="Funil por status" icon="view_kanban">
+    <SectionCard title="Funil por etapa" icon="view_kanban">
+      <p class="recorte">Pedidos que entraram em: {PERIODOS[periodo].toLowerCase()}</p>
       <ul class="funil">
         {ind.porStatus.map((s) => (
           <li>
@@ -101,6 +125,7 @@ const primeiroNome = user.nome.split(' ')[0];
       </ul>
     </SectionCard>
     <SectionCard title={`Propostas sem retorno há ${DIAS_SEM_RESPOSTA}+ dias`} icon="send">
+      <p class="recorte">Situação de agora · não depende do período</p>
       {ind.parados.length === 0 ? (
         <p class="muted">Nenhuma proposta enviada aguardando retorno há mais de {DIAS_SEM_RESPOSTA} dias.</p>
       ) : (
@@ -120,7 +145,28 @@ const primeiroNome = user.nome.split(' ')[0];
     </div>
 
     <div class="coluna">
+    <SectionCard title="Retornos combinados" icon="notifications">
+      <p class="recorte">Anotações com data de retorno · não depende do período</p>
+      {ind.retornos.length === 0 ? (
+        <p class="muted">Nenhum retorno agendado. Registre anotações com data de retorno na linha do tempo dos eventos.</p>
+      ) : (
+        <ul class="lista">
+          {ind.retornos.map((r) => (
+            <li>
+              <a href={`/eventos/${r.id}/linha-do-tempo`} style={r.retorno_em < hoje ? '--cor:var(--color-primary)' : '--cor:var(--color-secondary-60)'}>
+                <strong>{r.titulo ?? r.cliente_nome ?? 'Evento'}</strong>
+                <span class="muted">{r.descricao}</span>
+                <span class:list={['selo', { 'selo-vencido': r.retorno_em < hoje }]}>
+                  {r.retorno_em < hoje ? `venceu em ${dataCurta(r.retorno_em)}` : dataCurta(r.retorno_em)}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
     <SectionCard title="Próximos 30 dias" icon="calendar_today">
+      <p class="recorte">Eventos a partir de hoje · não depende do período</p>
       {ind.proximos.length === 0 ? (
         <p class="muted">Nenhum evento agendado nos próximos 30 dias.</p>
       ) : (
@@ -143,6 +189,12 @@ const primeiroNome = user.nome.split(' ')[0];
     </SectionCard>
     </div>
   </div>
+
+  {pendentes > 0 && passosOcultos && (
+    <form method="post" class="passos-reexibir">
+      <button type="submit" name="_action" value="mostrar_passos" class="btn btn-text btn-sm">Mostrar primeiros passos</button>
+    </form>
+  )}
 </AppLayout>
 
 <style>
@@ -174,8 +226,8 @@ const primeiroNome = user.nome.split(' ')[0];
 
   .passos-topo {
     display: flex;
-    justify-content: space-between;
     align-items: baseline;
+    gap: 16px;
     margin-bottom: 14px;
   }
 
@@ -385,5 +437,24 @@ const primeiroNome = user.nome.split(' ')[0];
     .funil li .barra { grid-area: barra; }
     .funil-num { grid-area: num; }
     .funil-valor { grid-area: valor; }
+  }
+
+  .recorte {
+    margin: -6px 0 14px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .passos-ocultar {
+    margin-left: auto;
+  }
+
+  .passos-reexibir {
+    margin-top: 24px;
+    text-align: center;
+  }
+
+  .selo-vencido {
+    color: var(--color-primary-60);
   }
 </style>

@@ -43,6 +43,14 @@ export interface OrcamentoParado {
   dias: number;
 }
 
+export interface RetornoAgendado {
+  id: string;
+  retorno_em: string;
+  descricao: string;
+  titulo: string | null;
+  cliente_nome: string | null;
+}
+
 export interface Indicadores {
   porStatus: StatusResumo[];
   pedidos: number;
@@ -52,6 +60,7 @@ export interface Indicadores {
   conversao: number | null;
   ticketMedio: number | null;
   proximos: ProximoEvento[];
+  retornos: RetornoAgendado[];
   parados: OrcamentoParado[];
 }
 
@@ -119,6 +128,19 @@ export async function carregarIndicadores(db: Db, periodo: Periodo): Promise<Ind
     [DIAS_SEM_RESPOSTA]
   );
 
+  // Retornos combinados nas anotações (vencidos até 30 dias atrás e os próximos 7 dias)
+  const { rows: retornos } = await db.query<RetornoAgendado>(
+    `SELECT t.evento_id AS id, to_char(t.retorno_em, 'YYYY-MM-DD') AS retorno_em, t.descricao,
+            e.titulo, c.nome AS cliente_nome
+       FROM evento_timeline t
+       JOIN eventos e ON e.id = t.evento_id
+       LEFT JOIN clientes c ON c.id = e.cliente_id
+      WHERE t.tipo = 'anotacao' AND t.retorno_em IS NOT NULL
+        AND t.retorno_em BETWEEN CURRENT_DATE - 30 AND CURRENT_DATE + 7
+      ORDER BY t.retorno_em, t.created_at
+      LIMIT 6`
+  );
+
   return {
     porStatus,
     pedidos: entrada[0]?.total ?? 0,
@@ -128,6 +150,7 @@ export async function carregarIndicadores(db: Db, periodo: Periodo): Promise<Ind
     conversao: decididos ? aprovados.eventos / decididos : null,
     ticketMedio: aprovados.eventos ? aprovados.valor / aprovados.eventos : null,
     proximos,
+    retornos,
     parados,
   };
 }
@@ -137,6 +160,21 @@ export interface PassoInicial {
   descricao: string;
   href: string;
   feito: boolean;
+  /** Só owner/admin consegue abrir (Configurações) */
+  adminOnly?: boolean;
+}
+
+/** Preferência do usuário (por empresa) de esconder o card de primeiros passos (UX-051). */
+export async function primeirosPassosOcultos(db: Db, usuarioId: string): Promise<boolean> {
+  const { rows } = await db.query<{ ocultar: boolean }>(
+    'SELECT ocultar_primeiros_passos AS ocultar FROM tenant_usuarios WHERE usuario_id = $1',
+    [usuarioId]
+  );
+  return Boolean(rows[0]?.ocultar);
+}
+
+export async function definirPrimeirosPassosOcultos(db: Db, usuarioId: string, ocultar: boolean) {
+  await db.query('UPDATE tenant_usuarios SET ocultar_primeiros_passos = $2 WHERE usuario_id = $1', [usuarioId, ocultar]);
 }
 
 /** Checklist de configuração de uma empresa nova (some do dashboard quando tudo estiver feito). */
@@ -151,11 +189,11 @@ export async function primeirosPassos(db: Db): Promise<PassoInicial[]> {
   );
   const r = rows[0];
   return [
-    { titulo: 'Dados da empresa', descricao: 'Logo, telefone e assinatura que aparecem nas propostas.', href: '/configuracoes/empresa', feito: Boolean(r.empresa) },
+    { titulo: 'Dados da empresa', descricao: 'Logo, telefone e assinatura que aparecem nas propostas.', href: '/configuracoes/empresa', feito: Boolean(r.empresa), adminOnly: true },
     { titulo: 'Itens do cardápio', descricao: 'Cadastre os itens e seções que você oferece.', href: '/cardapio/itens', feito: r.itens },
     { titulo: 'Opções de cardápio', descricao: 'Monte cardápios prontos para usar nos orçamentos.', href: '/cardapio/opcoes', feito: r.opcoes },
     { titulo: 'Staff', descricao: 'Funções, cachês e regras de dimensionamento da equipe.', href: '/staff/servicos', feito: r.staff },
-    { titulo: 'Locação', descricao: 'Valores do espaço por faixa de convidados.', href: '/configuracoes/locacao', feito: r.faixas },
+    { titulo: 'Locação', descricao: 'Valores do espaço por faixa de convidados.', href: '/configuracoes/locacao', feito: r.faixas, adminOnly: true },
     { titulo: 'Primeiro evento', descricao: 'Cadastre um pedido e confeccione o orçamento.', href: '/eventos/novo', feito: r.eventos },
   ];
 }

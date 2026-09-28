@@ -112,6 +112,16 @@ test.describe('Eventos e quadro de vendas', () => {
     expect(csv.headers()['content-type']).toContain('text/csv');
     expect(await csv.text()).toContain(cliente);
 
+    // Anotação manual com data de retorno (UX-090): linha do tempo e lembrete no dashboard
+    await page.goto(`${eventoUrl}/linha-do-tempo`);
+    await page.getByLabel('Tipo', { exact: true }).selectOption({ label: 'Ligação' });
+    await page.getByLabel('Anotação*').fill('Cliente pediu retorno com nova proposta');
+    await page.getByLabel('Retornar em (opcional)').fill('2027-01-10');
+    await page.getByRole('button', { name: 'Registrar anotação' }).click();
+    await expectToast(page, 'Anotação registrada, com retorno em 10/01/2027.');
+    await expect(page.locator('.timeline')).toContainText('Ligação: Cliente pediu retorno com nova proposta');
+    await expect(page.locator('.timeline .tl-retorno').first()).toContainText('Retorno: 10/01/2027');
+
     // Edição registra a mudança de convidados no histórico
     await page.goto(`${eventoUrl}/editar`);
     await page.getByLabel('Convidados', { exact: true }).fill('150');

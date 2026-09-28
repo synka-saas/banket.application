@@ -95,6 +95,13 @@ export const optionalEmail = () =>
     z.email('E-mail inválido.').nullable()
   );
 
+/** Data AAAA-MM-DD opcional: vazio vira null. */
+export const optionalDate = () =>
+  z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? null : v),
+    z.iso.date('Data inválida.').nullable().optional().transform((v) => v ?? null)
+  );
+
 /** Texto obrigatório com mensagem própria. */
 export const requiredText = (message: string, max = 255) =>
   z.preprocess(
