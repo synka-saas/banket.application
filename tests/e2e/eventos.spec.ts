@@ -46,9 +46,9 @@ test.describe('Eventos e quadro de vendas', () => {
     // de=2000-01-01: filtro de datas manual ignora o intervalo de trabalho configurado (evento é de 2027)
     await page.goto(`/eventos?q=${encodeURIComponent(cliente)}&de=2000-01-01`);
     const card = page.locator('.evento-card', { hasText: cliente });
-    const colunaEntrada = page.locator('.kanban-col', { hasText: 'Novo orçamento' });
+    const colunaEntrada = page.locator('.kanban-col[data-status-nome="Novo orçamento"]');
     await expect(colunaEntrada.locator('.evento-card', { hasText: cliente })).toBeVisible();
-    const colunaNegociacao = page.locator('.kanban-col', { hasText: 'Em negociação' });
+    const colunaNegociacao = page.locator('.kanban-col[data-status-nome="Em negociação"]');
     await card.dragTo(colunaNegociacao.locator('[data-dropzone]'));
     await expectToast(page, 'Evento movido para "Em negociação".');
     await page.reload();

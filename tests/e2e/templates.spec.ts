@@ -21,7 +21,7 @@ test.describe('Templates, blocos e PDF', () => {
 
     // Nome repetido (template padrão da empresa): recusado pelo servidor sem apagar o formulário
     await page.goto('/templates');
-    const existente = (await page.locator('.info-card .info-card-title span').first().textContent())!.trim();
+    const existente = (await page.locator('.info-card .info-card-title > span:not(.icon)').first().textContent())!.trim();
     await page.goto('/templates/novo');
     await page.getByLabel('Nome do template').fill(existente);
     await page.getByLabel('Descrição').fill('Não deve sumir');
