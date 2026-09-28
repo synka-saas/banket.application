@@ -88,7 +88,12 @@ test.describe('Agenda, dashboard e envio', () => {
     await expect(drawer).toBeVisible();
     await expect(drawer.getByLabel('Assunto*')).not.toHaveValue('');
     await expect(drawer.getByLabel('Mensagem*')).toHaveValue(/Maria Eduarda Silva|Olá/);
+    // O destinatário do rascunho vem como chip: troca pelo e-mail do teste
+    while (await drawer.locator('.chip-email button').count()) {
+      await drawer.locator('.chip-email button').first().click();
+    }
     await drawer.getByLabel('Para*').fill('cliente-e2e@example.com');
+    await drawer.getByLabel('Para*').press('Enter');
     await shot(page, 'envio-drawer');
     await drawer.getByRole('button', { name: 'Enviar' }).click();
     // Confirmação com o resumo do envio
