@@ -130,18 +130,31 @@ const {
   }
 
   // ---------- Abrir e fechar ----------
-  // Com um painel aberto, o resto da página fica inerte (Tab não passeia por trás) e o foco volta a quem abriu
+  // Com um painel aberto, o resto da página fica inerte (Tab não passeia por trás) e o foco volta a quem abriu.
+  // O drawer pode estar em qualquer ponto da página: inertamos os irmãos de cada ancestral dele,
+  // preservando toasts e o modal de confirmação (dialog).
   let focoAnterior: HTMLElement | null = null;
-  function isolarFundo(ativo: boolean) {
-    document.querySelectorAll<HTMLElement>('.sidebar, .main-content, .mnav').forEach((el) => {
-      if (ativo) el.setAttribute('inert', '');
-      else el.removeAttribute('inert');
-    });
+  let inertados: HTMLElement[] = [];
+  function isolarFundo(drawer: HTMLElement | null) {
+    inertados.forEach((el) => el.removeAttribute('inert'));
+    inertados = [];
+    let no: HTMLElement | null = drawer;
+    while (no && no !== document.body) {
+      const pai: HTMLElement | null = no.parentElement;
+      if (!pai) break;
+      for (const irmao of pai.children) {
+        if (irmao === no || !(irmao instanceof HTMLElement)) continue;
+        if (irmao.matches('dialog, .toast-root, script, style, link') || irmao.hasAttribute('inert')) continue;
+        irmao.setAttribute('inert', '');
+        inertados.push(irmao);
+      }
+      no = pai;
+    }
   }
 
   function openDrawer(drawer: HTMLElement, values: Values | null) {
     focoAnterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    isolarFundo(true);
+    isolarFundo(drawer);
     const form = formDo(drawer);
     const isEdit = Boolean(values && values.id);
     limparErros(drawer);
@@ -168,7 +181,7 @@ const {
   function closeDrawer(drawer: HTMLElement) {
     drawer.classList.remove('open');
     instantaneos.delete(drawer);
-    isolarFundo(false);
+    isolarFundo(null);
     focoAnterior?.focus({ preventScroll: true });
     focoAnterior = null;
     setTimeout(() => (drawer.hidden = true), 250);
