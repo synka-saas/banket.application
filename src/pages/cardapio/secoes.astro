@@ -45,6 +45,8 @@ const tableData = secoes.map((s) => ({
     preco: moneyInput(s.preco),
     unidade_cobranca: s.unidade_cobranca,
     ordem: s.ordem,
+    _nome: s.nome,
+    _itens: s.itens,
   })}">Editar</button>`,
 }));
 const filtrando = estaFiltrando(Astro.url);
@@ -79,7 +81,7 @@ const filtrando = estaFiltrando(Astro.url);
     title="Nova seção"
     editTitle="Editar seção"
     width="md"
-    deleteConfirm="Excluir esta seção? Todos os itens dela também serão removidos."
+    deleteConfirm="Excluir esta seção?"
   >
     <form id="form-secao" method="post" class="form-grid">
       <input type="hidden" name="id" />
@@ -111,3 +113,19 @@ const filtrando = estaFiltrando(Astro.url);
     </form>
   </Drawer>
 </AppLayout>
+<script>
+  // A exclusão da seção leva os itens junto (ON DELETE CASCADE): o modal informa quantos
+  document.addEventListener('drawer:open', (e) => {
+    const drawer = e.target as HTMLElement;
+    if (drawer.id !== 'drawer-secao') return;
+    const { values } = (e as CustomEvent<{ values: Record<string, unknown> }>).detail;
+    const excluir = drawer.querySelector<HTMLElement>('.drawer-delete');
+    if (!excluir || !values.id) return;
+    const itens = Number(values._itens ?? 0);
+    excluir.dataset.confirm = `Excluir a seção "${values._nome}"?`;
+    excluir.dataset.confirmTexto = itens
+      ? `${itens} ${itens === 1 ? 'item cadastrado nela também será excluído' : 'itens cadastrados nela também serão excluídos'}. Esta ação não pode ser desfeita.`
+      : 'A seção não tem itens.';
+  });
+</script>
+

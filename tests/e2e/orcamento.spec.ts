@@ -64,6 +64,13 @@ test.describe('Orçamento', () => {
     await expect(resumo(page)).toContainText('R$ 32.500,00');
     await aguardarSalvo(page);
 
+    // Remover sem modal, com Desfazer no aviso: volta a bebida e o total
+    await page.getByRole('button', { name: 'Remover Soft drinks' }).click();
+    await expect(resumo(page)).toContainText('R$ 30.600,00');
+    await page.locator('.toast', { hasText: 'removido' }).getByRole('button', { name: 'Desfazer' }).click();
+    await expect(resumo(page)).toContainText('R$ 32.500,00');
+    await aguardarSalvo(page);
+
     // Ajuste manual do preço por pessoa (240 × 95 = 22.800) → total 31.550
     await page.getByLabel('Preço por pessoa de Brunch', { exact: true }).fill('240');
     await page.getByLabel('Preço por pessoa de Brunch', { exact: true }).blur();

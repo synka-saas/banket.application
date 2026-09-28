@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, type BebidaOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, Numero, ValorManual } from './controles';
+import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabled, onChange }: Props) {
+  const remover = useRemoverComDesfazer(bebidas, onChange);
   const [escolha, setEscolha] = useState('');
   const secoes = catalogo.secoes.filter((s) => s.bebida);
 
@@ -101,7 +102,7 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
                 </td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${b.nome}`} onClick={() => onChange(bebidas.filter((x) => x.key !== b.key))}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${b.nome}`} onClick={() => remover(b, b.nome)}><Icon name="close" size={18} /></button>
                   </td>
                 )}
               </tr>

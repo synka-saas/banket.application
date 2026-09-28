@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { novaChave, precoSecao, type CardapioOrcamento, type ItemOrcamento, type SecaoOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, ValorManual } from './controles';
+import { Acordeao, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 import { confirmar } from '../../lib/ui';
 
@@ -133,6 +133,7 @@ function CardapioBloco(props: {
   onSecao: (secaoKey: string, patch: Partial<SecaoOrcamento>) => void;
   onRemover: () => void;
 }) {
+  const removerSecao = useRemoverComDesfazer(props.cardapio.secoes, (secoes) => props.onChange({ secoes }));
   const { cardapio: c, disabled } = props;
   const [aberto, setAberto] = useState(true);
   const [novaSecao, setNovaSecao] = useState('');
@@ -189,7 +190,7 @@ function CardapioBloco(props: {
               catalogo={s.secao_id ? props.secaoPorId.get(s.secao_id) : undefined}
               disabled={disabled}
               onChange={(patch) => props.onSecao(s.key, patch)}
-              onRemover={() => props.onChange({ secoes: c.secoes.filter((x) => x.key !== s.key) })}
+              onRemover={() => removerSecao(s, s.nome)}
             />
           ))}
 

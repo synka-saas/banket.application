@@ -4,7 +4,7 @@ import { formatMoney } from '../../lib/money';
 import { descreverRegra } from '../../lib/calculo/staff';
 import { novaChave, type StaffOrcamento } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
-import { Acordeao, Numero, ValorManual } from './controles';
+import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function Staff({ staff, catalogo, convidados, total, disabled, onChange }: Props) {
+  const remover = useRemoverComDesfazer(staff, onChange);
   const [servicoId, setServicoId] = useState('');
   const atualizar = (key: string, patch: Partial<StaffOrcamento>) =>
     onChange(staff.map((s) => (s.key === key ? { ...s, ...patch } : s)));
@@ -58,7 +59,7 @@ export default function Staff({ staff, catalogo, convidados, total, disabled, on
                 <td class="num"><strong>{formatMoney(s.subtotal_calc ?? 0)}</strong></td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${s.funcao}`} onClick={() => onChange(staff.filter((x) => x.key !== s.key))}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${s.funcao}`} onClick={() => remover(s, s.funcao)}><Icon name="close" size={18} /></button>
                   </td>
                 )}
               </tr>

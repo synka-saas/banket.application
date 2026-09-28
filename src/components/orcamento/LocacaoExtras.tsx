@@ -1,7 +1,7 @@
 // Acordeão "Locação e extras": locação por faixa de convidados e taxas avulsas (hora adicional, rolha…).
 import { formatMoney } from '../../lib/money';
 import { novaChave, type ExtraOrcamento, type LocacaoOrcamento } from '../../lib/calculo/orcamento';
-import { Acordeao, Numero, ValorManual } from './controles';
+import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
 const SUGESTOES = ['Hora adicional', 'Taxa de rolha', 'Taxa de serviço de chope', 'Taxa de cerimônia no local', 'Taxa de serviço externo'];
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtras, disabled, onLocacao, onExtras }: Props) {
+  const remover = useRemoverComDesfazer(extras, onExtras);
   const atualizar = (key: string, patch: Partial<ExtraOrcamento>) =>
     onExtras(extras.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
@@ -64,7 +65,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
                 <td class="num"><strong>{formatMoney(e.subtotal_calc ?? 0)}</strong></td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${e.descricao}`} onClick={() => onExtras(extras.filter((x) => x.key !== e.key))}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${e.descricao}`} onClick={() => remover(e, e.descricao || 'Extra')}><Icon name="close" size={18} /></button>
                   </td>
                 )}
               </tr>

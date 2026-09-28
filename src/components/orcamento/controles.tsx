@@ -1,8 +1,35 @@
 // Controles compartilhados pelo construtor de orçamento.
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatMoney, moneyInput, parseMoney } from '../../lib/money';
 import { Icon } from '../ui/Icon';
+import { toast } from '../../lib/ui';
+
+/**
+ * Remoção dentro do orçamento sem modal, com "Desfazer" no aviso. O desfazer devolve o item à posição original
+ * na lista atual (não num retrato antigo), para não perder o que foi editado nesse meio-tempo.
+ */
+export function useRemoverComDesfazer<T extends { key: string }>(lista: T[], aplicar: (nova: T[]) => void) {
+  const atual = useRef(lista);
+  atual.current = lista;
+  const aplicarAtual = useRef(aplicar);
+  aplicarAtual.current = aplicar;
+  return (item: T, nome: string) => {
+    const posicao = atual.current.findIndex((x) => x.key === item.key);
+    aplicarAtual.current(atual.current.filter((x) => x.key !== item.key));
+    toast(`"${nome}" removido.`, 'info', {
+      acao: {
+        rotulo: 'Desfazer',
+        executar: () => {
+          if (atual.current.some((x) => x.key === item.key)) return;
+          const nova = [...atual.current];
+          nova.splice(Math.min(Math.max(posicao, 0), nova.length), 0, item);
+          aplicarAtual.current(nova);
+        },
+      },
+    });
+  };
+}
 
 /**
  * Valor monetário com ajuste manual: vazio = usa o calculado (mostrado como placeholder).

@@ -52,6 +52,26 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
   const atualizarBloco = (key: string, patch: Partial<BlocoInfo>) =>
     alterar(blocos.map((b) => (b.key === key ? { ...b, ...patch } : b)));
 
+  // Remover linha sem modal, com Desfazer (volta à mesma posição do bloco atual)
+  const blocosAtual = useRef(blocos);
+  blocosAtual.current = blocos;
+  function removerLinha(bloco: BlocoInfo, linha: BlocoInfo['linhas'][number]) {
+    const posicao = bloco.linhas.findIndex((l) => l.key === linha.key);
+    atualizarBloco(bloco.key, { linhas: bloco.linhas.filter((x) => x.key !== linha.key) });
+    toast(`"${linha.label || 'Linha'}" removido.`, 'info', {
+      acao: {
+        rotulo: 'Desfazer',
+        executar: () => {
+          const b = blocosAtual.current.find((x) => x.key === bloco.key);
+          if (!b || b.linhas.some((l) => l.key === linha.key)) return;
+          const linhas = [...b.linhas];
+          linhas.splice(Math.min(Math.max(posicao, 0), linhas.length), 0, linha);
+          alterar(blocosAtual.current.map((x) => (x.key === bloco.key ? { ...x, linhas } : x)));
+        },
+      },
+    });
+  }
+
   const atualizarLinha = (bloco: BlocoInfo, linhaKey: string, patch: { label?: string; valor?: string }) =>
     atualizarBloco(bloco.key, {
       // Editar uma linha automática a torna manual
@@ -105,7 +125,7 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
                   <span>
                     {l.auto && <span class="auto-selo" title="Calculado a partir do orçamento">auto</span>}
                     {!congelada && b.auto !== 'staff' && (
-                      <button type="button" class="remover" aria-label={`Remover ${l.label}`} onClick={() => atualizarBloco(b.key, { linhas: b.linhas.filter((x) => x.key !== l.key) })}><Icon name="close" size={18} /></button>
+                      <button type="button" class="remover" aria-label={`Remover ${l.label}`} onClick={() => removerLinha(b, l)}><Icon name="close" size={18} /></button>
                     )}
                   </span>
                 </div>
