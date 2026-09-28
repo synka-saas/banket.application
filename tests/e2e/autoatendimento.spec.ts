@@ -50,7 +50,7 @@ test.describe.serial('Cadastro self-service', () => {
     await page.getByLabel('E-MAIL').fill(email);
     await page.locator('#senha').fill('fraca');
     await page.getByLabel('CONFIRME SUA SENHA').fill('fraca');
-    await page.locator('#termos').check({ force: true });
+    await page.locator('label[for=termos] .checkbox-wrapper').click();
     // Senha fraca: o navegador bloqueia pelo minlength; remove para validar o servidor
     await page.locator('#senha').evaluate((el) => el.removeAttribute('minlength'));
     await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
@@ -59,7 +59,7 @@ test.describe.serial('Cadastro self-service', () => {
 
     await page.locator('#senha').fill(SENHA);
     await page.getByLabel('CONFIRME SUA SENHA').fill(SENHA);
-    await page.locator('#termos').check({ force: true });
+    await page.locator('label[for=termos] .checkbox-wrapper').click();
     await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
     await expect(page).toHaveURL(/\/auth\/validacao/);
     await expect(page.locator('main, body')).toContainText(email);
