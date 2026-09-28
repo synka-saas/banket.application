@@ -67,7 +67,7 @@ test.describe('Orçamento', () => {
     // Remover sem modal, com Desfazer no aviso: volta a bebida e o total
     await page.getByRole('button', { name: 'Remover Soft drinks' }).click();
     await expect(resumo(page)).toContainText('R$ 30.600,00');
-    await page.locator('.toast', { hasText: 'removido' }).getByRole('button', { name: 'Desfazer' }).click();
+    await page.locator('.toast', { hasText: '"Soft drinks" removido.' }).getByRole('button', { name: 'Desfazer' }).click();
     await expect(resumo(page)).toContainText('R$ 32.500,00');
     await aguardarSalvo(page);
 
