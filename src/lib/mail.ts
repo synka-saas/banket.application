@@ -1,5 +1,5 @@
-// Envio de e-mail pela API do Resend. Sem RESEND_API_KEY (desenvolvimento), o e-mail
-// é apenas registrado no log, para que os fluxos (convite, recuperação de senha) sigam testáveis.
+// Envio de e-mail pela API do Resend. Sem RESEND_API_KEY (desenvolvimento) ou com destinatários só de domínios
+// reservados (e2e), o e-mail é apenas registrado no log, para que os fluxos (convite, recuperação de senha) sigam testáveis.
 
 export interface MailAttachment {
   filename: string;
@@ -29,13 +29,17 @@ export function appUrl(path = ''): string {
   return `${base}${path}`;
 }
 
+/** Domínios reservados (RFC 2606/6761) nunca recebem e-mail: usados pelos testes e2e, inclusive em produção. */
+export const dominioReservado = (email: string) => /@(?:[\w-]+\.)*(?:example\.(?:com|net|org)|[\w-]+\.(?:test|invalid|example))$/i.test(email.trim());
+
 export async function sendMail(message: MailMessage): Promise<MailResult> {
   const apiKey = env('RESEND_API_KEY');
   const from = env('MAIL_FROM') ?? 'Banket <nao-responda@banket.com.br>';
+  const destinatarios = [message.to].flat();
 
-  if (!apiKey) {
+  if (!apiKey || destinatarios.every(dominioReservado)) {
     console.info(
-      `[mail:dev] Para: ${[message.to].flat().join(', ')} | Assunto: ${message.subject}\n${message.text ?? message.html}`
+      `[mail:dev] Para: ${destinatarios.join(', ')} | Assunto: ${message.subject}\n${message.text ?? message.html}`
     );
     return { id: 'dev', delivered: false };
   }
@@ -45,7 +49,7 @@ export async function sendMail(message: MailMessage): Promise<MailResult> {
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from,
-      to: [message.to].flat(),
+      to: destinatarios,
       subject: message.subject,
       html: message.html,
       text: message.text,

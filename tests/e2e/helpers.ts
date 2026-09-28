@@ -1,4 +1,16 @@
+import { execFileSync } from 'node:child_process';
 import { expect, type Page } from '@playwright/test';
+
+// Contêineres usados para ler os e-mails do log e consultar o banco.
+// Padrão: ambiente de dev (make dev). Em produção: E2E_CONTAINER=banket-webapp_<cor>-1 E2E_DB_CONTAINER=banket-postgres-1
+export const CONTAINER_APP = process.env.E2E_CONTAINER ?? 'application-webapp-1';
+export const CONTAINER_DB = process.env.E2E_DB_CONTAINER ?? 'application-postgres-1';
+
+export function psql(sql: string): string {
+  return execFileSync('docker', ['exec', CONTAINER_DB, 'sh', '-c', `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "${sql}"`], {
+    encoding: 'utf8',
+  }).trim();
+}
 
 export const USUARIO_DEMO = { email: 'leandro@banket.com.br', senha: 'Banket.2026' };
 

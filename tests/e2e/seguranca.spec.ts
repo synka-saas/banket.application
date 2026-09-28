@@ -1,15 +1,8 @@
-import { execFileSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { login, psql } from './helpers';
 
 // Controle de acesso: rotas sem login, papel "usuario", isolamento entre empresas e cabeçalhos de segurança.
 // Usa os dados de demonstração (seeds): empresa "banket" e empresa "outro-buffet".
-
-function psql(sql: string): string {
-  return execFileSync('docker', ['exec', 'application-postgres-1', 'sh', '-c', `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "${sql}"`], {
-    encoding: 'utf8',
-  }).trim();
-}
 
 const BANKET = "(SELECT id FROM tenants WHERE slug = 'banket')";
 const OUTRO = { email: 'demo@outrobuffet.com.br', senha: 'Banket.2026' };

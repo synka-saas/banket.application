@@ -1,15 +1,15 @@
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { expect, test, type Page } from '@playwright/test';
+import { CONTAINER_APP, psql } from './helpers';
 
-// Fluxo self-service completo. Sem RESEND_API_KEY os e-mails vão para o log do contêiner,
-// de onde o teste lê os links (só funciona no ambiente local com Docker).
-const CONTAINER = process.env.E2E_CONTAINER ?? 'application-webapp-1';
+// Fluxo self-service completo. Os e-mails para @example.com (domínio reservado) vão para o log do contêiner,
+// mesmo com RESEND_API_KEY; o teste lê os links de lá (precisa de acesso ao Docker do servidor).
 const SHOTS = process.env.SHOTS;
 const shot = (page: Page, nome: string) => (SHOTS ? page.screenshot({ path: `${SHOTS}/${nome}.png`, fullPage: true }) : null);
 
 function ultimoLink(caminho: string, email: string): string {
   // Só o fim do log (no Docker Desktop, --tail grande devolve um trecho antigo); stdout e stderr separados
-  const r = spawnSync('docker', ['logs', '--tail', '150', CONTAINER], { encoding: 'utf8' });
+  const r = spawnSync('docker', ['logs', '--tail', '150', CONTAINER_APP], { encoding: 'utf8' });
   const log = `${r.stdout}\n${r.stderr}`;
   const blocos = log.split('[mail:dev]').filter((b) => b.includes(`Para: ${email}`));
   const url = blocos.at(-1)?.match(new RegExp(`https?://\\S+${caminho}\\?token=[\\w-]+`))?.[0];
@@ -17,11 +17,6 @@ function ultimoLink(caminho: string, email: string): string {
   return new URL(url).pathname + new URL(url).search;
 }
 
-function psql(sql: string): string {
-  return execFileSync('docker', ['exec', 'application-postgres-1', 'sh', '-c', `psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "${sql}"`], {
-    encoding: 'utf8',
-  }).trim();
-}
 
 /** CNPJ válido aleatório (dígitos verificadores calculados) */
 function cnpjAleatorio(): string {

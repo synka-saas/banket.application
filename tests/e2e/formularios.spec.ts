@@ -5,7 +5,7 @@ test.describe('Formulários', () => {
   test('configura um formulário e recebe um pedido pela página pública', async ({ page }) => {
     const ts = Date.now();
     const nome = `E2E Formulário ${ts}`;
-    const email = `e2e.form.${ts}@exemplo.com`;
+    const email = `e2e.form.${ts}@example.com`;
 
     await login(page);
     await page.goto('/formularios');
