@@ -33,6 +33,8 @@ const page = pageParams(Astro.url);
 const { rows: secoes, total } = await withTenant(tenantId, (db) => listarSecoes(db, searchTerm(Astro.url), page));
 
 const tableData = secoes.map((s) => ({
+  _id: s.id,
+  _nome: s.nome,
   nome: s.nome,
   descricao: s.descricao || '-',
   preco: s.preco === null ? '-' : `${formatMoney(s.preco)} ${UNIDADES_COBRANCA[s.unidade_cobranca]}`,
@@ -67,6 +69,7 @@ const filtrando = estaFiltrando(Astro.url);
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
+    reordenar="/api/cardapio/secoes/ordem"
   >
     <EstadoVazio slot="empty" icon="category" titulo={filtrando ? 'Nenhuma seção para esta busca' : 'Nenhuma seção cadastrada'} texto={filtrando ? undefined : 'Seções organizam o cardápio (ex.: Entradas, Pratos principais, Bebidas). Depois de criar uma seção, cadastre os itens dela.'}>
       {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar busca</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-secao">Nova seção</button>}

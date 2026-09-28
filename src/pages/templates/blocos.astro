@@ -89,9 +89,9 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
       {grupos.map((g) => (
         <div class="grupo">
           <span class="grupo-titulo">{PAGINAS_BLOCO[g.pagina]}</span>
-          <div class="chips">
+          <div class="chips" data-reordenar="/api/templates/blocos/ordem" aria-label={`Blocos de ${PAGINAS_BLOCO[g.pagina]} (Alt+setas para reordenar)`}>
             {g.blocos.map((b) => (
-              <a href={`/templates/blocos?id=${b.id}${paginaFiltro ? `&pagina=${paginaFiltro}` : ''}`} class:list={['chip', 'chip-bloco', { atual: b.id === selecionado?.id }]} title={b.ativo_por_padrao ? 'Incluído por padrão' : 'Não incluído por padrão'}>
+              <a data-id={b.id} href={`/templates/blocos?id=${b.id}${paginaFiltro ? `&pagina=${paginaFiltro}` : ''}`} class:list={['chip', 'chip-bloco', { atual: b.id === selecionado?.id }]} title={b.ativo_por_padrao ? 'Incluído por padrão' : 'Não incluído por padrão'}>
                 {b.titulo}
                 {b.ativo_por_padrao && <span class="selo-padrao">Padrão</span>}
               </a>

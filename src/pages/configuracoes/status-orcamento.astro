@@ -17,7 +17,6 @@ import {
   salvarIntervaloKanban,
   excluirStatus,
   listarStatus,
-  moverStatus,
   salvarStatus,
   statusSchema,
 } from '../../server/configuracoes';
@@ -28,10 +27,6 @@ const { tenantId } = Astro.locals.user;
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data) => {
     const id = formId(data);
-    if ((data._action === 'up' || data._action === 'down') && id) {
-      await withTenant(tenantId, (db) => moverStatus(db, id, data._action as 'up' | 'down'));
-      return '';
-    }
     if (data._action === 'intervalo') {
       const meses = intervaloKanbanDoForm(data.kanban_intervalo_meses);
       await withTenant(tenantId, (db) => salvarIntervaloKanban(db, meses));
@@ -53,12 +48,9 @@ const opcoesIntervalo = [
   { valor: '', rotulo: 'Sem limite' },
 ];
 
-const tableData = status.map((s, i) => ({
-  ordem: html`<form method="post" class="order-controls">
-      <input type="hidden" name="id" value="${s.id}" />
-      <button type="submit" name="_action" value="up" class="order-btn" aria-label="Mover para cima" ${i === 0 && html`disabled`}><span class="icon" style="font-size: 18px" aria-hidden="true" translate="no">keyboard_arrow_up</span></button>
-      <button type="submit" name="_action" value="down" class="order-btn" aria-label="Mover para baixo" ${i === status.length - 1 && html`disabled`}><span class="icon" style="font-size: 18px" aria-hidden="true" translate="no">keyboard_arrow_down</span></button>
-    </form>`,
+const tableData = status.map((s) => ({
+  _id: s.id,
+  _nome: s.nome,
   nome: html`<span class="status-name"><span class="dot" style="background:${s.cor ?? '#888888'}"></span>${s.nome}</span>`,
   variante: VARIANTES_STATUS[s.variante],
   eventos: s.eventos,
@@ -83,13 +75,13 @@ const tableData = status.map((s, i) => ({
 
   <Table
     columns={[
-      { key: 'ordem', label: 'Ordem', width: '90px' },
       { key: 'nome', label: 'Nome' },
       { key: 'variante', label: 'Função' },
       { key: 'eventos', label: 'Eventos', align: 'center' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
+    reordenar="/api/configuracoes/status/ordem"
   />
 
   <div class="intervalo-bloco">
@@ -216,34 +208,6 @@ const tableData = status.map((s, i) => ({
     outline-offset: -2px;
   }
 
-  :global(.order-controls) {
-    display: inline-flex;
-    gap: 4px;
-  }
-
-  :global(.order-btn) {
-    width: 24px;
-    height: 24px;
-    border: 1px solid var(--color-neutral-30);
-    border-radius: 3px;
-    background: var(--color-white);
-    color: var(--color-neutral-65);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    cursor: pointer;
-  }
-
-  :global(.order-btn:hover:not(:disabled)) {
-    border-color: var(--color-primary);
-    color: var(--color-primary-text);
-  }
-
-  :global(.order-btn:disabled) {
-    opacity: 0.35;
-    cursor: default;
-  }
 
   .color-input {
     padding: 4px !important;

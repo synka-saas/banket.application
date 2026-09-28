@@ -1,0 +1,152 @@
+---
+// Reordenar arrastando (incluído pelo AppLayout). Contêiner com data-reordenar="<url do PATCH>" e itens com data-id;
+// a alça [data-alca] inicia o arraste (sem alça, o item inteiro). Teclado e toque: botões [data-mover="-1|1"]
+// ou Alt+↑/↓ com o foco no item. A nova ordem vai para o servidor ({ ids }) e volta atrás se ele recusar.
+---
+
+<script>
+  import { toast } from '../../lib/ui';
+
+  const itensDe = (lista: HTMLElement) => [...lista.children].filter((el): el is HTMLElement => el instanceof HTMLElement && Boolean(el.dataset.id));
+
+  async function salvar(lista: HTMLElement, anterior: HTMLElement[]) {
+    const ids = itensDe(lista).map((el) => el.dataset.id!);
+    if (ids.join() === anterior.map((el) => el.dataset.id).join()) return;
+    atualizarBotoes(lista);
+    try {
+      const res = await fetch(lista.dataset.reordenar!, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Não foi possível salvar a ordem.');
+      toast('Ordem atualizada.', 'success');
+    } catch (err) {
+      anterior.forEach((el) => lista.appendChild(el));
+      atualizarBotoes(lista);
+      toast(err instanceof Error ? err.message : 'Não foi possível salvar a ordem.', 'error');
+    }
+  }
+
+  // Primeiro não sobe, último não desce
+  function atualizarBotoes(lista: HTMLElement) {
+    const itens = itensDe(lista);
+    itens.forEach((el, i) => {
+      el.querySelector<HTMLButtonElement>('[data-mover="-1"]')?.toggleAttribute('disabled', i === 0);
+      el.querySelector<HTMLButtonElement>('[data-mover="1"]')?.toggleAttribute('disabled', i === itens.length - 1);
+    });
+  }
+
+  function mover(item: HTMLElement, passo: -1 | 1) {
+    const lista = item.parentElement!;
+    const anterior = itensDe(lista);
+    const i = anterior.indexOf(item);
+    const alvo = anterior[i + passo];
+    if (!alvo) return;
+    if (passo < 0) lista.insertBefore(item, alvo);
+    else lista.insertBefore(item, alvo.nextSibling);
+    salvar(lista, anterior);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-reordenar]').forEach((lista) => {
+    let arrastando: HTMLElement | null = null;
+    let anterior: HTMLElement[] = [];
+    atualizarBotoes(lista);
+
+    // Só arrasta a partir da alça (ou do item inteiro, se não houver alça): cliques e seleção de texto seguem normais
+    lista.addEventListener('pointerdown', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
+      if (!item || item.parentElement !== lista) return;
+      const temAlca = Boolean(item.querySelector('[data-alca]'));
+      item.draggable = !temAlca || Boolean((e.target as HTMLElement).closest('[data-alca]'));
+    });
+    lista.addEventListener('dragstart', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
+      if (!item || !item.draggable) return;
+      arrastando = item;
+      anterior = itensDe(lista);
+      item.classList.add('reordenando');
+      e.dataTransfer!.effectAllowed = 'move';
+      e.dataTransfer!.setData('text/plain', item.dataset.id!);
+    });
+    lista.addEventListener('dragover', (e) => {
+      if (!arrastando) return;
+      const sobre = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
+      if (!sobre || sobre === arrastando || sobre.parentElement !== lista) return;
+      e.preventDefault();
+      const caixa = sobre.getBoundingClientRect();
+      const depois = lista.tagName === 'TBODY' || getComputedStyle(lista).flexDirection === 'column'
+        ? e.clientY > caixa.top + caixa.height / 2
+        : e.clientX > caixa.left + caixa.width / 2;
+      lista.insertBefore(arrastando, depois ? sobre.nextSibling : sobre);
+    });
+    lista.addEventListener('drop', (e) => arrastando && e.preventDefault());
+    lista.addEventListener('dragend', () => {
+      if (!arrastando) return;
+      arrastando.classList.remove('reordenando');
+      arrastando.draggable = false;
+      arrastando = null;
+      salvar(lista, anterior);
+    });
+
+    lista.addEventListener('click', (e) => {
+      const botao = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mover]');
+      if (!botao) return;
+      e.preventDefault();
+      const item = botao.closest<HTMLElement>('[data-id]')!;
+      mover(item, Number(botao.dataset.mover) as -1 | 1);
+      botao.focus();
+    });
+    lista.addEventListener('keydown', (e) => {
+      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      const item = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
+      if (!item || item.parentElement !== lista) return;
+      e.preventDefault();
+      mover(item, e.key === 'ArrowUp' ? -1 : 1);
+      (e.target as HTMLElement).focus();
+    });
+  });
+</script>
+
+<style is:global>
+  [data-reordenar] .reordenando {
+    opacity: 0.45;
+  }
+
+  .alca-reordenar {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .alca-reordenar [data-alca] {
+    display: inline-flex;
+    padding: 4px 2px;
+    color: var(--color-neutral-50);
+    cursor: grab;
+  }
+
+  .alca-reordenar [data-mover] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--color-white);
+    color: var(--color-neutral-65);
+    cursor: pointer;
+  }
+
+  .alca-reordenar [data-mover]:hover:not(:disabled) {
+    border-color: var(--color-primary-50);
+    color: var(--color-primary-text);
+  }
+
+  .alca-reordenar [data-mover]:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+</style>

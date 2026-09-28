@@ -348,18 +348,6 @@ export async function excluirStatus(db: Db, id: string) {
 }
 
 /** Troca a posição do status com o vizinho (seta para cima/baixo). */
-export async function moverStatus(db: Db, id: string, direcao: 'up' | 'down') {
-  const lista = await listarStatus(db);
-  const i = lista.findIndex((s) => s.id === id);
-  const j = direcao === 'up' ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= lista.length) return;
-  const ordenada = [...lista];
-  [ordenada[i], ordenada[j]] = [ordenada[j], ordenada[i]];
-  for (const [pos, s] of ordenada.entries()) {
-    await db.query('UPDATE status_orcamento SET ordem = $1 WHERE id = $2', [pos + 1, s.id]);
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Intervalo de trabalho do Kanban: eventos de hoje até +N meses (os sem data sempre aparecem). null = sem limite.
 

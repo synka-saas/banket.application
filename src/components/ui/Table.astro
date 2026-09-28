@@ -19,9 +19,11 @@ interface Props {
   data: Record<string, unknown>[];
   /** Texto simples para lista vazia; para orientação com ação, use o slot "empty" com EstadoVazio */
   emptyMessage?: string;
+  /** URL do PATCH de ordem: adiciona a coluna para arrastar (linhas precisam de _id e, para o rótulo, _nome) */
+  reordenar?: string;
 }
 
-const { columns, data, emptyMessage = 'Nenhum registro encontrado.' } = Astro.props;
+const { columns, data, emptyMessage = 'Nenhum registro encontrado.', reordenar } = Astro.props;
 const ord = lerOrdenacao(Astro.url);
 // Clicar alterna crescente → decrescente → ordem padrão
 const linkOrdem = (campo: string) =>
@@ -37,6 +39,7 @@ const linkOrdem = (campo: string) =>
     <table class="data-table">
       <thead>
         <tr>
+          {reordenar && <th class="col-ordem"><span class="sr-only">Ordem</span></th>}
           {columns.map((col) => (
             <th
               class={`text-${col.align || 'left'}`}
@@ -59,10 +62,23 @@ const linkOrdem = (campo: string) =>
           ))}
         </tr>
       </thead>
-      <tbody>
+      <tbody data-reordenar={reordenar && data.length > 1 ? reordenar : undefined}>
         {data.length > 0 ? (
           data.map((row) => (
-            <tr>
+            <tr data-id={reordenar ? String(row._id) : undefined}>
+              {reordenar && (
+                <td class="col-ordem">
+                  <span class="alca-reordenar">
+                    <span data-alca class="icon" aria-hidden="true" translate="no" title="Arraste para reordenar">drag_indicator</span>
+                    <button type="button" data-mover="-1" aria-label={`Mover ${row._nome ?? 'item'} para cima`}>
+                      <Icon name="keyboard_arrow_up" size={18} />
+                    </button>
+                    <button type="button" data-mover="1" aria-label={`Mover ${row._nome ?? 'item'} para baixo`}>
+                      <Icon name="keyboard_arrow_down" size={18} />
+                    </button>
+                  </span>
+                </td>
+              )}
               {columns.map((col) => (
                 <td class={`text-${col.align || 'left'}`}>
                   {isRawHtml(row[col.key])
@@ -74,7 +90,7 @@ const linkOrdem = (campo: string) =>
           ))
         ) : (
           <tr>
-            <td colspan={columns.length} class="empty-state">
+            <td colspan={columns.length + (reordenar ? 1 : 0)} class="empty-state">
               {Astro.slots.has('empty') ? <slot name="empty" /> : emptyMessage}
             </td>
           </tr>
@@ -86,6 +102,11 @@ const linkOrdem = (campo: string) =>
 </div>
 
 <style>
+  .col-ordem {
+    width: 108px;
+    white-space: nowrap;
+  }
+
   .th-ordenar {
     display: inline-flex;
     align-items: center;

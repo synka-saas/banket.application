@@ -1,6 +1,6 @@
 // Editor de opção de cardápio (pacote): nome, preço base, duração, formato, tags e seções com itens.
 // Abre ao clicar em qualquer elemento [data-opcao-editar="<id>"] (vazio = nova opção).
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { moneyInput, parseMoney } from '../../lib/money';
 import { Icon } from '../ui/Icon';
 import { confirmar, toast } from '../../lib/ui';
@@ -67,11 +67,38 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
 
   const secoesPorId = useMemo(() => new Map(catalogo.map((s) => [s.id, s])), [catalogo]);
 
+  // Alterações não salvas: fechar pede confirmação (as chaves internas das seções não contam)
+  const serializar = (f: FormState) => JSON.stringify({ ...f, secoes: f.secoes.map(({ key: _key, ...resto }) => resto) });
+  const inicial = useRef('');
+  const formAtual = useRef(form);
+  formAtual.current = form;
+  const carregar = (f: FormState) => {
+    inicial.current = serializar(f);
+    setForm(f);
+  };
+
+  async function fechar() {
+    if (serializar(formAtual.current) !== inicial.current) {
+      const sim = await confirmar({
+        titulo: 'Descartar as alterações?',
+        texto: 'O que foi alterado neste cardápio ainda não foi salvo.',
+        confirmar: 'Descartar',
+        cancelar: 'Continuar editando',
+        perigo: true,
+      });
+      if (!sim) return;
+    }
+    setAberto(false);
+  }
+  // O efeito de teclado é registrado uma vez; a função muda a cada render
+  const fecharRef = useRef(fechar);
+  fecharRef.current = fechar;
+
   async function abrir(id: string | null) {
     setNovaSecao('');
     setAberto(true);
     if (!id) {
-      setForm(vazio);
+      carregar(vazio);
       return;
     }
     setCarregando(true);
@@ -79,7 +106,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
       const res = await fetch(`/api/cardapio/opcoes/${id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setForm({
+      carregar({
         id: data.id,
         nome: data.nome,
         descricao: data.descricao ?? '',
@@ -111,7 +138,12 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
       e.preventDefault();
       abrir(el.dataset.opcaoEditar || null);
     };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAberto(false);
+    const onKey = (e: KeyboardEvent) => {
+      // Esc com o modal de confirmação aberto fecha só o modal
+      if (e.key !== 'Escape' || document.querySelector('dialog[open]') || !document.querySelector('.ed-drawer')) return;
+      e.preventDefault();
+      fecharRef.current();
+    };
     document.addEventListener('click', onClick);
     document.addEventListener('keydown', onKey);
     return () => {
@@ -210,7 +242,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
   const totalItens = form.secoes.reduce((acc, s) => acc + s.itens.length, 0);
 
   return (
-    <div class="ed-backdrop" onClick={(e) => e.target === e.currentTarget && setAberto(false)}>
+    <div class="ed-backdrop" onClick={(e) => e.target === e.currentTarget && fechar()}>
       <form class="ed-drawer" onSubmit={salvar} aria-label="Editar cardápio">
         <header class="ed-header">
           <input
@@ -232,7 +264,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
             <button type="submit" class="btn btn-primary btn-md" disabled={salvando || carregando}>
               {salvando ? 'Salvando…' : 'Salvar'}
             </button>
-            <button type="button" class="ed-close" onClick={() => setAberto(false)} aria-label="Fechar"><Icon name="close" size={24} /></button>
+            <button type="button" class="ed-close" onClick={fechar} aria-label="Fechar"><Icon name="close" size={24} /></button>
           </div>
         </header>
 

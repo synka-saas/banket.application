@@ -34,4 +34,19 @@ test.describe('Listas', () => {
       await expect(page.locator('table')).toBeVisible();
     }
   });
+
+  test('reordena etapas do funil pelos botões (teclado/toque) e persiste', async ({ page }) => {
+    await page.goto('/configuracoes/status-orcamento');
+    const nomes = async () => (await page.locator('tbody tr .status-name').allTextContents()).map((t) => t.trim());
+    const [primeira, segunda] = await nomes();
+    await page.getByRole('button', { name: `Mover ${segunda} para cima` }).click();
+    await expect(page.locator('.toast', { hasText: 'Ordem atualizada.' }).first()).toBeVisible();
+    await page.reload();
+    expect((await nomes()).slice(0, 2)).toEqual([segunda, primeira]);
+    // Volta à ordem original
+    await page.getByRole('button', { name: `Mover ${segunda} para baixo` }).click();
+    await expect(page.locator('.toast', { hasText: 'Ordem atualizada.' }).first()).toBeVisible();
+    await page.reload();
+    expect((await nomes()).slice(0, 2)).toEqual([primeira, segunda]);
+  });
 });
