@@ -1,0 +1,56 @@
+---
+// Liga as máscaras de lib/mascaras.ts aos campos com data-mascara (incluído pelos layouts).
+//   data-mascara="telefone | cep | numero | cpf | cnpj | dinheiro"
+//   data-mascara="documento" data-mascara-tipo="<id do select PF/PJ>": CPF ou CNPJ conforme o tipo escolhido;
+//   o placeholder acompanha e o <label for> com data-rotulo-documento vira "CPF" / "CNPJ".
+// Dinheiro é normalizado ao sair do campo ("1500" → "1.500,00"); os demais, enquanto se digita.
+---
+
+<script>
+  import { PADRAO_DOCUMENTO } from '../../lib/documento';
+  import { aplicarMascara, formatarDinheiro, type TipoMascara } from '../../lib/mascaras';
+
+  const tipoPessoa = (campo: HTMLInputElement): 'PF' | 'PJ' => {
+    const id = campo.dataset.mascaraTipo;
+    const select = id ? (document.getElementById(id) as HTMLSelectElement | null) : null;
+    return select?.value === 'PJ' ? 'PJ' : 'PF';
+  };
+
+  function formatar(campo: HTMLInputElement) {
+    const tipo = campo.dataset.mascara as TipoMascara;
+    if (!campo.value) return;
+    campo.value = tipo === 'dinheiro' ? formatarDinheiro(campo.value) : aplicarMascara(tipo, campo.value, tipoPessoa(campo));
+  }
+
+  function atualizarDocumento(campo: HTMLInputElement) {
+    const tipo = tipoPessoa(campo);
+    campo.placeholder = PADRAO_DOCUMENTO[tipo];
+    const rotulo = campo.id ? document.querySelector<HTMLElement>(`label[for="${campo.id}"][data-rotulo-documento]`) : null;
+    if (rotulo) rotulo.textContent = tipo === 'PJ' ? 'CNPJ' : 'CPF';
+    formatar(campo);
+  }
+
+  function formatarTudo(raiz: ParentNode = document) {
+    raiz.querySelectorAll<HTMLInputElement>('input[data-mascara]').forEach((campo) =>
+      campo.dataset.mascara === 'documento' ? atualizarDocumento(campo) : formatar(campo)
+    );
+  }
+
+  document.addEventListener('input', (e) => {
+    const campo = e.target as HTMLInputElement;
+    if (campo.matches?.('input[data-mascara]:not([data-mascara="dinheiro"])')) formatar(campo);
+  });
+  document.addEventListener('focusout', (e) => {
+    const campo = e.target as HTMLInputElement;
+    if (campo.matches?.('input[data-mascara="dinheiro"]')) formatar(campo);
+  });
+  // Troca de PF/PJ reformata o documento ligado ao select
+  document.addEventListener('change', (e) => {
+    const select = e.target as HTMLElement;
+    if (!(select instanceof HTMLSelectElement) || !select.id) return;
+    document.querySelectorAll<HTMLInputElement>(`input[data-mascara="documento"][data-mascara-tipo="${select.id}"]`).forEach(atualizarDocumento);
+  });
+  // Valores preenchidos por script (drawer de edição) também são formatados
+  document.addEventListener('drawer:open', (e) => formatarTudo(e.target as HTMLElement));
+  formatarTudo();
+</script>

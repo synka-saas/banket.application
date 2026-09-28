@@ -100,15 +100,15 @@ const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir
       </div>
       <div class="field">
         <label for="sv-cache">Cachê / diária (R$)*</label>
-        <input id="sv-cache" name="cache_diaria" inputmode="decimal" required placeholder="0,00" />
+        <input id="sv-cache" name="cache_diaria" inputmode="decimal" required placeholder="0,00" data-mascara="dinheiro" />
       </div>
       <div class="field">
         <label for="sv-aux">Auxílio (R$)</label>
-        <input id="sv-aux" name="auxilio" inputmode="decimal" placeholder="Transporte, alimentação…" />
+        <input id="sv-aux" name="auxilio" inputmode="decimal" placeholder="Transporte, alimentação…" data-mascara="dinheiro" />
       </div>
       <div class="field">
         <label for="sv-he">Hora extra (R$)</label>
-        <input id="sv-he" name="hora_extra" inputmode="decimal" placeholder="Valor por hora" />
+        <input id="sv-he" name="hora_extra" inputmode="decimal" placeholder="Valor por hora" data-mascara="dinheiro" />
       </div>
       <div class="field span-2">
         <span class="field-label">Regra de quantidade</span>

@@ -117,7 +117,7 @@ const tableData = profissionais.map((p) => ({
       </div>
       <div class="field">
         <label for="pr-tel">Telefone / WhatsApp</label>
-        <input id="pr-tel" name="telefone" inputmode="tel" />
+        <input id="pr-tel" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" data-mascara="telefone" />
       </div>
       <div class="field">
         <label for="pr-esp">Especialidade</label>
@@ -128,7 +128,7 @@ const tableData = profissionais.map((p) => ({
       </div>
       <div class="field">
         <label for="pr-doc">CPF</label>
-        <input id="pr-doc" name="documento" inputmode="numeric" placeholder="000.000.000-00" />
+        <input id="pr-doc" name="documento" inputmode="numeric" placeholder="000.000.000-00" data-mascara="cpf" />
       </div>
       <div class="field span-2">
         <label for="pr-pix">Chave PIX</label>

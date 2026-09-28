@@ -63,8 +63,8 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
           </select>
         </div>
         <div class="field">
-          <label for="emp-doc">CNPJ / CPF</label>
-          <input id="emp-doc" name="documento" inputmode="numeric" value={formatarDocumento(empresa.documento)} />
+          <label for="emp-doc" data-rotulo-documento>{empresa.tipo_pessoa === 'PF' ? 'CPF' : 'CNPJ'}</label>
+          <input id="emp-doc" name="documento" inputmode="numeric" value={formatarDocumento(empresa.documento)} data-mascara="documento" data-mascara-tipo="emp-tipo" />
         </div>
         <div class="field">
           <label for="emp-email">E-mail</label>
@@ -72,7 +72,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
         </div>
         <div class="field">
           <label for="emp-tel">Telefone / WhatsApp</label>
-          <input id="emp-tel" name="telefone" value={empresa.telefone ?? ''} />
+          <input id="emp-tel" name="telefone" value={empresa.telefone ?? ''} inputmode="tel" data-mascara="telefone" />
         </div>
         <div class="field span-2">
           <label for="emp-end">Endereço</label>

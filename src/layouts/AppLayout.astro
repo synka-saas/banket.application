@@ -6,6 +6,7 @@ import Topbar from '../components/Topbar.astro';
 import Submenu from '../components/Submenu.astro';
 import Toast from '../components/ui/Toast.astro';
 import Confirmar from '../components/ui/Confirmar.astro';
+import Mascaras from '../components/ui/Mascaras.astro';
 
 interface SubmenuItem {
   id: string;
@@ -41,6 +42,7 @@ const { title, heading = title, submenu, submenuActive } = Astro.props;
   <slot name="overlays" />
   <Toast flash={Astro.locals.flash} />
   <Confirmar />
+  <Mascaras />
 </Layout>
 
 <script>

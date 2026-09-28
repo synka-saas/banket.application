@@ -97,8 +97,8 @@ const tableData = rows.map((c) => ({
         </select>
       </div>
       <div class="field">
-        <label for="cli-documento">CPF / CNPJ</label>
-        <input id="cli-documento" name="documento" inputmode="numeric" placeholder="000.000.000-00" />
+        <label for="cli-documento" data-rotulo-documento>CPF</label>
+        <input id="cli-documento" name="documento" inputmode="numeric" placeholder="000.000.000-00" data-mascara="documento" data-mascara-tipo="cli-tipo" />
       </div>
       <div class="field span-2">
         <label for="cli-nome">Nome / Razão social*</label>
@@ -110,7 +110,7 @@ const tableData = rows.map((c) => ({
       </div>
       <div class="field">
         <label for="cli-telefone">Telefone / WhatsApp</label>
-        <input id="cli-telefone" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" />
+        <input id="cli-telefone" name="telefone" inputmode="tel" placeholder="(00) 00000-0000" data-mascara="telefone" />
       </div>
       <div class="field span-2">
         <label for="cli-endereco">Endereço</label>

@@ -160,11 +160,11 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
       </div>
       <div class="field">
         <label for="it-custo">Custo unitário / porção (R$)</label>
-        <input id="it-custo" name="custo_unitario" inputmode="decimal" placeholder="0,00" />
+        <input id="it-custo" name="custo_unitario" inputmode="decimal" placeholder="0,00" data-mascara="dinheiro" />
       </div>
       <div class="field">
         <label for="it-preco">Preço de venda (R$)</label>
-        <input id="it-preco" name="preco" inputmode="decimal" placeholder="Opcional" />
+        <input id="it-preco" name="preco" inputmode="decimal" placeholder="Opcional" data-mascara="dinheiro" />
         <span class="field-hint">Deixe em branco quando o item só é vendido dentro de uma opção de cardápio.</span>
       </div>
       <div class="field">

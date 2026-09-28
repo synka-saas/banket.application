@@ -256,11 +256,6 @@ const mensagemSucesso =
     form.addEventListener('input', (e) => {
       const el = e.target as HTMLInputElement;
       el.closest('.fp-pergunta')?.classList.remove('fp-erro');
-      if (el.dataset.mascara === 'telefone') {
-        const d = el.value.replace(/\D/g, '').slice(0, 11);
-        el.value = d.length <= 2 ? d : d.length <= 7 ? `(${d.slice(0, 2)}) ${d.slice(2)}` : `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-      }
-      if (el.dataset.mascara === 'numero') el.value = el.value.replace(/[^\d]/g, '').slice(0, 7);
     });
 
     // Enter em campos de texto avança em vez de enviar

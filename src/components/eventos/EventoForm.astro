@@ -69,13 +69,13 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     <div class="form-grid" data-cliente-novo-campos hidden={!clienteNovo}>
       <div class="field">
         <label for="cn-tipo">Tipo</label>
-        <select id="cn-tipo" name="cliente_tipo_pessoa" data-cliente-tipo>
+        <select id="cn-tipo" name="cliente_tipo_pessoa">
           <option value="PJ" selected={v.cliente_tipo_pessoa === 'PJ'}>Pessoa jurídica</option>
           <option value="PF" selected={v.cliente_tipo_pessoa !== 'PJ'}>Pessoa física</option>
         </select>
       </div>
       <div class="field">
-        <label for="cn-doc" data-cliente-doc-rotulo>{v.cliente_tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'}</label>
+        <label for="cn-doc" data-rotulo-documento>{v.cliente_tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'}</label>
         <input
           id="cn-doc"
           name="cliente_documento"
@@ -83,7 +83,8 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
           inputmode="numeric"
           autocomplete="off"
           placeholder={PADRAO_DOCUMENTO[v.cliente_tipo_pessoa === 'PJ' ? 'PJ' : 'PF']}
-          data-cliente-doc
+          data-mascara="documento"
+          data-mascara-tipo="cn-tipo"
         />
       </div>
       <div class="field span-2">
@@ -96,7 +97,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
       </div>
       <div class="field">
         <label for="cn-tel">Telefone</label>
-        <input id="cn-tel" name="cliente_telefone" value={texto('cliente_telefone')} />
+        <input id="cn-tel" name="cliente_telefone" value={texto('cliente_telefone')} inputmode="tel" data-mascara="telefone" />
       </div>
       {clientes.length > 0 && (
         <div class="span-2"><button type="button" class="ed-link" data-alternar-cliente="existente">Escolher um cliente já cadastrado</button></div>
@@ -186,7 +187,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
       </div>
       <div class="field">
         <label for="ev-rw">WhatsApp</label>
-        <input id="ev-rw" name="responsavel_whatsapp" value={texto('responsavel_whatsapp')} inputmode="tel" />
+        <input id="ev-rw" name="responsavel_whatsapp" value={texto('responsavel_whatsapp')} inputmode="tel" data-mascara="telefone" />
       </div>
       <div class="field">
         <label for="ev-qual">Qualificação do cliente</label>
@@ -233,11 +234,11 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     <div class="form-grid cols-3">
       <div class="field">
         <label for="ev-verba">Estimativa de verba total (R$)</label>
-        <input id="ev-verba" inputmode="decimal" name="verba_total" value={dinheiro('verba_total')} />
+        <input id="ev-verba" inputmode="decimal" name="verba_total" value={dinheiro('verba_total')} data-mascara="dinheiro" />
       </div>
       <div class="field">
         <label for="ev-verba-pp">Verba por pessoa (R$)</label>
-        <input id="ev-verba-pp" inputmode="decimal" name="verba_por_pessoa" value={dinheiro('verba_por_pessoa')} />
+        <input id="ev-verba-pp" inputmode="decimal" name="verba_por_pessoa" value={dinheiro('verba_por_pessoa')} data-mascara="dinheiro" />
       </div>
       <div class="field">
         <label for="ev-pag">Forma de pagamento</label>
@@ -306,8 +307,6 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
 </form>
 
 <script>
-  import { mascararDocumento, PADRAO_DOCUMENTO } from '../../lib/documento';
-
   const form = document.querySelector<HTMLFormElement>('[data-evento-form]');
   if (form) {
     // Alterna entre escolher cliente existente e cadastrar um novo
@@ -323,22 +322,6 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         (usarNovo ? novo.querySelector<HTMLInputElement>('[name="cliente_nome"]') : existente.querySelector('select'))?.focus();
       })
     );
-
-    // Documento do cliente novo: CPF para pessoa física, CNPJ para jurídica
-    const tipoPessoa = form.querySelector<HTMLSelectElement>('[data-cliente-tipo]')!;
-    const documento = form.querySelector<HTMLInputElement>('[data-cliente-doc]')!;
-    const rotuloDocumento = form.querySelector<HTMLElement>('[data-cliente-doc-rotulo]')!;
-    const tipoAtual = () => (tipoPessoa.value === 'PJ' ? 'PJ' : 'PF');
-    const mascarar = () => (documento.value = mascararDocumento(documento.value, tipoAtual()));
-    const atualizarTipoPessoa = () => {
-      const tipo = tipoAtual();
-      rotuloDocumento.textContent = tipo === 'PJ' ? 'CNPJ' : 'CPF';
-      documento.placeholder = PADRAO_DOCUMENTO[tipo];
-      mascarar();
-    };
-    documento.addEventListener('input', mascarar);
-    tipoPessoa.addEventListener('change', atualizarTipoPessoa);
-    atualizarTipoPessoa();
 
     // Categorias válidas para o tipo de evento escolhido
     const tipo = form.querySelector<HTMLSelectElement>('[data-tipo-evento]')!;

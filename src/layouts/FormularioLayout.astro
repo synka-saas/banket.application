@@ -2,6 +2,7 @@
 // Casca da página pública do formulário (sem sidebar): cartão central com cabeçalho da empresa.
 import '../styles/global.css';
 import Toast from '../components/ui/Toast.astro';
+import Mascaras from '../components/ui/Mascaras.astro';
 
 interface Props {
   title: string;
@@ -31,6 +32,7 @@ const { title, empresa, logo, subtitulo } = Astro.props;
       <slot />
     </main>
     <Toast flash={null} />
+    <Mascaras />
   </body>
 </html>
 

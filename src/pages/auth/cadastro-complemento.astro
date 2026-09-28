@@ -76,7 +76,7 @@ const validado = Astro.url.searchParams.has('validado');
     <div class="campos">
       <Input id="nome" name="nome_usuario" label="NOME E SOBRENOME" value={usuario.nome} readonly />
       <Input id="email" name="email_usuario" type="email" label="E-MAIL" value={usuario.email} readonly />
-      <Input id="celular" name="celular" label="CELULAR" placeholder="DDD + 00000 0000" value={v('celular')} inputmode="tel" autocomplete="tel" data-mascara="celular" required />
+      <Input id="celular" name="celular" label="CELULAR" placeholder="DDD + 00000 0000" value={v('celular')} inputmode="tel" autocomplete="tel" data-mascara="telefone" required />
 
       <div class="so-pf">
         <Input id="cpf" name="cpf" label="CPF" placeholder="000.000.000-00" value={v('cpf')} inputmode="numeric" data-mascara="cpf" />
@@ -114,29 +114,6 @@ const validado = Astro.url.searchParams.has('validado');
     if ((e.target as HTMLInputElement).name === 'tipo_pessoa') atualizarTipo();
   });
   atualizarTipo();
-
-  // Máscaras simples (o servidor aceita com ou sem pontuação)
-  const mascaras: Record<string, (d: string) => string> = {
-    cpf: (d) => d.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'),
-    cnpj: (d) =>
-      d
-        .slice(0, 14)
-        .replace(/^(\d{2})(\d)/, '$1.$2')
-        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-        .replace(/\.(\d{3})(\d)/, '.$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2'),
-    celular: (d) =>
-      d
-        .slice(0, 11)
-        .replace(/^(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d)(\d{4})$/, '$1-$2'),
-  };
-  document.querySelectorAll<HTMLInputElement>('[data-mascara]').forEach((campo) => {
-    const aplicar = mascaras[campo.dataset.mascara!];
-    const formatar = () => (campo.value = aplicar(campo.value.replace(/\D/g, '')));
-    campo.addEventListener('input', formatar);
-    if (campo.value) formatar();
-  });
 </script>
 
 <style>
