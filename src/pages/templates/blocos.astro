@@ -46,7 +46,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
 
   <div class="grid-blocos">
     <SectionCard title={selecionado ? selecionado.titulo : 'Novo bloco'}>
-      <form method="post" class="form-bloco" data-bloco-form>
+      <form method="post" class="form-bloco" data-bloco-form data-form-sujo>
         <input type="hidden" name="id" value={atual.id} />
         <div class="field">
           <label for="bl-titulo">Título<span class="obrigatorio">*</span></label>
@@ -92,8 +92,8 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
           <div class="chips">
             {g.blocos.map((b) => (
               <a href={`/templates/blocos?id=${b.id}${paginaFiltro ? `&pagina=${paginaFiltro}` : ''}`} class:list={['chip', 'chip-bloco', { atual: b.id === selecionado?.id }]} title={b.ativo_por_padrao ? 'Incluído por padrão' : 'Não incluído por padrão'}>
-                <input type="checkbox" checked={b.ativo_por_padrao} disabled tabindex="-1" aria-hidden="true" />
                 {b.titulo}
+                {b.ativo_por_padrao && <span class="selo-padrao">Padrão</span>}
               </a>
             ))}
           </div>
@@ -199,5 +199,16 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
   .chip-bloco.atual {
     border-color: var(--color-primary);
     color: var(--color-primary-text);
+  }
+
+  .selo-padrao {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--color-primary-10);
+    color: var(--color-primary-text);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 </style>

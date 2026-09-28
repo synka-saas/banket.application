@@ -48,7 +48,7 @@ const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
 </Layout>
 
 <script>
-  import { emCarregamento } from '../lib/ui';
+  import { confirmar, emCarregamento } from '../lib/ui';
 
   // Botão de envio com data-carregando="Enviando…": fica desabilitado, com spinner, até a página trocar.
   // Roda depois dos outros handlers (setTimeout) para respeitar quem cancelou o envio.
@@ -63,6 +63,38 @@ const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
   // Voltar pelo histórico (bfcache) não pode deixar botões presos em carregamento
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) restaurar.splice(0).forEach((fn) => fn());
+  });
+
+  // Formulários com data-form-sujo: sair da página com alterações não salvas pede confirmação
+  const formsSujos = [...document.querySelectorAll<HTMLFormElement>('form[data-form-sujo]')];
+  const serializar = (f: HTMLFormElement) =>
+    JSON.stringify([...new FormData(f)].map(([k, v]) => [k, typeof v === 'string' ? v : `${v.name}:${v.size}`]));
+  const iniciais = new Map(formsSujos.map((f) => [f, serializar(f)]));
+  let enviando = false;
+  const haAlteracoes = () => !enviando && formsSujos.some((f) => iniciais.get(f) !== serializar(f));
+  // Máscaras e ajustes feitos por script ao carregar não contam como alteração
+  window.addEventListener('load', () => formsSujos.forEach((f) => iniciais.set(f, serializar(f))));
+  formsSujos.forEach((f) => f.addEventListener('submit', () => (enviando = true)));
+  window.addEventListener('beforeunload', (e) => {
+    if (haAlteracoes()) e.preventDefault();
+  });
+  document.addEventListener('click', async (e) => {
+    if (!formsSujos.length || e.defaultPrevented) return;
+    const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
+    if (!link || link.target === '_blank' || link.hasAttribute('download') || e.ctrlKey || e.metaKey) return;
+    if (!haAlteracoes()) return;
+    e.preventDefault();
+    const sair = await confirmar({
+      titulo: 'Sair sem salvar?',
+      texto: 'As alterações feitas nesta página ainda não foram salvas.',
+      confirmar: 'Sair sem salvar',
+      cancelar: 'Continuar editando',
+      perigo: true,
+    });
+    if (sair) {
+      enviando = true;
+      window.location.assign(link.href);
+    }
   });
 
   // Selects editáveis dentro de tabelas (papel, categoria, especialidade) enviam o formulário ao mudar.

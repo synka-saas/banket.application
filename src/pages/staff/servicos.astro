@@ -36,7 +36,6 @@ const plural = (n: number) => `${pad(n)} ${n === 1 ? 'profissional' : 'profissio
 
 const linhas = (s: (typeof servicos)[number]) => [
   { label: 'Cachê / diária fixa', value: formatMoney(s.cache_diaria) },
-  { label: 'Hora extra', value: formatMoney(s.hora_extra) },
   { label: 'Auxílio', value: formatMoney(s.auxilio) },
   s.por_evento
     ? { label: 'Por evento', value: plural(s.quantidade_fixa) }
@@ -106,10 +105,8 @@ const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir
         <label for="sv-aux">Auxílio (R$)</label>
         <input id="sv-aux" name="auxilio" inputmode="decimal" placeholder="Transporte, alimentação…" data-mascara="dinheiro" />
       </div>
-      <div class="field">
-        <label for="sv-he">Hora extra (R$)</label>
-        <input id="sv-he" name="hora_extra" inputmode="decimal" placeholder="Valor por hora" data-mascara="dinheiro" />
-      </div>
+      <!-- Hora extra ainda não entra no cálculo do orçamento: fica oculta, mas o valor gravado é preservado (UX-141) -->
+      <input type="hidden" name="hora_extra" />
       <div class="field span-2">
         <span class="field-label">Regra de quantidade</span>
         <div class="regras">

@@ -150,13 +150,14 @@ const ORDEM_ITENS: Record<string, string> = { nome: 'lower(i.nome)', secao: 'low
 
 export async function listarItens(
   db: Db,
-  filtros: { busca: string | null; secaoId: string | null },
+  filtros: { busca: string | null; secaoId: string | null; ativo?: boolean | null },
   page: PageParams,
   ord?: Ordenacao
 ): Promise<{ rows: ItemRow[]; total: number }> {
-  const params = [filtros.busca, filtros.secaoId];
+  const params = [filtros.busca, filtros.secaoId, filtros.ativo ?? null];
   const where = `WHERE ($1::text IS NULL OR i.nome ILIKE $1 OR i.descricao ILIKE $1)
-                   AND ($2::uuid IS NULL OR i.secao_id = $2)`;
+                   AND ($2::uuid IS NULL OR i.secao_id = $2)
+                   AND ($3::boolean IS NULL OR i.ativo = $3)`;
   const { rows } = await db.query<ItemRow>(
     `SELECT i.id, i.nome, i.descricao, i.composicao, i.secao_id, s.nome AS secao_nome,
             i.categoria_principal_id, cp.nome AS categoria_principal_nome, i.categoria_secundaria_id,
@@ -167,7 +168,7 @@ export async function listarItens(
        LEFT JOIN categorias_item cp ON cp.id = i.categoria_principal_id
        ${where}
       ORDER BY ${orderBy(ord, ORDEM_ITENS, 's.ordem, lower(s.nome), i.ordem, lower(i.nome)')}
-      LIMIT $3 OFFSET $4`,
+      LIMIT $4 OFFSET $5`,
     [...params, page.pageSize, page.offset]
   );
   const count = await db.query<{ total: number }>(
@@ -213,6 +214,35 @@ export async function salvarItem(db: Db, tenantId: string, id: string | null, in
              (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = $2))`,
     [...values, tenantId]
   );
+}
+
+/** Copia o item na mesma seção com o nome "X (cópia)" (numerado se já existir) e devolve o novo id. */
+export async function duplicarItem(db: Db, id: string): Promise<{ id: string; nome: string }> {
+  const { rows } = await db.query<{ nome: string; secao_id: string }>('SELECT nome, secao_id FROM catalogo_itens WHERE id = $1', [id]);
+  if (!rows[0]) throw new UserError('Item não encontrado.');
+  const base = `${rows[0].nome.slice(0, 230)} (cópia`;
+  const existentes = new Set(
+    (
+      await db.query<{ nome: string }>(`SELECT lower(nome) AS nome FROM catalogo_itens WHERE secao_id = $1 AND lower(nome) LIKE lower($2) || '%'`, [
+        rows[0].secao_id,
+        base.replace(/[\\%_]/g, (c) => `\\${c}`),
+      ])
+    ).rows.map((r) => r.nome)
+  );
+  let nome = `${base})`;
+  for (let n = 2; existentes.has(nome.toLowerCase()); n++) nome = `${base} ${n})`;
+  const novo = await db.query<{ id: string }>(
+    `INSERT INTO catalogo_itens (nome, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
+                                 formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
+                                 dados_operacionais, ativo, tenant_id, ordem)
+     SELECT $2, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
+            formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
+            dados_operacionais, ativo, tenant_id, (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = i.secao_id)
+       FROM catalogo_itens i WHERE id = $1
+     RETURNING id`,
+    [id, nome]
+  );
+  return { id: novo.rows[0].id, nome };
 }
 
 export async function atualizarCategoriaPrincipal(db: Db, id: string, categoriaId: string | null) {

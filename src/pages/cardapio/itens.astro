@@ -16,6 +16,7 @@ import {
   RESTRICOES,
   UNIDADES_COBRANCA,
   atualizarCategoriaPrincipal,
+  duplicarItem,
   excluirItem,
   itemSchema,
   listarItens,
@@ -37,6 +38,10 @@ if (Astro.request.method === 'POST') {
         await withTenant(tenantId, (db) => excluirItem(db, id));
         return 'Item removido.';
       }
+      if (data._action === 'duplicar' && id) {
+        const copia = await withTenant(tenantId, (db) => duplicarItem(db, id));
+        return `Item duplicado como "${copia.nome}".`;
+      }
       if (data._action === 'categoria' && id) {
         const categoria = typeof data.categoria_principal_id === 'string' && data.categoria_principal_id ? data.categoria_principal_id : null;
         await withTenant(tenantId, (db) => atualizarCategoriaPrincipal(db, id, categoria));
@@ -52,9 +57,11 @@ if (Astro.request.method === 'POST') {
 
 const page = pageParams(Astro.url);
 const secaoFiltro = Astro.url.searchParams.get('secao') || null;
+const situacao = Astro.url.searchParams.get('situacao');
+const ativoFiltro = situacao === 'ativos' ? true : situacao === 'inativos' ? false : null;
 
 const { itens, total, secoes, categorias, formatos } = await withTenant(tenantId, async (db) => {
-  const { rows, total } = await listarItens(db, { busca: searchTerm(Astro.url), secaoId: secaoFiltro }, page, lerOrdenacao(Astro.url));
+  const { rows, total } = await listarItens(db, { busca: searchTerm(Astro.url), secaoId: secaoFiltro, ativo: ativoFiltro }, page, lerOrdenacao(Astro.url));
   return {
     itens: rows,
     total,
@@ -107,6 +114,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
 <AppLayout title="Itens do cardápio" heading="Cardápios / Itens do cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
   <PageToolbar
     filter={{ name: 'secao', placeholder: 'Seção', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
+    filters={[{ name: 'situacao', placeholder: 'Ativos e inativos', options: [{ value: 'ativos', label: 'Só ativos' }, { value: 'inativos', label: 'Só inativos' }] }]}
   >
     <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</Button>
   </PageToolbar>
@@ -139,6 +147,9 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
   </Table>
 
   <Drawer slot="overlays" id="drawer-item" formId="form-item" title="Novo item" editTitle="Editar item">
+    <button slot="actions" type="submit" form="form-item" name="_action" value="duplicar" class="btn btn-outline btn-md" formnovalidate data-edit-only data-carregando="Duplicando…">
+      Duplicar
+    </button>
     <form id="form-item" method="post" class="form-grid">
       <input type="hidden" name="id" />
       <div class="field">
@@ -224,7 +235,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
     const drawer = e.target as HTMLElement;
     if (drawer.id === 'drawer-item' && values._titulo) {
-      drawer.querySelector('.drawer-title')!.textContent = values._titulo;
+      drawer.querySelector('.drawer-title')!.textContent = `Editar item · ${values._titulo}`;
     }
   });
 </script>

@@ -232,7 +232,7 @@ const convitesData = convites.map((c) => {
     papelAtual.set(drawer.id, values.role ?? '');
     if (drawer.id === 'drawer-membro') {
       nomeMembro = values._nome || 'este usuário';
-      if (values._nome) drawer.querySelector('.drawer-title')!.textContent = values._nome;
+      if (values._nome) drawer.querySelector('.drawer-title')!.textContent = `Editar usuário · ${values._nome}`;
       atualizarMembro();
     }
     if (drawer.id === 'drawer-convite') atualizarConvite();

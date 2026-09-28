@@ -1,5 +1,5 @@
 ---
-// Barra padrão das listagens: busca + filtro (select) à esquerda, ações à direita.
+// Barra padrão das listagens: busca + filtros (select) à esquerda, ações à direita.
 // Envia via GET, preservando os parâmetros da URL; a paginação volta para a página 1.
 import Icon from './Icon.astro';
 
@@ -8,23 +8,27 @@ interface FilterOption {
   label: string;
 }
 
+interface Filter {
+  name: string;
+  placeholder: string;
+  options: FilterOption[];
+}
+
 interface Props {
   searchPlaceholder?: string;
   searchParam?: string;
-  filter?: {
-    name: string;
-    placeholder: string;
-    options: FilterOption[];
-  };
+  filter?: Filter;
+  /** Filtros adicionais, depois de `filter` */
+  filters?: Filter[];
   showSearch?: boolean;
 }
 
-const { searchPlaceholder = 'Pesquisar', searchParam = 'q', filter, showSearch = true } = Astro.props;
+const { searchPlaceholder = 'Pesquisar', searchParam = 'q', filter, filters = [], showSearch = true } = Astro.props;
+const todos = [filter, ...filters].filter((f): f is Filter => Boolean(f));
 const params = Astro.url.searchParams;
 const q = params.get(searchParam) ?? '';
-const filterValue = filter ? params.get(filter.name) ?? '' : '';
 const preserved = [...params.entries()].filter(
-  ([key]) => key !== searchParam && key !== 'page' && key !== filter?.name
+  ([key]) => key !== searchParam && key !== 'page' && !todos.some((f) => f.name === key)
 );
 ---
 
@@ -38,18 +42,18 @@ const preserved = [...params.entries()].filter(
         <input type="search" name={searchParam} value={q} placeholder={searchPlaceholder} autocomplete="off" />
       </label>
     )}
-    {filter && (
+    {todos.map((f) => (
       <label class="filter-box">
         <Icon name="expand_more" size={18} class="filter-icon" />
-        <span class="sr-only">{filter.placeholder}</span>
-        <select name={filter.name} data-autosubmit>
-          <option value="">{filter.placeholder}</option>
-          {filter.options.map((opt) => (
-            <option value={opt.value} selected={opt.value === filterValue}>{opt.label}</option>
+        <span class="sr-only">{f.placeholder}</span>
+        <select name={f.name} data-autosubmit>
+          <option value="">{f.placeholder}</option>
+          {f.options.map((opt) => (
+            <option value={opt.value} selected={opt.value === (params.get(f.name) ?? '')}>{opt.label}</option>
           ))}
         </select>
       </label>
-    )}
+    ))}
   </form>
   <div class="toolbar-actions">
     <slot />

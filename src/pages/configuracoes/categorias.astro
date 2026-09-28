@@ -86,15 +86,19 @@ const eventoData = categoriasEvento.map((c) => ({
     </form>`,
 }));
 
-const itemData = categoriasItem.map((c) => ({
-  nome: c.nome,
-  tipo: TIPOS_CATEGORIA_ITEM[c.tipo],
-  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-cat-item" data-values="${JSON.stringify({
-    id: c.id,
-    nome: c.nome,
-    tipo: c.tipo,
-  })}">Editar</button>`,
-}));
+// Mesmo padrão da aba de ocasiões: nome abre o painel; Editar e Excluir na linha
+const itemData = categoriasItem.map((c) => {
+  const valores = JSON.stringify({ id: c.id, nome: c.nome, tipo: c.tipo });
+  return {
+    nome: html`<button type="button" class="row-link" data-drawer-open="drawer-cat-item" data-values="${valores}">${c.nome}</button>`,
+    tipo: TIPOS_CATEGORIA_ITEM[c.tipo],
+    acoes: html`<form method="post" class="cell-actions">
+        <input type="hidden" name="id" value="${c.id}" />
+        <button type="button" class="row-action" data-drawer-open="drawer-cat-item" data-values="${valores}">Editar</button>
+        <button type="submit" name="_action" value="delete" class="row-action danger" data-confirm="Excluir a categoria ${c.nome}?">Excluir</button>
+      </form>`,
+  };
+});
 
 const abaHref = (a: string) => `${Astro.url.pathname}?aba=${a}`;
 ---
