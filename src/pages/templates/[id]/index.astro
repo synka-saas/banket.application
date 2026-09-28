@@ -3,6 +3,7 @@ import AppLayout from '../../../layouts/AppLayout.astro';
 import TemplateForm from '../../../components/templates/TemplateForm.astro';
 import { withTenant } from '../../../lib/db';
 import { handleFormPost } from '../../../lib/actions';
+import { signPrintToken } from '../../../lib/printToken';
 import { TEMPLATES_SUBMENU } from '../../../lib/nav';
 import { removeFile, saveUpload } from '../../../lib/storage';
 import {
@@ -44,5 +45,5 @@ if (!template) return new Response(null, { status: 404 });
 ---
 
 <AppLayout title={template.nome} heading={`Templates / ${template.nome}`} submenu={TEMPLATES_SUBMENU} submenuActive="templates">
-  <TemplateForm template={template} tenantId={tenantId} />
+  <TemplateForm template={template} tenantId={tenantId} printToken={await signPrintToken({ tenantId, alvo: 'template', id: template.id })} />
 </AppLayout>

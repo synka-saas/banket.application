@@ -11,9 +11,12 @@ import { FONTES, type CampoImagem, type Template } from '../../server/templates'
 interface Props {
   template: Partial<Template>;
   tenantId: string;
+  /** Print token para a pré-visualização com a proposta de exemplo (mesma renderização do PDF) */
+  printToken?: string | null;
 }
 
-const { template: t, tenantId } = Astro.props;
+const { template: t, tenantId, printToken = null } = Astro.props;
+const partesPrevia = printToken && t.id ? (['capa', 'miolo', 'contracapa'] as const).filter((p) => (p === 'capa' ? t.capa_ativa : p === 'contracapa' ? t.contracapa_ativa : true)) : [];
 const valor = (campo: keyof Template, padrao = '') => {
   const v = t[campo];
   return v === null || v === undefined ? padrao : Array.isArray(v) ? v.join(', ') : String(v);
@@ -236,6 +239,25 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       </div>
     </div>
   </SectionCard>
+  {partesPrevia.length > 0 && (
+    <section class="previa-real">
+      <h4>Pré-visualização com a proposta de exemplo</h4>
+      <p class="field-hint">É a mesma renderização do PDF, com a última versão salva do template.</p>
+      <div class="previa-real-paginas">
+        {partesPrevia.map((parte) => (
+          <div class="previa-real-quadro" data-previa-quadro>
+            <iframe
+              src={`/print/template/${t.id}?parte=${parte}&token=${encodeURIComponent(printToken!)}`}
+              title={`Página de exemplo: ${parte}`}
+              loading="lazy"
+              data-previa-iframe
+            ></iframe>
+          </div>
+        ))}
+      </div>
+    </section>
+  )}
+
   <!-- Página longa: o Salvar acompanha a rolagem (UX-148) -->
   <div class="barra-salvar">
     <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
@@ -398,6 +420,21 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     form.addEventListener('change', aplicarVars);
     aplicarVars();
   }
+
+  // Escala as páginas A4 da prévia real para caber na grade (UX-147)
+  const LARGURA_A4 = 794;
+  const RAZAO_A4 = 1123 / 794;
+  function ajustarPrevia() {
+    document.querySelectorAll<HTMLElement>('[data-previa-quadro]').forEach((quadro) => {
+      const escala = Math.min(1, quadro.clientWidth / LARGURA_A4);
+      const iframe = quadro.querySelector<HTMLIFrameElement>('[data-previa-iframe]');
+      if (!iframe) return;
+      iframe.style.transform = `scale(${escala})`;
+      quadro.style.height = `${Math.round(LARGURA_A4 * RAZAO_A4 * escala)}px`;
+    });
+  }
+  window.addEventListener('resize', ajustarPrevia);
+  ajustarPrevia();
 </script>
 
 <style>
@@ -780,5 +817,40 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .barra-salvar :global(.btn) {
     pointer-events: auto;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  }
+
+  .previa-real {
+    margin-top: 28px;
+    padding: 24px 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .previa-real h4 {
+    margin-bottom: 4px;
+  }
+
+  .previa-real-paginas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+  }
+
+  .previa-real-quadro {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
+
+  .previa-real-quadro iframe {
+    width: 794px;
+    height: 1123px;
+    border: 0;
+    transform-origin: top left;
+    pointer-events: none;
   }
 </style>

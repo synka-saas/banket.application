@@ -73,6 +73,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
             <Button block href={`/formularios/${f.id}`}>Editar</Button>
             <div class="acoes-secundarias">
               <a class="link" href={`/formularios/${f.id}/respostas`}>Respostas</a>
+              <a class="link" href={`/f/${f.slug}?previa=1`} target="_blank" rel="noopener">Pré-visualizar</a>
               {f.ativo && <a class="link" href={`/f/${f.slug}`} target="_blank" rel="noopener">Abrir formulário</a>}
             </div>
           </div>

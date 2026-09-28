@@ -1,0 +1,47 @@
+---
+// Importação de itens do cardápio por CSV (UX-053); seções que não existirem são criadas pelo nome.
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import ImportadorCsv from '../../components/ui/ImportadorCsv.astro';
+import { withTenant } from '../../lib/db';
+import { userMessage } from '../../lib/forms';
+import { CARDAPIO_SUBMENU } from '../../lib/nav';
+import { MODELO_ITENS, importarItens, type ResultadoImportacao } from '../../server/importacao';
+
+const { tenantId } = Astro.locals.user;
+let resultado: ResultadoImportacao | null = null;
+let erro: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  try {
+    const arquivo = (await Astro.request.formData()).get('arquivo');
+    if (!(arquivo instanceof File) || !arquivo.size) throw new Error('escolha');
+    const texto = await arquivo.text();
+    resultado = await withTenant(tenantId, (db) => importarItens(db, tenantId, texto));
+  } catch (err) {
+    erro = err instanceof Error && err.message === 'escolha' ? 'Escolha o arquivo CSV preenchido.' : userMessage(err);
+    Astro.response.status = 400;
+  }
+}
+---
+
+<AppLayout title="Importar itens" heading="Cardápios / Importar itens" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
+  <div class="topo">
+    <Button variant="outline" href="/cardapio/itens">Voltar</Button>
+  </div>
+  <ImportadorCsv
+    coisa="itens do cardápio"
+    voltarHref="/cardapio/itens"
+    modeloCsv={MODELO_ITENS}
+    modeloNome="modelo-itens.csv"
+    colunas="secao;nome;descricao;preco;unidade_cobranca;composicao"
+    resultado={resultado}
+    erro={erro}
+  />
+</AppLayout>
+
+<style>
+  .topo {
+    margin-bottom: 20px;
+  }
+</style>

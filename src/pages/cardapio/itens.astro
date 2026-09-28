@@ -116,6 +116,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     filter={{ name: 'secao', placeholder: 'Seção', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
     filters={[{ name: 'situacao', placeholder: 'Ativos e inativos', options: [{ value: 'ativos', label: 'Só ativos' }, { value: 'inativos', label: 'Só inativos' }] }]}
   >
+    <Button variant="outline" icon="upload_file" href="/cardapio/importar">Importar CSV</Button>
     <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</Button>
   </PageToolbar>
 

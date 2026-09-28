@@ -1,0 +1,135 @@
+---
+// Tela de importação por CSV (UX-053): modelo para baixar, envio do arquivo e relatório linha a linha.
+import Button from './Button.astro';
+import Icon from './Icon.astro';
+import type { ResultadoImportacao } from '../../server/importacao';
+
+interface Props {
+  /** Ex.: "clientes" (aparece nos textos) */
+  coisa: string;
+  voltarHref: string;
+  modeloCsv: string;
+  modeloNome: string;
+  colunas: string;
+  resultado: ResultadoImportacao | null;
+  erro: string | null;
+}
+
+const { coisa, voltarHref, modeloCsv, modeloNome, colunas, resultado, erro } = Astro.props;
+const modeloHref = `data:text/csv;charset=utf-8,${encodeURIComponent(`﻿${modeloCsv}`)}`;
+---
+
+<div class="importar">
+  {erro && <div class="form-erro" role="alert">{erro}</div>}
+
+  {resultado && (
+    <section class="resultado">
+      <h3>
+        <Icon name={resultado.erros.length === 0 ? 'check_circle' : 'error'} size={22} />
+        {resultado.importados} de {resultado.total} {resultado.total === 1 ? 'linha importada' : 'linhas importadas'}
+      </h3>
+      {resultado.erros.length > 0 && (
+        <>
+          <p class="muted">As linhas abaixo não foram importadas. Corrija-as no arquivo e envie de novo só com elas.</p>
+          <ul class="erros">
+            {resultado.erros.map((e) => (
+              <li><strong>Linha {e.linha}:</strong> {e.motivo}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div class="resultado-acoes">
+        <Button variant="primary" href={voltarHref}>Ver {coisa}</Button>
+      </div>
+    </section>
+  )}
+
+  <section class="passo">
+    <h3><span class="passo-n">1</span> Baixe o modelo e preencha</h3>
+    <p class="muted">Uma linha por registro, com o cabeçalho: <code>{colunas}</code>. Pode salvar direto do Excel (CSV separado por ponto e vírgula).</p>
+    <a class="btn btn-outline btn-md" href={modeloHref} download={modeloNome}>
+      <Icon name="download" size={18} /> Baixar modelo CSV
+    </a>
+  </section>
+
+  <section class="passo">
+    <h3><span class="passo-n">2</span> Envie o arquivo preenchido</h3>
+    <form method="post" enctype="multipart/form-data" class="envio">
+      <input type="file" name="arquivo" accept=".csv,text/csv" required aria-label="Arquivo CSV" />
+      <Button type="submit" variant="primary" data-carregando="Importando…">Importar</Button>
+    </form>
+    <p class="field-hint">Até 500 linhas por arquivo. As linhas válidas entram na hora; as com erro voltam apontadas.</p>
+  </section>
+</div>
+
+<style>
+  .importar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 760px;
+  }
+
+  .passo,
+  .resultado {
+    padding: 24px 28px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .passo h3,
+  .resultado h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .passo-n {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--color-primary-10);
+    color: var(--color-primary-text);
+    font-size: 14px;
+  }
+
+  .passo code {
+    background: var(--color-neutral-10);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .passo p {
+    margin-bottom: 14px;
+  }
+
+  .envio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0 8px;
+  }
+
+  .resultado .erros {
+    margin: 10px 0 16px;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .resultado-acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+</style>

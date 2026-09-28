@@ -437,6 +437,9 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       <div class="fe-barra">
         <span class="fe-estado">{alterado ? 'Alterações não salvas' : 'Tudo salvo'}</span>
         <div class="fe-barra-acoes">
+          <a class="btn btn-outline btn-md" href={`/f/${formulario.slug}?previa=1`} target="_blank" rel="noopener" title="Abre a última versão salva">
+            Pré-visualizar
+          </a>
           <a class="btn btn-outline btn-md" href={`/formularios/${formulario.id}/respostas`}>Respostas</a>
           <button type="button" class="btn btn-outline btn-md" onClick={duplicar} disabled={salvando}>Duplicar</button>
           <button type="button" class="btn btn-outline btn-md" onClick={excluir} disabled={salvando}>Excluir</button>

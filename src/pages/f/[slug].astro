@@ -5,8 +5,14 @@ import Icon from '../../components/ui/Icon.astro';
 import FormularioLayout from '../../layouts/FormularioLayout.astro';
 import { contentTypeFor, readFile } from '../../lib/storage';
 import { formularioPublico } from '../../server/formularios';
+import { SESSION_COOKIE, verifySession } from '../../lib/auth';
 
-const formulario = await formularioPublico(Astro.params.slug ?? '').catch(() => null);
+// Prévia para o dono (UX-076): com sessão da mesma empresa, mostra também formulário inativo, sem aceitar envio.
+// A rota é pública, então a sessão é lida direto do cookie (sem exigir login).
+const sessao = Astro.url.searchParams.get('previa') === '1' ? await verifySession(Astro.cookies.get(SESSION_COOKIE)?.value) : null;
+let formulario = await formularioPublico(Astro.params.slug ?? '', Boolean(sessao)).catch(() => null);
+const previa = Boolean(sessao && formulario && sessao.tenantId === formulario.tenantId);
+if (formulario && sessao && !previa) formulario = await formularioPublico(Astro.params.slug ?? '').catch(() => null);
 
 let logo: string | null = null;
 if (formulario?.empresa.logo_path) {
@@ -37,7 +43,12 @@ const mensagemSucesso =
     <div class="fp-progresso"><div class="fp-progresso-barra" id="fp-progresso"></div></div>
     <p class="fp-etapa-info" id="fp-etapa-info" aria-live="polite"></p>
 
-    <form id="fp-form" class="fp-conteudo" novalidate data-slug={Astro.params.slug}>
+    {previa && (
+      <div class="fp-previa" role="status">
+        <strong>Pré-visualização</strong> · é assim que o cliente vê a última versão salva. Os envios ficam desativados aqui.
+      </div>
+    )}
+    <form id="fp-form" class="fp-conteudo" novalidate data-slug={Astro.params.slug} data-previa={previa ? '1' : undefined}>
       <input type="text" name="_website" class="fp-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
       {secoes.map((s, i) => (
@@ -317,6 +328,10 @@ const mensagemSucesso =
     }
 
     async function enviar() {
+      if (form.dataset.previa) {
+        toast('Esta é só uma pré-visualização: os envios ficam desativados.', 'info');
+        return;
+      }
       if (enviando) return;
       enviando = true;
       btnAvancar.disabled = true;
@@ -760,5 +775,15 @@ const mensagemSucesso =
 
   .fp-resumo dd {
     margin: 0;
+  }
+
+  .fp-previa {
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    border-radius: var(--border-radius);
+    background: #fff7e0;
+    border: 1px solid #e5c96b;
+    color: #6b5210;
+    font-size: 13px;
   }
 </style>

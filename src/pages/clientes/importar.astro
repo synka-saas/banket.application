@@ -1,0 +1,46 @@
+---
+// Importação de clientes por CSV (UX-053), para quem já tem a base numa planilha.
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import ImportadorCsv from '../../components/ui/ImportadorCsv.astro';
+import { withTenant } from '../../lib/db';
+import { userMessage } from '../../lib/forms';
+import { MODELO_CLIENTES, importarClientes, type ResultadoImportacao } from '../../server/importacao';
+
+const { tenantId } = Astro.locals.user;
+let resultado: ResultadoImportacao | null = null;
+let erro: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  try {
+    const arquivo = (await Astro.request.formData()).get('arquivo');
+    if (!(arquivo instanceof File) || !arquivo.size) throw new Error('escolha');
+    const texto = await arquivo.text();
+    resultado = await withTenant(tenantId, (db) => importarClientes(db, tenantId, texto));
+  } catch (err) {
+    erro = err instanceof Error && err.message === 'escolha' ? 'Escolha o arquivo CSV preenchido.' : userMessage(err);
+    Astro.response.status = 400;
+  }
+}
+---
+
+<AppLayout title="Importar clientes" heading="Clientes / Importar">
+  <div class="topo">
+    <Button variant="outline" href="/clientes">Voltar</Button>
+  </div>
+  <ImportadorCsv
+    coisa="clientes"
+    voltarHref="/clientes"
+    modeloCsv={MODELO_CLIENTES}
+    modeloNome="modelo-clientes.csv"
+    colunas="nome;tipo_pessoa;documento;email;telefone;endereco;observacoes"
+    resultado={resultado}
+    erro={erro}
+  />
+</AppLayout>
+
+<style>
+  .topo {
+    margin-bottom: 20px;
+  }
+</style>

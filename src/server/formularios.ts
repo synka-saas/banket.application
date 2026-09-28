@@ -243,10 +243,10 @@ export interface FormularioPublico {
 }
 
 /** Resolve o slug (sem sessão) e carrega o formulário ativo dentro do tenant dono. */
-export async function formularioPublico(slug: string): Promise<FormularioPublico | null> {
+export async function formularioPublico(slug: string, incluirInativos = false): Promise<FormularioPublico | null> {
   const { rows } = await systemQuery<{ id: string; tenant_id: string }>(
-    'SELECT id, tenant_id FROM formularios WHERE slug = $1 AND ativo',
-    [slug.toLowerCase()]
+    `SELECT id, tenant_id FROM formularios WHERE slug = $1 AND (ativo OR $2)`,
+    [slug.toLowerCase(), incluirInativos]
   );
   const alvo = rows[0];
   if (!alvo) return null;
