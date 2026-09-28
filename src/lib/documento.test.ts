@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cnpjValido, cpfValido, formatarDocumento } from './documento';
+import { cnpjValido, cpfValido, formatarDocumento, mascararDocumento } from './documento';
 
 describe('cpfValido', () => {
   it('aceita CPF válido com ou sem máscara', () => {
@@ -30,5 +30,20 @@ describe('formatarDocumento', () => {
     expect(formatarDocumento('52998224725')).toBe('529.982.247-25');
     expect(formatarDocumento('11222333000181')).toBe('11.222.333/0001-81');
     expect(formatarDocumento('')).toBe('');
+  });
+});
+
+describe('mascararDocumento', () => {
+  it('formata progressivamente conforme o tipo', () => {
+    expect(mascararDocumento('529', 'PF')).toBe('529');
+    expect(mascararDocumento('5299', 'PF')).toBe('529.9');
+    expect(mascararDocumento('52998224725', 'PF')).toBe('529.982.247-25');
+    expect(mascararDocumento('11222333000181', 'PJ')).toBe('11.222.333/0001-81');
+    expect(mascararDocumento('112223', 'PJ')).toBe('11.222.3');
+  });
+
+  it('descarta letras e o excesso de dígitos', () => {
+    expect(mascararDocumento('abc529.982.247-25999', 'PF')).toBe('529.982.247-25');
+    expect(mascararDocumento('11.222.333/0001-8199', 'PJ')).toBe('11.222.333/0001-81');
   });
 });

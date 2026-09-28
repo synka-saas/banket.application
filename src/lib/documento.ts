@@ -26,6 +26,20 @@ export function cnpjValido(valor: string): boolean {
   return digito(12) === Number(cnpj[12]) && digito(13) === Number(cnpj[13]);
 }
 
+export const PADRAO_DOCUMENTO = { PF: '000.000.000-00', PJ: '00.000.000/0000-00' } as const;
+
+/** Máscara progressiva enquanto o usuário digita: descarta o que não é dígito e o excesso para o tipo. */
+export function mascararDocumento(valor: string, tipo: 'PF' | 'PJ'): string {
+  const d = somenteDigitos(valor);
+  let saida = '';
+  let i = 0;
+  for (const ch of PADRAO_DOCUMENTO[tipo]) {
+    if (i >= d.length) break;
+    saida += ch === '0' ? d[i++] : ch;
+  }
+  return saida;
+}
+
 export function formatarDocumento(valor: string | null | undefined): string {
   if (!valor) return '';
   const d = somenteDigitos(valor);
