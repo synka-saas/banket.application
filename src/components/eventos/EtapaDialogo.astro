@@ -1,0 +1,119 @@
+---
+// Complemento pedido ao mover um evento para uma etapa "aprovado" (data de fechamento) ou
+// "recusado" (motivo da perda). Uso: window.banketEtapaExtras(variante) → Promise com
+// { fechado_em } / { motivo_perda }, {} quando a etapa não pede nada, ou null se o usuário cancelar.
+---
+
+<dialog class="etapa-dialogo" data-etapa-dialogo aria-labelledby="etapa-dialogo-titulo">
+  <form method="dialog" class="etapa-caixa">
+    <h2 id="etapa-dialogo-titulo" class="etapa-titulo"></h2>
+
+    <div class="field" data-so="recusado">
+      <label for="etapa-motivo">Motivo da perda</label>
+      <select id="etapa-motivo" class="control">
+        <option value="Preço">Preço</option>
+        <option value="Data indisponível">Data indisponível</option>
+        <option value="Escolheu outro buffet">Escolheu outro buffet</option>
+        <option value="Evento cancelado">Evento cancelado</option>
+        <option value="Sem retorno do cliente">Sem retorno do cliente</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+    <div class="field" data-so="recusado">
+      <label for="etapa-detalhe">Detalhes (opcional)</label>
+      <textarea id="etapa-detalhe" class="control" rows="2" maxlength="300"></textarea>
+    </div>
+
+    <div class="field" data-so="aprovado">
+      <label for="etapa-fechado">Data de fechamento</label>
+      <input id="etapa-fechado" class="control" type="date" />
+    </div>
+
+    <div class="etapa-acoes">
+      <button type="submit" value="cancelar" class="btn btn-outline btn-md">Voltar</button>
+      <button type="submit" value="ok" class="btn btn-primary btn-md" data-etapa-ok>Confirmar</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  const dialogo = document.querySelector<HTMLDialogElement>('[data-etapa-dialogo]')!;
+  const titulo = dialogo.querySelector<HTMLElement>('.etapa-titulo')!;
+  const motivo = dialogo.querySelector<HTMLSelectElement>('#etapa-motivo')!;
+  const detalhe = dialogo.querySelector<HTMLTextAreaElement>('#etapa-detalhe')!;
+  const fechado = dialogo.querySelector<HTMLInputElement>('#etapa-fechado')!;
+  const ok = dialogo.querySelector<HTMLButtonElement>('[data-etapa-ok]')!;
+  let pendente: ((r: Record<string, string> | null) => void) | null = null;
+  let varianteAtual = '';
+
+  window.banketEtapaExtras = (variante: string) => {
+    if (variante !== 'recusado' && variante !== 'aprovado') return Promise.resolve({});
+    pendente?.(null);
+    varianteAtual = variante;
+    dialogo.querySelectorAll<HTMLElement>('[data-so]').forEach((el) => (el.hidden = el.dataset.so !== variante));
+    if (variante === 'recusado') {
+      titulo.textContent = 'Marcar como perdido';
+      ok.textContent = 'Marcar como perdido';
+      motivo.value = 'Preço';
+      detalhe.value = '';
+    } else {
+      titulo.textContent = 'Parabéns pelo fechamento!';
+      ok.textContent = 'Confirmar fechamento';
+      const hoje = new Date();
+      fechado.value = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    }
+    dialogo.returnValue = '';
+    dialogo.showModal();
+    return new Promise((resolve) => (pendente = resolve));
+  };
+
+  dialogo.addEventListener('close', () => {
+    let r: Record<string, string> | null = null;
+    if (dialogo.returnValue === 'ok') {
+      if (varianteAtual === 'recusado') {
+        r = { motivo_perda: `${motivo.value}${detalhe.value.trim() ? ` — ${detalhe.value.trim()}` : ''}` };
+      } else {
+        r = fechado.value ? { fechado_em: fechado.value } : {};
+      }
+    }
+    pendente?.(r);
+    pendente = null;
+  });
+  dialogo.addEventListener('click', (e) => {
+    if (e.target === dialogo) dialogo.close('cancelar');
+  });
+</script>
+
+<style is:global>
+  .etapa-dialogo {
+    width: min(420px, calc(100vw - 32px));
+    padding: 0;
+    border: 0;
+    border-radius: var(--border-radius);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+    color: var(--color-neutral-80);
+  }
+
+  .etapa-dialogo::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .etapa-caixa {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  .etapa-titulo {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .etapa-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 4px;
+  }
+</style>

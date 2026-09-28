@@ -78,6 +78,31 @@ test.describe('Eventos e quadro de vendas', () => {
     await colunaNegociacao.locator('.evento-card', { hasText: cliente }).locator('.evento-card-link').click();
     await expect(page).toHaveURL(/\/eventos\/[0-9a-f-]{36}$/);
 
+    // Etapa pela faixa do resumo: marcar como perdido pede o motivo (UX-104) e tem Desfazer (UX-117)
+    const selectEtapa = page.locator('#status-evento');
+    await selectEtapa.selectOption({ label: 'Recusado' });
+    const dialogoEtapa = page.locator('[data-etapa-dialogo]');
+    await expect(dialogoEtapa).toBeVisible();
+    await expect(dialogoEtapa).toContainText('Marcar como perdido');
+    await dialogoEtapa.locator('#etapa-motivo').selectOption('Preço');
+    await dialogoEtapa.locator('#etapa-detalhe').fill('acima da verba');
+    await dialogoEtapa.getByRole('button', { name: 'Marcar como perdido' }).click();
+    await expectToast(page, 'Etapa alterada para "Recusado".');
+    await page.reload();
+    await expect(page.locator('.banner')).toContainText('Motivo: Preço — acima da verba');
+    await page.goto(`${eventoUrl}/linha-do-tempo`);
+    await expect(page.locator('.timeline')).toContainText('motivo: Preço — acima da verba');
+
+    // Cancelar o diálogo mantém a etapa; voltar para negociação limpa o motivo
+    await page.goto(eventoUrl);
+    await selectEtapa.selectOption({ label: 'Aprovado' });
+    await dialogoEtapa.getByRole('button', { name: 'Voltar' }).click();
+    await expect(selectEtapa.locator('option:checked')).toHaveText('Recusado');
+    await selectEtapa.selectOption({ label: 'Em negociação' });
+    await expectToast(page, 'Etapa alterada para "Em negociação".');
+    await page.reload();
+    await expect(page.locator('.banner')).not.toContainText('Motivo:');
+
     // Lista com filtro de status
     await page.goto('/eventos?view=lista');
     await expect(page.locator('tr', { hasText: cliente })).toContainText('Em negociação');

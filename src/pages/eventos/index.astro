@@ -14,6 +14,7 @@ import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../
 import { carregarIntervaloKanban, listarFormatosServico, listarStatus, listarTiposEvento } from '../../server/configuracoes';
 import { ROTULOS } from '../../lib/rotulos';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import EtapaDialogo from '../../components/eventos/EtapaDialogo.astro';
 import { lerOrdenacao } from '../../lib/ordenacao';
 
 const { tenantId } = Astro.locals.user;
@@ -42,6 +43,7 @@ const recorteTexto = recorteManual
 const podeConfigurar = Astro.locals.user.role === 'owner' || Astro.locals.user.role === 'admin';
 const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
 const pad = (n: number) => String(n).padStart(2, '0');
+const diasNaEtapa = (c: Card) => Math.floor((Date.now() - new Date(c.etapa_desde).getTime()) / 86_400_000);
 type Card = (typeof dados.cards)[number];
 // Verba estimada só conta quando o evento ainda não tem orçamento; os dois totais nunca se misturam
 const verbaSemOrcamento = (c: Card) => (c.valor_orcamento === null ? (c.verba_total ?? 0) : 0);
@@ -163,7 +165,7 @@ const filtrando = estaFiltrando(Astro.url);
     </div>
     <div class="kanban" data-kanban>
       {colunas.map((col, i) => (
-        <section class:list={['kanban-col', { 'mobile-ativa': i === 0 }]} data-coluna={col.id} data-status-nome={col.nome}>
+        <section class:list={['kanban-col', { 'mobile-ativa': i === 0 }]} data-coluna={col.id} data-status-nome={col.nome} data-variante={col.variante}>
           <header class="kanban-col-header">
             <h2 class="kanban-col-titulo">
               <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
@@ -181,7 +183,7 @@ const filtrando = estaFiltrando(Astro.url);
                 <h3 class="evento-card-title">
                   <Icon name={c.cliente_tipo === 'PJ' ? 'domain' : 'account_box'} size={22} />
                   {/* O link cobre o card inteiro (::after): clicar em qualquer ponto abre o resumo */}
-                  <a href={`/eventos/${c.id}`} class="evento-card-link" draggable="false">{c.cliente_nome ?? 'Sem cliente'}</a>
+                  <a href={`/eventos/${c.id}`} class="evento-card-link" draggable="false">{c.categoria_nome ?? c.titulo ?? 'Evento'}</a>
                 </h3>
                 <details class="card-menu" data-card-menu>
                   <summary aria-label={`Ações do evento ${c.titulo ?? ''}`}><Icon name="more_horiz" size={20} /></summary>
@@ -196,7 +198,7 @@ const filtrando = estaFiltrando(Astro.url);
                     ))}
                   </div>
                 </details>
-                <p class="evento-card-sub">{c.titulo}</p>
+                <p class="evento-card-sub">{c.cliente_nome ?? 'Sem cliente'}</p>
                 <dl class="evento-card-rows">
                   <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
                   <div><dt>{ROTULOS.formatoServico}</dt><dd>{c.formato_nome ?? '-'}</dd></div>
@@ -208,7 +210,10 @@ const filtrando = estaFiltrando(Astro.url);
                   <div><dt>Data</dt><dd>{dataCurta(c.data_evento)}</dd></div>
                 </dl>
                 <div class="tag-list">
-                  {[c.tipo_nome, c.categoria_nome].filter(Boolean).map((t) => <span class="tag">{t}</span>)}
+                  {[c.tipo_nome].filter(Boolean).map((t) => <span class="tag">{t}</span>)}
+                  {diasNaEtapa(c) >= 3 && (
+                    <span class:list={['selo-etapa', { alerta: diasNaEtapa(c) >= 7 }]}>há {diasNaEtapa(c)} dias nesta etapa</span>
+                  )}
                 </div>
               </article>
             ))}
@@ -237,6 +242,7 @@ const filtrando = estaFiltrando(Astro.url);
       {dados.lista && <Pagination slot="footer" info={pageInfo(page, dados.lista.total)} />}
     </Table>
   )}
+  <EtapaDialogo slot="overlays" />
 </AppLayout>
 
 <script>
@@ -279,11 +285,14 @@ const filtrando = estaFiltrando(Astro.url);
       zona.insertBefore(card, depois ?? zona.querySelector('.kanban-vazio'));
     };
 
-    // Move o card (arrastando ou pelo menu "Mover para"); desfaz se o servidor recusar
+    // Move o card (arrastando ou pelo menu "Mover para"); desfaz se o servidor recusar.
+    // Etapas de fechamento pedem complemento (motivo da perda / data) antes de mover.
     async function mover(card: HTMLElement, coluna: HTMLElement) {
       const deOrigem = card.parentElement!;
       const zona = coluna.querySelector<HTMLElement>('[data-dropzone]')!;
       if (zona === deOrigem) return;
+      const extras = await window.banketEtapaExtras?.(coluna.dataset.variante ?? '');
+      if (extras === null) return;
       inserirNaOrdem(zona, card);
       atualizarTotais();
       atualizarMenu(card, coluna);
@@ -291,7 +300,7 @@ const filtrando = estaFiltrando(Astro.url);
         const res = await fetch(`/api/eventos/${card.dataset.evento}/status`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status_id: coluna.dataset.coluna }),
+          body: JSON.stringify({ status_id: coluna.dataset.coluna, ...extras }),
         });
         if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
         toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
@@ -527,6 +536,22 @@ const filtrando = estaFiltrando(Astro.url);
   .evento-card-rows .verba dd {
     font-style: italic;
     color: var(--color-neutral-65);
+  }
+
+  .selo-etapa {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--color-neutral-10);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  .selo-etapa.alerta {
+    background: var(--color-primary-10);
+    color: var(--color-primary-60);
   }
 
   .kanban-cards {

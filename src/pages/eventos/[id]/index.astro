@@ -4,6 +4,7 @@ import EventoLayout from '../../../layouts/EventoLayout.astro';
 import SectionCard from '../../../components/ui/SectionCard.astro';
 import Button from '../../../components/ui/Button.astro';
 import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import EtapaDialogo from '../../../components/eventos/EtapaDialogo.astro';
 import { withTenant } from '../../../lib/db';
 import { handleFormPost } from '../../../lib/actions';
 import { removeDir } from '../../../lib/storage';
@@ -68,6 +69,11 @@ const { evento, checklist, status, respostas } = await withTenant(user.tenantId,
 }));
 
 const e = evento;
+// Link wa.me: DDI 55 quando o número tem só DDD + número
+const linkWhatsApp = (tel: string) => {
+  const d = tel.replace(/\D/g, '');
+  return `https://wa.me/${d.length <= 11 ? `55${d}` : d}`;
+};
 const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIANCE] ?? c);
 ---
 
@@ -88,12 +94,14 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       <strong>{e.local_nome ?? (e.local_tipo === 'casa' ? 'Nosso espaço' : 'Local externo')}</strong>
       {e.endereco && <span class="banner-endereco">{e.endereco}</span>}
     </div>
-    <form method="post" class="banner-status">
+    <form method="post" class="banner-status" data-form-etapa>
       <input type="hidden" name="_action" value="status" />
       <label class="banner-label" for="status-evento">{ROTULOS.etapa}</label>
       <select id="status-evento" name="status_id" data-autosubmit-row>
-        {status.map((s) => <option value={s.id} selected={s.id === e.status_id}>{s.nome}</option>)}
+        {status.map((s) => <option value={s.id} data-variante={s.variante} selected={s.id === e.status_id}>{s.nome}</option>)}
       </select>
+      {e.status_variante === 'recusado' && e.motivo_perda && <span class="banner-endereco">Motivo: {e.motivo_perda}</span>}
+      {e.status_variante === 'aprovado' && e.fechado_em && <span class="banner-endereco">Fechado em {dataCurta(e.fechado_em)}</span>}
     </form>
   </section>
 
@@ -123,8 +131,19 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         <dl class="kv kv-2">
           <div><dt>Nome</dt><dd>{e.responsavel_nome ?? '-'}</dd></div>
           <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
-          <div><dt>E-mail</dt><dd>{e.responsavel_email ?? '-'}</dd></div>
-          <div><dt>WhatsApp</dt><dd>{e.responsavel_whatsapp ?? '-'}</dd></div>
+          <div><dt>E-mail</dt><dd>{e.responsavel_email ? <a class="link" href={`mailto:${e.responsavel_email}`}>{e.responsavel_email}</a> : '-'}</dd></div>
+          <div>
+            <dt>WhatsApp</dt>
+            <dd>
+              {e.responsavel_whatsapp ? (
+                <a class="link" href={linkWhatsApp(e.responsavel_whatsapp)} target="_blank" rel="noopener">
+                  {e.responsavel_whatsapp} · chamar
+                </a>
+              ) : (
+                '-'
+              )}
+            </dd>
+          </div>
           <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
           <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
         </dl>
@@ -220,7 +239,63 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       </section>
     </div>
   </div>
+  <EtapaDialogo slot="overlays" />
 </EventoLayout>
+
+<script>
+  import { toast } from '../../../lib/ui';
+
+  // Etapa pela faixa do resumo: sem recarregar, com complemento (aprovado/recusado) e Desfazer (UX-104/117)
+  const formEtapa = document.querySelector<HTMLFormElement>('[data-form-etapa]');
+  const selectEtapa = formEtapa?.querySelector<HTMLSelectElement>('#status-evento');
+  if (formEtapa && selectEtapa) {
+    const eventoId = window.location.pathname.split('/')[2];
+    let anterior = selectEtapa.value;
+
+    const aplicar = async (statusId: string, extras: Record<string, string>) => {
+      const res = await fetch(`/api/eventos/${eventoId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status_id: statusId, ...extras }),
+      });
+      if (!res.ok) throw new Error(((await res.json()) as { error?: string }).error ?? 'Não foi possível mudar a etapa.');
+    };
+
+    formEtapa.addEventListener('submit', (e) => {
+      e.preventDefault();
+      void (async () => {
+        const opcao = selectEtapa.selectedOptions[0];
+        const extras = await window.banketEtapaExtras?.(opcao?.dataset.variante ?? '');
+        if (extras === null || extras === undefined) {
+          selectEtapa.value = anterior;
+          return;
+        }
+        const de = anterior;
+        try {
+          await aplicar(selectEtapa.value, extras);
+          anterior = selectEtapa.value;
+          toast(`Etapa alterada para "${opcao.textContent?.trim()}".`, 'success', {
+            acao: {
+              rotulo: 'Desfazer',
+              executar: () => {
+                selectEtapa.value = de;
+                aplicar(de, {})
+                  .then(() => {
+                    anterior = de;
+                    toast('Etapa restaurada.', 'info');
+                  })
+                  .catch((err) => toast(err instanceof Error ? err.message : 'Não foi possível restaurar.', 'error'));
+              },
+            },
+          });
+        } catch (err) {
+          selectEtapa.value = anterior;
+          toast(err instanceof Error ? err.message : 'Não foi possível mudar a etapa.', 'error');
+        }
+      })();
+    });
+  }
+</script>
 
 <style>
   .banner {

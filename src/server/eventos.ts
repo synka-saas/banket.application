@@ -16,6 +16,7 @@ import {
 import type { PageParams } from '../lib/pagination';
 import { clienteSchema, salvarCliente } from './clientes';
 import { registrarTimeline } from './timeline';
+import { dataCurta } from '../lib/datas';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
 
 // ---------------------------------------------------------------------------
@@ -187,6 +188,8 @@ export interface EventoCard {
   verba_total: number | null;
   valor_orcamento: number | null;
   local_nome: string | null;
+  /** Desde quando está na etapa atual (última mudança de status, ou a criação) */
+  etapa_desde: Date;
 }
 
 export interface FiltrosEventos {
@@ -204,7 +207,9 @@ const SELECT_CARD = `
   SELECT e.id, e.titulo, c.nome AS cliente_nome, c.tipo_pessoa AS cliente_tipo, e.status_id,
          to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento, to_char(e.hora_inicio, 'HH24:MI') AS hora_inicio,
          e.numero_convidados, f.nome AS formato_nome, t.nome AS tipo_nome, ce.nome AS categoria_nome,
-         e.verba_total, o.valor_total AS valor_orcamento, e.local_nome
+         e.verba_total, o.valor_total AS valor_orcamento, e.local_nome,
+         COALESCE((SELECT max(tl.created_at) FROM evento_timeline tl WHERE tl.evento_id = e.id AND tl.tipo = 'status'),
+                  e.created_at) AS etapa_desde
     FROM eventos e
     LEFT JOIN clientes c ON c.id = e.cliente_id
     LEFT JOIN formatos_servico f ON f.id = e.formato_servico_id
@@ -278,6 +283,8 @@ export interface EventoDetalhe extends Omit<EventoInput, 'cliente_novo'> {
   status_id: string;
   status_nome: string;
   status_variante: string;
+  motivo_perda: string | null;
+  fechado_em: string | null;
   status_cor: string | null;
   tipo_nome: string | null;
   categoria_nome: string | null;
@@ -298,7 +305,7 @@ export async function carregarEvento(db: Db, id: string): Promise<EventoDetalhe>
             e.forma_pagamento, e.qualificacao, e.responsavel_nome, e.responsavel_email, e.responsavel_whatsapp,
             e.convite_experiencia, e.estilo_principal, e.estilo_secundario, e.bebidas_alcoolicas,
             e.bebidas_sem_alcool, e.restricoes, e.compliance, e.staff_terceiros, e.comentario_cliente,
-            e.origem, e.created_at,
+            e.origem, e.created_at, e.motivo_perda, to_char(e.fechado_em, 'YYYY-MM-DD') AS fechado_em,
             c.nome AS cliente_nome, c.tipo_pessoa AS cliente_tipo, c.documento AS cliente_documento,
             c.email AS cliente_email, c.telefone AS cliente_telefone,
             s.nome AS status_nome, s.variante AS status_variante, s.cor AS status_cor,
@@ -438,22 +445,41 @@ export async function atualizarEvento(
   if (input.status_id && input.status_id !== antes.status_id) await moverEvento(db, user, id, input.status_id);
 }
 
-export async function moverEvento(db: Db, user: SessionUser, id: string, statusId: string) {
-  const { rows } = await db.query<{ de: string; para: string | null }>(
-    `SELECT s.nome AS de, (SELECT nome FROM status_orcamento WHERE id = $2) AS para
-       FROM eventos e JOIN status_orcamento s ON s.id = e.status_id WHERE e.id = $1`,
+export interface ExtrasEtapa {
+  /** Motivo da perda, ao mover para uma etapa "recusado" */
+  motivo?: string | null;
+  /** Data de fechamento (AAAA-MM-DD), ao mover para uma etapa "aprovado"; padrão: hoje */
+  fechadoEm?: string | null;
+}
+
+export async function moverEvento(db: Db, user: SessionUser, id: string, statusId: string, extras: ExtrasEtapa = {}) {
+  const { rows } = await db.query<{ de: string; para: string | null; variante: string | null }>(
+    `SELECT s.nome AS de, d.nome AS para, d.variante
+       FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
+       LEFT JOIN status_orcamento d ON d.id = $2
+      WHERE e.id = $1`,
     [id, statusId]
   );
   if (!rows[0]) throw new UserError('Evento não encontrado.');
   if (!rows[0].para) throw new UserError('Status inválido.');
   if (rows[0].de === rows[0].para) return;
-  await db.query('UPDATE eventos SET status_id = $1, updated_at = now() WHERE id = $2', [statusId, id]);
+  // O motivo/fechamento pertence à etapa em que o evento está: sai dela, é limpo
+  const motivo = rows[0].variante === 'recusado' ? (extras.motivo?.trim() || null) : null;
+  const fechadoEm = rows[0].variante === 'aprovado' ? (extras.fechadoEm ?? null) : null;
+  await db.query(
+    `UPDATE eventos SET status_id = $1, motivo_perda = $2,
+            fechado_em = CASE WHEN $4 = 'aprovado' THEN COALESCE($3::date, CURRENT_DATE) END,
+            updated_at = now()
+      WHERE id = $5`,
+    [statusId, motivo, fechadoEm, rows[0].variante, id]
+  );
+  const detalhe = motivo ? ` — motivo: ${motivo}` : rows[0].variante === 'aprovado' ? ` — fechado em ${fechadoEm ? dataCurta(fechadoEm) : 'hoje'}` : '';
   await registrarTimeline(
     db,
     { tenantId: user.tenantId, eventoId: id, usuarioId: user.id },
     'status',
-    `Status alterado de "${rows[0].de}" para "${rows[0].para}"`,
-    { status_id: statusId }
+    `Status alterado de "${rows[0].de}" para "${rows[0].para}"${detalhe}`,
+    { status_id: statusId, motivo, fechado_em: fechadoEm }
   );
 }
 
@@ -602,7 +628,7 @@ export async function opcoesFormularioEvento(db: Db) {
         GROUP BY c.id ORDER BY lower(c.nome)`
     )).rows,
     (await db.query<{ id: string; nome: string }>('SELECT id, nome FROM formatos_servico ORDER BY ordem, lower(nome)')).rows,
-    (await db.query<{ id: string; nome: string }>('SELECT id, nome FROM status_orcamento ORDER BY ordem')).rows,
+    (await db.query<{ id: string; nome: string; variante: string }>('SELECT id, nome, variante FROM status_orcamento ORDER BY ordem')).rows,
   ];
   return { clientes, tipos, categorias, formatos, status };
 }

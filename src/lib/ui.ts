@@ -23,6 +23,8 @@ declare global {
   interface Window {
     banketToast?: (mensagem: string, tipo?: ToastTipo, opcoes?: ToastOpcoes) => void;
     banketConfirmar?: (opcoes: ConfirmarOpcoes) => Promise<boolean>;
+    /** Complemento ao mover de etapa (EtapaDialogo.astro): {} quando não pede nada, null se cancelado */
+    banketEtapaExtras?: (variante: string) => Promise<Record<string, string> | null>;
   }
 }
 
