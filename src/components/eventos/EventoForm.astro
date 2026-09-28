@@ -342,19 +342,77 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
       })
     );
 
-    // Categorias válidas para o tipo de evento escolhido
+    // Categorias válidas para o tipo de evento escolhido.
+    // A lista é reconstruída (option.hidden não funciona no Safari — UX-115)
     const tipo = form.querySelector<HTMLSelectElement>('[data-tipo-evento]')!;
     const categoria = form.querySelector<HTMLSelectElement>('[data-categoria-evento]')!;
+    const todasCategorias = [...categoria.options].map((opt) => ({
+      value: opt.value,
+      texto: opt.textContent ?? '',
+      tipos: (opt.dataset.tipos ?? '').split(',').filter(Boolean),
+    }));
     const filtrarCategorias = () => {
-      [...categoria.options].forEach((opt) => {
-        if (!opt.value) return;
-        const tipos = (opt.dataset.tipos ?? '').split(',').filter(Boolean);
-        opt.hidden = Boolean(tipo.value) && !tipos.includes(tipo.value);
-      });
-      if (categoria.selectedOptions[0]?.hidden) categoria.value = '';
+      const atual = categoria.value;
+      const visiveis = todasCategorias.filter((o) => !o.value || !tipo.value || o.tipos.includes(tipo.value));
+      categoria.replaceChildren(
+        ...visiveis.map((o) => {
+          const opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.texto;
+          if (o.tipos.length) opt.dataset.tipos = o.tipos.join(',');
+          return opt;
+        })
+      );
+      categoria.value = visiveis.some((o) => o.value === atual) ? atual : '';
     };
     tipo.addEventListener('change', filtrarCategorias);
     filtrarCategorias();
+
+    // ---------- Cálculos de conveniência (UX-114): quem foi calculado é recalculado; o que o usuário digitou fica ----------
+    const campo = (nome: string) => form.querySelector<HTMLInputElement>(`[name="${nome}"]`)!;
+    const inicio = campo('hora_inicio');
+    const fim = campo('hora_fim');
+    const duracao = campo('duracao_evento_horas');
+    const convidados = campo('numero_convidados');
+    const verbaTotal = campo('verba_total');
+    const verbaPp = campo('verba_por_pessoa');
+    const numeroBr = (v: string) => Number.parseFloat(v.replace(/\./g, '').replace(',', '.'));
+    const automaticos = new WeakSet<HTMLInputElement>();
+    const definir = (el: HTMLInputElement, valor: string) => {
+      el.value = valor;
+      automaticos.add(el);
+    };
+    const podeCalcular = (el: HTMLInputElement) => !el.value.trim() || automaticos.has(el);
+    form.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement;
+      if (el === duracao || el === verbaTotal || el === verbaPp) automaticos.delete(el);
+    });
+
+    // Duração do evento a partir de início/término (vira o dia se terminar de madrugada)
+    const calcularDuracao = () => {
+      if (!inicio.value || !fim.value || !podeCalcular(duracao)) return;
+      const [hi, mi] = inicio.value.split(':').map(Number);
+      const [hf, mf] = fim.value.split(':').map(Number);
+      let horas = hf + mf / 60 - (hi + mi / 60);
+      if (horas <= 0) horas += 24;
+      definir(duracao, (Math.round(horas * 2) / 2).toLocaleString('pt-BR'));
+    };
+    inicio.addEventListener('change', calcularDuracao);
+    fim.addEventListener('change', calcularDuracao);
+
+    // Verba total ↔ por pessoa, pelas pessoas informadas
+    const calcularVerba = (origem: HTMLInputElement, destino: HTMLInputElement, converter: (v: number, n: number) => number) => {
+      const n = Number.parseInt(convidados.value, 10);
+      const v = numeroBr(origem.value);
+      if (!n || Number.isNaN(v) || !podeCalcular(destino)) return;
+      definir(destino, converter(v, n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    };
+    verbaTotal.addEventListener('change', () => calcularVerba(verbaTotal, verbaPp, (v, n) => v / n));
+    verbaPp.addEventListener('change', () => calcularVerba(verbaPp, verbaTotal, (v, n) => v * n));
+    convidados.addEventListener('change', () => {
+      if (verbaTotal.value.trim() && !automaticos.has(verbaTotal)) calcularVerba(verbaTotal, verbaPp, (v, n) => v / n);
+      else if (verbaPp.value.trim()) calcularVerba(verbaPp, verbaTotal, (v, n) => v * n);
+    });
   }
 </script>
 

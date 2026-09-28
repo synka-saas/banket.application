@@ -10,7 +10,7 @@ import { handleFormPost } from '../../../lib/actions';
 import { removeDir } from '../../../lib/storage';
 import { formatarDocumento } from '../../../lib/documento';
 import { formatMoney } from '../../../lib/money';
-import { dataCurta, dataHora, faixaHorario } from '../../../lib/datas';
+import { dataCurta, dataHora, faixaHorario, hojeSaoPaulo } from '../../../lib/datas';
 import { listarStatus } from '../../../server/configuracoes';
 import { respostasDoEvento } from '../../../server/formularios';
 import {
@@ -69,6 +69,7 @@ const { evento, checklist, status, respostas } = await withTenant(user.tenantId,
 }));
 
 const e = evento;
+const hoje = hojeSaoPaulo();
 // Link wa.me: DDI 55 quando o número tem só DDD + número
 const linkWhatsApp = (tel: string) => {
   const d = tel.replace(/\D/g, '');
@@ -110,7 +111,10 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       <section class="cabecalho-card">
         <div>
           <span class="rotulo">Cliente</span>
-          <strong>{e.cliente_nome ?? '-'}</strong>
+          {e.cliente_email ? <a class="link" href={`mailto:${e.cliente_email}`}>{e.cliente_email}</a> : <strong>{e.cliente_nome ?? '-'}</strong>}
+          {e.cliente_telefone && (
+            <a class="link" href={linkWhatsApp(e.cliente_telefone)} target="_blank" rel="noopener">{e.cliente_telefone} · chamar</a>
+          )}
           {e.cliente_documento && <span class="muted">{formatarDocumento(e.cliente_documento)}</span>}
         </div>
         <div>
@@ -127,10 +131,9 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         )}
       </section>
 
-      <SectionCard title="Responsável" variant="plain" collapsible>
+      <SectionCard title="Contato" icon="account_circle" variant="plain" collapsible>
         <dl class="kv kv-2">
-          <div><dt>Nome</dt><dd>{e.responsavel_nome ?? '-'}</dd></div>
-          <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
+          <div><dt>Responsável</dt><dd>{e.responsavel_nome ?? '-'}</dd></div>
           <div><dt>E-mail</dt><dd>{e.responsavel_email ? <a class="link" href={`mailto:${e.responsavel_email}`}>{e.responsavel_email}</a> : '-'}</dd></div>
           <div>
             <dt>WhatsApp</dt>
@@ -144,12 +147,18 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
               )}
             </dd>
           </div>
-          <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
-          <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
         </dl>
         {e.convite_experiencia && (
           <dl class="kv"><div><dt>Convite para experiência</dt><dd><span class="chip-leitura">{e.convite_experiencia}</span></dd></div></dl>
         )}
+      </SectionCard>
+
+      <SectionCard title="Comercial" icon="handshake" variant="plain" collapsible>
+        <dl class="kv kv-2">
+          <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
+          <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
+          <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
+        </dl>
       </SectionCard>
 
       <SectionCard title="Logística e infraestrutura" variant="plain" collapsible>
@@ -207,33 +216,41 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         <h3 class="bloco-titulo"><Icon name="checklist" size={18} /> Checklist operacional</h3>
         {checklist.length === 0 && <p class="muted vazio">Nenhum item. Adicione o que precisa acontecer antes do evento.</p>}
         <ul class="checklist-lista">
-          {checklist.map((c) => (
-            <li>
-              <div class="checklist-item">
-                <span class="rotulo">Item</span>
-                <span>{c.item}</span>
-              </div>
-              <form method="post" class="checklist-status">
-                <input type="hidden" name="_action" value="checklist_salvar" />
-                <input type="hidden" name="checklist_id" value={c.id} />
-                <input type="hidden" name="item" value={c.item} />
-                <input type="hidden" name="prazo" value={c.prazo ?? ''} />
-                <span class="rotulo">Status</span>
-                <select name="status" class="inline-select" aria-label={`Status de ${c.item}`} data-autosubmit-row>
-                  {Object.entries(STATUS_CHECKLIST).map(([k, l]) => <option value={k} selected={k === c.status}>{l}</option>)}
-                </select>
-              </form>
-              <form method="post">
-                <input type="hidden" name="_action" value="checklist_excluir" />
-                <input type="hidden" name="checklist_id" value={c.id} />
-                <button type="submit" class="remover" aria-label={`Remover ${c.item}`} data-confirm={`Remover "${c.item}" do checklist?`}><Icon name="close" size={18} /></button>
-              </form>
-            </li>
-          ))}
+          {checklist.map((c) => {
+            const vencido = c.prazo !== null && c.prazo < hoje && c.status !== 'concluido';
+            return (
+              <li class:list={{ 'checklist-vencido': vencido }}>
+                <form method="post" class="checklist-campos">
+                  <input type="hidden" name="_action" value="checklist_salvar" />
+                  <input type="hidden" name="checklist_id" value={c.id} />
+                  <div class="checklist-campo item">
+                    <span class="rotulo">Item</span>
+                    <input name="item" value={c.item} required maxlength="255" class="inline-select" aria-label={`Texto de ${c.item}`} data-autosubmit-row />
+                  </div>
+                  <div class="checklist-campo">
+                    <span class="rotulo">Prazo{vencido && <span class="prazo-alerta"> · vencido</span>}</span>
+                    <input name="prazo" type="date" value={c.prazo ?? ''} class="inline-select" aria-label={`Prazo de ${c.item}`} data-autosubmit-row />
+                  </div>
+                  <div class="checklist-campo">
+                    <span class="rotulo">Status</span>
+                    <select name="status" class="inline-select" aria-label={`Status de ${c.item}`} data-autosubmit-row>
+                      {Object.entries(STATUS_CHECKLIST).map(([k, l]) => <option value={k} selected={k === c.status}>{l}</option>)}
+                    </select>
+                  </div>
+                </form>
+                <form method="post">
+                  <input type="hidden" name="_action" value="checklist_excluir" />
+                  <input type="hidden" name="checklist_id" value={c.id} />
+                  <button type="submit" class="remover" aria-label={`Remover ${c.item}`} data-confirm={`Remover "${c.item}" do checklist?`}><Icon name="close" size={18} /></button>
+                </form>
+              </li>
+            );
+          })}
         </ul>
         <form method="post" class="checklist-novo">
           <input type="hidden" name="_action" value="checklist_salvar" />
           <input name="item" class="control" placeholder="Novo item (ex.: Degustação presencial)" required maxlength="255" aria-label="Novo item do checklist" />
+          <input name="prazo" type="date" class="control checklist-novo-prazo" aria-label="Prazo do novo item" />
           <button type="submit" class="btn btn-primary btn-md">Adicionar</button>
         </form>
       </section>
@@ -418,21 +435,63 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
   }
 
   .checklist-lista li {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
+    display: flex;
     align-items: end;
-    gap: 12px;
+    gap: 10px;
     padding: 10px 0;
     border-bottom: 1px solid var(--color-neutral-30);
   }
 
-  .checklist-item,
-  .checklist-status {
+  .checklist-campos {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 128px 118px;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .checklist-campo {
     display: flex;
     flex-direction: column;
     gap: 2px;
     font-size: 14px;
     color: var(--color-neutral-100);
+    min-width: 0;
+  }
+
+  .checklist-campo input,
+  .checklist-campo select {
+    width: 100%;
+  }
+
+  .checklist-campo input.inline-select {
+    background-image: none;
+    padding-right: 0;
+    color: var(--color-neutral-100);
+  }
+
+  .checklist-vencido .checklist-campo input[type='date'] {
+    border-color: var(--color-primary-50);
+    color: var(--color-primary-60);
+  }
+
+  .prazo-alerta {
+    color: var(--color-primary-text);
+    font-weight: 700;
+  }
+
+  .checklist-novo-prazo {
+    max-width: 150px;
+  }
+
+  @media (max-width: 768px) {
+    .checklist-campos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .checklist-novo {
+      flex-wrap: wrap;
+    }
   }
 
   .checklist .rotulo {
