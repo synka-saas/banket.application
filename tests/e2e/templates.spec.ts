@@ -40,13 +40,13 @@ test.describe('Templates, blocos e PDF', () => {
     await expectToast(page, 'Template duplicado.');
     expect(page.url()).not.toBe(templateUrl);
     page.once('dialog', (d) => d.accept());
-    await page.getByRole('button', { name: 'Excluir' }).click();
+    await page.getByRole('button', { name: 'Excluir', exact: true }).click();
     await expectToast(page, 'Template excluído.');
 
     // Excluir o original
     await page.goto(templateUrl);
     page.once('dialog', (d) => d.accept());
-    await page.getByRole('button', { name: 'Excluir' }).click();
+    await page.getByRole('button', { name: 'Excluir', exact: true }).click();
     await expectToast(page, 'Template excluído.');
     await expect(page.locator('main')).not.toContainText(nome);
 
@@ -70,7 +70,7 @@ test.describe('Templates, blocos e PDF', () => {
     await shot(page, 'template-blocos');
 
     page.once('dialog', (d) => d.accept());
-    await page.getByRole('button', { name: 'Excluir' }).click();
+    await page.getByRole('button', { name: 'Excluir', exact: true }).click();
     await expectToast(page, 'Bloco removido.');
     await expect(page.locator('.chip-bloco', { hasText: titulo })).toHaveCount(0);
   });
