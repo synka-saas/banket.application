@@ -84,7 +84,12 @@ cp .env.example .env
 # JWT_SECRET (openssl rand -base64 48), APP_URL=https://app.banket.com.br, RESEND_API_KEY
 nano .env
 printf 'upstream banket_app {\n    server 127.0.0.1:5168;\n}\n' > /etc/nginx/conf.d/banket-upstream.conf
+# Rede compartilhada com o Manager Hwesta (o compose de produção a declara como externa; sem ela o up falha)
+docker network inspect hwesta_external_net >/dev/null 2>&1 || docker network create hwesta_external_net
 ```
+
+As chaves `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` não são preenchidas à mão: o registro da plataforma no Manager
+as gera e grava no `.env` (ver [INTEGRACAO_HWESTA.md](INTEGRACAO_HWESTA.md)).
 
 `/etc/nginx/sites-enabled/app.banket.com.br.conf`:
 

@@ -22,6 +22,7 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Staff', icon: 'group', href: '/staff/profissionais', match: ['/staff'] },
   { label: 'Templates', icon: 'description', href: '/templates', match: ['/templates'] },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
+  { label: 'Suporte', icon: 'support_agent', href: '/suporte', match: ['/suporte'] },
 ];
 
 export const navAtiva = (pathname: string, match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));

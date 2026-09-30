@@ -6,11 +6,16 @@ import { getMembership } from './lib/membership';
 
 // Rotas acessíveis sem sessão
 // /print/* é acessado pelo Chromium interno e exige um token de impressão (lib/printToken)
-const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/print/', '/_astro/', '/_image'];
+// /api/hwesta/* é chamado pelo Manager Hwesta (HCP): a autenticação é por Bearer nas próprias rotas (lib/hwesta)
+const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/api/hwesta/', '/print/', '/_astro/', '/_image'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
 // Rotas restritas a owner/admin
 const ADMIN_PREFIXES = ['/configuracoes', '/api/configuracoes'];
+
+// Empresa suspensa pelo Manager (kill-switch): só o aviso e a troca de empresa continuam acessíveis
+const PAGINA_SUSPENSA = '/conta-suspensa';
+const LIBERADAS_SUSPENSA = new Set([PAGINA_SUSPENSA, '/api/sessao/empresa']);
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
@@ -65,6 +70,15 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
     return context.redirect(`/auth/login${destino}`);
   }
   context.locals.user = user;
+
+  const suspensa = membership?.tenantStatus !== 'active';
+  if (suspensa && !LIBERADAS_SUSPENSA.has(pathname)) {
+    if (pathname.startsWith('/api/')) {
+      return Response.json({ error: 'Conta suspensa', code: 'ACCOUNT_SUSPENDED' }, { status: 403 });
+    }
+    return context.redirect(PAGINA_SUSPENSA);
+  }
+  if (!suspensa && pathname === PAGINA_SUSPENSA) return context.redirect('/dashboard');
 
   if (ADMIN_PREFIXES.some((p) => pathname.startsWith(p)) && !isAdmin(user)) {
     if (pathname.startsWith('/api/')) {

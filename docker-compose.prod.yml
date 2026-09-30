@@ -22,8 +22,19 @@ x-webapp: &webapp
     - OPENAI_MODEL=${OPENAI_MODEL:-}
     - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-}
     - UPLOAD_DIR=/data/uploads
+    # Integração com o Manager Hwesta (HCP, ver INTEGRACAO_HWESTA.md); sem as chaves, a integração fica desligada
+    - HWESTA_APP_ID=banket
+    - HWESTA_MANAGER_URL=${HWESTA_MANAGER_URL:-http://hwesta_manager:4329}
+    - HWESTA_APP_KEY=${HWESTA_APP_KEY:-}
+    - HWESTA_MANAGER_KEY=${HWESTA_MANAGER_KEY:-}
   volumes:
     - uploads_data:/data/uploads
+  # default: Postgres do próprio compose; hwesta_net: rede compartilhada onde o Manager alcança http://banket:4321
+  # (blue e green usam o mesmo alias; o Postgres fica só na rede default)
+  networks:
+    default:
+    hwesta_net:
+      aliases: [banket]
   depends_on:
     postgres:
       condition: service_healthy
@@ -57,3 +68,8 @@ services:
 volumes:
   postgres_data:
   uploads_data:
+
+networks:
+  hwesta_net:
+    name: hwesta_external_net
+    external: true

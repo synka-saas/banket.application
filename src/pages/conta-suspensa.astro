@@ -1,0 +1,88 @@
+---
+// Empresa suspensa ou cancelada pelo Manager Hwesta (kill-switch): o middleware traz para cá qualquer
+// página da empresa atual. Quem pertence a outra empresa pode trocar; os demais só conseguem sair.
+import Layout from '../layouts/Layout.astro';
+import Button from '../components/ui/Button.astro';
+import Icon from '../components/ui/Icon.astro';
+import { getMembership } from '../lib/membership';
+import { empresasDoUsuario } from '../server/autoatendimento';
+
+const user = Astro.locals.user;
+const [membership, empresas] = await Promise.all([getMembership(user.id, user.tenantId), empresasDoUsuario(user.id)]);
+const atual = empresas.find((e) => e.id === user.tenantId);
+const outras = empresas.filter((e) => e.id !== user.tenantId);
+const cancelada = membership?.tenantStatus === 'canceled';
+---
+
+<Layout title={cancelada ? 'Conta encerrada' : 'Conta suspensa'}>
+  <main class="suspensa">
+    <img src="/logo-dark.png" alt="Banket" />
+    <h1>{cancelada ? 'Conta encerrada' : 'Acesso suspenso'}</h1>
+    <p>
+      {cancelada
+        ? `A conta${atual ? ` de ${atual.nome}` : ''} no Banket foi encerrada.`
+        : `O acesso${atual ? ` de ${atual.nome}` : ''} ao Banket está temporariamente suspenso.`}
+      {' '}Para regularizar ou tirar dúvidas, fale com a gente em{' '}
+      <a class="link" href="mailto:contato@banket.com.br">contato@banket.com.br</a>.
+    </p>
+
+    {outras.length > 0 && (
+      <div class="outras">
+        <p class="outras-rotulo">Entrar em outra empresa</p>
+        {outras.map((e) => (
+          <form method="post" action="/api/sessao/empresa">
+            <input type="hidden" name="tenant_id" value={e.id} />
+            <button type="submit" class="btn btn-outline btn-md btn-block">
+              <Icon name="apartment" size={18} class="btn-icon" /> {e.nome}
+            </button>
+          </form>
+        ))}
+      </div>
+    )}
+
+    <Button variant="text" href="/auth/logout" icon="logout">Sair</Button>
+  </main>
+</Layout>
+
+<style>
+  .suspensa {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  img {
+    height: 40px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  p {
+    max-width: 480px;
+    line-height: 1.5;
+    color: var(--color-neutral-65);
+  }
+
+  .outras {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin-top: 8px;
+  }
+
+  .outras-rotulo {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+</style>

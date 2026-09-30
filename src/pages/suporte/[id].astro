@@ -1,0 +1,221 @@
+---
+// Chamado de suporte: descrição, conversa com a equipe e nova mensagem.
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { handleFormPost } from '../../lib/actions';
+import { dataHora } from '../../lib/datas';
+import { userMessage } from '../../lib/forms';
+import { setFlash } from '../../lib/flash';
+import {
+  CATEGORIAS,
+  PRIORIDADES,
+  carregarChamado,
+  descricaoDoChamado,
+  responderChamado,
+  respostaSchema,
+  type Categoria,
+  type Chamado,
+} from '../../server/suporte';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    await responderChamado(user, id, respostaSchema.parse(data));
+    return 'Mensagem enviada.';
+  });
+}
+
+let chamado: Chamado | null;
+try {
+  chamado = await carregarChamado(user, id);
+} catch (err) {
+  setFlash(Astro.cookies, 'error', userMessage(err));
+  return Astro.redirect('/suporte');
+}
+if (!chamado) return new Response(null, { status: 404 });
+
+const eventos = chamado.events ?? [];
+const encerrado = Boolean(chamado.status_is_final);
+---
+
+<AppLayout title={`Chamado #${chamado.id}`} heading={`Chamado #${chamado.id}`} voltar={{ href: '/suporte', label: 'Suporte' }}>
+  <section class="chamado-card">
+    <header class="chamado-cabecalho">
+      <h3 class="chamado-assunto">{chamado.subject}</h3>
+      <span class:list={['tag', encerrado ? 'tag-off' : 'tag-ok']}>{chamado.status_name ?? 'Aberto'}</span>
+    </header>
+    <p class="chamado-meta">
+      {CATEGORIAS[chamado.category as Categoria] ?? chamado.category ?? 'Sem tipo'} · Prioridade {PRIORIDADES[chamado.priority]?.toLowerCase() ?? chamado.priority} ·
+      Aberto em {dataHora(chamado.created_at)}
+    </p>
+    <p class="chamado-texto">{descricaoDoChamado(chamado)}</p>
+  </section>
+
+  <section class="chamado-card">
+    <h3 class="bloco-titulo"><Icon name="forum" size={18} /> Conversa</h3>
+    {eventos.length === 0 ? (
+      <p class="muted">Ainda sem respostas. Nossa equipe recebeu o chamado e responde por aqui.</p>
+    ) : (
+      <ol class="conversa">
+        {eventos.map((e) =>
+          e.event_type === 'status_change' ? (
+            <li class="conversa-status">
+              <Icon name="sync_alt" size={16} /> Situação alterada{e.new_value ? ` para ${e.new_value}` : ''} · {dataHora(e.created_at)}
+            </li>
+          ) : (
+            <li class:list={['mensagem', e.author_type === 'support' ? 'mensagem-suporte' : 'mensagem-cliente']}>
+              <p class="mensagem-autor">
+                {e.author_type === 'support' ? `${e.author_name ?? 'Suporte'} · Suporte Banket` : (e.author_name ?? 'Você')}
+                <span class="mensagem-quando">{dataHora(e.created_at)}</span>
+              </p>
+              <p class="chamado-texto">{e.content}</p>
+            </li>
+          )
+        )}
+      </ol>
+    )}
+
+    {encerrado ? (
+      <p class="muted chamado-encerrado">Este chamado foi encerrado. Se precisar de mais ajuda, <a class="link" href="/suporte">abra um novo chamado</a>.</p>
+    ) : (
+      <form method="post" class="resposta-form">
+        <div class="field">
+          <label for="ch-mensagem">Nova mensagem<span class="obrigatorio">*</span></label>
+          <textarea id="ch-mensagem" name="mensagem" rows="4" required maxlength="5000" placeholder="Escreva sua resposta ou complemente o chamado."></textarea>
+        </div>
+        <div class="resposta-acoes">
+          <Button type="submit" variant="primary" data-carregando="Enviando…">Enviar mensagem</Button>
+        </div>
+      </form>
+    )}
+  </section>
+</AppLayout>
+
+<style>
+  .chamado-card {
+    max-width: 900px;
+    padding: 28px 32px;
+    background: var(--color-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+  }
+
+  .chamado-card + .chamado-card {
+    margin-top: 24px;
+  }
+
+  .chamado-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .chamado-assunto {
+    font-size: 18px;
+    color: var(--color-neutral-100);
+  }
+
+  .chamado-meta {
+    margin: 6px 0 16px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .chamado-texto {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-neutral-80);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .bloco-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-primary-text);
+  }
+
+  .conversa {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 0;
+    list-style: none;
+  }
+
+  .mensagem {
+    max-width: 85%;
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    background: var(--color-neutral-10);
+  }
+
+  .mensagem-cliente {
+    align-self: flex-end;
+    background: var(--color-primary-10);
+  }
+
+  .mensagem-autor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-neutral-80);
+  }
+
+  .mensagem-quando {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .conversa-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .resposta-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .resposta-acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .chamado-encerrado {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    .chamado-card {
+      padding: 20px 16px;
+    }
+
+    .mensagem {
+      max-width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,122 @@
+---
+// Suporte: chamados abertos pelo usuário nesta empresa. O helpdesk fica no Manager Hwesta (server/suporte.ts).
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import Table from '../../components/ui/Table.astro';
+import { handleFormPost } from '../../lib/actions';
+import { dataHora } from '../../lib/datas';
+import { html } from '../../lib/html';
+import { CATEGORIAS, PRIORIDADES, abrirChamado, chamadoSchema, listarChamados, type Categoria } from '../../server/suporte';
+
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const chamado = await abrirChamado(user, chamadoSchema.parse(data), {
+      url: typeof data.pagina === 'string' ? data.pagina.slice(0, 500) : null,
+      userAgent: Astro.request.headers.get('user-agent'),
+    });
+    return { message: 'Chamado aberto. Respondemos por aqui.', redirect: `/suporte/${chamado.id}` };
+  });
+}
+
+const { chamados, disponivel } = await listarChamados(user);
+
+const tableData = chamados.map((c) => ({
+  numero: `#${c.id}`,
+  assunto: html`<a class="link" href="/suporte/${c.id}">${c.subject}</a>`,
+  tipo: CATEGORIAS[c.category as Categoria] ?? c.category ?? '-',
+  status: html`<span class="tag ${c.status_is_final ? 'tag-off' : 'tag-ok'}">${c.status_name ?? 'Aberto'}</span>`,
+  atualizado: dataHora(c.updated_at),
+}));
+---
+
+<AppLayout title="Suporte" heading="Suporte">
+  <div class="suporte-topo">
+    <p class="muted">Dúvidas, problemas e sugestões: abra um chamado e acompanhe a resposta da nossa equipe por aqui.</p>
+    <Button icon="add_circle" data-drawer-open="drawer-chamado">Novo chamado</Button>
+  </div>
+
+  <Table
+    columns={[
+      { key: 'numero', label: 'Nº', width: '90px' },
+      { key: 'assunto', label: 'Assunto' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'status', label: 'Situação' },
+      { key: 'atualizado', label: 'Última atualização' },
+    ]}
+    data={tableData}
+  >
+    {disponivel ? (
+      <EstadoVazio slot="empty" icon="support_agent" titulo="Nenhum chamado aberto" texto="Quando precisar de ajuda, abra um chamado: a conversa com o suporte fica registrada aqui.">
+        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-chamado">Novo chamado</button>
+      </EstadoVazio>
+    ) : (
+      <EstadoVazio slot="empty" icon="cloud_off" titulo="Suporte indisponível no momento" texto="Não foi possível carregar os seus chamados. Tente novamente em instantes." />
+    )}
+  </Table>
+
+  <Drawer slot="overlays" id="drawer-chamado" formId="form-chamado" title="Novo chamado" width="md" deletable={false} saveLabel="Abrir chamado" saveLoadingLabel="Abrindo…">
+    <form id="form-chamado" method="post" class="form-grid">
+      <input type="hidden" name="pagina" data-reset />
+      <div class="field">
+        <label for="ch-categoria">Tipo<span class="obrigatorio">*</span></label>
+        <select id="ch-categoria" name="categoria" required>
+          {Object.entries(CATEGORIAS).map(([valor, rotulo]) => <option value={valor}>{rotulo}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="ch-prioridade">Prioridade<span class="obrigatorio">*</span></label>
+        <select id="ch-prioridade" name="prioridade" required>
+          {Object.entries(PRIORIDADES).map(([valor, rotulo]) => <option value={valor} selected={valor === 'medium'}>{rotulo}</option>)}
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="ch-assunto">Assunto<span class="obrigatorio">*</span></label>
+        <input id="ch-assunto" name="assunto" required maxlength="255" placeholder="Ex.: Não consigo gerar o PDF da proposta" />
+      </div>
+      <div class="field span-2">
+        <label for="ch-descricao">O que aconteceu?<span class="obrigatorio">*</span></label>
+        <textarea id="ch-descricao" name="descricao" rows="8" required maxlength="5000" placeholder="Conte o que você estava fazendo, o que esperava e o que apareceu na tela."></textarea>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<script>
+  // A página de onde o usuário veio ajuda o suporte a reproduzir o problema
+  document.getElementById('drawer-chamado')?.addEventListener('drawer:open', () => {
+    const campo = document.querySelector<HTMLInputElement>('#form-chamado input[name="pagina"]');
+    if (campo) campo.value = document.referrer || window.location.href;
+  });
+</script>
+
+<style>
+  .suporte-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .suporte-topo p {
+    max-width: 640px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .suporte-topo {
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .suporte-topo :global(.btn) {
+      width: 100%;
+    }
+  }
+</style>

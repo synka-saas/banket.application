@@ -75,7 +75,8 @@ src/
   lib/                 infraestrutura e funções puras (sem regra de domínio acoplada a página)
     db.ts              pools, withTenant / withSystem / tenantQuery / systemQuery
     auth.ts            JWT de sessão e de onboarding, papéis, cookies
-    membership.ts      confere vínculo usuário↔empresa a cada request (cache 30 s)
+    membership.ts      confere vínculo usuário↔empresa e o status da empresa a cada request (cache 30 s)
+    hwesta/            integração com o Manager Hwesta (HCP v1): núcleo genérico + adapter.ts do Banket
     printToken.ts      JWT de 5 min para o Chromium abrir /print/*
     tokens.ts          tokens aleatórios de uso único (só o SHA-256 vai ao banco)
     rateLimit.ts       limite por janela fixa em memória + IP real atrás do Nginx
@@ -345,6 +346,7 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `014_template_rodape_logo` | `rodape_logo_ativo` + `rodape_logo_posicao`; `rodape_logo_path` fica sem uso (remover num deploy futuro) |
 | `015_template_fundos_ia` | galeria `template_fundos_ia` (fundos gerados por IA, status gerando/pronto/erro) |
 | `016_fase4_ux` | `eventos.motivo_perda`/`fechado_em` (etapas recusado/aprovado), `evento_timeline.retorno_em` (anotações), `tenant_usuarios.ocultar_primeiros_passos` |
+| `017_hwesta_integracao` | `tenants.status`/`suspenso_em`/`suspenso_motivo` (kill-switch do Manager), `hwesta_entitlements` (snapshot do plano, RLS por tenant), `hwesta_events` (eventos recebidos, só conexão de sistema) |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -365,8 +367,8 @@ blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel us
 - Usuário com várias empresas troca a ativa por `POST /api/sessao/empresa` (reemite o JWT); lista em `empresasDoUsuario`.
 
 ### Middleware (`src/middleware.ts`)
-- Públicas: `/auth/*`, `/f/*`, `/api/public/*`, `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e
-  estáticos de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
+- Públicas: `/auth/*`, `/f/*`, `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/print/*` (exige print token),
+  `/_astro/*`, `/_image`, `/api/health` e estáticos de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
 - `/configuracoes*` e `/api/configuracoes*`: só `owner` e `admin` (403 / redirect para o dashboard).
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
@@ -415,7 +417,7 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 ## Funcionalidades (módulos e rotas)
 
 Navegação lateral (`components/Sidebar.astro`): Dashboard, Quadro de vendas, Cardápios, Clientes, Agenda, Formulários,
-Staff, Templates, Configurações (só admin).
+Staff, Templates, Configurações (só admin), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -604,6 +606,18 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
+### Integração com o Manager Hwesta (HCP v1) — detalhes em [INTEGRACAO_HWESTA.md](INTEGRACAO_HWESTA.md)
+- O Manager (`manager.hwesta.tech`) gerencia empresas, usuários, plano, suspensão e chamados **só por HTTP**, pelas
+  rotas `/api/hwesta/v1/*` (públicas no middleware; autenticadas por Bearer `HWESTA_MANAGER_KEY`).
+- `src/lib/hwesta/` é o núcleo genérico do protocolo (vem da skill `integrar-gestao`; não editar aqui). O que é do
+  Banket fica em `src/lib/hwesta/adapter.ts` (conexão de sistema) e nas `capabilities` que ele declara.
+- **Kill-switch**: `tenants.status` ≠ `active` → o middleware redireciona para `/conta-suspensa` (API: 403
+  `ACCOUNT_SUSPENDED`). O status vem em `getMembership`; ao mudá-lo, chame `invalidateTenant()`.
+- **Planos**: o catálogo é do Manager; aqui só o snapshot em `hwesta_entitlements`. Use `can()`/`limit()`/
+  `withinLimit()` de `lib/hwesta`. Empresa sem snapshot não sofre restrição; nenhum limite é aplicado hoje.
+- **Suporte** (`/suporte`, `server/suporte.ts`): chamados abertos no helpdesk do Manager; cada usuário vê os seus,
+  na empresa atual. Respostas chegam também como evento em `hwesta_events`.
+
 ---
 
 ## Padrões de código
@@ -646,6 +660,7 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 | `OPENAI_TOKEN` / `OPENAI_MODEL` / `OPENAI_IMAGE_MODEL` | IA do template: sugestões de fontes/cores (padrão `gpt-4.1-mini`) e imagens de fundo (padrão `gpt-image-2`) |
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
+| `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |
 
 ---
