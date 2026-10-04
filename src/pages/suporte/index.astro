@@ -25,18 +25,19 @@ if (Astro.request.method === 'POST') {
 const { chamados, disponivel } = await listarChamados(user);
 
 const tableData = chamados.map((c) => ({
-  numero: `#${c.id}`,
+  numero: html`<span class="chamado-numero">#${c.id}</span>`,
   assunto: html`<a class="link" href="/suporte/${c.id}">${c.subject}</a>`,
   tipo: CATEGORIAS[c.category as Categoria] ?? c.category ?? '-',
-  status: html`<span class="tag ${c.status_is_final ? 'tag-off' : 'tag-ok'}">${c.status_name ?? 'Aberto'}</span>`,
-  atualizado: dataHora(c.updated_at),
+  // Chamado em andamento: badge com acento; encerrado: neutro
+  status: html`<span class="badge ${c.status_is_final ? '' : 'badge-accent'}">${c.status_name ?? 'Aberto'}</span>`,
+  atualizado: html`<span class="tabular">${dataHora(c.updated_at)}</span>`,
 }));
 ---
 
 <AppLayout title="Suporte" heading="Suporte">
   <div class="suporte-topo">
-    <p class="muted">Dúvidas, problemas e sugestões: abra um chamado e acompanhe a resposta da nossa equipe por aqui.</p>
-    <Button icon="add_circle" data-drawer-open="drawer-chamado">Novo chamado</Button>
+    <p class="intro">Dúvidas, problemas e sugestões: abra um chamado e acompanhe a resposta da nossa equipe por aqui.</p>
+    <Button icon="circle-plus" data-drawer-open="drawer-chamado">Novo chamado</Button>
   </div>
 
   <Table
@@ -50,11 +51,11 @@ const tableData = chamados.map((c) => ({
     data={tableData}
   >
     {disponivel ? (
-      <EstadoVazio slot="empty" icon="support_agent" titulo="Nenhum chamado aberto" texto="Quando precisar de ajuda, abra um chamado: a conversa com o suporte fica registrada aqui.">
-        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-chamado">Novo chamado</button>
+      <EstadoVazio slot="empty" icon="headset" titulo="Nenhum chamado aberto" texto="Quando precisar de ajuda, abra um chamado: a conversa com o suporte fica registrada aqui.">
+        <Button icon="circle-plus" data-drawer-open="drawer-chamado">Novo chamado</Button>
       </EstadoVazio>
     ) : (
-      <EstadoVazio slot="empty" icon="cloud_off" titulo="Suporte indisponível no momento" texto="Não foi possível carregar os seus chamados. Tente novamente em instantes." />
+      <EstadoVazio slot="empty" icon="cloud-off" titulo="Suporte indisponível no momento" texto="Não foi possível carregar os seus chamados. Tente novamente em instantes." />
     )}
   </Table>
 
@@ -98,25 +99,32 @@ const tableData = chamados.map((c) => ({
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 28px;
+    gap: var(--space-3) var(--space-6);
+    margin-bottom: var(--space-5);
     flex-wrap: wrap;
   }
 
   .suporte-topo p {
+    flex: 1 1 320px;
     max-width: 640px;
-    font-size: 14px;
-    line-height: 1.5;
   }
 
   @media (max-width: 768px) {
     .suporte-topo {
-      gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: var(--space-4);
     }
 
     .suporte-topo :global(.btn) {
       width: 100%;
     }
+  }
+</style>
+
+<style is:global>
+  /* Número do chamado na tabela (o HTML da célula vem de lib/html, fora do escopo do componente) */
+  .chamado-numero {
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
   }
 </style>

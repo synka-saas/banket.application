@@ -70,10 +70,10 @@ if (Astro.request.method === 'POST') {
   <h1 class="auth-title">Faça login para continuar</h1>
 
   <form class="auth-form" method="post">
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
+    <Input id="email" name="email" type="email" label="E-mail" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
 
     <div class="campo-senha">
-      <Input id="senha" name="senha" type="password" label="SENHA" autocomplete="current-password" required />
+      <Input id="senha" name="senha" type="password" label="Senha" autocomplete="current-password" required />
       <a href="/auth/recuperacao" class="forgot-password">Esqueceu a senha?</a>
     </div>
 
@@ -81,9 +81,9 @@ if (Astro.request.method === 'POST') {
       <Checkbox id="manter" name="manter" checked label="Manter conectado neste dispositivo" />
     </div>
 
-    <Button variant="primary" size="large" type="submit">ENTRAR</Button>
+    <Button variant="primary" size="large" type="submit">Entrar</Button>
     <Button variant="secondary" size="large" href={`/auth/link-acesso${email ? `?email=${encodeURIComponent(email)}` : ''}`} class="link-acesso">
-      ENTRAR COM LINK DE ACESSO POR E-MAIL
+      Entrar com link de acesso por e-mail
     </Button>
   </form>
 
@@ -95,25 +95,28 @@ if (Astro.request.method === 'POST') {
 <style>
   .campo-senha {
     position: relative;
+    margin-bottom: var(--space-3);
+  }
+
+  .campo-senha :global(.input-group) {
+    margin-bottom: 0;
   }
 
   /* Abaixo do campo, sem sobrepor o rótulo (UX-046) */
   .forgot-password {
     display: block;
-    margin-top: 6px;
-    text-align: right;
-    font-size: 12px;
-    color: var(--color-text-muted);
+    width: fit-content;
+    margin: var(--space-1-5) 0 0 auto;
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-link);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .forgot-password:hover {
+    color: var(--text-link-hover);
     text-decoration: underline;
-  }
-
-  .manter {
-    margin-top: 4px;
-  }
-
-  .auth-form :global(.link-acesso) {
-    background-color: #fce8e6;
-    color: #333;
-    border: none;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
   }
 </style>

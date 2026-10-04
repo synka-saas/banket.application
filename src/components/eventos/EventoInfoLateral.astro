@@ -17,54 +17,62 @@ const verba =
   e.verba_total || e.verba_por_pessoa
     ? [e.verba_total ? formatMoney(e.verba_total) : null, e.verba_por_pessoa ? `${formatMoney(e.verba_por_pessoa)} por pessoa` : null]
         .filter(Boolean)
-        .join(' - ')
-    : '-';
+        .join(' · ')
+    : null;
 const restricoes = e.restricoes.map((r) => RESTRICOES_EVENTO[r as keyof typeof RESTRICOES_EVENTO] ?? r);
 ---
 
 <aside class="info-lateral">
-  <h3 class="bloco-titulo"><Icon name="engineering" size={18} /> Informações operacionais</h3>
+  <h3 class="bloco-titulo"><Icon name="clipboard-list" size={18} /> Informações operacionais</h3>
   <dl class="kv kv-2">
-    <div><dt>Convidados</dt><dd>{e.numero_convidados ? `${e.numero_convidados} pessoas` : '-'}</dd></div>
-    <div><dt>Perfil</dt><dd>{e.perfil_convidados ?? '-'}</dd></div>
+    <div><dt>Convidados</dt><dd>{e.numero_convidados ? `${e.numero_convidados} pessoas` : <span class="vazio">—</span>}</dd></div>
+    <div><dt>Perfil</dt><dd>{e.perfil_convidados ?? <span class="vazio">—</span>}</dd></div>
   </dl>
   <dl class="kv">
-    <div><dt>{ROTULOS.ocasiao}</dt><dd>{e.categoria_nome ?? '-'}</dd></div>
-    <div><dt>Data</dt><dd>{dataComDiaSemana(e.data_evento)}</dd></div>
-    <div><dt>{ROTULOS.verbaEstimada}</dt><dd>{verba}</dd></div>
+    <div><dt>{ROTULOS.ocasiao}</dt><dd>{e.categoria_nome ?? <span class="vazio">—</span>}</dd></div>
+    <div><dt>Data</dt><dd>{e.data_evento ? dataComDiaSemana(e.data_evento) : <span class="vazio">—</span>}</dd></div>
+    <div><dt>{ROTULOS.verbaEstimada}</dt><dd>{verba ?? <span class="vazio">—</span>}</dd></div>
     {e.formato_nome && <div><dt>{ROTULOS.formatoServico}</dt><dd>{e.formato_nome}</dd></div>}
   </dl>
 
-  <h3 class="bloco-titulo"><Icon name="chef_hat" size={18} /> {ROTULOS.estiloGastronomico}</h3>
+  <h3 class="bloco-titulo"><Icon name="chef-hat" size={18} /> {ROTULOS.estiloGastronomico}</h3>
   <dl class="kv">
-    <div><dt>Estilo principal</dt><dd>{e.estilo_principal ?? '-'}</dd></div>
-    <div><dt>Estilo secundário</dt><dd>{e.estilo_secundario ?? '-'}</dd></div>
+    <div><dt>Estilo principal</dt><dd>{e.estilo_principal ?? <span class="vazio">—</span>}</dd></div>
+    <div><dt>Estilo secundário</dt><dd>{e.estilo_secundario ?? <span class="vazio">—</span>}</dd></div>
   </dl>
 
-  <h3 class="bloco-titulo"><Icon name="local_bar" size={18} /> Bebidas</h3>
+  <h3 class="bloco-titulo"><Icon name="glass-full" size={18} /> Bebidas</h3>
   <dl class="kv">
-    <div><dt>Open bar alcoólico</dt><dd>{e.bebidas_alcoolicas ?? '-'}</dd></div>
-    <div><dt>Bebidas sem álcool</dt><dd>{e.bebidas_sem_alcool ?? '-'}</dd></div>
+    <div><dt>Open bar alcoólico</dt><dd>{e.bebidas_alcoolicas ?? <span class="vazio">—</span>}</dd></div>
+    <div><dt>Bebidas sem álcool</dt><dd>{e.bebidas_sem_alcool ?? <span class="vazio">—</span>}</dd></div>
   </dl>
 
-  <h3 class="bloco-titulo"><Icon name="allergies" size={18} /> Restrições alimentares</h3>
+  <h3 class="bloco-titulo"><Icon name="alert-triangle" size={18} /> Restrições alimentares</h3>
   {restricoes.length ? (
     <div class="chips-leitura">{restricoes.map((r) => <span class="chip-leitura">{r}</span>)}</div>
   ) : (
-    <p class="muted vazio">Nenhuma restrição informada</p>
+    <p class="muted sem-itens">Nenhuma restrição informada</p>
   )}
   <slot />
 </aside>
 
 <style>
+  /* Card do design system */
   .info-lateral {
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 28px 28px 32px;
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
-  .vazio {
-    font-size: 13px;
+  .sem-itens {
+    font-size: var(--fs-13);
+  }
+
+  @media (max-width: 768px) {
+    .info-lateral {
+      padding: var(--space-4);
+    }
   }
 </style>

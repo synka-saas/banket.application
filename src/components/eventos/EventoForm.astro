@@ -53,12 +53,12 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
       )}
     </div>
     <div class="form-acoes">
-      <Button variant="outline" href={cancelarHref}>Cancelar</Button>
+      <Button variant="secondary" href={cancelarHref}>Cancelar</Button>
       <Button type="submit" variant="primary" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
     </div>
   </div>
 
-  <SectionCard title="Cliente" icon="account_box">
+  <SectionCard title="Cliente" icon="user-square">
     <input type="hidden" name="cliente_novo" value={clienteNovo ? '1' : '0'} data-cliente-novo />
     <div class="form-grid" data-cliente-existente hidden={clienteNovo}>
       <div class="field span-2">
@@ -96,7 +96,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         />
       </div>
       <div class="field span-2">
-        <label for="cn-nome">Nome / Razão social<span class="obrigatorio">*</span></label>
+        <label for="cn-nome">Nome / razão social<span class="obrigatorio">*</span></label>
         <input id="cn-nome" name="cliente_nome" value={texto('cliente_nome')} maxlength="255" />
       </div>
       <div class="field">
@@ -113,7 +113,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Detalhes do evento" icon="calendar_today">
+  <SectionCard title="Detalhes do evento" icon="calendar">
     <div class="form-grid cols-3">
       <div class="field span-3">
         <label for="ev-titulo">Título do evento</label>
@@ -183,7 +183,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Responsável" icon="account_circle">
+  <SectionCard title="Responsável" icon="user-circle">
     <div class="form-grid cols-3">
       <div class="field">
         <label for="ev-rn">Nome</label>
@@ -214,13 +214,13 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Logística e infraestrutura" icon="domain">
+  <SectionCard title="Logística e infraestrutura" icon="building">
     <div class="form-grid">
       <div class="field">
         <span class="field-label">Local</span>
-        <div class="radios">
-          <label><input type="radio" name="local_tipo" value="casa" checked={v.local_tipo !== 'externo'} /> No nosso espaço</label>
-          <label><input type="radio" name="local_tipo" value="externo" checked={v.local_tipo === 'externo'} /> Local externo (empresa, residência ou espaço alugado)</label>
+        <div class="chip-group radios">
+          <label class="chip"><input type="radio" name="local_tipo" value="casa" checked={v.local_tipo !== 'externo'} />No nosso espaço</label>
+          <label class="chip"><input type="radio" name="local_tipo" value="externo" checked={v.local_tipo === 'externo'} />Local externo (empresa, residência ou espaço alugado)</label>
         </div>
       </div>
       <div class="field">
@@ -238,7 +238,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Orçamento e pagamento" icon="room_service">
+  <SectionCard title="Orçamento e pagamento" icon="coin">
     <div class="form-grid cols-3">
       <div class="field">
         <label for="ev-verba">Estimativa de verba total (R$)</label>
@@ -255,7 +255,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Estilo gastronômico e bebidas" icon="chef_hat">
+  <SectionCard title="Estilo gastronômico e bebidas" icon="chef-hat">
     <div class="form-grid">
       <div class="field">
         <label for="ev-ep">Estilo principal</label>
@@ -284,7 +284,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     </div>
   </SectionCard>
 
-  <SectionCard title="Compliance, staff de terceiros e comentários" icon="description">
+  <SectionCard title="Compliance, staff de terceiros e comentários" icon="file-text">
     <div class="form-grid">
       <div class="field span-2">
         <span class="field-label">Requisitos de compliance</span>
@@ -309,7 +309,7 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
   </SectionCard>
 
   <div class="form-rodape">
-    <Button variant="outline" href={cancelarHref}>Cancelar</Button>
+    <Button variant="secondary" href={cancelarHref}>Cancelar</Button>
     <Button type="submit" variant="primary" data-carregando="Salvando…">{modo === 'criar' ? 'Criar evento' : 'Salvar alterações'}</Button>
   </div>
 </form>
@@ -425,28 +425,24 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   .form-acoes,
   .form-rodape {
     display: flex;
-    gap: 12px;
+    gap: var(--space-2);
     justify-content: flex-end;
   }
 
   .form-rodape {
-    margin-top: 24px;
+    margin-top: var(--space-6);
   }
 
+  /* Cores e borda vêm do .form-erro global (erro = vinho); aqui só o encaixe na barra do topo */
   .form-erro {
-    padding: 12px 16px;
-    border-radius: var(--border-radius-sm);
-    background: var(--color-primary-10);
-    color: var(--color-primary-60);
-    font-size: 14px;
-    font-weight: 600;
+    margin: 0;
   }
 
   .cols-3 {
@@ -457,27 +453,33 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
     grid-column: 1 / -1;
   }
 
-  .radios {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 14px;
+  /* Opção longa ("Local externo…") pode quebrar linha dentro do chip */
+  .radios .chip {
+    min-height: var(--control-h-sm);
+    height: auto;
+    padding-block: var(--space-1-5);
+    line-height: 1.35;
   }
 
-  .radios input {
-    accent-color: var(--color-primary);
-    margin-right: 6px;
-  }
-
+  /* Link de apoio em forma de botão (alternar entre cliente existente e novo) */
   .ed-link {
     align-self: flex-start;
     border: none;
+    border-radius: var(--radius-xs);
     background: none;
     padding: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-primary-text);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-link);
     cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .ed-link:hover {
+    color: var(--text-link-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
   }
 
   [hidden] {
@@ -487,6 +489,15 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
   @media (max-width: 768px) {
     .cols-3 {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Com erro, a mensagem ocupa a linha inteira e as ações descem */
+    .form-topo {
+      flex-wrap: wrap;
+    }
+
+    .form-acoes {
+      margin-left: auto;
     }
   }
 </style>

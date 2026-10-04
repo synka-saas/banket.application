@@ -2,7 +2,6 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import Table from '../../components/ui/Table.astro';
-import PageToolbar from '../../components/ui/PageToolbar.astro';
 import Drawer from '../../components/ui/Drawer.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
 import { withTenant } from '../../lib/db';
@@ -51,33 +50,35 @@ const opcoesIntervalo = [
 const tableData = status.map((s) => ({
   _id: s.id,
   _nome: s.nome,
-  nome: html`<span class="status-name"><span class="dot" style="background:${s.cor ?? '#888888'}"></span>${s.nome}</span>`,
-  variante: VARIANTES_STATUS[s.variante],
+  // A cor da etapa vem do banco; sem cor, usa a de etapa de entrada do design system
+  nome: html`<span class="status-name"><span class="dot" style="background:${s.cor ?? 'var(--stage-new)'}"></span>${s.nome}</span>`,
+  variante: html`<span class="muted">${VARIANTES_STATUS[s.variante]}</span>`,
   eventos: s.eventos,
   acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-status" data-values="${JSON.stringify({
     id: s.id,
     nome: s.nome,
     variante: s.variante,
-    cor: s.cor ?? '#888888',
+    // <input type="color"> só aceita hexadecimal: o valor é dado (cor da etapa), não estilo
+    cor: s.cor ?? '#B0A194',
   })}">Editar</button>`,
 }));
 ---
 
 <AppLayout title={ROTULOS.etapas} heading={`Configurações / ${ROTULOS.etapas}`} submenu={CONFIG_SUBMENU} submenuActive="status">
-  <PageToolbar showSearch={false}>
-    <Button icon="add_circle" data-drawer-open="drawer-status">Nova etapa</Button>
-  </PageToolbar>
-
-  <p class="intro">
-    Cada etapa é uma coluna do <strong>{ROTULOS.funil}</strong>, na ordem abaixo. A função define como a etapa entra nas
-    métricas: novos pedidos (formulário ou cadastro) caem na primeira etapa de <em>entrada</em>.
-  </p>
+  <!-- Sem busca: o texto de apoio ocupa a esquerda da barra e a ação fica à direita -->
+  <div class="topo">
+    <p class="intro">
+      Cada etapa é uma coluna do <strong>{ROTULOS.funil}</strong>, na ordem abaixo. A função define como a etapa entra nas
+      métricas: novos pedidos (formulário ou cadastro) caem na primeira etapa de <em>entrada</em>.
+    </p>
+    <Button icon="circle-plus" data-drawer-open="drawer-status">Nova etapa</Button>
+  </div>
 
   <Table
     columns={[
       { key: 'nome', label: 'Nome' },
       { key: 'variante', label: 'Função' },
-      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'eventos', label: 'Eventos', align: 'right' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
@@ -85,22 +86,23 @@ const tableData = status.map((s) => ({
   />
 
   <div class="intervalo-bloco">
-  <SectionCard title="Intervalo de trabalho do funil" icon="date_range" id="intervalo-kanban">
+  <SectionCard
+    title="Intervalo de trabalho do funil"
+    icon="calendar"
+    id="intervalo-kanban"
+    description={`O ${ROTULOS.funil} mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.`}
+  >
     <form method="post" class="intervalo-form">
       <input type="hidden" name="_action" value="intervalo" />
-      <p class="intervalo-ajuda">
-        O {ROTULOS.funil} mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre
-        aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.
-      </p>
-      <div class="intervalo-opcoes" role="radiogroup" aria-label="Intervalo de trabalho">
-        {opcoesIntervalo.map((o) => (
-          <label class="intervalo-opcao">
-            <input type="radio" name="kanban_intervalo_meses" value={o.valor} checked={String(intervaloKanban ?? '') === o.valor} />
-            <span>{o.rotulo}</span>
-          </label>
-        ))}
-      </div>
-      <div>
+      <div class="intervalo-linha">
+        <div class="intervalo-opcoes" role="radiogroup" aria-label="Intervalo de trabalho">
+          {opcoesIntervalo.map((o) => (
+            <label class="intervalo-opcao">
+              <input type="radio" name="kanban_intervalo_meses" value={o.valor} checked={String(intervaloKanban ?? '') === o.valor} />
+              <span>{o.rotulo}</span>
+            </label>
+          ))}
+        </div>
         <Button type="submit" variant="primary">Salvar intervalo</Button>
       </div>
     </form>
@@ -130,88 +132,160 @@ const tableData = status.map((s) => ({
       </div>
       <div class="field">
         <label for="st-cor">Cor</label>
-        <input id="st-cor" name="cor" type="color" value="#888888" class="color-input" />
+        <input id="st-cor" name="cor" type="color" value="#B0A194" class="color-input" />
       </div>
     </form>
   </Drawer>
 </AppLayout>
 
 <style>
-  .intro {
-    margin: -8px 0 20px;
-    color: var(--color-neutral-65);
-    font-size: 13px;
-    max-width: 760px;
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .topo :global(.btn) {
+    flex: none;
+  }
+
+  :global(.data-table tbody td[data-key='nome']) {
+    color: var(--text-heading);
   }
 
   .intervalo-bloco {
-    margin-top: 32px;
-    max-width: 760px;
+    margin-top: var(--space-5);
+    max-width: 720px;
   }
 
   .intervalo-form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
-  .intervalo-ajuda {
-    font-size: 13px;
-    color: var(--color-neutral-65);
+
+  .intervalo-linha {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
 
+  /* Controle segmentado de destaque (SegmentedControl accent + lg do design system) sobre rádios nativos */
   .intervalo-opcoes {
-    display: inline-grid;
-    grid-template-columns: repeat(4, minmax(110px, 1fr));
-    align-self: flex-start;
-    border: 1px solid var(--color-neutral-40);
-    border-radius: var(--border-radius-sm);
-    overflow: hidden;
+    display: inline-flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 3px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
   }
 
   .intervalo-opcao {
     position: relative;
+    display: inline-flex;
     cursor: pointer;
-  }
-
-  .intervalo-opcao + .intervalo-opcao {
-    border-left: 1px solid var(--color-neutral-40);
   }
 
   .intervalo-opcao input {
     position: absolute;
     inset: 0;
+    margin: 0;
     opacity: 0;
     cursor: pointer;
   }
 
   .intervalo-opcao span {
-    display: block;
-    padding: 9px 12px;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    color: var(--color-neutral-80);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 var(--space-4);
+    border-radius: calc(var(--radius-md) - 3px);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
   }
 
   .intervalo-opcao:hover span {
-    background: var(--color-neutral-20);
+    color: var(--text-strong);
   }
 
   .intervalo-opcao input:checked + span {
-    background: var(--color-primary);
-    color: var(--color-white);
+    background: var(--action-primary);
+    color: var(--text-on-accent);
+    box-shadow: var(--shadow-xs);
   }
 
   .intervalo-opcao input:focus-visible + span {
-    outline: 2px solid var(--color-primary-50);
-    outline-offset: -2px;
+    box-shadow: var(--focus-ring-forte);
   }
 
-
+  /* Amostra de cor (ColorInput do design system): 40px, borda forte, raio 8 */
   .color-input {
-    padding: 4px !important;
-    height: 40px;
+    width: 64px;
+    height: var(--control-h-md);
+    padding: 3px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xs);
     cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .color-input:hover {
+    border-color: var(--clay-400);
+  }
+
+  .color-input:focus-visible {
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
+  }
+
+  .color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .color-input::-webkit-color-swatch {
+    border: 0;
+    border-radius: var(--radius-xs);
+  }
+
+  .color-input::-moz-color-swatch {
+    border: 0;
+    border-radius: var(--radius-xs);
+  }
+
+  @media (max-width: 768px) {
+    .topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .intervalo-opcoes {
+      display: flex;
+      width: 100%;
+    }
+
+    .intervalo-opcao {
+      flex: 1;
+    }
+
+    .intervalo-opcao span {
+      width: 100%;
+      padding: 0 var(--space-2);
+    }
+
+    .intervalo-linha :global(.btn) {
+      width: 100%;
+    }
   }
 </style>

@@ -13,7 +13,7 @@ test.describe('Eventos e quadro de vendas', () => {
     // Criação com erro de validação preserva o que foi digitado
     await page.goto('/eventos/novo');
     await page.getByRole('button', { name: '+ Cadastrar novo cliente' }).click();
-    await page.getByLabel('Nome / Razão social*').fill(cliente);
+    await page.getByLabel('Nome / razão social*').fill(cliente);
     await page.getByLabel('Convidados', { exact: true }).fill('120');
     await page.getByLabel('Início').fill('20:00');
     await page.getByLabel('Término').fill('19:00');
@@ -24,7 +24,7 @@ test.describe('Eventos e quadro de vendas', () => {
     await expect(page.locator('#erro-form-evento-hora_fim')).toHaveText('O horário de término deve ser depois do início.');
     await expect(page.locator('#erro-form-evento-cliente_documento')).toHaveText('CPF/CNPJ inválido.');
     await expect(page.getByLabel('Término')).toHaveAttribute('aria-invalid', 'true');
-    await expect(page.getByLabel('Nome / Razão social*')).toHaveValue(cliente);
+    await expect(page.getByLabel('Nome / razão social*')).toHaveValue(cliente);
     await expect(page.getByLabel('Convidados', { exact: true })).toHaveValue('120');
 
     // Corrige e cria (corrigir o campo tira o destaque)

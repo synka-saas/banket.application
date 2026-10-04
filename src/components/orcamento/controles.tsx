@@ -73,7 +73,7 @@ export function ValorManual(props: {
       />
       {ajustado && !props.disabled && (
         <button type="button" class="restaurar" title="Voltar ao valor calculado" aria-label={`Voltar ${props.label} ao valor calculado`} onClick={() => props.onChange(null)}>
-          <Icon name="undo" size={16} />
+          <Icon name="arrow-back-up" size={16} />
         </button>
       )}
     </span>
@@ -114,16 +114,16 @@ export function Numero(props: {
   );
 }
 
-/** Seção recolhível no estilo dos frames (ícone laranja + título + botão circular). */
+/** Seção recolhível: card do design system (ícone em quadro terracota claro, título, resumo e seta que gira ao abrir). */
 export function Acordeao(props: { titulo: string; icone?: string; resumo?: string; aberto?: boolean; children: ComponentChildren }) {
   const [aberto, setAberto] = useState(props.aberto ?? true);
   return (
     <section class={`acordeao ${aberto ? 'aberto' : ''}`}>
       <button type="button" class="acordeao-cabecalho" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
-        <Icon name={props.icone ?? 'expand_circle_right'} size={18} class="acordeao-icone" />
+        <Icon name={props.icone ?? 'chevron-right'} size={18} class="acordeao-icone" />
         <span class="acordeao-titulo">{props.titulo}</span>
         {props.resumo && <span class="acordeao-resumo">{props.resumo}</span>}
-        <Icon name="expand_circle_down" size={22} class="acordeao-seta" />
+        <Icon name="chevron-down" size={18} class="acordeao-seta" />
       </button>
       {aberto && <div class="acordeao-corpo">{props.children}</div>}
     </section>
@@ -216,7 +216,7 @@ export function AdicionarBusca(props: {
         disabled={props.disabled}
         onClick={() => (aberto ? fechar() : setAberto(true))}
       >
-        <Icon name="add_circle" size={18} /> {props.rotulo} <Icon name="expand_more" size={18} />
+        <Icon name="circle-plus" size={18} /> {props.rotulo} <Icon name="chevron-down" size={18} />
       </button>
       {aberto && (
         <div class="adicionar-painel">

@@ -8,11 +8,11 @@ interface Props {
   texto?: string;
 }
 
-const { icon = 'inbox', titulo, texto } = Astro.props;
+const { icon = 'info-circle', titulo, texto } = Astro.props;
 ---
 
 <div class="estado-vazio">
-  <span class="estado-vazio-icone"><Icon name={icon} size={28} /></span>
+  <span class="estado-vazio-icone"><Icon name={icon} size={26} /></span>
   <p class="estado-vazio-titulo">{titulo}</p>
   {texto && <p class="estado-vazio-texto">{texto}</p>}
   {Astro.slots.has('default') && <div class="estado-vazio-acoes"><slot /></div>}
@@ -23,8 +23,10 @@ const { icon = 'inbox', titulo, texto } = Astro.props;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 40px 24px;
+    gap: var(--space-2);
+    max-width: 440px;
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-6);
     text-align: center;
   }
 
@@ -34,31 +36,31 @@ const { icon = 'inbox', titulo, texto } = Astro.props;
     justify-content: center;
     width: 56px;
     height: 56px;
-    border-radius: 50%;
-    background: var(--color-primary-10);
-    color: var(--color-primary-text);
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-xl);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
   }
 
   .estado-vazio-titulo {
-    margin: 4px 0 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--color-neutral-80);
+    margin: 0;
+    font-size: var(--fs-16);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .estado-vazio-texto {
-    max-width: 480px;
     margin: 0;
-    font-size: 14px;
+    font-size: var(--fs-14);
     line-height: 1.5;
-    color: var(--color-text-muted);
+    color: var(--text-secondary);
   }
 
   .estado-vazio-acoes {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
-    margin-top: 8px;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
   }
 </style>

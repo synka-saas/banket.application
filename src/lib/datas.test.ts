@@ -4,8 +4,8 @@ import { dataComDiaSemana, dataCurta, faixaHorario, horasTexto, somarMeses } fro
 describe('datas', () => {
   it('formata datas sem sofrer com fuso horário', () => {
     expect(dataCurta('2027-12-21')).toBe('21/12/2027');
-    expect(dataComDiaSemana('2027-12-21')).toBe('21/12/2027 - Terça-feira');
-    expect(dataComDiaSemana('2026-01-01')).toBe('01/01/2026 - Quinta-feira');
+    expect(dataComDiaSemana('2027-12-21')).toBe('21/12/2027 · Terça-feira');
+    expect(dataComDiaSemana('2026-01-01')).toBe('01/01/2026 · Quinta-feira');
     expect(dataCurta(null)).toBe('-');
   });
 

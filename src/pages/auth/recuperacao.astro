@@ -30,11 +30,11 @@ if (Astro.request.method === 'POST') {
   </p>
 
   <form class="auth-form" method="post">
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" autocomplete="email" required />
-    <Button variant="primary" size="large" type="submit">ENVIAR</Button>
+    <Input id="email" name="email" type="email" label="E-mail" placeholder="seu@email.com.br" autocomplete="email" required />
+    <Button variant="primary" size="large" type="submit">Enviar</Button>
   </form>
 
   <div class="auth-links">
-    <a href="/auth/login" style="font-weight: normal; color: var(--color-text-muted);">Lembrou a senha? Faça o login.</a>
+    Lembrou a senha? <a href="/auth/login">Faça o login.</a>
   </div>
 </AuthLayout>

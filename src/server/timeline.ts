@@ -18,16 +18,16 @@ export type TipoTimeline =
   | 'anotacao';
 
 export const ICONES_TIMELINE: Record<string, string> = {
-  criado: 'add_circle',
-  editado: 'edit',
-  status: 'view_kanban',
+  criado: 'circle-plus',
+  editado: 'pencil',
+  status: 'layout-kanban',
   checklist: 'check',
-  orcamento_criado: 'description',
-  orcamento_versao: 'layers',
-  pdf_gerado: 'description',
+  orcamento_criado: 'file-dollar',
+  orcamento_versao: 'history',
+  pdf_gerado: 'file-text',
   email_enviado: 'send',
-  formulario: 'layers',
-  anotacao: 'edit_note',
+  formulario: 'stack-2',
+  anotacao: 'edit',
 };
 
 export const TIPOS_ANOTACAO = {

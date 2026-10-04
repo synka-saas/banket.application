@@ -1,14 +1,33 @@
 ---
-// Ícone padrão do sistema: Google Material Symbols (Outlined), fonte carregada em global.css.
-// `name` é o nome do ícone em https://fonts.google.com/icons (ex.: "add_circle", "expand_more").
+// Ícone padrão do sistema: Tabler Icons (outline), desenhado em linha a partir de lib/icones.ts.
+// `name` é o nome do ícone em https://tabler.io/icons (ex.: "circle-plus", "chevron-down").
+// O tamanho vai em font-size (o SVG mede 1em), então o CSS de quem usa pode redimensionar pelo font-size.
 import type { HTMLAttributes } from 'astro/types';
+import { ICONES, tracoIcone } from '../../lib/icones';
 
-type Props = HTMLAttributes<'span'> & {
+type Props = Omit<HTMLAttributes<'svg'>, 'name' | 'stroke'> & {
   name: string;
   size?: number;
+  /** Espessura do traço; padrão 1.5 (1.75 até 16px) */
+  stroke?: number;
 };
 
-const { name, size = 20, class: className, ...rest } = Astro.props;
+const { name, size = 18, stroke, class: className, ...rest } = Astro.props;
+if (import.meta.env.DEV && !ICONES[name]) console.warn(`[Icon] ícone desconhecido: ${name}`);
 ---
 
-<span class:list={['icon', className]} style={`font-size: ${size}px`} aria-hidden="true" translate="no" {...rest}>{name}</span>
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  class:list={['icon', className]}
+  data-icone={name}
+  style={`font-size: ${size}px`}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={stroke ?? tracoIcone(size)}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  {...rest}
+  set:html={ICONES[name] ?? ''}
+/>

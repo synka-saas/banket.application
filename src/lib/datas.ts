@@ -14,12 +14,12 @@ export function dataCurta(iso: string | null | undefined): string {
   return p ? `${String(p[2]).padStart(2, '0')}/${String(p[1]).padStart(2, '0')}/${p[0]}` : '-';
 }
 
-/** "2027-12-21" → "21/12/2027 - Terça-feira" */
+/** "2027-12-21" → "21/12/2027 · Terça-feira" */
 export function dataComDiaSemana(iso: string | null | undefined): string {
   const p = partes(iso);
   if (!p) return '-';
   const dia = new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
-  return `${dataCurta(iso)} - ${DIAS[dia]}`;
+  return `${dataCurta(iso)} · ${DIAS[dia]}`;
 }
 
 /** "2027-12-21" → "21 dez 2027" */

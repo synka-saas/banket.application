@@ -25,7 +25,7 @@ const modeloHref = `data:text/csv;charset=utf-8,${encodeURIComponent(`﻿${model
   {resultado && (
     <section class="resultado">
       <h3>
-        <Icon name={resultado.erros.length === 0 ? 'check_circle' : 'error'} size={22} />
+        <Icon name={resultado.erros.length === 0 ? 'circle-check' : 'alert-circle'} size={22} />
         {resultado.importados} de {resultado.total} {resultado.total === 1 ? 'linha importada' : 'linhas importadas'}
       </h3>
       {resultado.erros.length > 0 && (
@@ -48,7 +48,7 @@ const modeloHref = `data:text/csv;charset=utf-8,${encodeURIComponent(`﻿${model
     <h3><span class="passo-n">1</span> Baixe o modelo e preencha</h3>
     <p class="muted">Uma linha por registro, com o cabeçalho: <code>{colunas}</code>. Pode salvar direto do Excel (CSV separado por ponto e vírgula).</p>
     <a class="btn btn-outline btn-md" href={modeloHref} download={modeloNome}>
-      <Icon name="download" size={18} /> Baixar modelo CSV
+      <Icon name="download" size={16} /> Baixar modelo CSV
     </a>
   </section>
 
@@ -66,66 +66,104 @@ const modeloHref = `data:text/csv;charset=utf-8,${encodeURIComponent(`﻿${model
   .importar {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-5);
     max-width: 760px;
   }
 
   .passo,
   .resultado {
-    padding: 24px 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    padding: var(--space-5) var(--space-6) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .passo h3,
   .resultado h3 {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-15);
+  }
+
+  .resultado h3 :global(.icon) {
+    color: var(--terracotta-600);
   }
 
   .passo-n {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--color-primary-10);
-    color: var(--color-primary-text);
-    font-size: 14px;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background: var(--terracotta-500);
+    color: var(--text-on-accent);
+    font-size: var(--fs-13);
+    font-variant-numeric: tabular-nums;
   }
 
   .passo code {
-    background: var(--color-neutral-10);
+    background: var(--bg-subtle);
     padding: 1px 6px;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
   }
 
   .passo p {
-    margin-bottom: 14px;
+    margin-bottom: var(--space-4);
   }
 
   .envio {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    margin: 10px 0 8px;
+    gap: var(--space-3);
+    margin: var(--space-3) 0 var(--space-2);
+  }
+
+  /* Seletor de arquivo nativo com o botão no padrão secundário */
+  .envio input[type='file'] {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .envio input[type='file']::file-selector-button {
+    height: var(--control-h-md);
+    margin-right: var(--space-3);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--action-secondary-bg);
+    box-shadow: var(--shadow-xs);
+    font: inherit;
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .envio input[type='file']::file-selector-button:hover {
+    background: var(--action-secondary-hover);
+    border-color: var(--clay-400);
   }
 
   .resultado .erros {
-    margin: 10px 0 16px;
+    margin: var(--space-3) 0 var(--space-4);
     padding-left: 20px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
+    gap: var(--space-1);
+    font-size: var(--fs-14);
     max-height: 300px;
     overflow-y: auto;
+    list-style: disc;
   }
 
   .resultado-acoes {

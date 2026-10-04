@@ -1,12 +1,14 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import Icon from '../../components/ui/Icon.astro';
 import InfoCard from '../../components/ui/InfoCard.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
 import { withTenant } from '../../lib/db';
 import { handleFormPost } from '../../lib/actions';
 import { dataBR } from '../../lib/forms';
-import { searchTerm } from '../../lib/pagination';
+import { estaFiltrando, searchTerm } from '../../lib/pagination';
 import { criarFormulario, listarFormularios } from '../../server/formularios';
 
 const { tenantId } = Astro.locals.user;
@@ -26,7 +28,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 <AppLayout title="Formulários" heading="Formulários">
   <PageToolbar searchPlaceholder="Pesquisar por nome ou endereço">
-    <Button icon="add_circle" data-abrir-novo>Novo formulário</Button>
+    <Button icon="circle-plus" data-abrir-novo>Novo formulário</Button>
   </PageToolbar>
 
   <dialog class="dialogo-form" data-dialogo-novo aria-labelledby="novo-form-titulo">
@@ -38,47 +40,61 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <span class="field-hint">Ele nasce com o modelo padrão de captação; ajuste as perguntas em seguida.</span>
       </div>
       <div class="dialogo-acoes">
-        <button type="button" class="btn btn-outline btn-md" data-fechar-novo>Voltar</button>
+        <button type="button" class="btn btn-secondary btn-md" data-fechar-novo>Voltar</button>
         <button type="submit" class="btn btn-primary btn-md" data-carregando="Criando…">Criar formulário</button>
       </div>
     </form>
   </dialog>
 
   {formularios.length === 0 ? (
-    <div class="empty">Nenhum formulário encontrado. Crie um a partir do modelo padrão de captação.</div>
+    <div class="vazio-card">
+      <EstadoVazio icon="stack-2" titulo="Nenhum formulário encontrado" texto="Crie um a partir do modelo padrão de captação.">
+        {estaFiltrando(Astro.url) && <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>}
+      </EstadoVazio>
+    </div>
   ) : (
-    <div class="cards-grid">
-      {formularios.map((f) => (
-        <InfoCard
-          title={f.nome}
-          icon="layers"
-          muted={!f.ativo}
-          rows={[
-            { label: 'Seções ativas', value: pad(f.secoes_ativas) },
-            { label: 'Perguntas ativas', value: pad(f.perguntas_ativas) },
-            { label: 'Respostas', value: pad(f.respostas) },
-            { label: 'Última resposta', value: dataBR(f.ultima_resposta) },
-          ]}
-          tags={[f.ativo ? 'Ativo' : 'Inativo']}
-        >
-          <p slot="subtitle" class="descricao">{f.descricao ?? 'Sem descrição.'}</p>
-          <div class="link-publico">
-            <span class="link-url" title={`${Astro.url.origin}/f/${f.slug}`}>{Astro.url.origin}/f/{f.slug}</span>
-            <button type="button" class="row-action" data-copiar={`${Astro.url.origin}/f/${f.slug}`}>Copiar link</button>
-            <button type="button" class="row-action" data-compartilhar={`${Astro.url.origin}/f/${f.slug}`} data-nome={f.nome}>
-              Compartilhar
-            </button>
-          </div>
-          <div slot="footer" class="acoes">
-            <Button block href={`/formularios/${f.id}`}>Editar</Button>
-            <div class="acoes-secundarias">
-              <a class="link" href={`/formularios/${f.id}/respostas`}>Respostas</a>
-              <a class="link" href={`/f/${f.slug}?previa=1`} target="_blank" rel="noopener">Pré-visualizar</a>
-              {f.ativo && <a class="link" href={`/f/${f.slug}`} target="_blank" rel="noopener">Abrir formulário</a>}
+    <div class="cards-grid formularios-grid">
+      {formularios.map((f) => {
+        const url = `${Astro.url.origin}/f/${f.slug}`;
+        return (
+          <InfoCard
+            title={f.nome}
+            icon="stack-2"
+            description={f.descricao ?? 'Sem descrição.'}
+            muted={!f.ativo}
+            rows={[
+              { label: 'Seções ativas', value: pad(f.secoes_ativas) },
+              { label: 'Perguntas ativas', value: pad(f.perguntas_ativas) },
+              { label: 'Respostas', value: pad(f.respostas) },
+              { label: 'Última resposta', value: f.ultima_resposta ? dataBR(f.ultima_resposta) : '—' },
+            ]}
+          >
+            <span slot="status" class:list={['badge', { 'badge-success': f.ativo }]}>{f.ativo ? 'Ativo' : 'Inativo'}</span>
+            <div class="link-publico">
+              <span class="link-icone"><Icon name="link" size={16} stroke={1.75} /></span>
+              <span class="link-url" title={url}>{url}</span>
+              <span class="link-acoes">
+                <Button variant="text" size="sm" icon="copy" data-copiar={url}>Copiar link</Button>
+                <Button variant="text" size="sm" icon="share" data-compartilhar={url} data-nome={f.nome}>Compartilhar</Button>
+              </span>
             </div>
-          </div>
-        </InfoCard>
-      ))}
+            <Fragment slot="footer">
+              <Button variant="secondary" block href={`/formularios/${f.id}`}>Editar</Button>
+              <div class="acoes-secundarias">
+                <Button variant="text" size="sm" href={`/formularios/${f.id}/respostas`}>Respostas</Button>
+                <a class="btn btn-text btn-sm" href={`/f/${f.slug}?previa=1`} target="_blank" rel="noopener">
+                  <Icon name="eye" size={15} stroke={1.75} class="btn-icon" />Pré-visualizar
+                </a>
+                {f.ativo && (
+                  <a class="btn btn-text btn-sm" href={`/f/${f.slug}`} target="_blank" rel="noopener">
+                    <Icon name="external-link" size={15} stroke={1.75} class="btn-icon" />Abrir formulário
+                  </a>
+                )}
+              </div>
+            </Fragment>
+          </InfoCard>
+        );
+      })}
     </div>
   )}
   <dialog class="dialogo-form dialogo-compartilhar" data-dialogo-compartilhar aria-labelledby="comp-titulo">
@@ -88,21 +104,21 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <label for="comp-url">Link público</label>
         <div class="linha-copiar">
           <input id="comp-url" readonly data-comp-url />
-          <button type="button" class="btn btn-outline btn-md" data-copiar-de="comp-url">Copiar</button>
+          <button type="button" class="btn btn-secondary btn-md" data-copiar-de="comp-url"><Icon name="copy" size={16} stroke={1.75} class="btn-icon" />Copiar</button>
         </div>
       </div>
       <div class="comp-qr">
         <canvas data-comp-qr width="180" height="180" aria-label="QR code do formulário"></canvas>
         <div class="comp-qr-acoes">
-          <a class="btn btn-outline btn-md" data-comp-whatsapp target="_blank" rel="noopener">Enviar no WhatsApp</a>
-          <a class="btn btn-outline btn-md" data-comp-baixar-qr download="qr-formulario.png">Baixar QR code</a>
+          <a class="btn btn-secondary btn-md" data-comp-whatsapp target="_blank" rel="noopener"><Icon name="brand-whatsapp" size={16} stroke={1.75} class="btn-icon" />Enviar no WhatsApp</a>
+          <a class="btn btn-secondary btn-md" data-comp-baixar-qr download="qr-formulario.png"><Icon name="download" size={16} stroke={1.75} class="btn-icon" />Baixar QR code</a>
         </div>
       </div>
       <div class="field">
         <label for="comp-iframe">Incorporar no seu site</label>
         <div class="linha-copiar">
-          <textarea id="comp-iframe" readonly rows="3" data-comp-iframe></textarea>
-          <button type="button" class="btn btn-outline btn-md" data-copiar-de="comp-iframe">Copiar</button>
+          <textarea id="comp-iframe" readonly rows="5" data-comp-iframe></textarea>
+          <button type="button" class="btn btn-secondary btn-md" data-copiar-de="comp-iframe"><Icon name="copy" size={16} stroke={1.75} class="btn-icon" />Copiar</button>
         </div>
       </div>
       <div class="dialogo-acoes">
@@ -183,56 +199,103 @@ const pad = (n: number) => String(n).padStart(2, '0');
 </script>
 
 <style>
-  .empty {
-    padding: 48px;
-    text-align: center;
-    color: var(--color-text-muted);
-    background: var(--color-white);
-    border-radius: var(--border-radius);
+  /* Estado vazio dentro de um card, como nas demais listas em cartões */
+  .vazio-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
-  .descricao {
-    margin: -8px 0 16px;
-    color: var(--color-text-muted);
-    font-size: 14px;
-    min-height: 40px;
+  /* Grade do design system para os cartões de formulário */
+  .formularios-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    max-width: 1100px;
   }
 
+
+  /* Link público (CopyField): caixa de 40px com ícone, endereço truncado e ações de texto */
   .link-publico {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 20px;
-    padding: 8px 12px;
-    background: var(--color-neutral-10);
-    border: 1px dashed var(--color-neutral-30);
-    border-radius: var(--border-radius-sm);
-    font-size: 13px;
+    gap: var(--space-3);
+    min-width: 0;
+    min-height: var(--control-h-md);
+    padding: 0 var(--space-2) 0 var(--space-3);
+    background: var(--clay-25);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+  }
+
+  .link-icone {
+    display: flex;
+    flex: none;
+    color: var(--text-muted);
   }
 
   .link-url {
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--color-neutral-65);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
   }
 
-  .link-publico .row-action {
-    font-size: 13px;
-    white-space: nowrap;
-  }
-
-  .acoes {
+  .link-acoes {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
+    align-items: center;
+    flex: none;
+    gap: var(--space-3);
+    padding-right: var(--space-1);
   }
 
   .acoes-secundarias {
     display: flex;
-    justify-content: center;
-    gap: 20px;
-    font-size: 13px;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  /* Compartilhar: código de incorporação em fonte mono e QR em quadro */
+  .dialogo-compartilhar textarea {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    line-height: 1.5;
+    resize: none;
+  }
+
+  .dialogo-compartilhar .linha-copiar {
+    align-items: flex-start;
+  }
+
+  .comp-qr canvas {
+    flex: none;
+    padding: var(--space-1);
+    background: var(--bg-surface);
+  }
+
+  .comp-qr-acoes {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 768px) {
+    .formularios-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* QR em cima e atalhos embaixo: os botões não cabem ao lado do código */
+    .comp-qr {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-3);
+    }
+
+    .comp-qr canvas {
+      align-self: center;
+      width: 148px;
+      height: 148px;
+    }
   }
 </style>

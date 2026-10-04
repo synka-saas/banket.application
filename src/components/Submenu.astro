@@ -10,7 +10,7 @@ const { items = [], activeId } = Astro.props;
 <div class="submenu-container">
   <nav class="submenu-nav">
     {items.map((item) => (
-      <a href={item.href || `?tab=${item.id}`} class:list={['submenu-item', { active: activeId === item.id }]}>
+      <a href={item.href || `?tab=${item.id}`} class:list={['submenu-item', { active: activeId === item.id }]} aria-current={activeId === item.id ? 'page' : undefined}>
         {item.label}
       </a>
     ))}
@@ -21,53 +21,80 @@ const { items = [], activeId } = Astro.props;
 </div>
 
 <style>
+  /* Tabs do design system: 48px, sublinhado terracota na aba ativa */
   .submenu-container {
-    background-color: var(--color-white);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 45px;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-default);
+    padding: 0 var(--content-pad-x);
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
-    min-height: 49px;
+    gap: var(--space-4);
+    min-height: var(--subnav-height);
     flex-shrink: 0;
   }
 
   .submenu-nav {
     display: flex;
-    gap: 60px;
+    align-items: stretch;
+    gap: var(--space-7);
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .submenu-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .submenu-item {
-    display: inline-block;
-    padding: 14px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-neutral-80);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    font-size: var(--fs-14);
+    font-weight: var(--fw-regular);
+    color: var(--text-secondary);
     white-space: nowrap;
-    transition: color 0.2s ease;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .submenu-item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: transparent;
+    transition: background-color var(--dur-base) var(--ease-out);
   }
 
   .submenu-item:hover {
-    color: var(--color-primary-text);
+    color: var(--text-strong);
   }
 
   .submenu-item.active {
-    color: var(--color-primary-text);
+    color: var(--terracotta-700);
+    font-weight: var(--fw-medium);
+  }
+
+  .submenu-item.active::after {
+    background: var(--terracotta-500);
   }
 
   .submenu-actions {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .submenu-actions:empty {
+    display: none;
   }
 
   @media (max-width: 1024px) {
     .submenu-container {
       padding: 0 24px;
-    }
-
-    .submenu-nav {
-      gap: 32px;
     }
   }
 
@@ -80,11 +107,6 @@ const { items = [], activeId } = Astro.props;
     .submenu-nav {
       gap: 20px;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-
-    .submenu-nav::-webkit-scrollbar {
-      display: none;
     }
   }
 </style>

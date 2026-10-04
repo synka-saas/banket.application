@@ -89,7 +89,7 @@ const { evento, orcamento, versao } = ctx;
           eventoId={id}
           numero={versao.numero}
           congelada={versao.congelada}
-          cliente={{ nome: evento.cliente_nome ?? '-', documento: evento.cliente_documento ? formatarDocumento(evento.cliente_documento) : null }}
+          cliente={{ nome: evento.cliente_nome ?? '—', documento: evento.cliente_documento ? formatarDocumento(evento.cliente_documento) : null }}
           conteudo={versao.conteudo}
           catalogo={ctx.catalogo}
           faixas={ctx.faixas}
@@ -188,6 +188,7 @@ const { evento, orcamento, versao } = ctx;
 
 <script>
   import { toast } from '../../../lib/ui';
+  import { svgIcone } from '../../../lib/icones';
 
   // Envio da proposta: destinatários em chips (UX-123) e confirmação com o resumo do que vai ao cliente
   const form = document.querySelector<HTMLFormElement>('#form-enviar');
@@ -208,7 +209,7 @@ const { evento, orcamento, versao } = ctx;
         const x = document.createElement('button');
         x.type = 'button';
         x.setAttribute('aria-label', `Remover ${email}`);
-        x.textContent = '×';
+        x.innerHTML = svgIcone('x', 14);
         x.addEventListener('click', () => {
           emails.splice(i, 1);
           sincronizar();
@@ -282,59 +283,71 @@ const { evento, orcamento, versao } = ctx;
   .grid-evento {
     display: grid;
     grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
-    gap: 30px;
+    gap: var(--space-5);
     align-items: start;
   }
 
   .coluna-lateral {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: var(--space-4);
   }
 
   .form-envio {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--space-4);
   }
 
   .aviso-envio {
-    padding: 12px 16px;
-    border-radius: var(--border-radius);
-    background: var(--color-neutral-10);
-    font-size: 14px;
-    color: var(--color-neutral-80);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+    font-size: var(--fs-13);
+    line-height: 1.5;
+    color: var(--text-secondary);
   }
 
   .template-proposta {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 24px 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    gap: var(--space-2);
+    padding: var(--space-5) var(--space-6) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .template-proposta .bloco-titulo {
+    margin: 0 0 var(--space-1);
   }
 
   .sem-orcamento {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
-    padding: 36px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    gap: var(--space-3);
+    padding: var(--space-8);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .sem-orcamento h3 {
-    font-size: 18px;
+    font-size: var(--fs-17);
   }
 
   .sem-orcamento p {
-    color: var(--color-neutral-65);
+    color: var(--text-secondary);
     max-width: 620px;
-    line-height: 1.6;
+    line-height: 1.55;
+  }
+
+  .sem-orcamento form {
+    margin-top: var(--space-1);
   }
 
   @media (max-width: 1024px) {
@@ -343,75 +356,110 @@ const { evento, orcamento, versao } = ctx;
     }
   }
 
+  @media (max-width: 768px) {
+    .template-proposta,
+    .sem-orcamento {
+      padding: var(--space-4);
+    }
+  }
+
+  /* Destinatários em chips dentro de um controle do design system */
   .chips-email {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    min-height: 40px;
-    padding: 5px 10px;
-    background: var(--color-white);
-    border: 1px solid var(--color-border-input);
-    border-radius: var(--border-radius-sm);
+    gap: var(--space-1-5);
+    min-height: var(--control-h-md);
+    padding: 5px var(--space-2-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
     cursor: text;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .chips-email:hover {
+    border-color: var(--clay-400);
   }
 
   .chips-email:focus-within {
-    border-color: var(--color-primary-50);
-    box-shadow: 0 0 0 1px var(--color-primary-50);
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
   }
 
-  .chips-email input[type='email'] {
+  /* O id vence a regra global de `.field input`: o campo fica sem borda dentro da caixa de chips */
+  .chips-email #env-para {
     flex: 1;
-    min-width: 160px;
+    width: auto;
+    min-width: 120px;
+    min-height: 26px;
+    padding: 0 2px;
     border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     outline: none;
-    font-size: 14px;
-    padding: 4px 0;
+    font-size: var(--fs-14);
   }
 
   :global(.chip-email) {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 3px 8px 3px 10px;
-    background: var(--color-primary-10);
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-primary-60);
+    gap: var(--space-1);
+    min-height: 26px;
+    padding: 0 var(--space-1) 0 var(--space-2);
+    background: var(--terracotta-50);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--terracotta-800);
   }
 
   :global(.chip-email button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
     border: 0;
+    border-radius: var(--radius-xs);
     background: none;
-    font-size: 16px;
-    line-height: 1;
     color: inherit;
     cursor: pointer;
-    padding: 0 2px;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  :global(.chip-email button:hover) {
+    background: var(--terracotta-100);
   }
 
   .envio-previa {
-    padding: 12px 14px;
-    background: var(--color-neutral-10);
-    border: 1px dashed var(--color-neutral-30);
-    border-radius: var(--border-radius);
-    font-size: 13px;
-    line-height: 1.6;
+    padding: var(--space-3) var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+    line-height: 1.55;
+    color: var(--text-body);
   }
 
   .envio-previa-anexo {
-    margin-bottom: 8px;
-    color: var(--color-text-muted);
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
   .envio-previa-assunto {
-    font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: var(--space-1-5);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .envio-previa-corpo {
+    font-size: var(--fs-13);
     white-space: pre-wrap;
     max-height: 180px;
     overflow-y: auto;

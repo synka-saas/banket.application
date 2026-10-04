@@ -35,7 +35,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
     onExtras(extras.map((e) => (e.key === key ? { ...e, ...patch } : e)));
 
   return (
-    <Acordeao titulo="Locação e extras" icone="storefront" resumo={formatMoney(totalLocacao + totalExtras)} aberto={locacao.incluir || extras.length > 0}>
+    <Acordeao titulo="Locação e extras" icone="building-store" resumo={formatMoney(totalLocacao + totalExtras)} aberto={locacao.incluir || extras.length > 0}>
       <div class="locacao">
         <label class="switch">
           <input type="checkbox" checked={locacao.incluir} disabled={disabled} onChange={(e) => onLocacao({ ...locacao, incluir: e.currentTarget.checked })} />
@@ -52,7 +52,7 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
       <h4 class="subtitulo">Extras</h4>
       {extras.length === 0 && <p class="vazio">Nenhum extra. Use para hora adicional, taxas e serviços avulsos.</p>}
       {extras.length > 0 && (
-        <table class="tabela-orc">
+        <div class="tabela-orc-rolagem"><table class="tabela-orc">
           <thead>
             <tr>
               <th>Descrição</th>
@@ -79,18 +79,18 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
                 <td class="num"><strong>{formatMoney(e.subtotal_calc ?? 0)}</strong></td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${e.descricao}`} onClick={() => remover(e, e.descricao || 'Extra')}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${e.descricao}`} onClick={() => remover(e, e.descricao || 'Extra')}><Icon name="x" size={18} /></button>
                   </td>
                 )}
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
       <datalist id="sugestoes-extras">{SUGESTOES.map((s) => <option value={s} />)}</datalist>
       {!disabled && (
         <button type="button" class="btn btn-outline btn-md" onClick={adicionarExtra}>
-          <Icon name="add_circle" size={18} /> Adicionar extra
+          <Icon name="circle-plus" size={18} /> Adicionar extra
         </button>
       )}
     </Acordeao>

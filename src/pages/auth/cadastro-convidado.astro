@@ -54,19 +54,19 @@ const convite = await buscarConvite(token);
 
       <form class="auth-form" method="POST">
         {!convite.contaExistente && (
-          <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Ex.: Maria Souza" value={nomeDigitado || convite.nome} required />
+          <Input id="nome" name="nome" label="Nome e sobrenome" placeholder="Ex.: Maria Souza" value={nomeDigitado || convite.nome} required />
         )}
 
-        <Input id="email" name="email" type="email" label="E-MAIL" value={convite.email} readonly required />
+        <Input id="email" name="email" type="email" label="E-mail" value={convite.email} readonly required />
 
-        <Input id="senha" name="senha" type="password" label="SENHA" autocomplete={convite.contaExistente ? 'current-password' : 'new-password'} required />
+        <Input id="senha" name="senha" type="password" label="Senha" autocomplete={convite.contaExistente ? 'current-password' : 'new-password'} required />
 
         {convite.contaExistente ? (
           <input type="hidden" name="conta_existente" value="1" />
         ) : (
           <>
-            <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A SENHA" autocomplete="new-password" required />
-            <div class="hint">{REGRA_SENHA}</div>
+            <Input id="confirma_senha" name="confirma_senha" type="password" label="Confirme a senha" autocomplete="new-password" required />
+            <p class="auth-hint">{REGRA_SENHA}</p>
           </>
         )}
 
@@ -78,7 +78,7 @@ const convite = await buscarConvite(token);
         )}
 
         <Button variant="primary" size="large" type="submit">
-          {convite.contaExistente ? 'ACEITAR CONVITE E ACESSAR' : 'FINALIZAR E ACESSAR A PLATAFORMA'}
+          {convite.contaExistente ? 'Aceitar convite e acessar' : 'Finalizar e acessar a plataforma'}
         </Button>
       </form>
 
@@ -91,7 +91,7 @@ const convite = await buscarConvite(token);
             <br />
           </>
         )}
-        <span style="font-size: 12px; color: var(--color-text-muted);">*Dados obrigatórios</span>
+        <span class="auth-nota">*Dados obrigatórios</span>
       </div>
     </>
   ) : (
@@ -105,18 +105,17 @@ const convite = await buscarConvite(token);
 
 <style>
   .subtitle {
+    margin-bottom: var(--space-8);
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-secondary);
     text-align: center;
-    font-size: 14px;
-    color: #333;
-    margin-bottom: 40px;
-    line-height: 1.5;
   }
 
-  .hint {
-    font-size: 12px;
-    color: #666;
-    margin-top: -8px;
-    margin-bottom: 8px;
+  /* E-mail do convite não é editável */
+  .auth-form :global(input[readonly]) {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    box-shadow: none;
   }
-
 </style>

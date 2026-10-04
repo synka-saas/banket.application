@@ -2,7 +2,6 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import Table from '../../components/ui/Table.astro';
-import PageToolbar from '../../components/ui/PageToolbar.astro';
 import Drawer from '../../components/ui/Drawer.astro';
 import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
@@ -49,14 +48,14 @@ const tableData = faixas.map((f) => ({
 ---
 
 <AppLayout title="Locação do espaço" heading="Configurações / Locação do espaço" submenu={CONFIG_SUBMENU} submenuActive="locacao">
-  <PageToolbar showSearch={false}>
-    <Button icon="add_circle" data-drawer-open="drawer-faixa">Nova faixa</Button>
-  </PageToolbar>
-
-  <p class="intro">
-    O valor da locação entra automaticamente no orçamento conforme o número de convidados do evento. O valor pode ser
-    ajustado manualmente em cada orçamento.
-  </p>
+  <!-- Sem busca: o texto de apoio ocupa a esquerda da barra e a ação fica à direita -->
+  <div class="topo">
+    <p class="intro">
+      O valor da locação entra automaticamente no orçamento conforme o número de convidados do evento. O valor pode ser
+      ajustado manualmente em cada orçamento.
+    </p>
+    <Button icon="circle-plus" data-drawer-open="drawer-faixa">Nova faixa</Button>
+  </div>
 
   <Table
     columns={[
@@ -93,10 +92,33 @@ const tableData = faixas.map((f) => ({
 </AppLayout>
 
 <style>
-  .intro {
-    margin: -8px 0 20px;
-    color: var(--color-neutral-65);
-    font-size: 13px;
-    max-width: 760px;
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .topo :global(.btn) {
+    flex: none;
+  }
+
+  /* Faixa em destaque e valores alinhados em números tabulares */
+  :global(.data-table tbody td[data-key='faixa']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='faixa']),
+  :global(.data-table tbody td[data-key='valor']) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 768px) {
+    .topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 </style>

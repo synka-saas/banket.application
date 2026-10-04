@@ -82,27 +82,27 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
   <section class="banner">
     <div>
       <span class="banner-label">{e.cliente_tipo === 'PJ' ? 'Empresa' : 'Cliente'}</span>
-      <strong>{e.cliente_nome ?? '-'}</strong>
-      {e.cliente_documento && <span>{e.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'} {formatarDocumento(e.cliente_documento)}</span>}
+      <strong>{e.cliente_nome ?? <span class="vazio">—</span>}</strong>
+      {e.cliente_documento && <span class="banner-apoio tabular">{e.cliente_tipo === 'PJ' ? 'CNPJ' : 'CPF'} {formatarDocumento(e.cliente_documento)}</span>}
     </div>
     <div>
       <span class="banner-label">Data e horário</span>
-      <strong>{dataCurta(e.data_evento)}</strong>
-      <span>{faixaHorario(e.hora_inicio, e.hora_fim)}</span>
+      <strong class="tabular">{e.data_evento ? dataCurta(e.data_evento) : <span class="vazio">—</span>}</strong>
+      {e.hora_inicio && <span class="banner-apoio tabular">{faixaHorario(e.hora_inicio, e.hora_fim)}</span>}
     </div>
     <div>
       <span class="banner-label">Local do evento</span>
       <strong>{e.local_nome ?? (e.local_tipo === 'casa' ? 'Nosso espaço' : 'Local externo')}</strong>
-      {e.endereco && <span class="banner-endereco">{e.endereco}</span>}
+      {e.endereco && <span class="banner-apoio banner-endereco">{e.endereco}</span>}
     </div>
     <form method="post" class="banner-status" data-form-etapa>
       <input type="hidden" name="_action" value="status" />
       <label class="banner-label" for="status-evento">{ROTULOS.etapa}</label>
-      <select id="status-evento" name="status_id" data-autosubmit-row>
+      <select id="status-evento" name="status_id" class="inline-select" data-autosubmit-row>
         {status.map((s) => <option value={s.id} data-variante={s.variante} selected={s.id === e.status_id}>{s.nome}</option>)}
       </select>
-      {e.status_variante === 'recusado' && e.motivo_perda && <span class="banner-endereco">Motivo: {e.motivo_perda}</span>}
-      {e.status_variante === 'aprovado' && e.fechado_em && <span class="banner-endereco">Fechado em {dataCurta(e.fechado_em)}</span>}
+      {e.status_variante === 'recusado' && e.motivo_perda && <span class="banner-apoio banner-endereco" title={`Motivo: ${e.motivo_perda}`}>Motivo: {e.motivo_perda}</span>}
+      {e.status_variante === 'aprovado' && e.fechado_em && <span class="banner-apoio banner-endereco">Fechado em {dataCurta(e.fechado_em)}</span>}
     </form>
   </section>
 
@@ -111,11 +111,11 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       <section class="cabecalho-card">
         <div>
           <span class="rotulo">Cliente</span>
-          {e.cliente_email ? <a class="link" href={`mailto:${e.cliente_email}`}>{e.cliente_email}</a> : <strong>{e.cliente_nome ?? '-'}</strong>}
+          {e.cliente_email ? <a class="link" href={`mailto:${e.cliente_email}`}>{e.cliente_email}</a> : <strong>{e.cliente_nome ?? <span class="vazio">—</span>}</strong>}
           {e.cliente_telefone && (
             <a class="link" href={linkWhatsApp(e.cliente_telefone)} target="_blank" rel="noopener">{e.cliente_telefone} · chamar</a>
           )}
-          {e.cliente_documento && <span class="muted">{formatarDocumento(e.cliente_documento)}</span>}
+          {e.cliente_documento && <span class="muted tabular">{formatarDocumento(e.cliente_documento)}</span>}
         </div>
         <div>
           <span class="rotulo">Orçamento</span>
@@ -131,10 +131,10 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         )}
       </section>
 
-      <SectionCard title="Contato" icon="account_circle" variant="plain" collapsible>
+      <SectionCard title="Contato" icon="user-circle" variant="plain" collapsible>
         <dl class="kv kv-2">
-          <div><dt>Responsável</dt><dd>{e.responsavel_nome ?? '-'}</dd></div>
-          <div><dt>E-mail</dt><dd>{e.responsavel_email ? <a class="link" href={`mailto:${e.responsavel_email}`}>{e.responsavel_email}</a> : '-'}</dd></div>
+          <div><dt>Responsável</dt><dd>{e.responsavel_nome ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>E-mail</dt><dd>{e.responsavel_email ? <a class="link" href={`mailto:${e.responsavel_email}`}>{e.responsavel_email}</a> : <span class="vazio">—</span>}</dd></div>
           <div>
             <dt>WhatsApp</dt>
             <dd>
@@ -143,7 +143,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
                   {e.responsavel_whatsapp} · chamar
                 </a>
               ) : (
-                '-'
+                <span class="vazio">—</span>
               )}
             </dd>
           </div>
@@ -153,19 +153,19 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         )}
       </SectionCard>
 
-      <SectionCard title="Comercial" icon="handshake" variant="plain" collapsible>
+      <SectionCard title="Comercial" icon="heart-handshake" variant="plain" collapsible>
         <dl class="kv kv-2">
-          <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? '-'}</dd></div>
-          <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : '-'}</dd></div>
-          <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? '-'}</dd></div>
+          <div><dt>{ROTULOS.tipoEvento}</dt><dd>{e.tipo_nome ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Qualificação do cliente</dt><dd>{e.qualificacao ? QUALIFICACOES[e.qualificacao] : <span class="vazio">—</span>}</dd></div>
+          <div><dt>Forma de pagamento</dt><dd>{e.forma_pagamento ?? <span class="vazio">—</span>}</dd></div>
         </dl>
       </SectionCard>
 
       <SectionCard title="Logística e infraestrutura" variant="plain" collapsible>
         <dl class="kv">
           <div><dt>Local</dt><dd>{e.local_tipo === 'externo' ? 'Local externo (empresa, residência ou espaço alugado)' : 'No nosso espaço'}{e.local_nome ? ` · ${e.local_nome}` : ''}</dd></div>
-          <div><dt>Endereço</dt><dd>{e.endereco ?? '-'}</dd></div>
-          <div><dt>Infraestrutura</dt><dd>{e.infraestrutura ?? '-'}</dd></div>
+          <div><dt>Endereço</dt><dd>{e.endereco ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Infraestrutura</dt><dd>{e.infraestrutura ?? <span class="vazio">—</span>}</dd></div>
         </dl>
       </SectionCard>
 
@@ -199,12 +199,12 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       </SectionCard>
 
       <div class="acoes-evento">
-        <Button variant="outline" icon="edit" href={`/eventos/${id}/editar`}>Editar evento</Button>
+        <Button variant="secondary" icon="pencil" href={`/eventos/${id}/editar`}>Editar evento</Button>
         <form method="post">
           <input type="hidden" name="_action" value="excluir" />
-          <button type="submit" class="row-action danger" data-confirm="Excluir este evento? O orçamento e o histórico também serão removidos.">
+          <Button type="submit" variant="danger" icon="trash" data-confirm="Excluir este evento? O orçamento e o histórico também serão removidos.">
             Excluir evento
-          </button>
+          </Button>
         </form>
       </div>
     </div>
@@ -213,8 +213,8 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       <EventoInfoLateral evento={e} />
 
       <section class="checklist">
-        <h3 class="bloco-titulo"><Icon name="checklist" size={18} /> Checklist operacional</h3>
-        {checklist.length === 0 && <p class="muted vazio">Nenhum item. Adicione o que precisa acontecer antes do evento.</p>}
+        <h3 class="bloco-titulo"><Icon name="list-check" size={18} /> Checklist operacional</h3>
+        {checklist.length === 0 && <p class="muted sem-itens">Nenhum item. Adicione o que precisa acontecer antes do evento.</p>}
         <ul class="checklist-lista">
           {checklist.map((c) => {
             const vencido = c.prazo !== null && c.prazo < hoje && c.status !== 'concluido';
@@ -241,7 +241,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
                 <form method="post">
                   <input type="hidden" name="_action" value="checklist_excluir" />
                   <input type="hidden" name="checklist_id" value={c.id} />
-                  <button type="submit" class="remover" aria-label={`Remover ${c.item}`} data-confirm={`Remover "${c.item}" do checklist?`}><Icon name="close" size={18} /></button>
+                  <button type="submit" class="remover" aria-label={`Remover ${c.item}`} data-confirm={`Remover "${c.item}" do checklist?`}><Icon name="x" size={16} /></button>
                 </form>
               </li>
             );
@@ -251,7 +251,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
           <input type="hidden" name="_action" value="checklist_salvar" />
           <input name="item" class="control" placeholder="Novo item (ex.: Degustação presencial)" required maxlength="255" aria-label="Novo item do checklist" />
           <input name="prazo" type="date" class="control checklist-novo-prazo" aria-label="Prazo do novo item" />
-          <button type="submit" class="btn btn-primary btn-md">Adicionar</button>
+          <button type="submit" class="btn btn-secondary btn-md">Adicionar</button>
         </form>
       </section>
     </div>
@@ -315,16 +315,18 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
 </script>
 
 <style>
+  /* Faixa do resumo = Card do design system com quatro blocos rótulo → valor */
   .banner {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr 1fr 1fr;
-    gap: 24px;
-    padding: 28px 40px;
-    margin-bottom: 28px;
-    background: var(--color-primary);
-    border-radius: var(--border-radius);
-    color: var(--color-white);
-    font-size: 14px;
+    padding: var(--space-5) 0;
+    margin-bottom: var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    font-size: var(--fs-14);
+    color: var(--text-body);
   }
 
   .banner > div,
@@ -333,16 +335,30 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
     flex-direction: column;
     gap: 2px;
     min-width: 0;
+    padding: 0 var(--space-6);
+  }
+
+  .banner > * + * {
+    border-left: 1px solid var(--border-subtle);
   }
 
   .banner strong {
-    font-weight: 600;
+    font-size: var(--fs-15);
+    line-height: 1.4;
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+    overflow-wrap: anywhere;
   }
 
   .banner-label {
-    font-size: 12px;
-    text-transform: uppercase;
-    opacity: 0.9;
+    font-size: var(--fs-12);
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  .banner-apoio {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
   }
 
   .banner-endereco {
@@ -353,22 +369,15 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
 
   .banner-status select {
     align-self: flex-start;
-    margin-top: 4px;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 3px;
-    background: var(--color-white);
-    color: var(--color-primary-text);
-    font-weight: 600;
-    font-size: 14px;
-    text-transform: uppercase;
-    cursor: pointer;
+    max-width: 100%;
+    margin: var(--space-1) 0 2px;
+    font-weight: var(--fw-medium);
   }
 
   .resumo-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
-    gap: 30px;
+    gap: var(--space-5);
     align-items: start;
   }
 
@@ -376,154 +385,189 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
   .coluna-lateral {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  /* O espaçamento entre os cards vem do gap da coluna, não da margem padrão do SectionCard */
+  .resumo-grid .coluna-principal > :global(.section-card + .section-card) {
+    margin-top: 0;
   }
 
   .cabecalho-card {
     display: grid;
     grid-template-columns: 1.2fr 1fr auto;
     align-items: center;
-    gap: 24px;
-    padding: 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .cabecalho-card > div {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 2px;
-    font-size: 14px;
+    min-width: 0;
+    font-size: var(--fs-14);
+  }
+
+  .cabecalho-card strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .cabecalho-card :global(.link) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
   }
 
   .rotulo {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-primary-text);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
-  .valor {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--color-neutral-80);
+  .cabecalho-card .valor {
+    font-size: var(--fs-20);
+    line-height: 1.25;
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+  }
+
+  .sem-orcamento {
+    font-size: var(--fs-15);
+    color: var(--text-secondary);
   }
 
   .comentario {
     white-space: pre-line;
     line-height: 1.6;
-    color: var(--color-neutral-100);
+    color: var(--text-heading);
   }
 
   .respostas-origem {
-    margin-bottom: 12px;
-    font-size: 13px;
+    margin-bottom: var(--space-3);
+    font-size: var(--fs-13);
   }
 
   .acoes-evento {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 8px;
+    gap: var(--space-3);
+    margin-top: var(--space-1);
   }
 
+  /* Checklist = Card do design system */
   .checklist {
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 28px;
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .checklist-lista li {
     display: flex;
     align-items: end;
-    gap: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--color-neutral-30);
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .checklist-lista li:first-child {
+    padding-top: 0;
   }
 
   .checklist-campos {
     flex: 1;
+    min-width: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 128px 118px;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2);
     align-items: end;
+  }
+
+  /* A coluna lateral é estreita: o texto do item ocupa a linha inteira; prazo e status ficam abaixo */
+  .checklist-campo.item {
+    grid-column: 1 / -1;
   }
 
   .checklist-campo {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    font-size: 14px;
-    color: var(--color-neutral-100);
+    gap: var(--space-1);
+    font-size: var(--fs-14);
+    color: var(--text-strong);
     min-width: 0;
   }
 
   .checklist-campo input,
   .checklist-campo select {
     width: 100%;
+    max-width: none;
   }
 
   .checklist-campo input.inline-select {
     background-image: none;
-    padding-right: 0;
-    color: var(--color-neutral-100);
+    padding-right: var(--space-1-5);
+    cursor: text;
   }
 
+  /* Prazo vencido é alerta: vinho, nunca terracota */
   .checklist-vencido .checklist-campo input[type='date'] {
-    border-color: var(--color-primary-50);
-    color: var(--color-primary-60);
+    border-color: var(--wine-300);
+    color: var(--danger);
   }
 
   .prazo-alerta {
-    color: var(--color-primary-text);
-    font-weight: 700;
-  }
-
-  .checklist-novo-prazo {
-    max-width: 150px;
-  }
-
-  @media (max-width: 768px) {
-    .checklist-campos {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .checklist-novo {
-      flex-wrap: wrap;
-    }
-  }
-
-  .checklist .rotulo {
-    color: var(--color-neutral-65);
+    color: var(--danger);
+    font-weight: var(--fw-medium);
   }
 
   .remover {
     display: inline-flex;
-    padding: 2px;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: var(--control-h-sm);
     border: none;
+    border-radius: var(--radius-xs);
     background: none;
-    color: var(--color-neutral-50);
+    color: var(--text-muted);
     cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   }
 
   .remover:hover {
-    color: var(--color-primary-text);
+    background: var(--danger-bg);
+    color: var(--danger);
   }
 
+  /* Novo item: o texto ocupa a linha inteira; prazo e botão ficam na linha de baixo */
   .checklist-novo {
     display: flex;
-    gap: 8px;
-    margin-top: 16px;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
   }
 
-  .vazio {
-    font-size: 13px;
+  .checklist-novo input[name='item'] {
+    flex: 1 1 100%;
   }
 
-  .sem-orcamento {
-    font-size: 16px;
-    color: var(--color-neutral-65);
+  .checklist-novo-prazo {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .sem-itens {
+    font-size: var(--fs-13);
   }
 
   @media (max-width: 1024px) {
@@ -535,13 +579,35 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
   @media (max-width: 768px) {
     .cabecalho-card {
       grid-template-columns: minmax(0, 1fr);
-      gap: 14px;
+      gap: var(--space-4);
+      padding: var(--space-4);
     }
 
     .banner {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      padding: 20px 16px;
+      gap: var(--space-4) 0;
+      padding: var(--space-4) 0;
+    }
+
+    .banner > div,
+    .banner-status {
+      padding: 0 var(--space-4);
+    }
+
+    .banner > :nth-child(odd) {
+      border-left: 0;
+    }
+
+    .checklist {
+      padding: var(--space-4);
+    }
+
+    .checklist-campos {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .acoes-evento {
+      flex-wrap: wrap;
     }
   }
 </style>

@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
+import Icon from '../../components/ui/Icon.astro';
 import Table from '../../components/ui/Table.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
 import { withTenant } from '../../lib/db';
@@ -70,10 +71,10 @@ const valoresDrawer = JSON.stringify({
 });
 
 const tabela = eventos.map((e) => ({
-  data: dataCurta(e.data_evento),
+  data: e.data_evento ? html`<span class="tabular">${dataCurta(e.data_evento)}</span>` : '-',
   evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? 'Evento'}</a>`,
-  convidados: e.numero_convidados ?? '-',
-  status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
+  convidados: e.numero_convidados !== null ? html`<span class="tabular">${e.numero_convidados}</span>` : '-',
+  status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? 'var(--stage-new)'}"></span>${e.status_nome}</span>`,
   valor: e.valor_total !== null
       ? formatMoney(e.valor_total)
       : e.verba_total !== null
@@ -84,45 +85,45 @@ const tabela = eventos.map((e) => ({
 
 <AppLayout title={cliente.nome} heading={`Clientes / ${cliente.nome}`}>
   <div class="topo">
-    <Button variant="outline" href="/clientes">Voltar</Button>
+    <a class="voltar" href="/clientes"><Icon name="arrow-left" size={16} /> Voltar</a>
     <div class="topo-acoes">
-      <Button variant="outline" icon="edit" data-drawer-open="drawer-cliente" data-values={valoresDrawer}>Editar</Button>
-      <Button variant="primary" icon="add_circle" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
+      <Button variant="secondary" icon="pencil" data-drawer-open="drawer-cliente" data-values={valoresDrawer}>Editar</Button>
+      <Button variant="primary" icon="circle-plus" href={`/eventos/novo?cliente=${cliente.id}`}>Novo evento para este cliente</Button>
     </div>
   </div>
 
   <div class="resumo-cliente">
     <div class="kpi-mini">
-      <span class="rotulo">Eventos</span>
+      <span class="rotulo eyebrow">Eventos</span>
       <strong>{eventos.length}</strong>
     </div>
     <div class="kpi-mini">
-      <span class="rotulo">Valor aprovado</span>
-      <strong class="positivo">{formatMoney(resumo.aprovado)}</strong>
+      <span class="rotulo eyebrow">Valor aprovado</span>
+      <strong class="positivo" title={formatMoney(resumo.aprovado)}>{formatMoney(resumo.aprovado)}</strong>
     </div>
     <div class="kpi-mini">
-      <span class="rotulo">Em aberto</span>
-      <strong>{formatMoney(resumo.aberto)}</strong>
+      <span class="rotulo eyebrow">Em aberto</span>
+      <strong title={formatMoney(resumo.aberto)}>{formatMoney(resumo.aberto)}</strong>
     </div>
     <div class="kpi-mini">
-      <span class="rotulo">Último contato</span>
-      <strong>{resumo.ultimo_contato ? dataCurta(resumo.ultimo_contato.toISOString().slice(0, 10)) : '—'}</strong>
+      <span class="rotulo eyebrow">Último contato</span>
+      <strong class:list={{ vazio: !resumo.ultimo_contato }}>{resumo.ultimo_contato ? dataCurta(resumo.ultimo_contato.toISOString().slice(0, 10)) : '—'}</strong>
     </div>
   </div>
 
-  <SectionCard title="Dados do cliente" icon="account_box">
+  <SectionCard title="Dados do cliente" icon={cliente.tipo_pessoa === 'PJ' ? 'building' : 'user-square'}>
     <dl class="kv kv-3">
-      <div><dt>Nome / Razão social</dt><dd>{cliente.nome}</dd></div>
+      <div><dt>Nome / razão social</dt><dd>{cliente.nome}</dd></div>
       <div><dt>Tipo</dt><dd>{cliente.tipo_pessoa === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física'}</dd></div>
-      <div><dt>{cliente.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'}</dt><dd>{formatarDocumento(cliente.documento) || '-'}</dd></div>
-      <div><dt>E-mail</dt><dd>{cliente.email ?? '-'}</dd></div>
-      <div><dt>Telefone</dt><dd>{cliente.telefone ?? '-'}</dd></div>
-      <div><dt>Endereço</dt><dd>{cliente.endereco ?? '-'}</dd></div>
+      <div><dt>{cliente.tipo_pessoa === 'PJ' ? 'CNPJ' : 'CPF'}</dt><dd class="tabular">{formatarDocumento(cliente.documento) || <span class="vazio">—</span>}</dd></div>
+      <div><dt>E-mail</dt><dd>{cliente.email ?? <span class="vazio">—</span>}</dd></div>
+      <div><dt>Telefone</dt><dd class="tabular">{cliente.telefone ?? <span class="vazio">—</span>}</dd></div>
+      <div><dt>Endereço</dt><dd>{cliente.endereco ?? <span class="vazio">—</span>}</dd></div>
     </dl>
     {cliente.observacoes && <dl class="kv"><div><dt>Observações</dt><dd>{cliente.observacoes}</dd></div></dl>}
   </SectionCard>
 
-  <h3 class="secao">Eventos ({eventos.length})</h3>
+  <h3 class="secao">Eventos <span class="secao-total">({eventos.length})</span></h3>
   <Table
     columns={[
       { key: 'data', label: 'Data' },
@@ -141,60 +142,108 @@ const tabela = eventos.map((e) => ({
   .topo {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
-  }
-
-  .kv-3 {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .secao {
-    margin: 32px 0 14px;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  @media (max-width: 768px) {
-    .kv-3 {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-    }
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-5);
   }
 
   .topo-acoes {
     display: flex;
-    gap: 10px;
+    gap: var(--space-2);
+    flex-wrap: wrap;
   }
 
+  /* Resumo comercial (StatCard do design system) */
   .resumo-cliente {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   .kpi-mini {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 16px 20px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-  }
-
-  .kpi-mini .rotulo {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .kpi-mini strong {
-    font-size: 20px;
+    font-size: var(--fs-28);
+    line-height: 1.1;
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .kpi-mini .positivo {
-    color: var(--color-secondary-60);
+    color: var(--sage-700);
+  }
+
+  .kpi-mini strong.vazio {
+    color: var(--clay-400);
+  }
+
+  .kv-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4) var(--space-5);
+  }
+
+  .kv dd {
+    overflow-wrap: anywhere;
+  }
+
+  .secao {
+    margin: var(--space-8) 0 var(--space-3);
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+    color: var(--text-heading);
+  }
+
+  .secao-total {
+    font-weight: var(--fw-regular);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .topo-acoes {
+      width: 100%;
+    }
+
+    .topo-acoes :global(.btn) {
+      flex: 1 1 auto;
+    }
+
+    .resumo-cliente {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-3);
+    }
+
+    .kpi-mini {
+      padding: var(--space-4);
+    }
+
+    .kpi-mini strong {
+      font-size: var(--fs-18);
+    }
+
+    .kv-3 {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-3);
+    }
   }
 </style>

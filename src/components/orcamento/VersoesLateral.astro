@@ -25,12 +25,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <span class="data">{dataHora(v.updated_at)}</span>
         {v.numero === orcamento.versao_atual ? (
           v.numero === visualizando ? (
-            <span class="selo selo-atual">Versão atual</span>
+            <span class="selo selo-atual badge badge-accent">Versão atual</span>
           ) : (
             <a class="selo selo-acessar" href={basePath}>Voltar à atual</a>
           )
         ) : v.numero === visualizando ? (
-          <span class="selo selo-atual">Visualizando</span>
+          <span class="selo selo-atual badge badge-accent">Visualizando</span>
         ) : (
           <a class="selo selo-acessar" href={`${basePath}?versao=${v.numero}`}>Acessar</a>
         )}
@@ -51,6 +51,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 <style>
   .restaurar {
-    margin-top: 16px;
+    margin-top: var(--space-4);
   }
 </style>

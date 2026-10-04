@@ -45,7 +45,7 @@ const encerrado = Boolean(chamado.status_is_final);
   <section class="chamado-card">
     <header class="chamado-cabecalho">
       <h3 class="chamado-assunto">{chamado.subject}</h3>
-      <span class:list={['tag', encerrado ? 'tag-off' : 'tag-ok']}>{chamado.status_name ?? 'Aberto'}</span>
+      <span class:list={['badge', { 'badge-accent': !encerrado }]}>{chamado.status_name ?? 'Aberto'}</span>
     </header>
     <p class="chamado-meta">
       {CATEGORIAS[chamado.category as Categoria] ?? chamado.category ?? 'Sem tipo'} · Prioridade {PRIORIDADES[chamado.priority]?.toLowerCase() ?? chamado.priority} ·
@@ -55,15 +55,15 @@ const encerrado = Boolean(chamado.status_is_final);
   </section>
 
   <section class="chamado-card">
-    <h3 class="bloco-titulo"><Icon name="forum" size={18} /> Conversa</h3>
+    <h3 class="bloco-titulo"><Icon name="messages" size={18} /> Conversa</h3>
     {eventos.length === 0 ? (
-      <p class="muted">Ainda sem respostas. Nossa equipe recebeu o chamado e responde por aqui.</p>
+      <p class="sem-respostas">Ainda sem respostas. Nossa equipe recebeu o chamado e responde por aqui.</p>
     ) : (
       <ol class="conversa">
         {eventos.map((e) =>
           e.event_type === 'status_change' ? (
             <li class="conversa-status">
-              <Icon name="sync_alt" size={16} /> Situação alterada{e.new_value ? ` para ${e.new_value}` : ''} · {dataHora(e.created_at)}
+              <Icon name="arrows-exchange" size={16} /> Situação alterada{e.new_value ? ` para ${e.new_value}` : ''} · {dataHora(e.created_at)}
             </li>
           ) : (
             <li class:list={['mensagem', e.author_type === 'support' ? 'mensagem-suporte' : 'mensagem-cliente']}>
@@ -79,7 +79,7 @@ const encerrado = Boolean(chamado.status_is_final);
     )}
 
     {encerrado ? (
-      <p class="muted chamado-encerrado">Este chamado foi encerrado. Se precisar de mais ajuda, <a class="link" href="/suporte">abra um novo chamado</a>.</p>
+      <p class="chamado-encerrado">Este chamado foi encerrado. Se precisar de mais ajuda, <a class="link" href="/suporte">abra um novo chamado</a>.</p>
     ) : (
       <form method="post" class="resposta-form">
         <div class="field">
@@ -97,104 +97,113 @@ const encerrado = Boolean(chamado.status_is_final);
 <style>
   .chamado-card {
     max-width: 900px;
-    padding: 28px 32px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .chamado-card + .chamado-card {
-    margin-top: 24px;
+    margin-top: var(--space-5);
   }
 
   .chamado-cabecalho {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-4);
   }
 
   .chamado-assunto {
-    font-size: 18px;
-    color: var(--color-neutral-100);
+    font-size: var(--fs-17);
+    line-height: 1.35;
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
+    overflow-wrap: anywhere;
+  }
+
+  .chamado-cabecalho .badge {
+    flex: none;
+    margin-top: 1px;
   }
 
   .chamado-meta {
-    margin: 6px 0 16px;
-    font-size: 12px;
-    color: var(--color-text-muted);
+    margin: var(--space-1-5) 0 var(--space-4);
+    font-size: var(--fs-13);
+    color: var(--text-muted);
   }
 
   .chamado-texto {
-    font-size: 14px;
+    font-size: var(--fs-14);
     line-height: 1.6;
-    color: var(--color-neutral-80);
+    color: var(--text-body);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
-  .bloco-titulo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--color-primary-text);
+  .sem-respostas {
+    color: var(--text-secondary);
   }
 
   .conversa {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-3);
     padding: 0;
     list-style: none;
   }
 
+  /* Mensagem da equipe à esquerda (argila); mensagem do cliente à direita (terracota claro) */
   .mensagem {
     max-width: 85%;
-    padding: 12px 16px;
-    border-radius: var(--border-radius);
-    background: var(--color-neutral-10);
+    align-self: flex-start;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--clay-25);
   }
 
   .mensagem-cliente {
     align-self: flex-end;
-    background: var(--color-primary-10);
+    border-color: var(--terracotta-100);
+    background: var(--bg-accent-subtle);
   }
 
   .mensagem-autor {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 10px;
-    margin-bottom: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--color-neutral-80);
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2-5);
+    margin-bottom: var(--space-1);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .mensagem-quando {
-    font-weight: 400;
-    color: var(--color-text-muted);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-regular);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
   }
 
   .conversa-status {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--color-text-muted);
+    gap: var(--space-1-5);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
   .resposta-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-color);
+    gap: var(--space-4);
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-subtle);
   }
 
   .resposta-acoes {
@@ -203,15 +212,16 @@ const encerrado = Boolean(chamado.status_is_final);
   }
 
   .chamado-encerrado {
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border-color);
-    font-size: 14px;
+    margin-top: var(--space-6);
+    padding-top: var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+    color: var(--text-secondary);
   }
 
   @media (max-width: 768px) {
     .chamado-card {
-      padding: 20px 16px;
+      padding: var(--space-5) var(--space-4);
     }
 
     .mensagem {

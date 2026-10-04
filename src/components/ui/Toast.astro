@@ -14,6 +14,7 @@ const { flash } = Astro.props;
   // API global: window.banketToast(mensagem, tipo, { acao }) — use toast() de lib/ui.ts.
   // Erros ficam até o usuário fechar (role="alert"); sucesso e informação somem sozinhos, pausando com o mouse em cima.
   import type { ToastOpcoes, ToastTipo } from '../../lib/ui';
+  import { svgIcone } from '../../lib/icones';
 
   const DURACAO = 5000;
   const root = document.getElementById('toast-root')!;
@@ -51,7 +52,7 @@ const { flash } = Astro.props;
     fechar.type = 'button';
     fechar.className = 'toast-fechar';
     fechar.setAttribute('aria-label', 'Fechar aviso');
-    fechar.innerHTML = '<span class="icon" aria-hidden="true" translate="no">close</span>';
+    fechar.innerHTML = svgIcone('x', 16);
     fechar.addEventListener('click', () => dismiss(el));
     el.appendChild(fechar);
 
@@ -96,7 +97,7 @@ const { flash } = Astro.props;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
     pointer-events: none;
   }
 
@@ -104,19 +105,29 @@ const { flash } = Astro.props;
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     min-width: 280px;
     max-width: 440px;
-    padding: 12px 8px 12px 18px;
-    border-radius: var(--border-radius);
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
-    background: var(--color-white);
-    border-left: 4px solid var(--color-neutral-50);
-    color: var(--color-neutral-80);
-    animation: toast-in 0.25s ease;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-surface);
+    color: var(--text-heading);
+    animation: toast-in var(--dur-slow) var(--ease-out);
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+  }
+
+  /* Marca de situação: ponto colorido antes do texto */
+  .toast::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--clay-400);
   }
 
   .toast-texto {
@@ -124,42 +135,41 @@ const { flash } = Astro.props;
   }
 
   .toast-acao {
-    padding: 6px 10px;
+    height: var(--control-h-sm);
+    padding: 0 var(--space-3);
     border: 0;
-    border-radius: var(--border-radius-sm);
-    background: var(--color-neutral-10);
-    color: var(--color-neutral-100);
+    border-radius: var(--radius-sm);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-700);
     font: inherit;
-    font-size: 13px;
-    text-transform: uppercase;
+    font-size: var(--fs-13);
     cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
   }
 
   .toast-acao:hover {
-    background: var(--color-neutral-20);
+    background: var(--bg-accent-soft);
+    color: var(--terracotta-800);
   }
 
   .toast-fechar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control-h-sm);
+    height: var(--control-h-sm);
     flex-shrink: 0;
     border: 0;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--color-neutral-65);
+    color: var(--text-secondary);
     cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   }
 
   .toast-fechar:hover {
-    background: var(--color-neutral-10);
-    color: var(--color-neutral-100);
-  }
-
-  .toast-fechar .icon {
-    font-size: 20px;
+    background: var(--action-ghost-hover);
+    color: var(--text-strong);
   }
 
   .toast.leaving {
@@ -167,9 +177,14 @@ const { flash } = Astro.props;
     transform: translateX(16px);
   }
 
-  .toast-success { border-left-color: var(--color-secondary); }
-  .toast-error { border-left-color: var(--color-primary); color: var(--color-primary-60); }
-  .toast-info { border-left-color: var(--color-neutral-65); }
+  .toast-success::before { background: var(--sage-500); }
+  .toast-info::before { background: var(--cobalt-500); }
+  .toast-error {
+    border-color: var(--danger-border);
+    background: var(--danger-bg);
+    color: var(--wine-700);
+  }
+  .toast-error::before { background: var(--wine-500); }
 
   @media (max-width: 640px) {
     /* Acima da barra de navegação inferior */

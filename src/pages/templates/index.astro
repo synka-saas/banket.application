@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 import InfoCard from '../../components/ui/InfoCard.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
 import { withTenant } from '../../lib/db';
@@ -10,21 +11,34 @@ import { fileUrl } from '../../lib/storage';
 import { listarTemplates } from '../../server/templates';
 
 const { tenantId } = Astro.locals.user;
-const templates = await withTenant(tenantId, (db) => listarTemplates(db, searchTerm(Astro.url)));
+const busca = searchTerm(Astro.url);
+const templates = await withTenant(tenantId, (db) => listarTemplates(db, busca));
 ---
 
 <AppLayout title="Templates" heading="Templates" submenu={TEMPLATES_SUBMENU} submenuActive="templates">
   <PageToolbar>
-    <Button icon="add_circle" href="/templates/novo">Novo template</Button>
+    <Button icon="circle-plus" href="/templates/novo">Novo template</Button>
   </PageToolbar>
 
   {templates.length === 0 ? (
-    <div class="empty">Nenhum template encontrado.</div>
+    <EstadoVazio
+      icon={busca ? 'search-off' : 'template'}
+      titulo={busca ? 'Nenhum template para esta busca' : 'Nenhum template cadastrado'}
+      texto={busca ? undefined : 'O template define o visual do PDF da proposta: capa, fontes, cores e imagens de fundo.'}
+    >
+      {busca ? <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar busca</a> : <Button icon="circle-plus" href="/templates/novo">Novo template</Button>}
+    </EstadoVazio>
   ) : (
     <div class="cards-grid">
       {templates.map((t) => (
-        <InfoCard title={t.nome} tags={[...(t.padrao ? ['Padrão'] : []), ...t.tags.filter((x) => x.toLowerCase() !== 'padrão')]}>
-          <p slot="subtitle" class="descricao">{t.descricao ?? 'Sem descrição.'}</p>
+        <InfoCard
+          title={t.nome}
+          icon="template"
+          description={t.descricao ?? 'Sem descrição.'}
+          class={t.padrao ? 'card-template card-padrao' : 'card-template'}
+          tags={t.tags.filter((x) => x.toLowerCase() !== 'padrão')}
+        >
+          {t.padrao && <span slot="status" class="badge badge-accent selo-padrao">Padrão</span>}
           <a
             href={`/templates/${t.id}`}
             class="miniatura"
@@ -35,7 +49,7 @@ const templates = await withTenant(tenantId, (db) => listarTemplates(db, searchT
               {t.capa_titulo}
             </span>
           </a>
-          <Button slot="footer" block href={`/templates/${t.id}`}>Editar</Button>
+          <Button slot="footer" variant="secondary" block href={`/templates/${t.id}`}>Editar</Button>
         </InfoCard>
       ))}
     </div>
@@ -43,42 +57,47 @@ const templates = await withTenant(tenantId, (db) => listarTemplates(db, searchT
 </AppLayout>
 
 <style>
-  .empty {
-    padding: 48px;
-    text-align: center;
-    color: var(--color-text-muted);
-    background: var(--color-white);
-    border-radius: var(--border-radius);
+  /* Lista no padrão CatalogCard do design system: descrição, miniatura 16/9 da capa, tags e "Editar" secundário */
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    max-width: 1000px;
   }
 
-  .descricao {
-    margin: -8px 0 16px;
-    color: var(--color-text-muted);
-    font-size: 14px;
-    min-height: 40px;
+  .selo-padrao {
+    padding-left: var(--space-2);
   }
 
+  .selo-padrao::before {
+    display: none;
+  }
+
+  /* Moldura da miniatura segue o design system; o conteúdo imita a capa do PDF (fonte, cor e caixa do template) */
   .miniatura {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 150px;
-    margin-bottom: 20px;
-    padding: 16px;
-    border-radius: 3px;
+    aspect-ratio: 16 / 9;
+    padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
     background-color: var(--fundo);
     background-size: cover;
     background-position: center;
-    border: 1px solid var(--color-neutral-30);
     text-align: center;
+    overflow: hidden;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .miniatura:hover {
+    border-color: var(--border-strong);
   }
 
   .miniatura-titulo {
     color: var(--destaque);
     font-size: 18px;
     font-weight: 700;
-    text-transform: uppercase;
     line-height: 1.1;
+    text-transform: uppercase;
   }
 
   .miniatura-titulo.sobre-imagem {

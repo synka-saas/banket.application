@@ -1,7 +1,7 @@
 ---
 // Importação de itens do cardápio por CSV (UX-053); seções que não existirem são criadas pelo nome.
 import AppLayout from '../../layouts/AppLayout.astro';
-import Button from '../../components/ui/Button.astro';
+import Icon from '../../components/ui/Icon.astro';
 import ImportadorCsv from '../../components/ui/ImportadorCsv.astro';
 import { withTenant } from '../../lib/db';
 import { userMessage } from '../../lib/forms';
@@ -27,7 +27,7 @@ if (Astro.request.method === 'POST') {
 
 <AppLayout title="Importar itens" heading="Cardápios / Importar itens" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
   <div class="topo">
-    <Button variant="outline" href="/cardapio/itens">Voltar</Button>
+    <a class="voltar" href="/cardapio/itens"><Icon name="arrow-left" size={16} /> Voltar</a>
   </div>
   <ImportadorCsv
     coisa="itens do cardápio"
@@ -42,6 +42,6 @@ if (Astro.request.method === 'POST') {
 
 <style>
   .topo {
-    margin-bottom: 20px;
+    margin-bottom: var(--space-5);
   }
 </style>

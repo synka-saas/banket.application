@@ -125,14 +125,8 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
 
   return (
     <div class="blocos-editor">
-      {!congelada && (
-        <p class={`orc-estado estado-${estado}`} role="status">
-          {{ salvo: 'Todas as alterações salvas', pendente: 'Alterações pendentes…', salvando: 'Salvando…', erro: 'Erro ao salvar' }[estado]}
-        </p>
-      )}
-
       {blocos.map((b) => (
-        <Acordeao key={b.key} titulo={b.titulo} icone="info">
+        <Acordeao key={b.key} titulo={b.titulo} icone="info-circle">
           {!congelada && (
             <div class="adicionar-linha">
               <input class="control" value={b.titulo} aria-label="Título do bloco" maxLength={200}
@@ -168,12 +162,12 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
                       onBlur={(e) => e.currentTarget.value !== l.valor && atualizarLinha(b, l.key, { valor: e.currentTarget.value })} />
                   )}
                   <span class="linha-acoes">
-                    {l.auto && <span class="auto-selo" title="Calculado a partir do orçamento">auto</span>}
+                    {l.auto && <span class="auto-selo tag tag-sm tag-sage" title="Calculado a partir do orçamento">auto</span>}
                     {!congelada && b.auto !== 'staff' && (
                       <>
-                        <button type="button" class="remover" aria-label={`Mover ${l.label || 'linha'} para cima`} disabled={b.linhas[0]?.key === l.key} onClick={() => moverLinha(b, l.key, -1)}><Icon name="keyboard_arrow_up" size={18} /></button>
-                        <button type="button" class="remover" aria-label={`Mover ${l.label || 'linha'} para baixo`} disabled={b.linhas[b.linhas.length - 1]?.key === l.key} onClick={() => moverLinha(b, l.key, 1)}><Icon name="keyboard_arrow_down" size={18} /></button>
-                        <button type="button" class="remover" aria-label={`Remover ${l.label || 'linha'}`} onClick={() => removerLinha(b, l)}><Icon name="close" size={18} /></button>
+                        <button type="button" class="remover" aria-label={`Mover ${l.label || 'linha'} para cima`} disabled={b.linhas[0]?.key === l.key} onClick={() => moverLinha(b, l.key, -1)}><Icon name="chevron-up" size={18} /></button>
+                        <button type="button" class="remover" aria-label={`Mover ${l.label || 'linha'} para baixo`} disabled={b.linhas[b.linhas.length - 1]?.key === l.key} onClick={() => moverLinha(b, l.key, 1)}><Icon name="chevron-down" size={18} /></button>
+                        <button type="button" class="remover" aria-label={`Remover ${l.label || 'linha'}`} onClick={() => removerLinha(b, l)}><Icon name="x" size={18} /></button>
                       </>
                     )}
                   </span>
@@ -184,16 +178,24 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
 
           {!congelada && b.auto !== 'staff' && (
             <button type="button" class="btn btn-outline btn-sm" onClick={() => adicionarLinha(b)}>
-              <Icon name="add_circle" size={18} /> Adicionar linha
+              <Icon name="circle-plus" size={18} /> Adicionar linha
             </button>
           )}
         </Acordeao>
       ))}
 
+      {/* Barra de ações flutuante: estado do salvamento automático + ação principal */}
       {!congelada && (
-        <button type="button" class="btn btn-primary btn-md" onClick={() => alterar([...blocos, { key: novaChave('b'), titulo: 'Novo bloco', auto: null, linhas: [] }])}>
-          <Icon name="add_circle" size={18} /> Adicionar bloco
-        </button>
+        <div class="orc-barra">
+          <p class={`orc-estado estado-${estado}`} role="status">
+            {{ salvo: 'Todas as alterações salvas', pendente: 'Alterações pendentes…', salvando: 'Salvando…', erro: 'Erro ao salvar' }[estado]}
+          </p>
+          <div class="orc-barra-acoes">
+            <button type="button" class="btn btn-primary btn-md" onClick={() => alterar([...blocos, { key: novaChave('b'), titulo: 'Novo bloco', auto: null, linhas: [] }])}>
+              <Icon name="circle-plus" size={18} /> Adicionar bloco
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

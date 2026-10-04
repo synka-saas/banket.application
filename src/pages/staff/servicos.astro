@@ -3,12 +3,13 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import InfoCard from '../../components/ui/InfoCard.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 import Drawer from '../../components/ui/Drawer.astro';
 import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
 import { formatMoney, moneyInput } from '../../lib/money';
 import { STAFF_SUBMENU } from '../../lib/nav';
-import { searchTerm } from '../../lib/pagination';
+import { estaFiltrando, searchTerm } from '../../lib/pagination';
 import { excluirServico, listarServicos, listarTagsServicos, salvarServico, servicoSchema } from '../../server/staff';
 
 const { tenantId } = Astro.locals.user;
@@ -39,7 +40,7 @@ const linhas = (s: (typeof servicos)[number]) => [
   { label: 'Auxílio', value: formatMoney(s.auxilio) },
   s.por_evento
     ? { label: 'Por evento', value: plural(s.quantidade_fixa) }
-    : { label: '01 profissional a cada', value: s.convidados_por_profissional ? `${s.convidados_por_profissional} convidados` : '-' },
+    : { label: '01 profissional a cada', value: s.convidados_por_profissional ? `${s.convidados_por_profissional} convidados` : '—' },
   ...(!s.por_evento && s.minimo > 0 ? [{ label: 'Mínimo exigido', value: plural(s.minimo) }] : []),
 ];
 
@@ -65,22 +66,26 @@ const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir
 
 <AppLayout title="Serviços e custos" heading="Staff / Serviços e custos" submenu={STAFF_SUBMENU} submenuActive="servicos">
   <PageToolbar filter={{ name: 'tag', placeholder: 'Tag', options: tags.map((t) => ({ value: t, label: t })) }}>
-    <Button icon="add_circle" data-drawer-open="drawer-servico" data-values={novo}>Novo serviço</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-servico" data-values={novo}>Novo serviço</Button>
   </PageToolbar>
 
   {servicos.length === 0 ? (
-    <div class="empty">Nenhum serviço cadastrado. Cadastre as funções do staff e suas regras de dimensionamento.</div>
+    <div class="vazio-card">
+      <EstadoVazio icon="chef-hat" titulo="Nenhum serviço cadastrado" texto="Cadastre as funções do staff e suas regras de dimensionamento.">
+        {estaFiltrando(Astro.url) && <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>}
+      </EstadoVazio>
+    </div>
   ) : (
     <div class="cards-grid">
       {servicos.map((s) => (
         <InfoCard
           title={s.funcao}
-          icon="chef_hat"
+          icon="chef-hat"
           muted={!s.ativo}
           rows={linhas(s)}
           tags={[...s.tags, ...(s.incluir_por_padrao ? [] : ['Opcional']), ...(s.ativo ? [] : ['Inativo'])]}
         >
-          <Button slot="footer" block data-drawer-open="drawer-servico" data-values={valores(s)}>Editar</Button>
+          <Button slot="footer" variant="secondary" block data-drawer-open="drawer-servico" data-values={valores(s)}>Editar</Button>
         </InfoCard>
       ))}
     </div>
@@ -130,7 +135,7 @@ const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir
         <label for="sv-sim">Simular para</label>
         <div class="simulador-linha">
           <input id="sv-sim" type="number" min="0" value="100" aria-label="Número de convidados" /> convidados:
-          <strong data-sim-resultado>-</strong>
+          <strong data-sim-resultado>—</strong>
         </div>
       </div>
       <div class="field span-2">
@@ -182,55 +187,97 @@ const novo = JSON.stringify({ regra: 'proporcional', quantidade_fixa: 1, incluir
 </script>
 
 <style>
-  .empty {
-    padding: 48px;
-    text-align: center;
-    color: var(--color-text-muted);
-    background: var(--color-white);
-    border-radius: var(--border-radius);
+  .vazio-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .regras {
     display: flex;
-    gap: 24px;
+    gap: var(--space-2) var(--space-6);
     flex-wrap: wrap;
   }
 
+  /* Opção de rádio no padrão do Checkbox do design system: 18px, borda forte, marcado em terracota */
   .radio {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    gap: var(--space-2);
+    font-size: var(--fs-14);
+    color: var(--text-body);
     cursor: pointer;
+    user-select: none;
   }
 
   .radio input {
-    accent-color: var(--color-primary);
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--bg-surface);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .radio:hover input:not(:checked) {
+    border-color: var(--clay-500);
+  }
+
+  .radio input:checked {
+    border-color: var(--action-primary);
+    box-shadow: inset 0 0 0 3.5px var(--bg-surface);
+    background: var(--action-primary);
+  }
+
+  .radio input:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  .radio input:checked:focus-visible {
+    box-shadow: inset 0 0 0 3.5px var(--bg-surface), var(--focus-ring);
   }
 
   [data-regra][hidden] {
     display: none;
   }
 
+  /* Simulador do dimensionamento: painel de destaque com o resultado em números tabulares */
   .simulador {
-    padding: 14px 18px;
-    background: var(--color-primary-10);
-    border-radius: var(--border-radius-sm);
+    padding: var(--space-4);
+    background: var(--bg-accent-subtle);
+    border: 1px solid var(--terracotta-100);
+    border-radius: var(--radius-md);
   }
 
   .simulador-linha {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-2-5);
+    font-size: var(--fs-14);
+    color: var(--text-body);
   }
 
-  .simulador-linha input {
-    width: 90px !important;
-    min-height: 32px !important;
+  .simulador-linha strong {
+    color: var(--text-strong);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Campo compacto (controle "sm" do design system); o id vence o tamanho padrão de .field input */
+  #sv-sim {
+    width: 90px;
+    min-height: var(--control-h-sm);
+    border-radius: var(--radius-sm);
+    font-variant-numeric: tabular-nums;
   }
 
   .field .switch + .switch {
-    margin-top: 8px;
+    margin-top: var(--space-2);
   }
 </style>

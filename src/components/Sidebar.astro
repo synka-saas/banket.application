@@ -14,12 +14,12 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
 <aside class="sidebar">
   <a href="/dashboard" class="sidebar-logo">
     <img src="/logo-dark.png" alt="Banket" class="brand-logo" />
-    <img src="/favicon.svg" alt="Banket" class="brand-icone" />
+    <img src="/logo-mark.png" alt="Banket" class="brand-icone" />
   </a>
 
-  <nav class="sidebar-nav">
+  <nav class="sidebar-nav" aria-label="Navegação principal">
     {navItems.map((item) => (
-      <a href={item.href} class:list={['nav-item', { active: navAtiva(pathname, item.match) }]}>
+      <a href={item.href} class:list={['nav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
         <Icon name={item.icon} size={20} class="nav-icon" />
         <span class="nav-label">{item.label}</span>
       </a>
@@ -28,71 +28,101 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
 </aside>
 
 <style>
+  /* Sidebar do design system: 248px, tint quente, item ativo como pílula branca */
   .sidebar {
-    width: 265px;
-    background-color: var(--color-primary-10);
+    width: var(--sidebar-width);
+    background-color: var(--bg-sidebar);
     height: 100vh;
     height: 100dvh;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid #f1e2d9;
   }
 
   .sidebar-logo {
-    height: 128px;
+    height: 72px;
     display: flex;
     align-items: center;
-    padding: 0 45px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 0 var(--space-6);
+    border-bottom: 1px solid #f1e2d9;
+    flex: none;
   }
 
   .brand-logo {
-    height: 44px;
+    height: 30px;
     width: auto;
   }
 
   .brand-icone {
     display: none;
-    height: 32px;
+    height: 30px;
     width: auto;
   }
 
   .sidebar-nav {
     display: flex;
     flex-direction: column;
-    padding: 36px 0;
-    gap: 12px;
+    gap: 2px;
+    padding: var(--space-4) var(--space-3);
+    overflow-y: auto;
+    flex: 1;
   }
 
   .nav-item {
     display: flex;
     align-items: center;
-    padding: 12px 45px;
-    gap: 10px;
-    color: var(--color-neutral-80);
-    transition: color 0.2s ease, background-color 0.2s ease;
-    font-weight: 600;
-    font-size: 14px;
+    gap: var(--space-3);
+    height: 40px;
+    flex: none;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--text-body);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-regular);
+    transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .nav-item :global(.nav-icon) {
+    color: var(--clay-600);
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
   .nav-item:hover {
     background-color: rgba(227, 83, 54, 0.06);
-    color: var(--color-primary-text);
+    color: var(--text-strong);
+  }
+
+  .nav-item:hover :global(.nav-icon) {
+    color: var(--clay-800);
   }
 
   .nav-item.active {
-    color: var(--color-primary-50);
+    background: var(--bg-surface);
+    color: var(--terracotta-700);
+    font-weight: var(--fw-medium);
+    box-shadow: var(--shadow-xs), 0 0 0 1px rgba(227, 83, 54, 0.08);
+  }
+
+  .nav-item.active :global(.nav-icon) {
+    color: var(--terracotta-600);
+  }
+
+  .nav-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Tablet: só ícones */
   @media (max-width: 1024px) {
     .sidebar {
-      width: 76px;
+      width: 72px;
     }
 
     .sidebar-logo {
-      height: 80px;
       justify-content: center;
       padding: 0;
     }
@@ -107,11 +137,8 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
 
     .nav-item {
       justify-content: center;
-      padding: 14px 0;
-    }
-
-    .sidebar-nav {
-      overflow-y: auto;
+      padding: 0;
+      height: 44px;
     }
 
     /* Rótulo escondido visualmente, mas mantido para leitores de tela */

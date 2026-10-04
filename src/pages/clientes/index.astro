@@ -36,8 +36,12 @@ const { rows, total } = await withTenant(tenantId, (db) =>
 
 const tableData = rows.map((c) => ({
   nome: html`<a class="link" href="/clientes/${c.id}">${c.nome}</a>`,
-  documento: formatarDocumento(c.documento) || '-',
-  contato: html`${c.email || '-'}<br /><span class="muted">${c.telefone || ''}</span>`,
+  documento: c.documento ? html`<span class="tabular">${formatarDocumento(c.documento)}</span>` : '-',
+  // E-mail na primeira linha e telefone (13px, auxiliar) na segunda
+  contato:
+    c.email && c.telefone
+      ? html`<span class="contato"><span>${c.email}</span><span class="contato-tel">${c.telefone}</span></span>`
+      : c.email || c.telefone || '-',
   eventos: c.total_eventos,
   acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-cliente" data-values="${JSON.stringify({
     id: c.id,
@@ -65,8 +69,8 @@ const filtrando = estaFiltrando(Astro.url);
       ],
     }}
   >
-    <Button variant="outline" icon="upload_file" href="/clientes/importar">Importar CSV</Button>
-    <Button icon="add_circle" data-drawer-open="drawer-cliente">Novo cliente</Button>
+    <Button variant="secondary" icon="file-import" href="/clientes/importar">Importar CSV</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-cliente">Novo cliente</Button>
   </PageToolbar>
 
   <Table
@@ -74,16 +78,32 @@ const filtrando = estaFiltrando(Astro.url);
       { key: 'nome', label: 'Nome', ordenar: 'nome' },
       { key: 'documento', label: 'CPF / CNPJ' },
       { key: 'contato', label: 'Contato' },
-      { key: 'eventos', label: 'Eventos', align: 'center', ordenar: 'eventos' },
+      { key: 'eventos', label: 'Eventos', align: 'right', ordenar: 'eventos' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
   >
-    <EstadoVazio slot="empty" icon="group" titulo={filtrando ? 'Nenhum cliente para esta busca' : 'Nenhum cliente cadastrado'} texto={filtrando ? undefined : 'Clientes entram pelo formulário de captação, ao cadastrar um evento ou aqui.'}>
-      {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar filtros</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-cliente">Novo cliente</button>}
+    <EstadoVazio slot="empty" icon="users" titulo={filtrando ? 'Nenhum cliente para esta busca' : 'Nenhum cliente cadastrado'} texto={filtrando ? undefined : 'Clientes entram pelo formulário de captação, ao cadastrar um evento ou aqui.'}>
+      {filtrando ? <Button variant="secondary" href={Astro.url.pathname}>Limpar filtros</Button> : <Button icon="circle-plus" data-drawer-open="drawer-cliente">Novo cliente</Button>}
     </EstadoVazio>
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 
   <ClienteDrawer slot="overlays" />
 </AppLayout>
+
+<style is:global>
+  /* Célula de contato da lista de clientes (o HTML da célula vem de lib/html, fora do escopo do componente) */
+  .contato {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.45;
+    min-width: 0;
+  }
+
+  .contato-tel {
+    font-size: var(--fs-13);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+</style>

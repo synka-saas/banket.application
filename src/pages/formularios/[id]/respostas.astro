@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../../../layouts/AppLayout.astro';
 import Button from '../../../components/ui/Button.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
 import Table from '../../../components/ui/Table.astro';
 import Pagination from '../../../components/ui/Pagination.astro';
 import { withTenant } from '../../../lib/db';
@@ -27,12 +28,13 @@ const { formulario, rows, total } = dados;
 const tableData = rows.map((r) => ({
   _detalhe: r,
   data: dataHora(r.created_at),
-  nome: r.nome ?? '-',
-  email: r.email ?? '-',
-  natureza: (r.natureza && NATUREZA_PEDIDO[r.natureza]) ?? r.natureza ?? '-',
+  // Valor vazio: a Table mostra o travessão
+  nome: r.nome ?? null,
+  email: r.email ?? null,
+  natureza: (r.natureza && NATUREZA_PEDIDO[r.natureza]) ?? r.natureza ?? null,
   evento: r.evento_id
     ? html`<a class="link" href="/eventos/${r.evento_id}">${r.evento_titulo ?? 'Abrir evento'}</a>`
-    : 'Evento removido',
+    : html`<span class="muted">Evento removido</span>`,
   acoes: html`<button type="button" class="row-action" data-ver-resposta="${JSON.stringify({
     quando: dataHora(r.created_at),
     linhas: r.dados,
@@ -43,10 +45,10 @@ const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new
 
 <AppLayout title={`Respostas · ${formulario.nome}`} heading={`Formulários / ${formulario.nome} / Respostas`}>
   <div class="topo">
-    <p class="muted">{total} {total === 1 ? 'resposta recebida' : 'respostas recebidas'}. Cada resposta cria um evento na coluna de entrada do funil.</p>
+    <p class="intro">{total} {total === 1 ? 'resposta recebida' : 'respostas recebidas'}. Cada resposta cria um evento na coluna de entrada do funil.</p>
     <div class="topo-acoes">
-      <Button variant="outline" icon="download" href={exportarHref}>Exportar CSV</Button>
-      <Button variant="outline" icon="edit" href={`/formularios/${id}`}>Editar formulário</Button>
+      <Button variant="secondary" icon="download" href={exportarHref}>Exportar CSV</Button>
+      <Button variant="secondary" icon="pencil" href={`/formularios/${id}`}>Editar formulário</Button>
     </div>
   </div>
 
@@ -59,7 +61,7 @@ const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new
       <label for="fr-ate">Até</label>
       <input id="fr-ate" type="date" name="ate" value={ate ?? ''} />
     </div>
-    <button type="submit" class="btn btn-outline btn-md">Aplicar</button>
+    <button type="submit" class="btn btn-secondary btn-md">Aplicar</button>
     {(de || ate) && <a class="btn btn-text btn-md" href={`/formularios/${id}/respostas`}>Limpar</a>}
   </form>
 
@@ -73,15 +75,17 @@ const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
-    emptyMessage="Nenhuma resposta recebida ainda. Compartilhe o link público do formulário."
   >
+    <EstadoVazio slot="empty" icon="forms" titulo="Nenhuma resposta recebida ainda" texto="Compartilhe o link público do formulário." />
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 
   <dialog class="dialogo-form dialogo-resposta" data-dialogo-resposta aria-labelledby="resp-titulo">
     <div class="dialogo-caixa">
-      <h2 id="resp-titulo">Resposta completa</h2>
-      <p class="muted" data-resp-quando></p>
+      <div class="resp-topo">
+        <h2 id="resp-titulo">Resposta completa</h2>
+        <p class="resp-quando" data-resp-quando></p>
+      </div>
       <div class="resp-linhas" data-resp-linhas></div>
       <div class="dialogo-acoes">
         <button type="button" class="btn btn-primary btn-md" data-fechar-resposta>Fechar</button>
@@ -132,24 +136,50 @@ const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new
 </script>
 
 <style>
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+
   .topo-acoes {
     display: flex;
-    gap: 10px;
+    flex: none;
+    gap: var(--space-2);
   }
 
   .filtro-periodo {
     display: flex;
     align-items: end;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
   }
 
   .filtro-periodo .field {
-    max-width: 170px;
+    width: 170px;
   }
 
+  .filtro-periodo input {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Detalhe da resposta: grupos (eyebrow) e linhas rótulo → valor ---------- */
   .dialogo-resposta {
     width: min(640px, calc(100vw - 32px));
+  }
+
+  .resp-topo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .resp-quando {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   .resp-linhas {
@@ -157,42 +187,73 @@ const exportarHref = `/formularios/${id}/respostas-exportar${de || ate ? `?${new
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    /* a rolagem não encosta no texto */
+    margin-right: calc(var(--space-2) * -1);
+    padding-right: var(--space-2);
   }
 
-  .resp-linhas h3 {
-    margin: 12px 0 2px;
-    font-size: 13px;
+  /* As linhas são criadas pelo script, por isso os seletores globais */
+  .resp-linhas :global(h3) {
+    margin: var(--space-5) 0 var(--space-1);
+    font-size: var(--type-eyebrow-size);
+    line-height: var(--type-eyebrow-lh);
+    font-weight: var(--type-eyebrow-weight);
+    letter-spacing: var(--type-eyebrow-ls);
     text-transform: uppercase;
-    color: var(--color-primary-text);
+    color: var(--text-accent);
   }
 
-  .resp-linhas div {
+  .resp-linhas :global(h3:first-child) {
+    margin-top: 0;
+  }
+
+  .resp-linhas :global(div) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
-    gap: 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 14px;
+    gap: var(--space-4);
+    padding: var(--space-2-5) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    line-height: 1.45;
   }
 
-  .resp-linhas dt {
-    color: var(--color-text-muted);
+  .resp-linhas :global(dt) {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .resp-linhas :global(dd) {
+    font-size: var(--fs-14);
+    color: var(--text-heading);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 768px) {
+    .topo {
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .topo-acoes :global(.btn) {
+      flex: 1;
+    }
+
     .filtro-periodo {
       flex-wrap: wrap;
+      margin-bottom: var(--space-4);
     }
-  }
-</style>
 
-<style>
-  .topo {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    margin-bottom: 24px;
+    .filtro-periodo .field {
+      flex: 1 1 120px;
+      width: auto;
+    }
+
+    /* Rótulo em cima, valor embaixo */
+    .resp-linhas :global(div) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-0-5);
+    }
   }
 </style>

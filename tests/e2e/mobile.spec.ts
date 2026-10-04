@@ -37,7 +37,7 @@ test.describe('Versão mobile', () => {
     // Formulário do evento em uma coluna
     await page.goto('/eventos/novo');
     await page.getByRole('button', { name: '+ Cadastrar novo cliente' }).click();
-    await page.getByLabel('Nome / Razão social*').fill(cliente);
+    await page.getByLabel('Nome / razão social*').fill(cliente);
     // Com data: o filtro por período do funil (usado abaixo) só mostra eventos datados
     await page.getByLabel('Data', { exact: true }).fill('2027-05-20');
     await page.getByRole('button', { name: 'Criar evento' }).first().click();

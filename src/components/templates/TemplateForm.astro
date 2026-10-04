@@ -24,9 +24,9 @@ const valor = (campo: keyof Template, padrao = '') => {
 const imagem = (campo: CampoImagem) => (t[campo] ? fileUrl(tenantId, t[campo] as string) : null);
 
 const posicoesLogo = [
-  { valor: 'esquerda', rotulo: 'Esquerda', icone: 'align_horizontal_left' },
-  { valor: 'centro', rotulo: 'Centro', icone: 'align_horizontal_center' },
-  { valor: 'direita', rotulo: 'Direita', icone: 'align_horizontal_right' },
+  { valor: 'esquerda', rotulo: 'Esquerda', icone: 'layout-align-left' },
+  { valor: 'centro', rotulo: 'Centro', icone: 'layout-align-center' },
+  { valor: 'direita', rotulo: 'Direita', icone: 'layout-align-right' },
 ] as const;
 const camposImagem: Record<CampoImagem, string> = {
   capa_imagem_path: 'Imagem de fundo',
@@ -53,14 +53,14 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   <section class="cabecalho">
     <div class="nome">
       <label for="tp-nome">Nome do template</label>
-      <input id="tp-nome" name="nome" required maxlength="100" value={valor('nome')} placeholder="Nome Template" />
+      <input id="tp-nome" name="nome" required maxlength="100" value={valor('nome')} placeholder="Nome do template" />
     </div>
     <div class="acoes">
       {t.id && (
         <>
-          <a class="btn btn-outline btn-md" href={`/templates/${t.id}/exemplo`} target="_blank" rel="noopener" data-pdf-exemplo>PDF de exemplo</a>
-          <button type="submit" name="_action" value="duplicar" class="btn btn-outline btn-md" formnovalidate>Duplicar</button>
-          <button type="submit" name="_action" value="excluir" class="btn btn-outline btn-md" formnovalidate data-confirm="Excluir este template?">Excluir</button>
+          <a class="btn btn-secondary btn-md" href={`/templates/${t.id}/exemplo`} target="_blank" rel="noopener" data-pdf-exemplo>PDF de exemplo</a>
+          <button type="submit" name="_action" value="duplicar" class="btn btn-secondary btn-md" formnovalidate>Duplicar</button>
+          <button type="submit" name="_action" value="excluir" class="btn btn-danger btn-md" formnovalidate data-confirm="Excluir este template?">Excluir</button>
         </>
       )}
       <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
@@ -90,8 +90,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       <div class="subgrupo">
         <div class="subgrupo-topo">
           <h4>Fontes</h4>
-          <button type="button" class="btn btn-outline btn-sm btn-ia" data-sugerir-fontes title="Sugerir as fontes de títulos e parágrafos a partir do logotipo">
-            <Icon name="auto_awesome" size={16} /> Sugerir fontes com IA
+          <button type="button" class="btn btn-soft btn-sm btn-ia" data-sugerir-fontes title="Sugerir as fontes de títulos e parágrafos a partir do logotipo">
+            <Icon name="sparkles" size={16} /> Sugerir fontes com IA
           </button>
         </div>
         {fontes.map((f) => (
@@ -100,7 +100,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
               <label for={f.id}>{f.rotulo}</label>
               <span class="field-hint">{f.dica}</span>
             </div>
-            <select id={f.id} name={f.campo} data-var={f.var}>
+            <select id={f.id} name={f.campo} class="control" data-var={f.var}>
               {FONTES.map((nome) => <option value={nome} selected={nome === valor(f.campo, f.padrao)} style={`font-family:'${nome}'`}>{nome}</option>)}
             </select>
           </div>
@@ -110,8 +110,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       <div class="subgrupo">
         <div class="subgrupo-topo">
           <h4>Cores</h4>
-          <button type="button" class="btn btn-outline btn-sm btn-ia" data-capturar-cores title="Preencher as três cores com a paleta do logotipo">
-            <Icon name="colorize" size={16} /> Capturar cores do logo
+          <button type="button" class="btn btn-soft btn-sm btn-ia" data-capturar-cores title="Preencher as três cores com a paleta do logotipo">
+            <Icon name="color-picker" size={16} /> Capturar cores do logo
           </button>
         </div>
         {cores.map((c) => (
@@ -122,7 +122,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
             </div>
             <div class="cor">
               <input id={c.id} type="color" name={c.campo} value={valor(c.campo, c.padrao)} data-var={c.var} />
-              <input class="hex" value={valor(c.campo, c.padrao).toUpperCase()} data-hex={c.campo} maxlength="7" aria-label={`${c.rotulo} (hexadecimal)`} spellcheck="false" />
+              <input class="control hex" value={valor(c.campo, c.padrao).toUpperCase()} data-hex={c.campo} maxlength="7" aria-label={`${c.rotulo} (hexadecimal)`} spellcheck="false" />
             </div>
           </div>
         ))}
@@ -265,6 +265,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 </form>
 
 <script>
+  import { svgIcone } from '../../lib/icones';
   import { confirmar, toast } from '../../lib/ui';
   const form = document.querySelector<HTMLFormElement>('[data-template-form]');
 
@@ -366,6 +367,12 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       if (!logo) return toast('Envie o logotipo para usar as sugestões por IA.', 'info');
       botao.disabled = true;
       botao.classList.add('carregando');
+      // Enquanto a IA responde, o ícone do botão dá lugar ao indicador de carregamento (gira pelo CSS)
+      const iconeOriginal = botao.querySelector('.icon');
+      const molde = document.createElement('template');
+      molde.innerHTML = svgIcone('loader-2', 16);
+      const iconeCarregando = molde.content.firstElementChild;
+      if (iconeOriginal && iconeCarregando) iconeOriginal.replaceWith(iconeCarregando);
       try {
         const res = await fetch('/api/templates/sugestao', {
           method: 'POST',
@@ -393,6 +400,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
       } finally {
         botao.disabled = false;
         botao.classList.remove('carregando');
+        if (iconeOriginal && iconeCarregando) iconeCarregando.replaceWith(iconeOriginal);
       }
     };
 
@@ -442,55 +450,73 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     max-width: 1100px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-5);
+  }
+
+  /* Os cards recolhíveis já são separados pelo gap do formulário */
+  form.template-form :global(.section-card + .section-card) {
+    margin-top: 0;
   }
 
   .cabecalho {
     display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 16px 24px;
-    padding: 28px 36px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-4) var(--space-6);
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .nome {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
   }
 
   .nome label {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-primary-text);
+    font-size: var(--fs-12);
+    line-height: 1.4;
+    color: var(--text-muted);
   }
 
+  /* Nome editável no lugar do título: só ganha borda ao passar o mouse ou focar */
   .nome input {
+    width: 100%;
+    padding: var(--space-1) var(--space-2);
+    margin-left: calc(var(--space-2) * -1 - 1px);
     border: 1px solid transparent;
-    border-radius: 3px;
-    padding: 2px 6px;
-    margin-left: -6px;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--color-neutral-80);
-  }
-
-  .nome input:hover,
-  .nome input:focus {
-    border-color: var(--color-neutral-30);
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-size: var(--fs-20);
+    line-height: 1.3;
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
     outline: none;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
   }
 
-  .nome input:focus-visible {
-    border-color: var(--color-primary-50);
-    box-shadow: 0 0 0 1px var(--color-primary-50);
+  .nome input::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  .nome input:hover {
+    border-color: var(--border-strong);
+  }
+
+  .nome input:focus {
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
   }
 
   .acoes {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
     align-items: center;
   }
 
@@ -500,11 +526,15 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     align-items: end;
   }
 
+  .gerais .switch {
+    min-height: var(--control-h-md);
+  }
+
   /* Identidade visual: logo, fontes e cores */
   .identidade {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--space-6);
   }
 
   /* Imagem usada só como fonte para as sugestões por IA (a miniatura visível fica no campo de upload) */
@@ -515,37 +545,40 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .subgrupo {
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .subgrupo h4 {
-    margin: 16px 0 4px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-neutral-80);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border-subtle);
   }
 
   .subgrupo-topo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
   }
 
-  .subgrupo-topo h4 {
-    margin-bottom: 4px;
+  .subgrupo h4 {
+    margin: 0;
+    font-size: var(--fs-15);
+    line-height: 1.4;
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .linha {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 280px;
     align-items: center;
-    gap: 16px;
-    padding: 10px 0;
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
   }
 
   .linha + .linha {
-    border-top: 1px solid var(--color-neutral-20);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .linha:last-child {
+    padding-bottom: 0;
   }
 
   .linha-texto {
@@ -555,36 +588,68 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   }
 
   .linha-texto label {
-    font-weight: 600;
-    color: var(--color-neutral-80);
+    font-size: var(--type-label-size);
+    font-weight: var(--type-label-weight);
+    line-height: 1.3;
+    color: var(--text-heading);
   }
 
+  /* Cor (ColorInput do design system): amostra 40px + campo hexadecimal em fonte mono */
   .cor {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .cor input[type='color'] {
-    flex: 0 0 auto;
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
     width: 40px;
-    height: 36px;
-    padding: 2px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: none;
+    overflow: hidden;
     cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .cor input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  .cor input[type='color']::-webkit-color-swatch {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .cor input[type='color']::-moz-color-swatch {
+    border: 0;
+    border-radius: 0;
+  }
+
+  .cor input[type='color']:hover {
+    border-color: var(--clay-400);
+  }
+
+  .cor input[type='color']:focus-visible {
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
   }
 
   .cor .hex {
-    width: 100%;
-    font-family: ui-monospace, monospace;
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-13);
     text-transform: uppercase;
   }
 
-  .btn-ia {
-    gap: 4px;
-  }
-
+  /* Botões de IA (variante "soft"): durante o pedido o ícone vira o indicador de carregamento */
   .btn-ia.carregando :global(.icon) {
-    animation: girar 1s linear infinite;
+    animation: girar 0.9s linear infinite;
   }
 
   @keyframes girar {
@@ -593,9 +658,16 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    .btn-ia.carregando :global(.icon) {
+      animation-duration: 2.4s;
+    }
+  }
+
   @media (max-width: 720px) {
     .linha {
       grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-2);
     }
     .subgrupo-topo {
       flex-wrap: wrap;
@@ -605,24 +677,26 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .pagina-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 230px;
-    gap: 40px;
+    gap: var(--space-10);
     align-items: start;
   }
 
   .campos {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--space-5);
   }
 
-  /* Pré-visualização (proporção A4) */
+  /* Pré-visualização (proporção A4). A moldura segue o design system; o conteúdo imita o PDF:
+     fontes, cores, negrito e caixa alta são os do template do buffet, não os do sistema. */
   .preview {
     position: relative;
     aspect-ratio: 210 / 297;
     width: 230px;
     padding: 18px;
-    border: 1px solid var(--color-neutral-30);
-    border-radius: 3px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xs);
+    box-shadow: var(--shadow-sm);
     background-color: var(--p-fundo, #fff);
     background-size: cover;
     background-position: center;
@@ -631,12 +705,21 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     overflow: hidden;
   }
 
+  .preview strong,
+  .preview b {
+    font-weight: 700;
+  }
+
+  /* Rótulo da moldura ("Capa", "Contracapa"): fica acima da página e usa a tipografia do sistema */
   .preview-rotulo {
     position: absolute;
-    top: -22px;
+    top: -24px;
     left: 0;
-    font-size: 13px;
-    color: var(--color-neutral-80);
+    font-family: var(--font-sans);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-regular);
+    line-height: 1.4;
+    color: var(--text-muted);
   }
 
   .preview.capa {
@@ -645,6 +728,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    margin-top: 24px;
     text-align: center;
     overflow: visible;
   }
@@ -659,8 +743,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
 
   .preview.capa small {
     font-size: 10px;
-    text-transform: uppercase;
     color: var(--p-destaque, #e35336);
+    text-transform: uppercase;
   }
 
   .preview img {
@@ -686,8 +770,8 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     font-family: var(--p-fonte-titulo, sans-serif);
     color: var(--p-destaque, #e35336);
     font-size: 13px;
-    text-transform: uppercase;
     line-height: 1.1;
+    text-transform: uppercase;
   }
 
   .miolo .t1 {
@@ -751,7 +835,7 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   }
 
   .logo-rodape {
-    gap: 10px;
+    gap: var(--space-2-5);
   }
 
   .logo-rodape.desligado .segmentos {
@@ -759,20 +843,22 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     pointer-events: none;
   }
 
+  /* Posição do logotipo: controle segmentado do design system (rádios por baixo) */
   .segmentos {
     display: inline-flex;
     align-self: flex-start;
-    border: 1px solid var(--color-neutral-30);
-    border-radius: var(--border-radius-sm);
-    overflow: hidden;
+    align-items: stretch;
+    gap: 2px;
+    padding: 3px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    transition: opacity var(--dur-fast) var(--ease-out);
   }
 
   .segmentos label {
     position: relative;
-  }
-
-  .segmentos label + label {
-    border-left: 1px solid var(--color-neutral-30);
+    display: flex;
   }
 
   .segmentos input {
@@ -786,64 +872,78 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
   .segmentos span {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-    color: var(--color-neutral-65);
-    background: var(--color-white);
+    justify-content: center;
+    gap: var(--space-1-5);
+    height: 30px;
+    padding: 0 var(--space-3);
+    border-radius: calc(var(--radius-md) - 3px);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .segmentos label:hover span {
+    color: var(--text-strong);
   }
 
   .segmentos input:checked + span {
-    background: var(--color-neutral-20);
-    color: var(--color-neutral-80);
-    font-weight: 600;
+    background: var(--bg-surface);
+    color: var(--terracotta-700);
+    box-shadow: var(--shadow-sm);
   }
 
   .segmentos input:focus-visible + span {
-    outline: 2px solid var(--color-primary);
-    outline-offset: -2px;
+    box-shadow: var(--focus-ring-forte);
   }
 
+  /* Página longa: o Salvar acompanha a rolagem */
   .barra-salvar {
     position: sticky;
-    bottom: 12px;
+    bottom: var(--space-3);
     z-index: 20;
     display: flex;
     justify-content: flex-end;
-    margin-top: 20px;
     pointer-events: none;
   }
 
   .barra-salvar :global(.btn) {
     pointer-events: auto;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-lg);
   }
 
   .previa-real {
-    margin-top: 28px;
-    padding: 24px 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    padding: var(--space-5) var(--space-6) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .previa-real h4 {
-    margin-bottom: 4px;
+    margin-bottom: var(--space-1);
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .previa-real-paginas {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    margin-top: 16px;
+    gap: var(--space-5);
+    margin-top: var(--space-4);
   }
 
+  /* Folha A4 da prévia real: moldura discreta, conteúdo é o próprio PDF */
   .previa-real-quadro {
     position: relative;
     overflow: hidden;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xs);
+    box-shadow: var(--shadow-sm);
   }
 
   .previa-real-quadro iframe {
@@ -852,5 +952,35 @@ const fontesGoogle = FONTES.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;
     border: 0;
     transform-origin: top left;
     pointer-events: none;
+  }
+
+  /* Celular: cabeçalho, campos e pré-visualização em uma coluna */
+  @media (max-width: 768px) {
+    .cabecalho {
+      grid-template-columns: minmax(0, 1fr);
+      padding: var(--space-4);
+    }
+
+    .acoes {
+      justify-content: flex-start;
+    }
+
+    .gerais {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .pagina-grid {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-6);
+    }
+
+    .preview {
+      justify-self: center;
+    }
+
+    .previa-real {
+      padding: var(--space-4);
+    }
   }
 </style>

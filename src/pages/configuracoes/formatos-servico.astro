@@ -46,7 +46,7 @@ const tableData = formatos.map((f) => ({
 
 <AppLayout title="Formatos de serviço" heading="Configurações / Formatos de serviço" submenu={CONFIG_SUBMENU} submenuActive="formatos">
   <PageToolbar>
-    <Button icon="add_circle" data-drawer-open="drawer-formato">Novo formato</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-formato">Novo formato</Button>
   </PageToolbar>
 
   <p class="intro">
@@ -81,9 +81,12 @@ const tableData = formatos.map((f) => ({
 
 <style>
   .intro {
-    margin: -8px 0 20px;
-    color: var(--color-neutral-65);
-    font-size: 13px;
-    max-width: 760px;
+    margin: 0 0 var(--space-4);
+  }
+
+  /* Nome em destaque (célula "strong" da tabela do design system) */
+  :global(.data-table tbody td[data-key='nome']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
   }
 </style>

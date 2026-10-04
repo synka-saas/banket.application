@@ -37,21 +37,21 @@ if (Astro.request.method === 'POST') {
   <h1 class="auth-title">Crie sua conta.</h1>
 
   <form class="auth-form" method="post">
-    <Input id="nome" name="nome" label="NOME E SOBRENOME" placeholder="Ex.: Maria Souza" value={nome} autocomplete="name" maxlength="255" required />
-    <Input id="email" name="email" type="email" label="E-MAIL" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
-    <Input id="senha" name="senha" type="password" label="SENHA" autocomplete="new-password" minlength="8" required />
-    <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME SUA SENHA" autocomplete="new-password" required />
+    <Input id="nome" name="nome" label="Nome e sobrenome" placeholder="Ex.: Maria Souza" value={nome} autocomplete="name" maxlength="255" required />
+    <Input id="email" name="email" type="email" label="E-mail" placeholder="seu@email.com.br" value={email} autocomplete="email" required />
+    <Input id="senha" name="senha" type="password" label="Senha" autocomplete="new-password" minlength="8" required />
+    <Input id="confirma_senha" name="confirma_senha" type="password" label="Confirme sua senha" autocomplete="new-password" required />
     <p class="auth-hint">{REGRA_SENHA}</p>
     <Checkbox id="termos" name="termos" required>
       Li e aceito os <a href="/termos" target="_blank" rel="noopener" class="link">Termos de uso</a> e a{' '}
       <a href="/privacidade" target="_blank" rel="noopener" class="link">Política de privacidade</a>
     </Checkbox>
 
-    <Button variant="primary" size="large" type="submit">CRIAR CONTA</Button>
+    <Button variant="primary" size="large" type="submit">Criar conta</Button>
   </form>
 
   <div class="auth-links">
     Já tem uma conta? <a href="/auth/login">Entre agora</a><br />
-    <span style="font-size: 12px; color: var(--color-text-muted);">*Dados obrigatórios</span>
+    <span class="auth-nota">*Dados obrigatórios</span>
   </div>
 </AuthLayout>

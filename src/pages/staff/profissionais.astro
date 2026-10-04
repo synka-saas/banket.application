@@ -53,12 +53,21 @@ const { profissionais, total, servicos } = await withTenant(tenantId, async (db)
   return { profissionais: rows, total, servicos: await listarServicos(db) };
 });
 
+const whatsapp = (telefone: string) => {
+  const digitos = telefone.replace(/\D/g, '');
+  return `https://wa.me/${(digitos.length <= 11 ? '55' : '') + digitos}`;
+};
+
 const tableData = profissionais.map((p) => ({
-  nome: html`${p.nome}${!p.ativo && html` <span class="tag tag-off">Inativo</span>`}`,
-  contato: html`${p.email ? html`<a class="link" href="mailto:${p.email}">${p.email}</a>` : '-'}${
-    p.telefone &&
-    html`<br /><a class="link" href="https://wa.me/${(p.telefone.replace(/\D/g, '').length <= 11 ? '55' : '') + p.telefone.replace(/\D/g, '')}" target="_blank" rel="noopener">${p.telefone} · chamar</a>`
-  }`,
+  nome: html`<span class="pro-nome">${p.nome}${!p.ativo && html` <span class="badge">Inativo</span>`}</span>`,
+  // E-mail em destaque; telefone em linha auxiliar com o atalho do WhatsApp
+  contato:
+    p.email || p.telefone
+      ? html`<div class="pro-contato">${p.email && html`<a class="link" href="mailto:${p.email}">${p.email}</a>`}${
+          p.telefone &&
+          html`<div class="pro-telefone">${p.telefone} · <a class="link" href="${whatsapp(p.telefone)}" target="_blank" rel="noopener">chamar no WhatsApp</a></div>`
+        }</div>`
+      : '',
   especialidade: html`<form method="post" class="inline-form">
       <input type="hidden" name="id" value="${p.id}" />
       <input type="hidden" name="_action" value="especialidade" />
@@ -86,7 +95,7 @@ const filtrando = estaFiltrando(Astro.url);
   <PageToolbar
     filter={{ name: 'especialidade', placeholder: 'Especialidade', options: servicos.map((s) => ({ value: s.id, label: s.funcao })) }}
   >
-    <Button icon="add_circle" data-drawer-open="drawer-profissional" data-values={JSON.stringify({ ativo: true })}>
+    <Button icon="circle-plus" data-drawer-open="drawer-profissional" data-values={JSON.stringify({ ativo: true })}>
       Novo profissional
     </Button>
   </PageToolbar>
@@ -100,8 +109,8 @@ const filtrando = estaFiltrando(Astro.url);
     ]}
     data={tableData}
   >
-    <EstadoVazio slot="empty" icon="badge" titulo={filtrando ? 'Nenhum profissional para esta busca' : 'Nenhum profissional cadastrado'} texto={filtrando ? undefined : 'Monte a base de garçons, copeiras, cozinheiros e demais profissionais que atendem seus eventos.'}>
-      {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar filtros</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-profissional">Novo profissional</button>}
+    <EstadoVazio slot="empty" icon="id-badge-2" titulo={filtrando ? 'Nenhum profissional para esta busca' : 'Nenhum profissional cadastrado'} texto={filtrando ? undefined : 'Monte a base de garçons, copeiras, cozinheiros e demais profissionais que atendem seus eventos.'}>
+      {filtrando ? <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-profissional">Novo profissional</button>}
     </EstadoVazio>
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
@@ -140,7 +149,7 @@ const filtrando = estaFiltrando(Astro.url);
         <input id="pr-doc" name="documento" inputmode="numeric" placeholder="000.000.000-00" data-mascara="cpf" />
       </div>
       <div class="field span-2">
-        <label for="pr-pix">Chave PIX</label>
+        <label for="pr-pix">Chave Pix</label>
         <input id="pr-pix" name="chave_pix" maxlength="140" />
       </div>
       <div class="field span-2">
@@ -153,4 +162,36 @@ const filtrando = estaFiltrando(Astro.url);
     </form>
   </Drawer>
 </AppLayout>
+
+<style>
+  /* Células montadas com html``: nome em destaque e contato em duas linhas */
+  :global(.pro-nome) {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.pro-contato) {
+    line-height: 1.45;
+  }
+
+  :global(.pro-contato .link) {
+    font-weight: var(--fw-regular);
+  }
+
+  :global(.pro-telefone) {
+    font-size: var(--fs-13);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    :global(.pro-nome) {
+      justify-content: flex-end;
+    }
+  }
+</style>
 

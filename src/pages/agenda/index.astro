@@ -54,9 +54,11 @@ const MAX_NO_DIA = 3;
 <AppLayout title="Agenda" heading="Agenda">
   <div class="agenda-topo">
     <div class="navegacao">
-      <Button variant="outline" size="sm" href={link({ data: anterior })} aria-label="Anterior" icon="chevron_left" />
-      <Button variant="outline" size="sm" href={link({ data: hojeIso })}>Hoje</Button>
-      <Button variant="outline" size="sm" href={link({ data: proximo })} aria-label="Próximo" icon="chevron_right" />
+      <div class="navegacao-botoes">
+        <Button variant="secondary" size="sm" href={link({ data: anterior })} aria-label="Anterior" icon="chevron-left" />
+        <Button variant="secondary" size="sm" href={link({ data: hojeIso })}>Hoje</Button>
+        <Button variant="secondary" size="sm" href={link({ data: proximo })} aria-label="Próximo" icon="chevron-right" />
+      </div>
       <h2>{titulo}</h2>
     </div>
     <div class="filtros">
@@ -68,9 +70,9 @@ const MAX_NO_DIA = 3;
           {Object.entries(VARIANTES_STATUS).map(([v, l]) => <option value={v} selected={v === variante}>{l}</option>)}
         </select>
       </form>
-      <div class="alternar" role="group" aria-label="Visualização">
-        <a href={link({ visao: 'mes' })} class:list={{ ativo: visao === 'mes' }}>Mês</a>
-        <a href={link({ visao: 'semana' })} class:list={{ ativo: visao === 'semana' }}>Semana</a>
+      <div class="alternar segmented" role="group" aria-label="Visualização">
+        <a href={link({ visao: 'mes' })} class:list={{ ativo: visao === 'mes', active: visao === 'mes' }}>Mês</a>
+        <a href={link({ visao: 'semana' })} class:list={{ ativo: visao === 'semana', active: visao === 'semana' }}>Semana</a>
       </div>
     </div>
   </div>
@@ -85,7 +87,8 @@ const MAX_NO_DIA = 3;
             <a class="numero" href={link({ data: dia, visao: 'semana' })}>{diaNum(dia)}</a>
             {lista.slice(0, MAX_NO_DIA).map((e) => (
               <a class="evento" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`} title={`${e.titulo ?? ''} · ${e.status_nome}`}>
-                {e.hora_inicio && <b>{e.hora_inicio}</b>} {e.titulo ?? e.cliente_nome ?? 'Evento'}
+                {e.hora_inicio && <b>{e.hora_inicio}</b>}
+                <span class="evento-titulo">{e.titulo ?? e.cliente_nome ?? 'Evento'}</span>
               </a>
             ))}
             {lista.length > MAX_NO_DIA && (
@@ -107,8 +110,8 @@ const MAX_NO_DIA = 3;
             </header>
             {lista.length === 0 && <p class="vazio">—</p>}
             {lista.map((e) => (
-              <a class="cartao" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`}>
-                <span class="status">{e.status_nome}</span>
+              <a class="cartao" href={`/eventos/${e.id}`}>
+                <span class="status"><span class="dot" style={`background:${e.cor}`}></span>{e.status_nome}</span>
                 <strong>{e.titulo ?? 'Evento'}</strong>
                 {e.cliente_nome && <span>{e.cliente_nome}</span>}
                 <span class="muted">{faixaHorario(e.hora_inicio, e.hora_fim)}</span>
@@ -122,7 +125,7 @@ const MAX_NO_DIA = 3;
     </div>
   )}
 
-  <p class="rodape muted">
+  <p class="rodape">
     {eventos.length === 0
       ? 'Nenhum evento com data neste período.'
       : `${eventos.length} evento${eventos.length === 1 ? '' : 's'} no período.`}{' '}
@@ -135,196 +138,328 @@ const MAX_NO_DIA = 3;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 16px;
+    gap: var(--space-3) var(--space-4);
     flex-wrap: wrap;
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .navegacao,
   .filtros {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-3);
+  }
+
+  .navegacao-botoes {
+    display: flex;
+    gap: var(--space-1-5);
+  }
+
+  /* Anterior/Próximo: botão de ícone quadrado (IconButton sm do design system) */
+  .navegacao-botoes :global(.btn[aria-label]) {
+    width: var(--control-h-sm);
+    padding: 0;
   }
 
   .navegacao h2 {
-    margin-left: 12px;
-    font-size: 22px;
-    color: var(--color-neutral-80);
+    font-size: var(--fs-20);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
   }
 
   .filtro-status select {
-    min-width: 220px;
+    width: 200px;
   }
 
   .alternar {
-    display: flex;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    overflow: hidden;
+    margin-bottom: 0;
   }
 
-  .alternar a {
-    padding: 8px 16px;
-    font-size: 14px;
-    color: var(--color-neutral-65);
-    background: var(--color-white);
-  }
-
-  .alternar a.ativo {
-    background: var(--color-primary);
-    color: var(--color-white);
-  }
-
+  /* ---------- Mês (CalendarMonth) ---------- */
   .mes {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
     overflow: hidden;
   }
 
   .cabecalho-dia {
-    padding: 10px;
-    font-size: 12px;
+    padding: var(--space-2-5) var(--space-3);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase;
-    color: var(--color-neutral-65);
-    border-bottom: 1px solid var(--border-color);
-    text-align: center;
+    color: var(--text-muted);
+    background: var(--clay-25);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .dia {
-    min-height: 118px;
-    padding: 6px;
+    min-height: 112px;
+    padding: var(--space-2);
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    border-right: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
+    gap: var(--space-1);
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
     min-width: 0;
+    transition: background-color var(--dur-fast) var(--ease-out);
   }
 
   .dia:nth-child(7n) {
-    border-right: none;
+    border-right: 0;
+  }
+
+  .dia:nth-last-child(-n + 7) {
+    border-bottom: 0;
+  }
+
+  .dia:hover {
+    background: var(--clay-25);
   }
 
   .dia.fora {
-    background: var(--color-neutral-10);
+    background: var(--bg-app);
   }
 
   .dia.fora .numero {
-    color: var(--color-text-muted);
+    color: var(--clay-400);
   }
 
   .numero {
-    align-self: flex-end;
+    align-self: flex-start;
     width: 26px;
     height: 26px;
-    display: grid;
-    place-items: center;
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-13);
+    font-variant-numeric: tabular-nums;
     border-radius: 50%;
-    color: var(--color-neutral-80);
+    color: var(--text-heading);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .numero:hover {
+    background: var(--bg-subtle);
   }
 
   .dia.hoje .numero {
-    background: var(--color-primary);
-    color: var(--color-white);
-    font-weight: 700;
+    background: var(--terracotta-500);
+    color: var(--text-on-accent);
+    font-weight: var(--fw-medium);
   }
 
+  /* Evento do dia: barra vertical na cor da etapa (vem do banco) + hora + título */
   .evento {
-    display: block;
-    padding: 3px 6px;
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    height: 24px;
+    padding: 0 var(--space-2) 0 var(--space-1-5);
+    font-size: var(--fs-12);
     white-space: nowrap;
     overflow: hidden;
+    min-width: 0;
+    background: var(--terracotta-50);
+    border-radius: var(--radius-sm);
+    color: var(--terracotta-900);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .evento::before {
+    content: '';
+    flex: none;
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--cor, var(--stage-negotiation));
+  }
+
+  .evento:hover {
+    background: var(--terracotta-100);
+  }
+
+  .evento b {
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .evento-titulo {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
-    border-left: 3px solid var(--cor);
-    background: color-mix(in srgb, var(--cor) 12%, white);
-    border-radius: 3px;
-    color: var(--color-neutral-80);
   }
 
   .mais {
-    font-size: 12px;
-    color: var(--color-primary-text);
-    padding-left: 4px;
+    font-size: var(--fs-12);
+    color: var(--text-link);
+    padding-left: var(--space-1-5);
   }
 
+  .mais:hover {
+    color: var(--text-link-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  /* ---------- Semana ---------- */
   .semana {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 10px;
+    gap: var(--space-3);
   }
 
   .coluna {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     min-width: 0;
   }
 
   .coluna header {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
-    padding: 10px 12px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 13px;
-    color: var(--color-neutral-65);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 48px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .coluna header span {
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-eyebrow);
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
 
   .coluna header strong {
-    font-size: 18px;
-    color: var(--color-neutral-80);
-  }
-
-  .coluna.hoje header {
-    border-color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+    font-size: var(--fs-16);
+    font-variant-numeric: tabular-nums;
+    border-radius: 50%;
+    color: var(--text-strong);
   }
 
   .coluna.hoje header strong {
-    color: var(--color-primary-text);
+    background: var(--terracotta-500);
+    color: var(--text-on-accent);
   }
 
   .cartao {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 10px 12px;
-    font-size: 13px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--cor);
-    border-radius: var(--border-radius);
-    color: var(--color-neutral-80);
+    padding: var(--space-3);
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    color: var(--text-body);
     overflow-wrap: anywhere;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  }
+
+  .cartao:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+
+  .cartao strong {
+    font-size: var(--fs-14);
+    color: var(--text-strong);
   }
 
   .cartao .status {
-    font-size: 11px;
-    text-transform: uppercase;
-    color: var(--cor);
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    margin-bottom: 2px;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
   }
 
-  .vazio {
+  .cartao .muted {
+    color: var(--text-secondary);
+  }
+
+  .coluna .vazio {
+    padding: var(--space-2) 0;
     text-align: center;
-    color: var(--color-text-muted);
   }
 
   .rodape {
     margin-top: 14px;
-    font-size: 13px;
+    font-size: var(--fs-13);
+    color: var(--text-muted);
   }
 
   @media (max-width: 900px) {
     .semana {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .coluna header {
+      justify-content: flex-start;
+    }
+  }
+
+  /* Celular: filtros na largura toda e células do mês mais compactas */
+  @media (max-width: 768px) {
+    .filtros {
+      width: 100%;
+    }
+
+    .filtro-status {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .filtro-status select {
+      width: 100%;
+    }
+
+    .alternar {
+      flex: none;
+    }
+
+    .cabecalho-dia {
+      padding: var(--space-2) 0;
+      text-align: center;
+      letter-spacing: var(--ls-wide);
+    }
+
+    .dia {
+      min-height: 88px;
+      padding: var(--space-1);
+    }
+
+    .numero {
+      align-self: center;
+    }
+
+    .evento {
+      gap: var(--space-1);
+      padding: 0 var(--space-1);
+    }
+
+    .evento-titulo {
+      display: none;
     }
   }
 </style>

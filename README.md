@@ -89,7 +89,8 @@ Regras que valem para todo código novo:
   o servidor sempre recalcula ao salvar. Valor manual prevalece sobre o calculado em todos os níveis.
 - **Versões de orçamento são snapshots**: só a versão atual é editável; "Criar nova versão" congela a anterior, e
   versões congeladas reaproveitam o PDF já gerado.
-- **Ícones**: somente Google Material Symbols (`components/ui/Icon.astro` e `Icon.tsx`).
+- **Visual**: segue o design system em `design-system/` (tokens em `src/styles/tokens.css`, General Sans, terracota e
+  argila). Ícones: somente Tabler Icons, em linha (`components/ui/Icon.astro`, `Icon.tsx`, `lib/icones.ts`). Ver CLAUDE.md.
 - **Papéis**: `owner` e `admin` acessam Configurações; `usuario` opera o dia a dia.
 
 ## Testes

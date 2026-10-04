@@ -58,6 +58,10 @@ const recorteTexto = recorteManual
 const podeConfigurar = Astro.locals.user.role === 'owner' || Astro.locals.user.role === 'admin';
 const exportarHref = withQuery(new URL(`${url.origin}/eventos/exportar${url.search}`), { view: null, page: null });
 const pad = (n: number) => String(n).padStart(2, '0');
+// Etapa sem cor cadastrada usa a cor de entrada do design system
+const COR_ETAPA_PADRAO = 'var(--stage-new)';
+// Tom da etiqueta do tipo de evento (EventCard do design system)
+const tomDoTipo = (nome: string) => (nome === 'Corporativo' ? 'tag-cobalt' : nome === 'Religioso' ? 'tag-ochre' : null);
 // Chips dos filtros ativos, cada um com o seu × (UX-105)
 const chipsFiltros = [
   filtros.busca && { rotulo: `Busca: ${url.searchParams.get('q')}`, href: withQuery(url, { q: null, page: null }) },
@@ -103,7 +107,7 @@ const listaData =
     evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? 'Evento'}</a>`,
     cliente: e.cliente_nome ?? '-',
     convidados: e.numero_convidados ?? '-',
-    status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? '#888'}"></span>${e.status_nome}</span>`,
+    status: html`<span class="status-name"><span class="dot" style="background:${e.status_cor ?? COR_ETAPA_PADRAO}"></span>${e.status_nome}</span>`,
     valor:
       e.valor_orcamento !== null
         ? formatMoney(e.valor_orcamento)
@@ -115,69 +119,70 @@ const listaData =
 const filtrando = estaFiltrando(Astro.url);
 ---
 
-<AppLayout title={ROTULOS.funil} heading={ROTULOS.funil} submenu={[]}>
-  <Fragment slot="submenu-actions">
-    <a href={withQuery(url, { view: 'lista', page: null })} class:list={['view-toggle', { active: visao === 'lista' }]}>
-      <Icon name="list" size={18} /> Lista
-    </a>
-    <a href={withQuery(url, { view: null, page: null })} class:list={['view-toggle', { active: visao === 'kanban' }]}>
-      <Icon name="view_kanban" size={18} /> Kanban
-    </a>
-  </Fragment>
-
-  <PageToolbar searchPlaceholder="Pesquisar">
-    <details class="filtros">
-      <summary class="btn btn-outline btn-md"><Icon name="filter_list" size={18} /> Filtros{filtrosAtivos > 0 && ` (${filtrosAtivos})`}</summary>
-      <form method="get" class="filtros-painel">
-        {visao === 'lista' && <input type="hidden" name="view" value="lista" />}
-        {filtros.busca && <input type="hidden" name="q" value={url.searchParams.get('q') ?? ''} />}
-        <div class="datas-linha">
-          <div class="field">
-            <label for="f-de">Data de</label>
-            <input id="f-de" type="date" name="de" value={filtros.de ?? ''} />
+<AppLayout title={ROTULOS.funil} heading={ROTULOS.funil}>
+  <div class="funil-toolbar">
+    <PageToolbar searchPlaceholder="Pesquisar">
+      <nav class="segmented funil-visao" aria-label="Visualização">
+        <a href={withQuery(url, { view: 'lista', page: null })} class:list={{ active: visao === 'lista' }} aria-current={visao === 'lista' ? 'page' : undefined}>
+          <Icon name="list" size={16} /> Lista
+        </a>
+        <a href={withQuery(url, { view: null, page: null })} class:list={{ active: visao === 'kanban' }} aria-current={visao === 'kanban' ? 'page' : undefined}>
+          <Icon name="layout-kanban" size={16} /> Kanban
+        </a>
+      </nav>
+      <details class="filtros">
+        <summary class="btn btn-secondary btn-md"><Icon name="filter" size={16} /> Filtros{filtrosAtivos > 0 && ` (${filtrosAtivos})`}</summary>
+        <form method="get" class="filtros-painel">
+          {visao === 'lista' && <input type="hidden" name="view" value="lista" />}
+          {filtros.busca && <input type="hidden" name="q" value={url.searchParams.get('q') ?? ''} />}
+          <div class="datas-linha">
+            <div class="field">
+              <label for="f-de">Data de</label>
+              <input id="f-de" type="date" name="de" value={filtros.de ?? ''} />
+            </div>
+            <div class="field">
+              <label for="f-ate">Até</label>
+              <input id="f-ate" type="date" name="ate" value={filtros.ate ?? ''} />
+            </div>
           </div>
           <div class="field">
-            <label for="f-ate">Até</label>
-            <input id="f-ate" type="date" name="ate" value={filtros.ate ?? ''} />
+            <label for="f-tipo">Tipo de evento</label>
+            <select id="f-tipo" name="tipo">
+              <option value="">Todos</option>
+              {dados.tipos.map((t) => <option value={t.id} selected={t.id === filtros.tipoId}>{t.nome}</option>)}
+            </select>
           </div>
-        </div>
-        <div class="field">
-          <label for="f-tipo">Tipo de evento</label>
-          <select id="f-tipo" name="tipo">
-            <option value="">Todos</option>
-            {dados.tipos.map((t) => <option value={t.id} selected={t.id === filtros.tipoId}>{t.nome}</option>)}
-          </select>
-        </div>
-        <div class="field">
-          <label for="f-formato">Formato de serviço</label>
-          <select id="f-formato" name="formato">
-            <option value="">Todos</option>
-            {dados.formatos.map((f) => <option value={f.id} selected={f.id === filtros.formatoId}>{f.nome}</option>)}
-          </select>
-        </div>
-        <div class="field">
-          <label for="f-status">{ROTULOS.etapa}</label>
-          <select id="f-status" name="status">
-            <option value="">Todas</option>
-            {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
-          </select>
-        </div>
-        <div class="filtros-acoes">
-          <a href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'} class="btn btn-outline btn-md">Limpar</a>
-          <button type="submit" class="btn btn-primary btn-md">Aplicar</button>
-        </div>
-      </form>
-    </details>
-    <Button variant="outline" icon="download" href={exportarHref}>Exportar CSV</Button>
-    <Button variant="primary" icon="add_circle" href="/eventos/novo">Novo evento</Button>
-  </PageToolbar>
+          <div class="field">
+            <label for="f-formato">Formato de serviço</label>
+            <select id="f-formato" name="formato">
+              <option value="">Todos</option>
+              {dados.formatos.map((f) => <option value={f.id} selected={f.id === filtros.formatoId}>{f.nome}</option>)}
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-status">{ROTULOS.etapa}</label>
+            <select id="f-status" name="status">
+              <option value="">Todas</option>
+              {dados.status.map((s) => <option value={s.id} selected={s.id === filtros.statusId}>{s.nome}</option>)}
+            </select>
+          </div>
+          <div class="filtros-acoes">
+            <a href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'} class="btn btn-secondary btn-md">Limpar</a>
+            <button type="submit" class="btn btn-primary btn-md">Aplicar</button>
+          </div>
+        </form>
+      </details>
+      <Button variant="secondary" icon="download" href={exportarHref}>Exportar CSV</Button>
+      <Button variant="primary" icon="circle-plus" href="/eventos/novo">Novo evento</Button>
+    </PageToolbar>
+  </div>
 
   {chipsFiltros.length > 0 && (
     <div class="chips-filtros" aria-label="Filtros ativos">
       {chipsFiltros.map((c) => (
         <a class="chip-filtro" href={c.href} title="Remover este filtro">
           {c.rotulo}
-          <Icon name="close" size={16} />
+          <Icon name="x" size={14} />
         </a>
       ))}
       <a class="chip-filtro limpar" href={visao === 'lista' ? '/eventos?view=lista' : '/eventos'}>Limpar tudo</a>
@@ -186,11 +191,11 @@ const filtrando = estaFiltrando(Astro.url);
 
   {visao === 'kanban' ? (
     <>
-    <p class="recorte" data-recorte>
-      <Icon name="date_range" size={18} />
+    <div class="recorte" data-recorte>
+      <Icon name="calendar" size={15} />
       <span>{recorteTexto}</span>
       {recorteManual ? (
-        <a href="/eventos" class="recorte-link">Voltar ao intervalo de trabalho</a>
+        <a href="/eventos" class="link recorte-link">Voltar ao intervalo de trabalho</a>
       ) : podeConfigurar ? (
         <form method="post" class="recorte-form">
           <input type="hidden" name="_action" value="intervalo" />
@@ -203,7 +208,7 @@ const filtrando = estaFiltrando(Astro.url);
           </select>
         </form>
       ) : null}
-    </p>
+    </div>
     <div class="kanban-etapas" data-kanban-etapas role="tablist" aria-label="Etapas do funil">
       {colunas.map((col, i) => (
         <button
@@ -213,7 +218,7 @@ const filtrando = estaFiltrando(Astro.url);
           class:list={['kanban-etapa-chip', { ativa: i === 0 }]}
           data-etapa-chip={col.id}
         >
-          <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
+          <span class="dot" style={`background:${col.cor ?? COR_ETAPA_PADRAO}`}></span>
           {col.nome}
           <span class="kanban-etapa-qtd" data-chip-contagem>{col.cards.length}</span>
         </button>
@@ -222,9 +227,10 @@ const filtrando = estaFiltrando(Astro.url);
     <div class="kanban" data-kanban>
       {colunas.map((col, i) => (
         <section class:list={['kanban-col', { 'mobile-ativa': i === 0 }]} data-coluna={col.id} data-status-nome={col.nome} data-variante={col.variante}>
-          <header class="kanban-col-header">
+          {/* Cabeçalho = KanbanColumn do design system: faixa de 3px no topo na cor da etapa */}
+          <header class="kanban-col-header" style={`--etapa:${col.cor ?? COR_ETAPA_PADRAO}`}>
             <h2 class="kanban-col-titulo">
-              <span class="dot" style={`background:${col.cor ?? '#888'}`}></span>
+              <span class="dot" style={`background:${col.cor ?? COR_ETAPA_PADRAO}`}></span>
               <span class="kanban-col-nome">{col.nome}</span>
             </h2>
             <span class="kanban-col-meta">
@@ -236,39 +242,45 @@ const filtrando = estaFiltrando(Astro.url);
           <div class="kanban-cards" data-dropzone>
             {col.cards.map((c) => (
               <article class="evento-card" draggable="true" data-evento={c.id} data-ordem={ordem.get(c.id)} data-valor={c.valor_orcamento ?? 0} data-verba={verbaSemOrcamento(c)}>
-                <h3 class="evento-card-title">
-                  <Icon name={c.cliente_tipo === 'PJ' ? 'domain' : 'account_box'} size={22} />
-                  {/* O link cobre o card inteiro (::after): clicar em qualquer ponto abre o resumo */}
-                  <a href={`/eventos/${c.id}`} class="evento-card-link" draggable="false">{c.categoria_nome ?? c.titulo ?? 'Evento'}</a>
-                </h3>
+                <div class="evento-card-topo">
+                  <span class="evento-card-icone"><Icon name={c.cliente_tipo === 'PJ' ? 'building' : 'user-square'} size={16} /></span>
+                  <div class="evento-card-titulos">
+                    <h3 class="evento-card-title">
+                      {/* O link cobre o card inteiro (::after): clicar em qualquer ponto abre o resumo */}
+                      <a href={`/eventos/${c.id}`} class="evento-card-link" draggable="false">{c.categoria_nome ?? c.titulo ?? 'Evento'}</a>
+                    </h3>
+                    <p class="evento-card-sub">{c.cliente_nome ?? 'Sem cliente'}</p>
+                  </div>
+                </div>
                 <details class="card-menu" data-card-menu>
-                  <summary aria-label={`Ações do evento ${c.titulo ?? ''}`}><Icon name="more_horiz" size={20} /></summary>
+                  <summary aria-label={`Ações do evento ${c.titulo ?? ''}`}><Icon name="dots" size={16} /></summary>
                   <div class="card-menu-lista">
-                    <a href={`/eventos/${c.id}/editar`}><Icon name="edit" size={18} /> Editar</a>
-                    <a href={`/eventos/${c.id}/orcamento`}><Icon name="request_quote" size={18} /> {c.valor_orcamento !== null ? 'Abrir orçamento' : 'Orçamento'}</a>
+                    <a href={`/eventos/${c.id}/editar`}><Icon name="pencil" size={16} /> Editar</a>
+                    <a href={`/eventos/${c.id}/orcamento`}><Icon name="file-dollar" size={16} /> {c.valor_orcamento !== null ? 'Abrir orçamento' : 'Orçamento'}</a>
                     <span class="card-menu-grupo">Mover para</span>
                     {dados.status.filter((st) => st.id !== c.status_id).map((st) => (
                       <button type="button" data-mover-para={st.id}>
-                        <span class="dot" style={`background:${st.cor ?? '#888'}`}></span>{st.nome}
+                        <span class="dot" style={`background:${st.cor ?? COR_ETAPA_PADRAO}`}></span>{st.nome}
                       </button>
                     ))}
                   </div>
                 </details>
-                <p class="evento-card-sub">{c.cliente_nome ?? 'Sem cliente'}</p>
                 <dl class="evento-card-rows">
-                  <div><dt>Pessoas</dt><dd>{c.numero_convidados ?? '-'}</dd></div>
-                  <div><dt>{ROTULOS.formatoServico}</dt><dd>{c.formato_nome ?? '-'}</dd></div>
+                  <div><dt>Pessoas</dt><dd class:list={{ vazio: c.numero_convidados === null }}>{c.numero_convidados ?? '—'}</dd></div>
+                  <div><dt>{ROTULOS.formatoServico}</dt><dd class:list={{ vazio: !c.formato_nome }}>{c.formato_nome ?? '—'}</dd></div>
                   {c.valor_orcamento !== null ? (
                     <div><dt>Orçamento</dt><dd>{formatMoney(c.valor_orcamento)}</dd></div>
                   ) : (
-                    <div class="verba"><dt>{ROTULOS.verbaEstimada}</dt><dd>{c.verba_total !== null ? formatMoney(c.verba_total) : '-'}</dd></div>
+                    <div class="verba"><dt>{ROTULOS.verbaEstimada}</dt><dd class:list={{ vazio: c.verba_total === null }}>{c.verba_total !== null ? formatMoney(c.verba_total) : '—'}</dd></div>
                   )}
-                  <div><dt>Data</dt><dd>{dataCurta(c.data_evento)}</dd></div>
+                  <div><dt>Data</dt><dd class:list={{ vazio: !c.data_evento }}>{c.data_evento ? dataCurta(c.data_evento) : '—'}</dd></div>
                 </dl>
                 <div class="tag-list">
-                  {[c.tipo_nome].filter(Boolean).map((t) => <span class="tag">{t}</span>)}
+                  {[c.tipo_nome].filter(Boolean).map((t) => <span class:list={['tag', 'tag-sm', tomDoTipo(t!)]}>{t}</span>)}
                   {diasNaEtapa(c) >= 3 && (
-                    <span class:list={['selo-etapa', { alerta: diasNaEtapa(c) >= 7 }]}>há {diasNaEtapa(c)} dias nesta etapa</span>
+                    <span class:list={['tag', 'tag-sm', 'selo-etapa', { 'tag-accent': diasNaEtapa(c) >= 7, alerta: diasNaEtapa(c) >= 7 }]}>
+                      <Icon name="clock" size={12} /> há {diasNaEtapa(c)} dias nesta etapa
+                    </span>
                   )}
                 </div>
               </article>
@@ -292,8 +304,8 @@ const filtrando = estaFiltrando(Astro.url);
       ]}
       data={listaData}
     >
-      <EstadoVazio slot="empty" icon="event_busy" titulo={filtrando ? 'Nenhum evento para estes filtros' : 'Nenhum evento ainda'} texto={filtrando ? undefined : 'Os pedidos chegam pelo formulário de captação ou pelo cadastro manual.'}>
-        {filtrando ? <a class="btn btn-outline btn-md" href="/eventos?view=lista">Limpar filtros</a> : <a class="btn btn-primary btn-md" href="/eventos/novo">Novo evento</a>}
+      <EstadoVazio slot="empty" icon="calendar-off" titulo={filtrando ? 'Nenhum evento para estes filtros' : 'Nenhum evento ainda'} texto={filtrando ? undefined : 'Os pedidos chegam pelo formulário de captação ou pelo cadastro manual.'}>
+        {filtrando ? <a class="btn btn-secondary btn-md" href="/eventos?view=lista">Limpar filtros</a> : <a class="btn btn-primary btn-md" href="/eventos/novo">Novo evento</a>}
       </EstadoVazio>
       {dados.lista && <Pagination slot="footer" info={pageInfo(page, dados.lista.total)} />}
     </Table>
@@ -441,22 +453,23 @@ const filtrando = estaFiltrando(Astro.url);
 </script>
 
 <style>
-  .view-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 12px;
-    border-radius: var(--border-radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: var(--color-neutral-80);
-    background: var(--color-primary-10);
+  /* Toolbar do design system: busca + Lista/Kanban à esquerda; Filtros, Exportar e o primário à direita.
+     O controle segmentado entra no slot de ações da PageToolbar e empurra o restante para a direita. */
+  .funil-toolbar :global(.toolbar) {
+    margin-bottom: var(--space-4);
   }
 
-  .view-toggle.active {
-    background: var(--color-primary);
-    color: var(--color-white);
+  .funil-toolbar :global(.toolbar-filters) {
+    flex: 0 1 auto;
+  }
+
+  .funil-toolbar :global(.toolbar-actions) {
+    flex: 1 1 auto;
+    margin-left: 0;
+  }
+
+  .funil-visao {
+    margin: 0 auto 0 0;
   }
 
   .filtros {
@@ -471,68 +484,143 @@ const filtrando = estaFiltrando(Astro.url);
     display: none;
   }
 
+  .filtros[open] summary {
+    background-color: var(--action-secondary-hover);
+    border-color: var(--clay-400);
+  }
+
+  /* Painel de filtros = popover do design system (raio 12, sombra lg) */
   .filtros-painel {
     position: absolute;
     right: 0;
-    top: calc(100% + 8px);
-    z-index: 50;
+    top: calc(100% + var(--space-1-5));
+    z-index: 60;
     width: 380px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 20px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    gap: var(--space-4);
+    padding: var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    animation: funil-pop-in var(--dur-base) var(--ease-out);
+    transform-origin: top;
+  }
+
+  @keyframes funil-pop-in {
+    from {
+      transform: translateY(-4px) scale(0.98);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
   }
 
   .datas-linha {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .filtros-acoes {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
+    padding-top: var(--space-1);
   }
 
+  /* Filtros ativos: pílulas com × */
+  .chips-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-4);
+  }
+
+  .chip-filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    min-height: 28px;
+    padding: 0 var(--space-2-5) 0 var(--space-3);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: var(--bg-surface);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-body);
+    text-decoration: none;
+    transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+
+  .chip-filtro :global(.icon) {
+    color: var(--text-muted);
+  }
+
+  .chip-filtro:hover {
+    border-color: var(--border-strong);
+    color: var(--text-strong);
+  }
+
+  .chip-filtro.limpar {
+    padding: 0 var(--space-1);
+    border-color: transparent;
+    background: none;
+    color: var(--text-link);
+  }
+
+  .chip-filtro.limpar:hover {
+    color: var(--text-link-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Linha do intervalo de trabalho: 13px auxiliar, ícone de calendário e select pequeno */
   .recorte {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    font-size: 13px;
-    color: var(--color-neutral-65);
+    gap: var(--space-2);
+    min-height: var(--control-h-sm);
+    margin-bottom: var(--space-4);
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  .recorte-form {
+    display: inline-flex;
+  }
+
+  .recorte-form .inline-select {
+    max-width: 140px;
   }
 
   .recorte-link {
-    font-weight: 600;
-    color: var(--color-primary-text);
-  }
-
-  .recorte-link:hover {
-    text-decoration: underline;
+    font-size: var(--fs-13);
   }
 
   .kanban {
     display: flex;
-    gap: 32px;
+    gap: var(--space-4);
     overflow-x: auto;
-    padding-bottom: 16px;
+    padding-bottom: var(--space-4);
     align-items: flex-start;
   }
 
   /* Largura distribuída: cada coluna parte de 1/4 da área e cresce para preencher (3–4 colunas dividem o espaço);
      com 5+ colunas as 4 primeiras ocupam a largura visível e o restante entra na rolagem horizontal. */
   .kanban-col {
-    flex: 1 0 calc((100% - 3 * 32px) / 4);
-    min-width: 240px;
+    flex: 1 0 calc((100% - 3 * var(--space-4)) / 4);
+    min-width: 248px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-3);
   }
 
   /* Com menos de 3 colunas, nenhuma passa de 340px */
@@ -540,172 +628,191 @@ const filtrando = estaFiltrando(Astro.url);
     max-width: 340px;
   }
 
+  /* Cabeçalho da coluna: card branco com faixa de 3px na cor da etapa (a cor vem do cadastro) */
   .kanban-col-header {
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 12px 16px;
-    background: var(--color-neutral-20);
-    border-radius: var(--border-radius);
+    gap: 2px;
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .kanban-col-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: var(--etapa, var(--stage-new));
   }
 
   .kanban-col-titulo {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-neutral-100);
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: var(--fs-14);
+    line-height: 1.5;
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+    color: var(--text-strong);
+  }
+
+  .kanban-col-nome {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .kanban-col-meta {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--color-neutral-65);
-    padding-left: 16px;
-  }
-
-  /* Colunas mais estreitas: etiquetas longas quebram linha em vez de vazar do card */
-  .evento-card .tag {
-    white-space: normal;
-  }
-
-  .kanban-col-meta [data-soma] {
-    font-weight: 600;
-    color: var(--color-neutral-80);
+    gap: var(--space-2);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
 
+  .kanban-col-meta [data-soma] {
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
   .kanban-col-verba {
-    padding-left: 16px;
-    font-size: 12px;
+    font-size: var(--fs-12);
     font-style: italic;
-    color: var(--color-neutral-65);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
   }
 
   .kanban-col-verba[hidden] {
     display: none;
   }
 
-  .evento-card-rows .verba dd {
-    font-style: italic;
-    color: var(--color-neutral-65);
-  }
-
-  .selo-etapa {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 8px;
-    border-radius: 10px;
-    background: var(--color-neutral-10);
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--color-text-muted);
-  }
-
-  .selo-etapa.alerta {
-    background: var(--color-primary-10);
-    color: var(--color-primary-60);
-  }
-
   .kanban-cards {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-3);
     min-height: 120px;
-    padding: 4px;
-    border-radius: var(--border-radius);
-    transition: background-color 0.15s ease;
+    border-radius: var(--radius-lg);
+    outline: 2px dashed transparent;
+    outline-offset: 2px;
+    transition: background-color var(--dur-fast) var(--ease-out), outline-color var(--dur-fast) var(--ease-out);
   }
 
   .kanban-cards.drop-alvo {
-    background: var(--color-primary-10);
-    outline: 2px dashed var(--color-primary-20);
+    background: var(--bg-accent-subtle);
+    outline-color: var(--border-accent);
   }
 
+  /* Coluna vazia: caixa tracejada */
   .kanban-vazio {
     display: none;
-    padding: 24px;
+    align-items: center;
+    justify-content: center;
+    min-height: 72px;
+    padding: var(--space-4);
     text-align: center;
-    font-size: 13px;
-    color: var(--color-text-muted);
-    border: 1px dashed var(--color-neutral-30);
-    border-radius: var(--border-radius);
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    border: 1.5px dashed var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--bg-surface) 40%, transparent);
   }
 
   .kanban-cards > .kanban-vazio:first-child {
-    display: block;
+    display: flex;
   }
 
+  /* Card do evento = EventCard do design system */
   .evento-card {
-    background: var(--color-white);
-    border: 1px solid var(--color-neutral-40);
-    border-radius: var(--border-radius);
-    padding: 28px 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
     cursor: grab;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out),
+      transform var(--dur-base) var(--ease-out);
+  }
+
+  .evento-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  /* Com o menu aberto o card fica acima dos vizinhos (o transform do hover cria um contexto de empilhamento) */
+  .evento-card:has(.card-menu[open]) {
+    z-index: 5;
   }
 
   .evento-card.arrastando {
     opacity: 0.4;
   }
 
-  .evento-card-title {
+  .evento-card-topo {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding-right: var(--space-7);
+  }
+
+  .evento-card-icone {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--color-neutral-80);
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-top: 1px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
   }
 
-
-  .evento-card-sub {
-    margin: 4px 0 14px;
-    font-size: 12px;
-    color: var(--color-text-muted);
-  }
-
-  .evento-card-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 16px;
-  }
-
-  .evento-card-rows div {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 14px;
-  }
-
-  .evento-card-rows dt {
-    color: var(--color-text-muted);
-  }
-
-  .evento-card-rows dd {
-    color: var(--color-neutral-100);
-    text-align: right;
-  }
-
-  .evento-card {
-    position: relative;
-  }
-
-  .evento-card:hover {
-    border-color: var(--color-primary);
+  .evento-card-titulos {
+    flex: 1;
+    min-width: 0;
   }
 
   .evento-card-title {
-    padding-right: 28px;
-  }
-
-  .evento-card-link {
+    margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+    color: var(--text-strong);
+  }
+
+  .evento-card-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fs-12);
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  .evento-card-link {
     color: inherit;
     text-decoration: none;
   }
@@ -714,22 +821,68 @@ const filtrando = estaFiltrando(Astro.url);
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: var(--border-radius);
+    border-radius: var(--radius-lg);
   }
 
   .evento-card-link:focus-visible {
     outline: none;
+    box-shadow: none;
   }
 
   .evento-card-link:focus-visible::after {
-    box-shadow: var(--focus-ring);
+    box-shadow: var(--focus-ring-forte);
   }
 
-  /* Menu "⋯" acima do link que cobre o card */
+  /* Linhas rótulo → valor (InfoList pequeno do design system) */
+  .evento-card-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5);
+    margin: 0;
+  }
+
+  .evento-card-rows div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--fs-13);
+    line-height: 1.45;
+  }
+
+  .evento-card-rows dt {
+    flex: none;
+    color: var(--text-secondary);
+  }
+
+  .evento-card-rows dd {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--text-heading);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .evento-card-rows dd.vazio {
+    color: var(--clay-400);
+  }
+
+  .evento-card-rows .verba dd:not(.vazio) {
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  .evento-card .tag-list {
+    padding-top: var(--space-1);
+  }
+
+  /* Menu "⋯" acima do link que cobre o card (IconButton xs + Menu do design system) */
   .card-menu {
     position: absolute;
-    top: 14px;
-    right: 12px;
+    top: var(--space-4);
+    right: var(--space-3);
     z-index: 2;
   }
 
@@ -737,12 +890,13 @@ const filtrando = estaFiltrando(Astro.url);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: var(--color-neutral-65);
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-xs);
+    color: var(--text-secondary);
     cursor: pointer;
     list-style: none;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   }
 
   .card-menu summary::-webkit-details-marker {
@@ -751,56 +905,89 @@ const filtrando = estaFiltrando(Astro.url);
 
   .card-menu summary:hover,
   .card-menu[open] summary {
-    background: var(--color-neutral-20);
-    color: var(--color-neutral-100);
+    background: var(--action-ghost-hover);
+    color: var(--text-strong);
   }
 
   .card-menu-lista {
     position: absolute;
-    top: 36px;
+    top: calc(100% + var(--space-1-5));
     right: 0;
-    z-index: 10;
+    z-index: 60;
     display: flex;
     flex-direction: column;
-    min-width: 220px;
-    padding: 6px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    min-width: 200px;
+    padding: var(--space-1-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    animation: funil-pop-in var(--dur-base) var(--ease-out);
+    transform-origin: top;
+    cursor: default;
   }
 
+  /* Os botões "Mover para" são recriados por script depois de mover o card: por isso :global */
   .card-menu-lista a,
-  .card-menu-lista button {
+  .card-menu-lista :global(button) {
     display: flex;
     align-items: center;
-    gap: 10px;
-    min-height: 36px;
-    padding: 6px 10px;
+    gap: var(--space-2-5);
+    width: 100%;
+    height: 36px;
+    padding: 0 var(--space-2-5);
     border: 0;
-    border-radius: var(--border-radius-sm);
-    background: none;
+    border-radius: var(--radius-md);
+    background: transparent;
     font: inherit;
-    font-size: 14px;
-    color: var(--color-neutral-80);
+    font-size: var(--fs-14);
+    color: var(--text-body);
     text-align: left;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+
+  .card-menu-lista a :global(.icon) {
+    color: var(--text-muted);
+  }
+
+  .card-menu-lista :global(button .dot) {
+    margin: 0 var(--space-1);
   }
 
   .card-menu-lista a:hover,
-  .card-menu-lista button:hover {
-    background: var(--color-neutral-10);
+  .card-menu-lista :global(button:hover) {
+    background: var(--bg-app);
+    color: var(--text-strong);
   }
 
+  .card-menu-lista a:hover :global(.icon) {
+    color: var(--text-heading);
+  }
+
+  /* Rótulo de grupo do menu (eyebrow), precedido pela divisória */
   .card-menu-grupo {
-    padding: 8px 10px 4px;
-    font-size: 11px;
-    font-weight: 700;
+    margin-top: var(--space-1-5);
+    padding: var(--space-3) var(--space-2-5) var(--space-1);
+    border-top: 1px solid var(--border-subtle);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase;
-    color: var(--color-text-muted);
-    border-top: 1px solid var(--border-color);
-    margin-top: 4px;
+    color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .filtros-painel,
+    .card-menu-lista {
+      animation: none;
+    }
+
+    .evento-card:hover {
+      transform: none;
+    }
   }
 
   /* ---------- Funil no celular: chips de etapa + uma coluna por vez ---------- */
@@ -809,12 +996,24 @@ const filtrando = estaFiltrando(Astro.url);
   }
 
   @media (max-width: 768px) {
+    /* Lista/Kanban e Filtros dividem uma linha; Exportar e Novo evento a seguinte */
+    .funil-toolbar :global(.toolbar-actions > details.filtros) {
+      width: auto;
+      flex: 1;
+    }
+
+    .funil-visao {
+      margin-right: 0;
+      flex: none;
+    }
+
     .kanban-etapas {
       display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding: 3px 3px var(--space-1);
+      margin-inline: -3px;
       scrollbar-width: none;
     }
 
@@ -825,35 +1024,54 @@ const filtrando = estaFiltrando(Astro.url);
     .kanban-etapa-chip {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--space-2);
       min-height: 40px;
-      padding: 8px 14px;
-      border: 1px solid var(--color-border-input);
-      border-radius: 20px;
-      background: var(--color-white);
+      padding: 0 var(--space-3);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-full);
+      background: var(--bg-surface);
       font: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--color-neutral-80);
+      font-size: var(--fs-13);
+      font-weight: var(--fw-medium);
+      color: var(--text-body);
       white-space: nowrap;
       cursor: pointer;
+      transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
     }
 
     .kanban-etapa-chip.ativa {
-      border-color: var(--color-primary-action);
-      background: var(--color-primary-10);
-      color: var(--color-primary-60);
+      border-color: var(--border-accent);
+      background: var(--bg-accent-subtle);
+      color: var(--terracotta-800);
     }
 
     .kanban-etapa-qtd {
-      padding: 1px 8px;
-      border-radius: 10px;
-      background: var(--color-neutral-20);
-      font-size: 12px;
+      min-width: 22px;
+      padding: 1px var(--space-1-5);
+      border-radius: var(--radius-full);
+      background: var(--bg-subtle);
+      font-size: var(--fs-12);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: var(--text-secondary);
     }
 
     .kanban-etapa-chip.ativa .kanban-etapa-qtd {
-      background: var(--color-white);
+      background: var(--bg-surface);
+      color: var(--terracotta-800);
+    }
+
+    .recorte {
+      align-items: flex-start;
+    }
+
+    .recorte > :global(.icon) {
+      margin-top: 2px;
+    }
+
+    .recorte > span {
+      flex: 1;
+      min-width: 0;
     }
 
     .kanban {
@@ -868,7 +1086,7 @@ const filtrando = estaFiltrando(Astro.url);
     }
 
     .kanban-col.mobile-ativa {
-      display: block;
+      display: flex;
     }
 
     /* O chip já diz a etapa: o cabeçalho da coluna fica só com contagem e total */
@@ -876,12 +1094,8 @@ const filtrando = estaFiltrando(Astro.url);
       display: none;
     }
 
-    .kanban-col-meta {
-      padding: 2px 0;
-    }
-
     .kanban-col-header {
-      padding: 10px 16px;
+      padding: var(--space-3) var(--space-4) var(--space-2-5);
     }
 
     .filtros-painel {
@@ -893,49 +1107,5 @@ const filtrando = estaFiltrando(Astro.url);
       max-height: calc(100dvh - 170px);
       overflow-y: auto;
     }
-
-    .evento-card {
-      padding: 18px 16px;
-    }
-
-    .evento-card-title {
-      font-size: 17px;
-    }
-  }
-
-  .chips-filtros {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin: -12px 0 16px;
-  }
-
-  .chip-filtro {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border: 1px solid var(--color-border-input);
-    border-radius: 16px;
-    background: var(--color-white);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-neutral-80);
-    text-decoration: none;
-  }
-
-  .chip-filtro:hover {
-    border-color: var(--color-primary-50);
-    color: var(--color-primary-text);
-  }
-
-  .chip-filtro.limpar {
-    border-style: dashed;
-    color: var(--color-text-muted);
-  }
-
-  .recorte-form {
-    display: inline-flex;
   }
 </style>

@@ -123,13 +123,13 @@ const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
-    background-color: var(--color-bg-body);
+    background-color: var(--bg-app);
   }
 
   .page-content {
     flex: 1;
     overflow-y: auto;
-    padding: 32px 45px 48px;
+    padding: var(--content-pad-y) var(--content-pad-x) 48px;
   }
 
   @media (max-width: 1024px) {

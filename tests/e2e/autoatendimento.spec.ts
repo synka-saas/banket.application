@@ -46,61 +46,61 @@ test.describe.serial('Cadastro self-service', () => {
 
   test('cria conta, confirma o e-mail e cadastra a empresa com os padrões', async ({ page }) => {
     await page.goto('/auth/cadastro');
-    await page.getByLabel('NOME E SOBRENOME').fill('Teste Autoatendimento');
-    await page.getByLabel('E-MAIL').fill(email);
+    await page.getByLabel('Nome e sobrenome').fill('Teste Autoatendimento');
+    await page.getByLabel('E-mail').fill(email);
     await page.locator('#senha').fill('fraca');
-    await page.getByLabel('CONFIRME SUA SENHA').fill('fraca');
+    await page.getByLabel('Confirme sua senha').fill('fraca');
     await page.locator('label[for=termos] .checkbox-wrapper').click();
     // Senha fraca: o navegador bloqueia pelo minlength; remove para validar o servidor
     await page.locator('#senha').evaluate((el) => el.removeAttribute('minlength'));
-    await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
+    await page.getByRole('button', { name: 'Criar conta' }).click();
     await expect(page.locator('.auth-alert-error')).toContainText('8 caracteres');
-    await expect(page.getByLabel('E-MAIL')).toHaveValue(email);
+    await expect(page.getByLabel('E-mail')).toHaveValue(email);
 
     await page.locator('#senha').fill(SENHA);
-    await page.getByLabel('CONFIRME SUA SENHA').fill(SENHA);
+    await page.getByLabel('Confirme sua senha').fill(SENHA);
     await page.locator('label[for=termos] .checkbox-wrapper').click();
-    await page.getByRole('button', { name: 'CRIAR CONTA' }).click();
+    await page.getByRole('button', { name: 'Criar conta' }).click();
     await expect(page).toHaveURL(/\/auth\/validacao/);
     await expect(page.locator('main, body')).toContainText(email);
     await shot(page, 'auth-validacao');
 
     // Antes de confirmar, o login manda de volta para a validação
     await page.goto('/auth/login');
-    await page.getByLabel('E-MAIL').fill(email);
+    await page.getByLabel('E-mail').fill(email);
     await page.locator('#senha').fill(SENHA);
-    await page.getByRole('button', { name: 'ENTRAR', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/auth\/validacao/);
     await expect(page.locator('.auth-alert-error')).toContainText('Confirme seu e-mail');
 
     // Reenvio gera um novo link; o anterior deixa de valer
-    await page.getByRole('button', { name: 'REENVIAR E-MAIL DE CONFIRMAÇÃO' }).click();
+    await page.getByRole('button', { name: 'Reenviar e-mail de confirmação' }).click();
     await expect(page.locator('.auth-alert-success')).toBeVisible();
 
     await page.goto(ultimoLink('/auth/verificar', email));
     await expect(page).toHaveURL(/\/auth\/cadastro-complemento\?validado=1/);
     await expect(page.getByRole('heading', { name: 'E-mail validado' })).toBeVisible();
-    await expect(page.getByLabel('E-MAIL')).toHaveValue(email);
+    await expect(page.getByLabel('E-mail')).toHaveValue(email);
 
     // Nenhum tipo vem pré-selecionado; os campos aparecem depois da escolha
     await expect(page.getByLabel('CNPJ')).toBeHidden();
-    await page.getByText('PESSOA JURÍDICA').click();
+    await page.getByText('Pessoa jurídica').click();
 
     // CNPJ inválido
-    await page.getByLabel('CELULAR').fill('11987654321');
-    await page.getByLabel('RAZÃO SOCIAL').fill('Buffet Teste E2E Ltda');
+    await page.getByLabel('Celular').fill('11987654321');
+    await page.getByLabel('Razão social').fill('Buffet Teste E2E Ltda');
     await page.getByLabel('CNPJ').fill('11.222.333/0001-00');
-    await page.getByLabel('NOME DO BUFFET').fill('Buffet E2E');
-    await page.getByLabel('ENDEREÇO COMERCIAL').fill('Rua das Flores, 100 - São Paulo/SP');
-    await page.getByRole('button', { name: 'FINALIZAR E ACESSAR A PLATAFORMA' }).click();
+    await page.getByLabel('Nome do buffet').fill('Buffet E2E');
+    await page.getByLabel('Endereço comercial').fill('Rua das Flores, 100 - São Paulo/SP');
+    await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     await expect(page.locator('.auth-alert-error')).toContainText('CNPJ inválido');
     // O rascunho volta preenchido (inclusive o tipo escolhido)
-    await expect(page.getByLabel('RAZÃO SOCIAL')).toHaveValue('Buffet Teste E2E Ltda');
+    await expect(page.getByLabel('Razão social')).toHaveValue('Buffet Teste E2E Ltda');
     await shot(page, 'auth-complemento');
 
     await page.getByLabel('CNPJ').fill(cnpjAleatorio());
-    await page.getByLabel('NOME DO BUFFET').fill('Buffet E2E');
-    await page.getByRole('button', { name: 'FINALIZAR E ACESSAR A PLATAFORMA' }).click();
+    await page.getByLabel('Nome do buffet').fill('Buffet E2E');
+    await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.locator('.user-role')).toContainText('Proprietário');
 
@@ -115,15 +115,15 @@ test.describe.serial('Cadastro self-service', () => {
 
   test('recupera a senha pelo link e entra com a nova senha', async ({ page }) => {
     await page.goto('/auth/recuperacao');
-    await page.getByLabel('E-MAIL').fill(email);
-    await page.getByRole('button', { name: 'ENVIAR' }).click();
+    await page.getByLabel('E-mail').fill(email);
+    await page.getByRole('button', { name: 'Enviar' }).click();
     await expect(page.locator('.auth-alert-success')).toContainText(email);
 
     const link = ultimoLink('/auth/redefinir', email);
     await page.goto(link);
     await page.locator('#senha').fill(NOVA_SENHA);
-    await page.getByLabel('CONFIRME A NOVA SENHA').fill(NOVA_SENHA);
-    await page.getByRole('button', { name: 'SALVAR NOVA SENHA' }).click();
+    await page.getByLabel('Confirme a nova senha').fill(NOVA_SENHA);
+    await page.getByRole('button', { name: 'Salvar nova senha' }).click();
     await expect(page.locator('.auth-alert-success')).toContainText('Senha alterada');
 
     // Link de uso único
@@ -131,20 +131,20 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page.getByRole('heading', { name: 'Link inválido ou expirado' })).toBeVisible();
 
     await page.goto('/auth/login');
-    await page.getByLabel('E-MAIL').fill(email);
+    await page.getByLabel('E-mail').fill(email);
     await page.locator('#senha').fill(SENHA);
-    await page.getByRole('button', { name: 'ENTRAR', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page.locator('.auth-alert-error')).toContainText('incorretos');
     await page.locator('#senha').fill(NOVA_SENHA);
-    await page.getByRole('button', { name: 'ENTRAR', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test('entra com link de acesso por e-mail', async ({ page }) => {
     await page.goto('/auth/login');
-    await page.getByRole('link', { name: 'ENTRAR COM LINK DE ACESSO POR E-MAIL' }).click();
-    await page.getByLabel('E-MAIL').fill(email);
-    await page.getByRole('button', { name: 'ENVIAR LINK DE ACESSO' }).click();
+    await page.getByRole('link', { name: 'Entrar com link de acesso por e-mail' }).click();
+    await page.getByLabel('E-mail').fill(email);
+    await page.getByRole('button', { name: 'Enviar link de acesso' }).click();
     await expect(page.locator('.auth-alert-success')).toBeVisible();
     const link = ultimoLink('/auth/entrar', email);
     await page.goto(link);
@@ -159,9 +159,9 @@ test.describe.serial('Cadastro self-service', () => {
   });
   test('empresa nova: todas as telas abrem vazias, sem erro', async ({ page }) => {
     await page.goto('/auth/login');
-    await page.getByLabel('E-MAIL').fill(email);
+    await page.getByLabel('E-mail').fill(email);
     await page.locator('#senha').fill(NOVA_SENHA);
-    await page.getByRole('button', { name: 'ENTRAR', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     const telas = [
       '/dashboard', '/eventos', '/eventos?view=lista', '/eventos/novo', '/agenda', '/clientes',

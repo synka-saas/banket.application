@@ -18,13 +18,22 @@ if (!formulario) return new Response(null, { status: 404 });
 
 <AppLayout title={formulario.nome} heading={`Formulários / ${formulario.nome}`}>
   <div class="voltar">
-    <Button variant="text" icon="arrow_back" href="/formularios">Todos os formulários</Button>
+    <Button variant="text" size="sm" icon="arrow-left" href="/formularios">Todos os formulários</Button>
   </div>
   <FormularioEditor client:load formulario={formulario} origem={Astro.url.origin} />
 </AppLayout>
 
 <style>
+  /* Link de volta (BackLink do design system): 13px/500 com a seta recuando no hover */
   .voltar {
-    margin: -12px 0 12px;
+    margin-bottom: var(--space-4);
+  }
+
+  .voltar :global(.btn-icon) {
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .voltar :global(.btn:hover .btn-icon) {
+    transform: translateX(-2px);
   }
 </style>

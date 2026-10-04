@@ -5,7 +5,7 @@ import SectionCard from '../../components/ui/SectionCard.astro';
 import Button from '../../components/ui/Button.astro';
 import { withTenant } from '../../lib/db';
 import { formatMoney } from '../../lib/money';
-import { dataComDiaSemana, dataHora } from '../../lib/datas';
+import { dataComDiaSemana, dataHora, dataMesAbreviado } from '../../lib/datas';
 import {
   DIAS_SEM_RESPOSTA,
   PERIODOS,
@@ -42,13 +42,18 @@ const hoje = hojeSaoPaulo();
 const maxEventos = Math.max(1, ...ind.porStatus.map((s) => s.eventos));
 const pct = (v: number | null) => (v === null ? '—' : `${Math.round(v * 100)}%`);
 const primeiroNome = user.nome.split(' ')[0];
+// Quadro de data dos itens de agenda: "2026-10-29" → dia "29", mês "out", dia da semana "Quinta-feira"
+const quadroData = (iso: string) => {
+  const [dia, mes] = dataMesAbreviado(iso).split(' ');
+  return { dia, mes, semana: dataComDiaSemana(iso).split(' · ')[1] ?? '' };
+};
 ---
 
 <AppLayout title="Dashboard" heading="Dashboard">
   <div class="topo">
     <div>
       <h2>Olá, {primeiroNome}</h2>
-      <p class="muted">Indicadores dos pedidos que entraram no período escolhido. Os valores vêm do orçamento mais recente de cada evento.</p>
+      <p class="intro">Indicadores dos pedidos que entraram no período escolhido. Os valores vêm do orçamento mais recente de cada evento.</p>
     </div>
     <form method="get">
       <select name="periodo" class="control" aria-label="Período" data-autosubmit-row>
@@ -58,60 +63,62 @@ const primeiroNome = user.nome.split(' ')[0];
   </div>
 
   {pendentes > 0 && !passosOcultos && (
-    <section class="passos">
-      <div class="passos-topo">
-        <h3>Primeiros passos</h3>
-        <span class="muted">{passos.length - pendentes} de {passos.length} concluídos</span>
-        <form method="post" class="passos-ocultar">
-          <Button type="submit" name="_action" value="ocultar_passos" variant="text" size="sm">Ocultar</Button>
-        </form>
-      </div>
-      <ol>
-        {passos.map((p) => (
-          <li class:list={{ feito: p.feito }}>
-            <Icon name={p.feito ? 'check_circle' : 'radio_button_unchecked'} size={20} />
-            <a href={p.href}>
-              <strong>{p.titulo}</strong>
-              <span class="muted">{p.descricao}</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <div class="passos">
+      <SectionCard title="Primeiros passos" icon="list-check">
+        <Fragment slot="actions">
+          <span class="passos-contagem">{passos.length - pendentes} de {passos.length} concluídos</span>
+          <form method="post" class="passos-ocultar">
+            <Button type="submit" name="_action" value="ocultar_passos" variant="text" size="sm">Ocultar</Button>
+          </form>
+        </Fragment>
+        <ol>
+          {passos.map((p) => (
+            <li class:list={{ feito: p.feito }}>
+              <Icon name={p.feito ? 'circle-check' : 'circle'} size={20} />
+              <a href={p.href}>
+                <strong>{p.titulo}</strong>
+                <span class="muted">{p.descricao}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </SectionCard>
+    </div>
   )}
 
   <div class="kpis">
     <div class="kpi">
-      <span class="rotulo">Pedidos recebidos</span>
+      <span class="rotulo eyebrow">Pedidos recebidos</span>
       <strong>{ind.pedidos}</strong>
-      <span class="muted">{PERIODOS[periodo].toLowerCase()}</span>
+      <span class="dica">{PERIODOS[periodo].toLowerCase()}</span>
     </div>
     <div class="kpi">
-      <span class="rotulo">Em aberto</span>
-      <strong>{formatMoney(ind.pipeline.valor)}</strong>
-      <span class="muted">{ind.pipeline.eventos} evento{ind.pipeline.eventos === 1 ? '' : 's'} no funil</span>
+      <span class="rotulo eyebrow">Em aberto</span>
+      <strong title={formatMoney(ind.pipeline.valor)}>{formatMoney(ind.pipeline.valor)}</strong>
+      <span class="dica">{ind.pipeline.eventos} evento{ind.pipeline.eventos === 1 ? '' : 's'} no funil</span>
     </div>
     <div class="kpi">
-      <span class="rotulo">Aprovados</span>
-      <strong class="positivo">{formatMoney(ind.aprovados.valor)}</strong>
-      <span class="muted">{ind.aprovados.eventos} evento{ind.aprovados.eventos === 1 ? '' : 's'}</span>
+      <span class="rotulo eyebrow">Aprovados</span>
+      <strong class="positivo" title={formatMoney(ind.aprovados.valor)}>{formatMoney(ind.aprovados.valor)}</strong>
+      <span class="dica">{ind.aprovados.eventos} evento{ind.aprovados.eventos === 1 ? '' : 's'}</span>
     </div>
     <div class="kpi">
-      <span class="rotulo">Taxa de conversão</span>
-      <strong>{pct(ind.conversao)}</strong>
-      <span class="muted">{ind.aprovados.eventos} aprovados · {ind.recusados} recusados</span>
+      <span class="rotulo eyebrow">Taxa de conversão</span>
+      <strong class:list={{ vazio: ind.conversao === null }}>{pct(ind.conversao)}</strong>
+      <span class="dica">{ind.aprovados.eventos} aprovados · {ind.recusados} recusados</span>
     </div>
     <div class="kpi">
-      <span class="rotulo">Ticket médio</span>
-      <strong>{ind.ticketMedio === null ? '—' : formatMoney(ind.ticketMedio)}</strong>
-      <span class="muted">dos eventos aprovados</span>
+      <span class="rotulo eyebrow">Ticket médio</span>
+      <strong class:list={{ vazio: ind.ticketMedio === null }}>{ind.ticketMedio === null ? '—' : formatMoney(ind.ticketMedio)}</strong>
+      <span class="dica">dos eventos aprovados</span>
     </div>
   </div>
 
   <div class="grade">
     <div class="coluna">
-    <SectionCard title="Funil por etapa" icon="view_kanban">
-      <p class="recorte">Pedidos que entraram em: {PERIODOS[periodo].toLowerCase()}</p>
+    <SectionCard title="Funil por etapa" icon="layout-kanban" description={`Pedidos que entraram em: ${PERIODOS[periodo].toLowerCase()}`}>
+      <Button slot="actions" variant="text" size="sm" href="/eventos">Ver funil <Icon name="chevron-right" size={15} /></Button>
+      
       <ul class="funil">
         {ind.porStatus.map((s) => (
           <li>
@@ -125,18 +132,20 @@ const primeiroNome = user.nome.split(' ')[0];
         ))}
       </ul>
     </SectionCard>
-    <SectionCard title={`Propostas sem retorno há ${DIAS_SEM_RESPOSTA}+ dias`} icon="send">
-      <p class="recorte">Situação de agora · não depende do período</p>
+    <SectionCard title={`Propostas sem retorno há ${DIAS_SEM_RESPOSTA}+ dias`} icon="send" description="Situação de agora · não depende do período">
+      
       {ind.parados.length === 0 ? (
-        <p class="muted">Nenhuma proposta enviada aguardando retorno há mais de {DIAS_SEM_RESPOSTA} dias.</p>
+        <p class="sem-itens">Nenhuma proposta enviada aguardando retorno há mais de {DIAS_SEM_RESPOSTA} dias.</p>
       ) : (
         <ul class="lista">
           {ind.parados.map((o) => (
             <li>
-              <a href={`/eventos/${o.id}/orcamento`} style="--cor:var(--color-primary)">
-                <strong>{o.titulo ?? o.cliente_nome ?? 'Evento'}</strong>
-                <span class="muted">Enviada em {dataHora(o.enviado_em)} para {o.enviado_para ?? '-'} · há {o.dias} dias</span>
-                <span class="selo">{formatMoney(o.valor)}</span>
+              <a href={`/eventos/${o.id}/orcamento`}>
+                <span class="item-texto">
+                  <strong>{o.titulo ?? o.cliente_nome ?? 'Evento'}</strong>
+                  <span class="muted">Enviada em {dataHora(o.enviado_em)} para {o.enviado_para ?? '—'} · há {o.dias} dias</span>
+                </span>
+                <span class="selo selo-valor">{formatMoney(o.valor)}</span>
               </a>
             </li>
           ))}
@@ -146,47 +155,68 @@ const primeiroNome = user.nome.split(' ')[0];
     </div>
 
     <div class="coluna">
-    <SectionCard title="Retornos combinados" icon="notifications">
-      <p class="recorte">Anotações com data de retorno · não depende do período</p>
+    <SectionCard title="Retornos combinados" icon="bell" description="Anotações com data de retorno · não depende do período">
+      
       {ind.retornos.length === 0 ? (
-        <p class="muted">Nenhum retorno agendado. Registre anotações com data de retorno na linha do tempo dos eventos.</p>
+        <p class="sem-itens">Nenhum retorno agendado. Registre anotações com data de retorno na linha do tempo dos eventos.</p>
       ) : (
         <ul class="lista">
-          {ind.retornos.map((r) => (
-            <li>
-              <a href={`/eventos/${r.id}/linha-do-tempo`} style={r.retorno_em < hoje ? '--cor:var(--color-primary)' : '--cor:var(--color-secondary-60)'}>
-                <strong>{r.titulo ?? r.cliente_nome ?? 'Evento'}</strong>
-                <span class="muted">{r.descricao}</span>
-                <span class:list={['selo', { 'selo-vencido': r.retorno_em < hoje }]}>
-                  {r.retorno_em < hoje ? `venceu em ${dataCurta(r.retorno_em)}` : dataCurta(r.retorno_em)}
-                </span>
-              </a>
-            </li>
-          ))}
+          {ind.retornos.map((r) => {
+            const quadro = quadroData(r.retorno_em);
+            const vencido = r.retorno_em < hoje;
+            return (
+              <li>
+                <a href={`/eventos/${r.id}/linha-do-tempo`}>
+                  <span class="quadro-data">
+                    <span class="quadro-dia">{quadro.dia}</span>
+                    <span class="quadro-mes">{quadro.mes}</span>
+                  </span>
+                  <span class="item-texto">
+                    <strong>{r.titulo ?? r.cliente_nome ?? 'Evento'}</strong>
+                    <span class="muted">{r.descricao}</span>
+                  </span>
+                  <span class:list={['selo', vencido ? 'badge badge-warning' : 'selo-data']}>
+                    {vencido ? `Venceu em ${dataCurta(r.retorno_em)}` : dataCurta(r.retorno_em)}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
         </ul>
       )}
     </SectionCard>
-    <SectionCard title="Próximos 30 dias" icon="calendar_today">
-      <p class="recorte">Eventos a partir de hoje · não depende do período</p>
+    <SectionCard title="Próximos 30 dias" icon="calendar" description="Eventos a partir de hoje · não depende do período">
+      
       {ind.proximos.length === 0 ? (
-        <p class="muted">Nenhum evento agendado nos próximos 30 dias.</p>
+        <p class="sem-itens">Nenhum evento agendado nos próximos 30 dias.</p>
       ) : (
         <ul class="lista">
-          {ind.proximos.map((e) => (
-            <li>
-              <a href={`/eventos/${e.id}`} style={`--cor:${e.cor}`}>
-                <strong>{e.titulo ?? e.cliente_nome ?? 'Evento'}</strong>
-                <span class="muted">
-                  {dataComDiaSemana(e.data_evento)}{e.hora_inicio && ` · ${e.hora_inicio}`}
-                  {e.numero_convidados !== null && ` · ${e.numero_convidados} convidados`}
-                </span>
-                <span class="selo" >{e.status_nome}</span>
-              </a>
-            </li>
-          ))}
+          {ind.proximos.map((e) => {
+            const quadro = quadroData(e.data_evento);
+            return (
+              <li>
+                <a href={`/eventos/${e.id}`}>
+                  <span class="quadro-data" title={dataComDiaSemana(e.data_evento)}>
+                    <span class="quadro-dia">{quadro.dia}</span>
+                    <span class="quadro-mes">{quadro.mes}</span>
+                  </span>
+                  <span class="item-texto">
+                    <strong>{e.titulo ?? e.cliente_nome ?? 'Evento'}</strong>
+                    <span class="muted">
+                      {quadro.semana}{e.hora_inicio && ` · ${e.hora_inicio}`}
+                      {e.numero_convidados !== null && ` · ${e.numero_convidados} convidados`}
+                    </span>
+                  </span>
+                  <span class="selo status-name"><span class="dot" style={`background:${e.cor}`}></span>{e.status_nome}</span>
+                </a>
+              </li>
+            );
+          })}
         </ul>
       )}
-      <a class="ver-mais" href="/agenda">Abrir agenda <Icon name="chevron_right" size={16} /></a>
+      <div class="ver-mais">
+        <Button variant="text" size="sm" href="/agenda">Abrir agenda <Icon name="chevron-right" size={15} /></Button>
+      </div>
     </SectionCard>
     </div>
   </div>
@@ -203,227 +233,352 @@ const primeiroNome = user.nome.split(' ')[0];
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
   }
 
+  /* Saudação: 24px (o h2 global é o título de página, 20px) */
   .topo h2 {
-    font-size: 22px;
-    color: var(--color-neutral-80);
-    margin-bottom: 4px;
+    font-size: var(--fs-24);
+    line-height: 1.25;
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
+    margin-bottom: var(--space-1);
+  }
+
+  .topo .intro {
+    max-width: none;
   }
 
   .topo select {
-    min-width: 200px;
+    width: 200px;
   }
 
+  /* ---------- Primeiros passos (SectionCard com as etapas em linhas) ---------- */
   .passos {
-    padding: 22px 26px;
-    margin-bottom: 24px;
-    background: var(--color-white);
-    border: 1px solid var(--color-primary);
-    border-radius: var(--border-radius);
+    margin-bottom: var(--space-5);
   }
 
-  .passos-topo {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    margin-bottom: 14px;
-  }
-
-  .passos h3 {
-    font-size: 16px;
-    color: var(--color-neutral-80);
+  .passos-contagem {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-right: var(--space-2);
   }
 
   .passos ol {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 12px 24px;
+    gap: var(--space-2) var(--space-3);
     list-style: none;
     padding: 0;
   }
 
   .passos li {
     display: flex;
-    gap: 10px;
+    gap: var(--space-3);
     align-items: flex-start;
-    color: var(--color-primary-text);
+    padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+    color: var(--terracotta-600);
+    transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .passos li:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-default);
   }
 
   .passos li.feito {
-    color: var(--color-secondary);
+    color: var(--success);
+  }
+
+  .passos li a {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--fs-14);
+    color: var(--text-body);
+  }
+
+  .passos li strong {
+    color: var(--text-strong);
   }
 
   .passos li.feito strong {
     text-decoration: line-through;
-    color: var(--color-neutral-65);
-  }
-
-  .passos li a {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: 14px;
-    color: var(--color-neutral-80);
+    color: var(--text-secondary);
   }
 
   .passos li .muted {
-    font-size: 13px;
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    color: var(--text-secondary);
   }
 
+  .passos-reexibir {
+    margin-top: var(--space-6);
+    text-align: center;
+  }
+
+  /* ---------- KPIs (StatCard do design system) ---------- */
   .kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
   }
 
   .kpi {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 20px 22px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-  }
-
-  .kpi .rotulo {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-primary-text);
+    gap: var(--space-2);
+    min-width: 0;
+    padding: var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .kpi strong {
-    font-size: 26px;
-    color: var(--color-neutral-80);
+    font-size: var(--fs-28);
+    line-height: 1.1;
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .kpi strong.positivo {
-    color: var(--color-secondary);
+    color: var(--sage-700);
   }
 
-  .kpi .muted {
-    font-size: 13px;
+  .kpi strong.vazio {
+    color: var(--clay-400);
   }
 
+  .kpi .dica {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  /* ---------- Cards ---------- */
   .grade {
     display: grid;
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    gap: 24px;
+    gap: var(--space-5);
     align-items: start;
   }
 
+  /* O espaço entre os cards de uma coluna vem do próprio SectionCard (margem entre irmãos) */
   .coluna {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    min-width: 0;
   }
 
   @media (max-width: 1100px) {
     .grade {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 
+  /* Descrição do card: logo abaixo do cabeçalho */
+
+
+  .sem-itens {
+    color: var(--text-secondary);
+  }
+
+  /* ---------- Funil por etapa (FunnelBreakdown) ---------- */
   .funil {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
   }
 
   .funil li {
     display: grid;
-    grid-template-columns: minmax(160px, 1fr) 2fr 48px 140px;
+    grid-template-columns: minmax(140px, 1.1fr) minmax(80px, 2fr) 40px minmax(110px, auto);
     align-items: center;
-    gap: 14px;
-    font-size: 14px;
+    gap: var(--space-4);
+    font-size: var(--fs-14);
   }
 
   .funil-nome {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: var(--color-neutral-80);
+    gap: var(--space-2);
+    min-width: 0;
+    color: var(--text-body);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .funil-nome:hover {
+    color: var(--text-link);
   }
 
   .bolinha {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
   .barra {
-    height: 10px;
-    background: var(--color-neutral-10);
-    border-radius: 5px;
+    height: 6px;
+    background: var(--chart-track);
+    border-radius: var(--radius-full);
     overflow: hidden;
   }
 
   .barra span {
     display: block;
     height: 100%;
-    border-radius: 5px;
+    border-radius: inherit;
+    transition: width var(--dur-slow) var(--ease-out);
   }
 
   .funil-num {
     text-align: right;
-    font-weight: 600;
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-heading);
   }
 
   .funil-valor {
     text-align: right;
-    color: var(--color-neutral-65);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text-secondary);
   }
 
+  /* ---------- Listas dos cards (AgendaItem): quadro de data + título/detalhe + situação ---------- */
   .lista {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-2);
   }
 
   .lista a {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 2px 12px;
-    padding: 10px 14px;
-    border-left: 4px solid var(--cor);
-    background: var(--color-neutral-10);
-    border-radius: 4px;
-    color: var(--color-neutral-80);
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+    color: var(--text-body);
+    font-size: var(--fs-14);
+    transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   }
 
-  .lista .muted {
-    grid-column: 1;
-    font-size: 13px;
+  .lista a:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+  }
+
+  .quadro-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 48px;
+    height: 52px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    line-height: 1;
+  }
+
+  .quadro-dia {
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+  }
+
+  .quadro-mes {
+    margin-top: 3px;
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--terracotta-600);
+  }
+
+  .item-texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .item-texto strong {
+    color: var(--text-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-texto .muted {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .lista .selo {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    align-self: center;
-    font-size: 12px;
-    color: var(--color-neutral-65);
+    flex: none;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .lista .selo.badge {
+    font-size: var(--fs-12);
+    color: var(--warning);
+  }
+
+  .lista .selo-valor {
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-heading);
+  }
+
+  .lista .selo-data {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
   }
 
   .ver-mais {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
     margin-top: 14px;
-    font-size: 14px;
-    color: var(--color-primary-text);
   }
 
-  /* Celular: a barra do funil desce para a linha de baixo */
+  /* Celular: a barra do funil desce para a linha de baixo; a situação do item desce para baixo do texto */
   @media (max-width: 768px) {
     .topo {
       flex-direction: column;
       align-items: stretch;
+      gap: var(--space-4);
+    }
+
+    .topo select {
+      width: 100%;
+    }
+
+    .passos-contagem {
+      display: none;
     }
 
     .funil li {
@@ -431,31 +586,30 @@ const primeiroNome = user.nome.split(' ')[0];
       grid-template-areas:
         'nome num valor'
         'barra barra barra';
-      gap: 8px 12px;
+      gap: var(--space-2) var(--space-3);
     }
 
     .funil-nome { grid-area: nome; }
     .funil li .barra { grid-area: barra; }
     .funil-num { grid-area: num; }
     .funil-valor { grid-area: valor; }
-  }
 
-  .recorte {
-    margin: -6px 0 14px;
-    font-size: 12px;
-    color: var(--color-text-muted);
-  }
+    .lista a {
+      flex-wrap: wrap;
+    }
 
-  .passos-ocultar {
-    margin-left: auto;
-  }
+    /* O texto ocupa a linha ao lado do quadro de data; a situação quebra para a linha de baixo */
+    .item-texto {
+      flex: 1 1 calc(100% - 48px - var(--space-3));
+    }
 
-  .passos-reexibir {
-    margin-top: 24px;
-    text-align: center;
-  }
+    .item-texto strong,
+    .item-texto .muted {
+      white-space: normal;
+    }
 
-  .selo-vencido {
-    color: var(--color-primary-60);
+    .lista .quadro-data ~ .selo {
+      margin-left: calc(48px + var(--space-3));
+    }
   }
 </style>

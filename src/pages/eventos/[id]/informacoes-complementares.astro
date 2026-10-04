@@ -48,7 +48,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
           <section class="orc-cabecalho-simples">
             <div>
               <span class="rotulo">Cliente</span>
-              <strong>{evento.cliente_nome ?? '-'}</strong>
+              <strong>{evento.cliente_nome ?? '—'}</strong>
               {evento.cliente_documento && <span class="muted">{formatarDocumento(evento.cliente_documento)}</span>}
             </div>
             <div>
@@ -86,7 +86,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .grid-evento {
     display: grid;
     grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
-    gap: 30px;
+    gap: var(--space-5);
     align-items: start;
   }
 
@@ -94,56 +94,109 @@ const pad = (n: number) => String(n).padStart(2, '0');
   .coluna-lateral {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
+    min-width: 0;
   }
 
-  .coluna-lateral {
-    gap: 30px;
-  }
-
+  /* Cabeçalho da versão: cliente à esquerda, total à direita (mesmo desenho do construtor) */
   .orc-cabecalho-simples {
     display: grid;
-    grid-template-columns: 1.1fr 1fr auto;
-    align-items: center;
-    gap: 20px;
-    padding: 26px 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--space-3) var(--space-5);
+    padding: var(--space-5) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 
   .orc-cabecalho-simples > div {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: 14px;
+    min-width: 0;
+    font-size: var(--fs-14);
+  }
+
+  .orc-cabecalho-simples > div:nth-child(2) {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .orc-cabecalho-simples strong {
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    color: var(--text-heading);
+  }
+
+  .orc-cabecalho-simples .muted {
+    font-size: var(--fs-13);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .orc-cabecalho-simples :global(.selo-congelada) {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
 
   .rotulo {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-primary-text);
+    font-size: var(--fs-12);
+    line-height: 1.4;
+    color: var(--text-muted);
   }
 
-  .total {
-    font-size: 20px;
-    color: var(--color-neutral-80);
+  .orc-cabecalho-simples .total {
+    font-size: var(--fs-24);
+    line-height: 1.15;
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+    white-space: nowrap;
   }
 
   .sem-orcamento {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
-    padding: 36px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    gap: var(--space-3);
+    padding: var(--space-8);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .sem-orcamento h3 {
+    font-size: var(--fs-17);
+  }
+
+  .sem-orcamento p {
+    color: var(--text-secondary);
+    max-width: 620px;
+    line-height: 1.55;
   }
 
   @media (max-width: 1024px) {
     .grid-evento {
       grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .orc-cabecalho-simples {
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+      padding: var(--space-4);
+    }
+
+    .orc-cabecalho-simples > div:nth-child(2) {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .sem-orcamento {
+      padding: var(--space-4);
     }
   }
 </style>

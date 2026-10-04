@@ -52,11 +52,11 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
   }
 
   return (
-    <Acordeao titulo="Bebidas" icone="local_bar" resumo={formatMoney(total)} aberto={bebidas.length > 0}>
+    <Acordeao titulo="Bebidas" icone="glass-full" resumo={formatMoney(total)} aberto={bebidas.length > 0}>
       {bebidas.length === 0 ? (
         <p class="vazio">Nenhuma bebida incluída.</p>
       ) : (
-        <table class="tabela-orc">
+        <div class="tabela-orc-rolagem"><table class="tabela-orc">
           <thead>
             <tr>
               <th>Bebida</th>
@@ -99,13 +99,13 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
                 </td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${b.nome}`} onClick={() => remover(b, b.nome)}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${b.nome}`} onClick={() => remover(b, b.nome)}><Icon name="x" size={18} /></button>
                   </td>
                 )}
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {!disabled && (

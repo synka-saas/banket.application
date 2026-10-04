@@ -73,11 +73,11 @@ const podeGerenciar = (alvo: { id: string; role: Role }) =>
 const tableData = membros.map((m) => {
   const editavel = podeGerenciar(m);
   return {
-    nome: html`${m.nome}${m.id === actor.id ? html` <span class="muted">(você)</span>` : ''}`,
+    nome: html`<span class="usuario-nome">${m.nome}</span>${m.id === actor.id ? html` <span class="muted">(você)</span>` : ''}`,
     email: m.email,
     // O papel só muda pelo painel "Editar", com confirmação para conceder Proprietário (UX-160)
     papel: ROLE_LABELS[m.role],
-    status: m.ativo ? html`<span class="tag tag-ok">Ativo</span>` : html`<span class="tag tag-off">Inativo</span>`,
+    status: m.ativo ? html`<span class="badge badge-success">Ativo</span>` : html`<span class="badge">Inativo</span>`,
     acoes: editavel
       ? html`<button type="button" class="row-action" data-drawer-open="drawer-membro" data-values="${JSON.stringify({
           id: m.id,
@@ -95,7 +95,7 @@ const convitesData = convites.map((c) => {
     email: c.email,
     nome: c.nome,
     papel: ROLE_LABELS[c.role] ?? c.role,
-    expira: expirado ? html`<span class="tag tag-off">Expirado</span>` : dataBR(c.expira_em),
+    expira: expirado ? html`<span class="badge badge-warning">Expirado</span>` : dataBR(c.expira_em),
     acoes: html`<form method="post" class="cell-actions">
         <input type="hidden" name="_form" value="convite" />
         <input type="hidden" name="id" value="${c.id}" />
@@ -114,7 +114,7 @@ const convitesData = convites.map((c) => {
       options: (Object.keys(ROLE_LABELS) as Role[]).map((r) => ({ value: r, label: ROLE_LABELS[r] })),
     }}
   >
-    <Button icon="add_circle" data-drawer-open="drawer-convite">Convidar usuário</Button>
+    <Button icon="user-plus" data-drawer-open="drawer-convite">Convidar usuário</Button>
   </PageToolbar>
 
   <Table
@@ -168,7 +168,7 @@ const convitesData = convites.map((c) => {
             Usuários operam eventos, orçamentos, clientes e cardápio. Administradores também acessam as Configurações.
           </span>
         </div>
-        <p class="span-2 muted">A pessoa receberá um e-mail com um link para criar a senha e acessar a plataforma.</p>
+        <p class="span-2 field-hint">A pessoa receberá um e-mail com um link para criar a senha e acessar a plataforma.</p>
       </form>
     </Drawer>
 
@@ -241,14 +241,25 @@ const convitesData = convites.map((c) => {
 
 <style>
   .convites {
-    margin-top: 40px;
+    margin-top: var(--space-8);
   }
 
   .section-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 14px;
-    color: var(--color-neutral-80);
+    margin-bottom: var(--space-3);
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+    color: var(--text-heading);
+  }
+
+  :global(.usuario-nome) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='expira']) {
+    font-variant-numeric: tabular-nums;
   }
 
 </style>

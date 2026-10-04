@@ -53,7 +53,7 @@ const validado = Astro.url.searchParams.has('validado');
 
 <AuthLayout title="Cadastro da empresa" showOverlay={true}>
   <div class="cabecalho">
-    {validado && <Icon name="check_circle" size={32} class="icone-ok" />}
+    {validado && <Icon name="circle-check" size={32} class="icone-ok" />}
     <h1 class="auth-title">{validado ? 'E-mail validado' : 'Complete seu cadastro'}</h1>
   </div>
   <p class="auth-subtitle">
@@ -66,37 +66,37 @@ const validado = Astro.url.searchParams.has('validado');
       <legend class="sr-only">Tipo de conta</legend>
       <label class="tipo-btn">
         <input type="radio" name="tipo_pessoa" value="PF" checked={tipo === 'PF'} required />
-        <Icon name="account_circle" size={20} /> PESSOA FÍSICA
+        <Icon name="user-square" size={20} /> <span>Pessoa física</span>
       </label>
       <label class="tipo-btn">
         <input type="radio" name="tipo_pessoa" value="PJ" checked={tipo === 'PJ'} required />
-        <Icon name="apartment" size={20} /> PESSOA JURÍDICA
+        <Icon name="building" size={20} /> <span>Pessoa jurídica</span>
       </label>
     </fieldset>
 
     <div class="campos">
-      <Input id="nome" name="nome_usuario" label="NOME E SOBRENOME" value={usuario.nome} readonly />
-      <Input id="email" name="email_usuario" type="email" label="E-MAIL" value={usuario.email} readonly />
-      <Input id="celular" name="celular" label="CELULAR" placeholder="DDD + 00000 0000" value={v('celular')} inputmode="tel" autocomplete="tel" data-mascara="telefone" required />
+      <Input id="nome" name="nome_usuario" label="Nome e sobrenome" value={usuario.nome} readonly />
+      <Input id="email" name="email_usuario" type="email" label="E-mail" value={usuario.email} readonly />
+      <Input id="celular" name="celular" label="Celular" placeholder="DDD + 00000 0000" value={v('celular')} inputmode="tel" autocomplete="tel" data-mascara="telefone" required />
 
       <div class="so-pf">
         <Input id="cpf" name="cpf" label="CPF" placeholder="000.000.000-00" value={v('cpf')} inputmode="numeric" data-mascara="cpf" />
       </div>
       <div class="so-pj">
-        <Input id="razao_social" name="razao_social" label="RAZÃO SOCIAL" placeholder="Nome da empresa" value={v('razao_social')} maxlength="255" />
+        <Input id="razao_social" name="razao_social" label="Razão social" placeholder="Nome da empresa" value={v('razao_social')} maxlength="255" />
         <Input id="cnpj" name="cnpj" label="CNPJ" placeholder="00.000.000/0000-00" value={v('cnpj')} inputmode="numeric" data-mascara="cnpj" />
       </div>
 
-      <Input id="nome_empresa" name="nome_empresa" label="NOME DO BUFFET" placeholder="Como aparece nas suas propostas" value={v('nome_empresa')} maxlength="255" required />
+      <Input id="nome_empresa" name="nome_empresa" label="Nome do buffet" placeholder="Como aparece nas suas propostas" value={v('nome_empresa')} maxlength="255" required />
       <Input id="cep" name="cep" label="CEP" placeholder="00000-000" value={v('cep')} inputmode="numeric" data-mascara="cep" autocomplete="postal-code" />
-      <Input id="endereco" name="endereco" label="ENDEREÇO COMERCIAL" placeholder="Rua, número, bairro, cidade - UF" value={v('endereco')} maxlength="500" autocomplete="street-address" required />
+      <Input id="endereco" name="endereco" label="Endereço comercial" placeholder="Rua, número, bairro, cidade - UF" value={v('endereco')} maxlength="500" autocomplete="street-address" required />
     </div>
 
-    <Button variant="primary" size="large" type="submit">FINALIZAR E ACESSAR A PLATAFORMA</Button>
+    <Button variant="primary" size="large" type="submit">Finalizar e acessar a plataforma</Button>
   </form>
 
   <div class="auth-links">
-    <span style="font-size: 12px; color: var(--color-text-muted);">*Dados obrigatórios</span><br />
+    <span class="auth-nota">*Dados obrigatórios</span><br />
     <a href="/auth/logout">Sair</a>
   </div>
 </AuthLayout>
@@ -148,35 +148,53 @@ const validado = Astro.url.searchParams.has('validado');
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
+  /* Confirmação do e-mail: ícone em sálvia (sucesso), alinhado ao título */
   .cabecalho :global(.icone-ok) {
-    color: var(--color-primary-text);
-    margin-bottom: 40px;
+    flex: none;
+    margin-bottom: var(--space-8);
+    color: var(--success);
   }
 
+  /* PF ou PJ: dois cartões selecionáveis (rádios por baixo) */
   .tipo-conta {
-    display: flex;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
     border: none;
     padding: 0;
-    margin: 0 0 8px;
+    margin: 0 0 var(--space-5);
   }
 
   .tipo-btn {
-    flex: 1;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: #efefef;
-    border-radius: 4px;
-    font-weight: 600;
-    font-size: 14px;
-    color: #444;
+    gap: var(--space-2);
+    min-height: var(--control-h-lg);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xs);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
     cursor: pointer;
+    user-select: none;
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .tipo-btn :global(.icon) {
+    color: var(--text-secondary);
+  }
+
+  .tipo-btn:hover {
+    border-color: var(--clay-400);
   }
 
   .tipo-btn input {
@@ -186,13 +204,18 @@ const validado = Astro.url.searchParams.has('validado');
   }
 
   .tipo-btn:has(input:checked) {
-    background: var(--color-primary);
-    color: #fff;
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-800);
+  }
+
+  .tipo-btn:has(input:checked) :global(.icon) {
+    color: var(--terracotta-600);
   }
 
   .tipo-btn:has(input:focus-visible) {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
   }
 
   .campos,
@@ -208,8 +231,10 @@ const validado = Astro.url.searchParams.has('validado');
     display: none;
   }
 
+  /* Nome e e-mail vêm da conta e não são editáveis aqui */
   .campos :global(input[readonly]) {
-    background: #efefef;
-    color: #666;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    box-shadow: none;
   }
 </style>

@@ -32,10 +32,10 @@ const email = await tokenResetValido(token);
       <h1 class="auth-title">Crie uma nova senha</h1>
       <p class="auth-subtitle">Conta: <strong>{email}</strong></p>
       <form class="auth-form" method="post">
-        <Input id="senha" name="senha" type="password" label="NOVA SENHA" autocomplete="new-password" minlength="8" required />
-        <Input id="confirma_senha" name="confirma_senha" type="password" label="CONFIRME A NOVA SENHA" autocomplete="new-password" required />
+        <Input id="senha" name="senha" type="password" label="Nova senha" autocomplete="new-password" minlength="8" required />
+        <Input id="confirma_senha" name="confirma_senha" type="password" label="Confirme a nova senha" autocomplete="new-password" required />
         <p class="auth-hint">{REGRA_SENHA}</p>
-        <Button variant="primary" size="large" type="submit">SALVAR NOVA SENHA</Button>
+        <Button variant="primary" size="large" type="submit">Salvar nova senha</Button>
       </form>
     </>
   ) : (
@@ -43,7 +43,7 @@ const email = await tokenResetValido(token);
       <h1 class="auth-title">Link inválido ou expirado</h1>
       <p class="auth-subtitle">Os links de redefinição valem por 1 hora e só podem ser usados uma vez.</p>
       <div class="auth-form">
-        <Button variant="primary" size="large" href="/auth/recuperacao">PEDIR UM NOVO LINK</Button>
+        <Button variant="primary" size="large" href="/auth/recuperacao">Pedir um novo link</Button>
       </div>
     </>
   )}

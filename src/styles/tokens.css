@@ -1,0 +1,187 @@
+/* Banket — tokens do design system (cópia de design-system/tokens/*.css; fontes em /public/fonts).
+   Não edite valores aqui sem atualizar o design system. Use os aliases semânticos no código do produto. */
+
+/* General Sans — Indian Type Foundry (Fontshare). */
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Light.woff2") format("woff2");font-weight:300;font-style:normal;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-LightItalic.woff2") format("woff2");font-weight:300;font-style:italic;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-MediumItalic.woff2") format("woff2");font-weight:500;font-style:italic;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Semibold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-SemiboldItalic.woff2") format("woff2");font-weight:600;font-style:italic;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"General Sans";src:url("/fonts/GeneralSans-BoldItalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap}
+
+/* Banket — color tokens.
+   Direction: terracotta + warm "argila" neutrals. Ceramic, warmth, welcome.
+   Base scales first, semantic aliases below. Use aliases in product code. */
+:root{
+  /* Terracota — anchored on the logo mark (#E35336 = 500) */
+  --terracotta-50:#FDF3EE;
+  --terracotta-100:#FBE5DC;
+  --terracotta-200:#F6C9B8;
+  --terracotta-300:#EFA38A;
+  --terracotta-400:#E87A5C;
+  --terracotta-500:#E35336;
+  --terracotta-600:#C9432A;
+  --terracotta-700:#A9361F;
+  --terracotta-800:#852B1A;
+  --terracotta-900:#5C2013;
+
+  /* Argila — warm neutrals (replace the old cool #F7F7F7 / #EEE / #E2E2E2 greys) */
+  --clay-0:#FFFFFF;
+  --clay-25:#FDFBF8;
+  --clay-50:#FAF6F2;
+  --clay-100:#F4EEE8;
+  --clay-150:#EDE5DD;
+  --clay-200:#E5DBD1;
+  --clay-300:#D3C6BA;
+  --clay-400:#B0A194;
+  --clay-500:#807265;
+  --clay-600:#6E6055;
+  --clay-700:#54483F;
+  --clay-800:#3A302A;
+  --clay-900:#241D19;
+
+  /* Ceramic glazes — supporting accents */
+  --sage-50:#EEF3EC;--sage-100:#DDE8DA;--sage-300:#A9C3A6;--sage-500:#5E8B65;--sage-600:#4C7553;--sage-700:#3D5F43;
+  --ochre-50:#FBF3E2;--ochre-100:#F5E4BF;--ochre-300:#E6C27A;--ochre-500:#C98F2E;--ochre-600:#A8741F;--ochre-700:#865B18;
+  --cobalt-50:#ECF1F6;--cobalt-100:#D6E1EC;--cobalt-300:#A3B8D0;--cobalt-500:#4D6F94;--cobalt-600:#3E5B7C;--cobalt-700:#314964;
+  --wine-50:#FBEDEC;--wine-100:#F5D4D2;--wine-300:#DE9290;--wine-500:#B23A3A;--wine-600:#962E2F;--wine-700:#772526;
+
+  /* ---------- Semantic aliases ---------- */
+  --brand:var(--terracotta-500);
+
+  /* Surfaces */
+  --bg-app:var(--clay-50);
+  --bg-surface:var(--clay-0);
+  --bg-surface-raised:var(--clay-0);
+  --bg-subtle:var(--clay-100);
+  --bg-muted:var(--clay-150);
+  --bg-sidebar:#FBF1EC;
+  --bg-accent-subtle:var(--terracotta-50);
+  --bg-accent-soft:var(--terracotta-100);
+  --bg-overlay:rgba(36,29,25,.44);
+  --bg-inverse:var(--clay-900);
+
+  /* Text */
+  --text-strong:var(--clay-900);
+  --text-heading:var(--clay-800);
+  --text-body:var(--clay-700);
+  --text-secondary:var(--clay-600);
+  --text-muted:var(--clay-500);
+  --text-placeholder:var(--clay-400);
+  --text-disabled:var(--clay-400);
+  --text-accent:var(--terracotta-700);
+  --text-link:var(--terracotta-700);
+  --text-link-hover:var(--terracotta-800);
+  --text-on-accent:#FFFFFF;
+  --text-inverse:#FFFFFF;
+
+  /* Borders */
+  --border-subtle:var(--clay-150);
+  --border-default:var(--clay-200);
+  --border-strong:var(--clay-300);
+  --border-accent:var(--terracotta-300);
+  --border-focus:var(--terracotta-500);
+  --focus-ring:0 0 0 3px rgba(227,83,54,.20);
+
+  /* Actions */
+  --action-primary:var(--terracotta-600);
+  --action-primary-hover:var(--terracotta-700);
+  --action-primary-active:var(--terracotta-800);
+  --action-secondary-bg:var(--clay-0);
+  --action-secondary-hover:var(--clay-50);
+  --action-ghost-hover:var(--clay-100);
+
+  /* Feedback */
+  --success:var(--sage-600);--success-bg:var(--sage-50);--success-border:var(--sage-100);
+  --warning:var(--ochre-700);--warning-bg:var(--ochre-50);--warning-border:var(--ochre-100);
+  --danger:var(--wine-600);--danger-bg:var(--wine-50);--danger-border:var(--wine-100);
+  --info:var(--cobalt-600);--info-bg:var(--cobalt-50);--info-border:var(--cobalt-100);
+
+  /* Funil — stage colors */
+  --stage-new:var(--clay-400);
+  --stage-negotiation:var(--terracotta-500);
+  --stage-won:var(--sage-500);
+  --stage-lost:var(--clay-800);
+
+  /* Charts */
+  --chart-1:var(--terracotta-500);--chart-2:var(--ochre-500);--chart-3:var(--sage-500);--chart-4:var(--cobalt-500);--chart-5:var(--clay-400);
+  --chart-track:var(--clay-100);
+}
+
+/* Banket — typography tokens. One family: General Sans.
+   Refinement vs. legacy UI (Open Sans, heavy bolds): lighter weights, 500 for headings, 400 body. */
+:root{
+  --font-sans:"General Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+
+  --fw-light:300;/* @kind font */
+  --fw-regular:400;/* @kind font */
+  --fw-medium:500;/* @kind font */
+  --fw-semibold:600;/* @kind font */
+  --fw-bold:700;/* @kind font */
+
+  --fs-11:11px;--fs-12:12px;--fs-13:13px;--fs-14:14px;--fs-15:15px;--fs-16:16px;--fs-17:17px;--fs-18:18px;--fs-20:20px;--fs-24:24px;--fs-28:28px;--fs-32:32px;--fs-40:40px;
+
+  --lh-tight:1.15;/* @kind font */--lh-snug:1.3;/* @kind font */--lh-normal:1.5;/* @kind font */--lh-relaxed:1.6;/* @kind font */
+
+  --ls-tight:-0.02em;/* @kind font */--ls-snug:-0.01em;/* @kind font */--ls-normal:0;/* @kind font */--ls-wide:0.04em;/* @kind font */--ls-eyebrow:0.08em;/* @kind font */
+
+  /* Roles (size / line-height / weight / tracking) */
+  --type-display-size:var(--fs-32);--type-display-lh:1.1;/* @kind font */--type-display-weight:var(--fw-medium);/* @kind font */--type-display-ls:var(--ls-tight);/* @kind font */
+  --type-h1-size:var(--fs-24);--type-h1-lh:1.25;/* @kind font */--type-h1-weight:var(--fw-medium);/* @kind font */--type-h1-ls:var(--ls-snug);/* @kind font */
+  --type-h2-size:var(--fs-20);--type-h2-lh:1.3;/* @kind font */--type-h2-weight:var(--fw-medium);/* @kind font */--type-h2-ls:var(--ls-snug);/* @kind font */
+  --type-h3-size:var(--fs-17);--type-h3-lh:1.35;/* @kind font */--type-h3-weight:var(--fw-medium);/* @kind font */--type-h3-ls:var(--ls-snug);/* @kind font */
+  --type-h4-size:var(--fs-15);--type-h4-lh:1.4;/* @kind font */--type-h4-weight:var(--fw-medium);/* @kind font */
+  --type-body-lg-size:var(--fs-15);--type-body-lg-lh:1.55;/* @kind font */
+  --type-body-size:var(--fs-14);--type-body-lh:1.5;/* @kind font */
+  --type-body-sm-size:var(--fs-13);--type-body-sm-lh:1.45;/* @kind font */
+  --type-caption-size:var(--fs-12);--type-caption-lh:1.4;/* @kind font */
+  --type-eyebrow-size:var(--fs-11);--type-eyebrow-lh:1.3;/* @kind font */--type-eyebrow-weight:var(--fw-medium);/* @kind font */--type-eyebrow-ls:var(--ls-eyebrow);/* @kind font */
+  --type-label-size:var(--fs-13);--type-label-weight:var(--fw-medium);/* @kind font */
+  --type-button-size:var(--fs-14);--type-button-weight:var(--fw-medium);/* @kind font */
+}
+
+/* Banket — spacing, radii, elevation, motion, layout. */
+:root{
+  /* Spacing — 4px base */
+  --space-0:0;--space-0-5:2px;--space-1:4px;--space-1-5:6px;--space-2:8px;--space-2-5:10px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-7:28px;--space-8:32px;--space-10:40px;--space-12:48px;--space-16:64px;
+
+  /* Radii — softened from the legacy 3–4px, echoing the rounded app-icon mark */
+  --radius-xs:4px;
+  --radius-sm:6px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --radius-xl:16px;
+  --radius-full:999px;
+
+  /* Elevation — warm shadows tinted with clay-900 (36,29,25) */
+  --shadow-xs:0 1px 2px rgba(36,29,25,.05);
+  --shadow-sm:0 1px 2px rgba(36,29,25,.04),0 2px 6px -1px rgba(36,29,25,.06);
+  --shadow-md:0 2px 4px -2px rgba(36,29,25,.05),0 6px 16px -4px rgba(36,29,25,.10);
+  --shadow-lg:0 4px 8px -4px rgba(36,29,25,.06),0 16px 32px -8px rgba(36,29,25,.14);
+  --shadow-xl:0 24px 64px -12px rgba(36,29,25,.24);
+  --shadow-inset:inset 0 1px 2px rgba(36,29,25,.06);
+
+  /* Motion */
+  --ease-out:cubic-bezier(.2,.7,.2,1);/* @kind other */
+  --ease-in-out:cubic-bezier(.45,0,.25,1);/* @kind other */
+  --dur-fast:120ms;/* @kind other */
+  --dur-base:180ms;/* @kind other */
+  --dur-slow:280ms;/* @kind other */
+
+  /* Layout */
+  --sidebar-width:248px;
+  --header-height:64px;
+  --subnav-height:48px;
+  --content-pad-x:32px;
+  --content-pad-y:28px;
+  --content-max:1440px;
+  --drawer-width:560px;
+  --control-h-sm:32px;
+  --control-h-md:40px;
+  --control-h-lg:48px;
+}

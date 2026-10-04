@@ -43,14 +43,14 @@ const tableData = tipos.map((t) => ({
 
 <AppLayout title={ROTULOS.tiposEvento} heading={`Configurações / ${ROTULOS.tiposEvento}`} submenu={CONFIG_SUBMENU} submenuActive="tipos">
   <PageToolbar>
-    <Button icon="add_circle" data-drawer-open="drawer-tipo">Novo tipo</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-tipo">Novo tipo</Button>
   </PageToolbar>
 
   <Table
     columns={[
       { key: 'nome', label: 'Nome', width: '30%' },
       { key: 'descricao', label: 'Descrição' },
-      { key: 'eventos', label: 'Eventos', align: 'center' },
+      { key: 'eventos', label: 'Eventos', align: 'right' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
@@ -71,3 +71,11 @@ const tableData = tipos.map((t) => ({
     </form>
   </Drawer>
 </AppLayout>
+
+<style>
+  /* Nome em destaque (célula "strong" da tabela do design system) */
+  :global(.data-table tbody td[data-key='nome']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+</style>

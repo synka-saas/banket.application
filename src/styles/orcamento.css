@@ -1,163 +1,322 @@
-/* Construtor de orçamento e editores das abas do evento (frames "Orçamento", "Informações complementares", "Condições gerais") */
+/* Construtor de orçamento e editores das abas do evento ("Orçamento", "Informações complementares",
+   "Condições gerais"), no design system: cards recolhíveis, controles de 32/40px, valores tabulares
+   e barra flutuante com o estado do salvamento automático. */
 .orc {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .orc .rotulo {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--color-primary-text);
+  font-size: var(--fs-12);
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
+/* ---------- Cabeçalho: cliente e total da versão ---------- */
 .orc-cabecalho {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 20px;
-  padding: 26px 28px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 .orc-cabecalho > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 14px;
+  min-width: 0;
+  font-size: var(--fs-14);
 }
 
-.orc-total {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-neutral-80);
+.orc-cabecalho strong {
+  font-size: var(--fs-15);
+  line-height: 1.35;
+  color: var(--text-heading);
 }
 
-/* Ações numa faixa própria abaixo de cliente e total: os botões não espremem o nome do cliente */
-.orc-acoes {
-  grid-column: 1 / -1;
-  flex-direction: row !important;
+.orc-cabecalho .muted {
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+}
+
+.orc-valor {
+  align-items: flex-end;
+  text-align: right;
+}
+
+/* Rótulo da versão com a ação de criar a próxima ao lado */
+.orc-versao {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-1) var(--space-3);
+}
+
+.orc-versao form {
+  display: inline-flex;
+  order: -1;
+}
+
+.orc-versao .btn-text {
+  font-size: var(--fs-13);
+}
+
+.orc-cabecalho .orc-total {
+  font-size: var(--fs-24);
+  line-height: 1.15;
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+/* ---------- Barra de ações (ActionBar): estado do salvamento à esquerda, ações à direita ---------- */
+.orc-barra {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 5;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px !important;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  background: var(--bg-surface);
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
-.orc-versao {
+.orc-barra-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* Estado do salvamento automático: ícone Tabler por máscara (circle-check, point, loader-2, alert-circle) */
+.orc-estado {
+  --icone-circle-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0'/%3E%3Cpath d='M9 12l2 2l4 -4'/%3E%3C/svg%3E");
+  --icone-point: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0'/%3E%3C/svg%3E");
+  --icone-loader-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a9 9 0 1 0 9 9'/%3E%3C/svg%3E");
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-1-5);
+  margin: 0;
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
-.orc-estado {
-  font-size: 12px;
-  color: var(--color-text-muted);
+.orc-estado::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: var(--icone-point) center / contain no-repeat;
+  mask: var(--icone-point) center / contain no-repeat;
 }
 
 .orc-estado.estado-salvo::before {
-  content: 'check';
-  font-family: 'Material Symbols Outlined';
-  font-size: 14px;
-  line-height: 1;
-  vertical-align: -3px;
-  margin-right: 4px;
-  font-feature-settings: 'liga';
-  color: var(--color-secondary);
+  background: var(--success);
+  -webkit-mask-image: var(--icone-circle-check);
+  mask-image: var(--icone-circle-check);
+}
+
+.orc-estado.estado-pendente {
+  color: var(--warning);
+}
+
+.orc-estado.estado-salvando::before {
+  -webkit-mask-image: var(--icone-loader-2);
+  mask-image: var(--icone-loader-2);
+  animation: orc-girar 0.8s linear infinite;
 }
 
 .orc-estado.estado-erro {
-  color: var(--color-primary-50);
-  font-weight: 600;
+  color: var(--danger);
+  font-weight: var(--fw-medium);
 }
 
+.orc-estado.estado-erro::before {
+  -webkit-mask-image: var(--icone-alert-circle);
+  mask-image: var(--icone-alert-circle);
+}
+
+@keyframes orc-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orc-estado.estado-salvando::before {
+    animation: none;
+  }
+}
+
+/* Versão congelada: badge neutro */
 .selo-congelada {
-  padding: 4px 10px;
-  border-radius: 3px;
-  background: var(--color-neutral-20);
-  color: var(--color-neutral-65);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 0 var(--space-2) 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
+.selo-congelada::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- Pagantes ---------- */
 .orc-pagantes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-  gap: 16px;
+  gap: var(--space-4) var(--space-5);
   align-items: end;
-  padding: 18px 28px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 .orc-pagantes label,
-.orc-total-final label,
+.orc-total-final > label:not(.switch),
 .orc-observacoes,
 .cardapio-precos label {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-neutral-65);
+  gap: var(--space-1-5);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: 1.3;
+  color: var(--text-heading);
 }
 
 .orc-equivalentes {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  font-size: 18px;
+  gap: 2px;
+  min-width: 88px;
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--border-subtle);
 }
 
-/* Campos */
+.orc-equivalentes .rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.orc-equivalentes strong {
+  font-size: var(--fs-24);
+  line-height: 1.15;
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+/* ---------- Campos numéricos e monetários (controle do design system) ---------- */
 .orc input.numero {
   width: 100%;
   max-width: 120px;
-  min-height: 34px;
-  padding: 6px 10px;
-  border: 1px solid var(--color-neutral-40);
-  border-radius: var(--border-radius-sm);
-  font-size: 14px;
+  height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .orc td input.numero {
-  max-width: 80px;
+  width: 72px;
+  max-width: none;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2-5);
+  border-radius: var(--radius-sm);
   text-align: right;
 }
 
-.orc input.numero.ajustado,
-.valor-manual.ajustado {
-  border-color: var(--color-primary) !important;
-  background: var(--color-primary-10);
+/* O valor calculado aparece como placeholder: é dado real, então fica legível */
+.orc input.numero::placeholder,
+.valor-manual input::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+.orc input.numero:hover:not(:disabled),
+.valor-manual:hover {
+  border-color: var(--clay-400);
 }
 
 .valor-manual {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--border-radius-sm);
-  background: var(--color-white);
-  font-size: 14px;
-  text-transform: none;
+  gap: var(--space-1);
+  height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-regular);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.valor-manual.compacto {
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2-5);
+  border-radius: var(--radius-sm);
 }
 
 .valor-manual input {
   width: 110px;
-  border: none;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
   background: transparent;
-  font-size: 14px;
+  box-shadow: none;
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
   text-align: right;
   outline: none;
-  color: var(--color-neutral-100);
+  color: var(--text-strong);
 }
 
 .valor-manual.compacto input {
@@ -165,333 +324,573 @@
 }
 
 .valor-manual .prefixo {
-  font-size: 12px;
-  color: var(--color-text-muted);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+/* Valor ajustado à mão: destaque discreto em terracota */
+.orc input.numero.ajustado,
+.valor-manual.ajustado {
+  border-color: var(--border-accent);
+  background: var(--bg-accent-subtle);
 }
 
 .valor-manual .restaurar {
   display: inline-flex;
-  border: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
   background: none;
-  color: var(--color-primary-text);
+  color: var(--terracotta-700);
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 2px;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.valor-manual .restaurar:hover {
+  background: var(--bg-accent-soft);
+  color: var(--terracotta-800);
+}
+
+.orc input.numero:focus,
+.valor-manual:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.orc input.numero:disabled,
+.valor-manual:has(input:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.orc input.numero:disabled,
+.valor-manual input:disabled {
+  color: var(--text-secondary);
+  -webkit-text-fill-color: var(--text-secondary);
+  opacity: 1;
+  cursor: not-allowed;
 }
 
 .orc .control.compacto {
-  min-height: 32px;
-  padding: 4px 32px 4px 10px;
-  font-size: 13px;
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-2-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
 }
 
-/* Acordeões */
+.orc select.control.compacto {
+  width: auto;
+  min-width: 118px;
+  padding-right: 32px;
+  background-position: right 8px center;
+}
+
+/* ---------- Acordeões (card recolhível) ---------- */
 .acordeao {
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  min-width: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 .acordeao-cabecalho {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 28px;
-  border: none;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 1px);
   background: none;
   cursor: pointer;
   text-align: left;
+  user-select: none;
 }
 
 .acordeao.aberto .acordeao-cabecalho {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-subtle);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
+/* Ícone do título em quadro terracota claro de 32px */
 .acordeao-icone {
-  color: var(--color-primary-text);
-  font-size: 18px;
+  box-sizing: content-box;
+  padding: 7px;
+  border-radius: var(--radius-md);
+  background: var(--bg-accent-subtle);
+  color: var(--terracotta-600);
 }
 
 .acordeao-titulo {
   flex: 1;
-  font-size: 18px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-neutral-80);
+  min-width: 0;
+  font-size: var(--fs-15);
+  line-height: 1.35;
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
 }
 
 .acordeao-resumo {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-neutral-80);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-heading);
+  white-space: nowrap;
 }
 
 .acordeao-seta {
-  color: var(--color-neutral-65);
-  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  transition: transform var(--dur-base) var(--ease-out);
 }
 
-.acordeao:not(.aberto) .acordeao-seta {
-  transform: rotate(-90deg);
+.acordeao.aberto .acordeao-seta {
+  transform: rotate(180deg);
 }
 
 .acordeao-corpo {
-  padding: 20px 26px 26px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
-.vazio {
-  color: var(--color-text-muted);
-  font-size: 13px;
+.acordeao-corpo > .btn {
+  align-self: flex-start;
+}
+
+.acordeao-corpo .vazio {
+  color: var(--text-muted);
+  font-size: var(--fs-13);
+  line-height: 1.45;
 }
 
 .adicionar-linha {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.adicionar-linha select {
+.adicionar-linha > .control {
   flex: 1;
+  min-width: 0;
 }
 
-/* Cardápio */
+/* ---------- Cardápio (card aninhado dentro do acordeão) ---------- */
 .cardapio {
-  border: 1px solid var(--color-neutral-40);
-  border-radius: var(--border-radius);
-  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
 }
 
 .cardapio-barra {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 18px;
-  background: var(--color-primary);
-  color: var(--color-white);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+  background: var(--clay-25);
+  border-radius: calc(var(--radius-lg) - 1px);
+}
+
+.cardapio-barra:not(:last-child) {
+  border-bottom: 1px solid var(--border-subtle);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
 .cardapio-toggle {
   display: inline-flex;
-  border: none;
-  background: none;
-  color: var(--color-white);
-  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
   padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.cardapio-toggle:hover {
+  background: var(--action-ghost-hover);
+  color: var(--text-strong);
 }
 
 .cardapio-nome {
   flex: 1;
   min-width: 0;
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
   border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-white);
-  font-size: 15px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 4px 6px;
-  border-radius: 3px;
+  color: var(--text-heading);
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  line-height: 30px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 
-input.cardapio-nome:hover,
+input.cardapio-nome:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+}
+
 input.cardapio-nome:focus {
-  border-color: rgba(255, 255, 255, 0.6);
+  border-color: var(--border-focus);
+  background: var(--bg-surface);
+  box-shadow: var(--focus-ring);
   outline: none;
 }
 
 .cardapio-subtotal {
-  font-size: 13px;
+  font-size: var(--fs-13);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
+.cardapio-subtotal strong {
+  font-size: var(--fs-14);
+  color: var(--text-heading);
+}
+
 .cardapio-corpo {
-  padding: 18px 22px 22px;
+  padding: var(--space-4) var(--space-5) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .cardapio-precos {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px dashed var(--color-neutral-30);
+  gap: var(--space-4);
 }
 
+/* Ação destrutiva em texto (remover cardápio, seção ou bloco) */
 .link-perigo {
   margin-left: auto;
-  border: none;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-xs);
   background: none;
-  color: var(--color-neutral-65);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--danger);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
   cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .link-perigo:hover {
-  color: var(--color-primary-50);
+  color: var(--wine-700);
 }
 
 .secao-orc {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .secao-orc-cabecalho {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-2) var(--space-3);
 }
 
 .secao-orc-nome {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-primary-text);
+  gap: var(--space-1-5);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
 }
 
+.secao-orc-nome .icon {
+  color: var(--terracotta-600);
+}
+
+/* "Cliente escolhe N": tag; em ocre quando há menos itens marcados do que o cliente pode escolher */
 .escolha {
-  padding: 2px 8px;
-  border-radius: 3px;
-  background: var(--color-neutral-20);
-  font-size: 12px;
-  color: var(--color-neutral-80);
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  color: var(--text-body);
+  white-space: nowrap;
 }
 
 .escolha.alerta {
-  background: var(--color-primary-10);
-  color: var(--color-primary-60);
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .secao-orc-preco {
-  font-size: 12px;
-  color: var(--color-neutral-65);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }
 
 .secao-orc-cabecalho .valor-manual {
   margin-left: auto;
 }
 
-.chip-preco {
-  font-size: 11px;
-  color: var(--color-text-muted);
+.secao-orc-cabecalho .valor-manual + .link-perigo {
+  margin-left: 0;
 }
 
 .adicionar-item {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
-.adicionar-item select {
-  max-width: 320px;
+/* Item do cardápio: chip com checkbox; marcado é o estado comum, então o destaque fica só na caixa */
+.chip-item {
+  align-items: flex-start;
+  min-height: var(--control-h-sm);
+  padding-top: 6px;
+  padding-bottom: 6px;
+  line-height: 1.4;
 }
 
-/* Tabelas (bebidas, staff, extras) */
+.chip.chip-item:has(input:checked) {
+  border-color: var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-body);
+}
+
+.chip.chip-item:has(input:checked):hover {
+  border-color: var(--border-strong);
+}
+
+.chip.chip-item:not(:has(input:checked)) {
+  background: var(--clay-25);
+  color: var(--text-muted);
+}
+
+.chip.chip-item:has(input:disabled) {
+  cursor: default;
+}
+
+.chip-item input[type='checkbox'] {
+  margin-top: 1px;
+}
+
+.secao-orc .chip-group {
+  align-items: flex-start;
+}
+
+.chip-item-textos {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.chip-preco {
+  margin-left: var(--space-1-5);
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.chip-descricao {
+  display: block;
+  max-width: 320px;
+  overflow: hidden;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Tabelas (bebidas, staff, extras) ---------- */
+/* Moldura arredondada; em telas estreitas a tabela rola na horizontal dentro dela */
+.tabela-orc-rolagem {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
 .tabela-orc {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-14);
 }
 
 .tabela-orc th {
+  height: 40px;
+  padding: 0 var(--space-2);
+  background: var(--clay-25);
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-neutral-65);
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-color);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .tabela-orc td {
-  padding: 10px;
-  border-bottom: 1px solid var(--color-neutral-20);
+  padding: var(--space-2-5) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-body);
   vertical-align: middle;
+  line-height: 1.4;
+}
+
+.tabela-orc th:first-child,
+.tabela-orc td:first-child {
+  padding-left: var(--space-4);
+}
+
+.tabela-orc th:last-child,
+.tabela-orc td:last-child {
+  padding-right: var(--space-4);
+}
+
+.tabela-orc tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabela-orc td strong {
+  color: var(--text-heading);
 }
 
 .tabela-orc .num {
   text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabela-orc .valor-manual.compacto input {
+  width: 72px;
 }
 
 .tabela-orc .descricao {
   display: block;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  margin-top: 2px;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
   max-width: 360px;
 }
 
+/* Botão de ícone pequeno (remover, mover linha) */
 .remover {
   display: inline-flex;
   align-items: center;
-  padding: 2px;
-  border: none;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
   background: none;
-  color: var(--color-neutral-50);
+  color: var(--text-muted);
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
-.remover:hover {
-  color: var(--color-primary-text);
+.remover:hover:not(:disabled) {
+  background: var(--action-ghost-hover);
+  color: var(--text-strong);
 }
 
 .locacao {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .locacao-detalhe {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
-  font-size: 14px;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--fs-14);
 }
 
 .subtitulo {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-neutral-65);
+  margin-top: var(--space-1);
+  font-size: var(--fs-14);
+  line-height: 1.4;
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
 }
 
-/* Totais */
+/* ---------- Resumo do orçamento (totais) ---------- */
 .orc-totais {
-  padding: 26px 28px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 .orc-totais dl {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-5);
 }
 
 .orc-totais dl div {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  font-size: 14px;
+  gap: var(--space-3);
+  font-size: var(--fs-14);
+  line-height: 1.45;
 }
 
 .orc-totais dt {
-  color: var(--color-neutral-65);
+  color: var(--text-secondary);
+}
+
+.orc-totais dd {
+  color: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .orc-totais .calc {
-  padding-top: 10px;
-  border-top: 1px solid var(--border-color);
-  font-weight: 700;
+  margin-top: var(--space-1-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+}
+
+.orc-totais .calc dt,
+.orc-totais .calc dd {
+  color: var(--text-strong);
 }
 
 .orc-total-final {
@@ -499,307 +898,190 @@ input.cardapio-nome:focus {
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.orc-total-final > .switch {
+  min-height: var(--control-h-md);
+}
+
+.orc-total-final .valor-manual {
+  align-self: flex-start;
 }
 
 .orc-observacoes textarea {
-  text-transform: none;
-  font-weight: 400;
+  font-weight: var(--fw-regular);
 }
 
-/* Histórico de versões (coluna lateral) */
+/* ---------- Histórico de versões (coluna lateral) ---------- */
 .versoes {
-  padding: 28px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
 .versoes-lista {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
 .versao-card {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-neutral-40);
-  border-radius: var(--border-radius);
-  font-size: 14px;
-  color: var(--color-neutral-100);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-14);
+  color: var(--text-heading);
 }
 
+.versao-card > span:first-child {
+  font-weight: var(--fw-medium);
+}
+
+/* Versão que está na tela */
 .versao-card.visualizando {
-  border-color: var(--color-primary);
+  border-color: var(--border-accent);
+  background: var(--bg-accent-subtle);
 }
 
 .versao-card .data {
-  color: var(--color-text-muted);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
 }
 
 .versao-card .valor {
   text-align: right;
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
 }
 
 .selo {
   justify-self: end;
-  padding: 1px 8px;
-  border-radius: 2px;
-  font-size: 12px;
-  text-transform: uppercase;
 }
 
-.selo-atual {
-  background: var(--color-primary-10);
-  color: var(--color-neutral-80);
+/* Sobre o fundo terracota claro do cartão, o badge da versão atual fica em branco */
+.versao-card.visualizando .selo-atual {
+  background: var(--bg-surface);
 }
 
 a.selo-acessar {
-  background: var(--color-primary);
-  color: var(--color-white);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-link);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-/* Editor de blocos chave/valor (Informações complementares e Condições gerais) */
+a.selo-acessar:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* ---------- Editor de blocos rótulo/valor (Informações complementares e Condições gerais) ---------- */
 .blocos-editor {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .bloco-kv-linhas {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
 }
 
 .bloco-kv-linha {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
-  gap: 12px;
+  gap: var(--space-2);
   align-items: center;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 14px;
+  padding: var(--space-1-5) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-14);
 }
 
 .bloco-kv-linha:last-child {
-  border-bottom: none;
+  border-bottom: 0;
 }
 
+/* Campos "fantasma": a borda aparece ao passar o cursor e no foco */
 .bloco-kv-linha input,
 .bloco-kv-linha textarea {
   width: 100%;
+  min-height: var(--control-h-sm);
+  padding: 5px var(--space-2);
   border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
-  padding: 6px 8px;
-  border-radius: 3px;
-  font-size: 14px;
-  color: var(--color-neutral-100);
   font-family: inherit;
+  font-size: var(--fs-14);
+  line-height: 1.45;
+  color: var(--text-secondary);
   resize: vertical;
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.bloco-kv-linha input::placeholder,
+.bloco-kv-linha textarea::placeholder {
+  color: var(--text-placeholder);
 }
 
 .bloco-kv-linha .valor-kv {
+  color: var(--text-heading);
   text-align: right;
 }
 
+.bloco-kv-linha input:disabled,
+.bloco-kv-linha textarea:disabled {
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+}
+
 .bloco-kv-linha input:not(:disabled):hover,
+.bloco-kv-linha textarea:not(:disabled):hover {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+}
+
 .bloco-kv-linha input:focus,
-.bloco-kv-linha textarea:not(:disabled):hover,
 .bloco-kv-linha textarea:focus {
-  border-color: var(--color-neutral-30);
-  background: var(--color-white);
-  outline: none;
-}
-
-.bloco-kv-linha input:focus-visible,
-.bloco-kv-linha textarea:focus-visible {
-  border-color: var(--color-primary-50);
-  box-shadow: 0 0 0 1px var(--color-primary-50);
-}
-
-input.cardapio-nome:focus-visible {
-  outline: 2px solid var(--color-white);
-  outline-offset: 1px;
-}
-
-.valor-manual:focus-within {
-  border-color: var(--color-primary-50);
-  box-shadow: 0 0 0 1px var(--color-primary-50);
-}
-
-.auto-selo {
-  font-size: 11px;
-  color: var(--color-secondary-60);
-  white-space: nowrap;
-}
-
-.ed-link-inline {
-  border: none;
-  background: none;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary-text);
-  cursor: pointer;
+  border-color: var(--border-focus);
+  background: var(--bg-surface);
+  box-shadow: var(--focus-ring);
 }
 
 .bloco-kv-linha > span {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-/* Textos da proposta (aba Condições gerais) */
-.textos-proposta {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.textos-grupo {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.textos-grupo .grupo-titulo {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--color-neutral-65);
-}
-
-.texto-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.orc-botoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* "Adicionar ▾" com busca (controles.tsx AdicionarBusca) */
-.adicionar {
-  position: relative;
-  display: inline-block;
-}
-
-.adicionar-painel {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 50;
-  width: min(420px, 90vw);
-  padding: 8px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
-}
-
-.adicionar-lista {
-  max-height: 300px;
-  margin: 8px 0 0;
+.ed-link-inline {
   padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.adicionar-lista li[role='option'] {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: var(--border-radius-sm);
-  font-size: 14px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-link);
   cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-.adicionar-lista li.ativo {
-  background: var(--color-primary-10);
-  color: var(--color-primary-60);
-}
-
-.adicionar-detalhe {
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-.adicionar-grupo {
-  padding: 10px 10px 4px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.adicionar-vazio {
-  padding: 10px;
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
-/* ---------- Celular ---------- */
-@media (max-width: 768px) {
-  .orc-cabecalho {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 18px 16px;
-  }
-
-  .orc-pagantes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 16px;
-  }
-
-  .bloco-kv-linha {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-    padding: 12px 16px;
-  }
-
-  /* Tabelas de bebidas, staff e extras rolam na horizontal */
-  .tabela-orc {
-    display: block;
-    overflow-x: auto;
-  }
-
-  .adicionar-linha {
-    flex-wrap: wrap;
-  }
-
-  .adicionar-painel {
-    width: min(420px, calc(100vw - 48px));
-  }
-}
-
-/* Descrição do item visível no próprio chip (também no toque — UX-129) */
-.chip-item {
-  align-items: flex-start;
-}
-
-.chip-item-textos {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.chip-descricao {
-  display: block;
-  max-width: 320px;
-  overflow: hidden;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.ed-link-inline:hover {
+  color: var(--text-link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 
 .linha-acoes {
@@ -809,6 +1091,275 @@ input.cardapio-nome:focus-visible {
 }
 
 .linha-acoes .remover:disabled {
-  opacity: 0.3;
-  cursor: default;
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---------- Textos da proposta (aba Condições gerais) ---------- */
+.textos-proposta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.textos-proposta > .muted {
+  font-size: var(--fs-13);
+  line-height: 1.45;
+  max-width: 72ch;
+}
+
+.textos-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Rótulo de grupo: eyebrow */
+.textos-grupo .grupo-titulo,
+.adicionar-grupo {
+  font-size: var(--type-eyebrow-size);
+  line-height: var(--type-eyebrow-lh);
+  font-weight: var(--type-eyebrow-weight);
+  letter-spacing: var(--type-eyebrow-ls);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.texto-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---------- "Adicionar" com busca (controles.tsx AdicionarBusca): botão + popover no padrão Menu ---------- */
+.adicionar {
+  position: relative;
+  display: inline-block;
+}
+
+.adicionar-painel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: min(420px, 90vw);
+  padding: var(--space-1-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transform-origin: top;
+  animation: orc-surgir var(--dur-base) var(--ease-out);
+}
+
+@keyframes orc-surgir {
+  from {
+    transform: translateY(-4px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adicionar-painel {
+    animation: none;
+  }
+}
+
+.adicionar-lista {
+  max-height: 300px;
+  margin: var(--space-1-5) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.adicionar-lista li[role='option'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding: var(--space-1-5) var(--space-2-5);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-14);
+  line-height: 1.35;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.adicionar-lista li.ativo {
+  background: var(--bg-app);
+  color: var(--text-strong);
+}
+
+.adicionar-detalhe {
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.adicionar-grupo {
+  padding: var(--space-2) var(--space-2-5) var(--space-1);
+}
+
+.adicionar-vazio {
+  padding: var(--space-2-5);
+  font-size: var(--fs-14);
+  color: var(--text-muted);
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1024px) {
+  .acordeao-cabecalho {
+    padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  }
+
+  .acordeao-corpo {
+    padding: var(--space-5);
+  }
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 768px) {
+  .orc-cabecalho {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .orc-valor {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .orc-versao {
+    justify-content: flex-start;
+  }
+
+  .orc-versao form {
+    order: 0;
+  }
+
+  /* Sem barra flutuante (a navegação inferior já ocupa a base da tela): as ações ficam logo abaixo do cabeçalho */
+  .orc > * {
+    order: 2;
+  }
+
+  .orc > .orc-cabecalho {
+    order: 0;
+  }
+
+  .orc > .orc-barra {
+    order: 1;
+  }
+
+  .orc-barra {
+    position: static;
+    padding: var(--space-3) var(--space-4);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .orc-barra-acoes {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  /* Dividem a linha quando cabem; senão, cada botão ocupa a largura toda */
+  .orc-barra-acoes .btn {
+    flex: 1 1 auto;
+  }
+
+  .orc-pagantes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: var(--space-4);
+  }
+
+  .orc-equivalentes {
+    align-items: flex-start;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .orc-totais,
+  .versoes {
+    padding: var(--space-4);
+  }
+
+  .acordeao-cabecalho {
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  }
+
+  .acordeao-corpo {
+    padding: var(--space-4);
+  }
+
+  .cardapio-barra {
+    flex-wrap: wrap;
+  }
+
+  .cardapio-subtotal {
+    width: 100%;
+    padding: 0 var(--space-2) var(--space-1) 40px;
+    white-space: normal;
+  }
+
+  .cardapio-corpo {
+    padding: var(--space-4);
+  }
+
+  .chip-descricao {
+    max-width: 240px;
+  }
+
+  /* Rótulo e ações na primeira linha; o valor ocupa a segunda */
+  .bloco-kv-linha {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-1) var(--space-2);
+    padding: var(--space-2);
+  }
+
+  .bloco-kv-linha > .valor-kv {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .bloco-kv-linha > .linha-acoes {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* Sem cursor para revelar a borda: no toque os campos editáveis já aparecem como campos */
+  .bloco-kv-linha input:not(:disabled),
+  .bloco-kv-linha textarea:not(:disabled) {
+    border-color: var(--border-default);
+    background: var(--bg-surface);
+  }
+
+  .bloco-kv-linha input:not(:disabled):focus,
+  .bloco-kv-linha textarea:not(:disabled):focus {
+    border-color: var(--border-focus);
+  }
+
+  /* Tabelas de bebidas, staff e extras rolam na horizontal (dentro de .tabela-orc-rolagem) */
+  .tabela-orc {
+    min-width: 560px;
+  }
+
+  .adicionar-linha {
+    flex-wrap: wrap;
+  }
+
+  .adicionar-painel {
+    width: min(420px, calc(100vw - 66px));
+  }
 }

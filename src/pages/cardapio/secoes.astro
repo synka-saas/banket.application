@@ -56,7 +56,7 @@ const filtrando = estaFiltrando(Astro.url);
 
 <AppLayout title="Seções do cardápio" heading="Cardápios / Seções" submenu={CARDAPIO_SUBMENU} submenuActive="secoes">
   <PageToolbar>
-    <Button icon="add_circle" data-drawer-open="drawer-secao">Nova seção</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-secao">Nova seção</Button>
   </PageToolbar>
 
   <Table
@@ -64,15 +64,15 @@ const filtrando = estaFiltrando(Astro.url);
       { key: 'nome', label: 'Seção', width: '26%' },
       { key: 'descricao', label: 'Descrição', width: '32%' },
       { key: 'preco', label: 'Preço' },
-      { key: 'itens', label: 'Itens vinculados', align: 'center' },
-      { key: 'opcoes', label: 'Em opções', align: 'center' },
+      { key: 'itens', label: 'Itens vinculados', align: 'right' },
+      { key: 'opcoes', label: 'Em opções', align: 'right' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
     data={tableData}
     reordenar="/api/cardapio/secoes/ordem"
   >
     <EstadoVazio slot="empty" icon="category" titulo={filtrando ? 'Nenhuma seção para esta busca' : 'Nenhuma seção cadastrada'} texto={filtrando ? undefined : 'Seções organizam o cardápio (ex.: Entradas, Pratos principais, Bebidas). Depois de criar uma seção, cadastre os itens dela.'}>
-      {filtrando ? <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar busca</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-secao">Nova seção</button>}
+      {filtrando ? <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar busca</a> : <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-secao">Nova seção</button>}
     </EstadoVazio>
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
@@ -116,6 +116,19 @@ const filtrando = estaFiltrando(Astro.url);
     </form>
   </Drawer>
 </AppLayout>
+
+<style>
+  /* Nome da seção em destaque (célula "strong" da tabela do design system) */
+  :global(.data-table tbody td[data-key='nome']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='preco']) {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+
 <script>
   // A exclusão da seção leva os itens junto (ON DELETE CASCADE): o modal informa quantos
   document.addEventListener('drawer:open', (e) => {

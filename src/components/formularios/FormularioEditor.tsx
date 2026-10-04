@@ -228,13 +228,13 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       <section class="fe-card">
         <div class="fe-geral">
           <div class="field">
-            <label for="fe-nome">Nome do formulário*</label>
+            <label for="fe-nome">Nome do formulário<span class="obrigatorio">*</span></label>
             <input id="fe-nome" value={nome} onInput={(e) => marcar(setNome)(e.currentTarget.value)} required maxLength={120} />
           </div>
           <div class="field">
-            <label for="fe-slug">Endereço público*</label>
+            <label for="fe-slug">Endereço público<span class="obrigatorio">*</span></label>
             <div class="fe-slug">
-              <span title={`${origem}/f/`}>/f/</span>
+              <span class="fe-slug-prefixo" title={`${origem}/f/`}>/f/</span>
               <input
                 id="fe-slug"
                 value={slug}
@@ -265,15 +265,22 @@ export default function FormularioEditor({ formulario, origem }: Props) {
               value={mensagem}
               onInput={(e) => marcar(setMensagem)(e.currentTarget.value)}
               maxLength={1000}
-              rows={3}
+              rows={2}
               placeholder="Seu pedido foi recebido. Nossa equipe vai analisar e entrar em contato em breve."
             />
           </div>
-        </div>
-        <div class="fe-link">
-          <a class="link" href={linkPublico} target="_blank" rel="noopener">{linkPublico}</a>
-          <button type="button" class="row-action" onClick={copiarLink}>Copiar link</button>
-          {!formulario.ativo && <span class="fe-aviso">O link só funciona com o formulário ativo.</span>}
+          <div class="fe-span fe-link-bloco">
+            <div class="fe-link">
+              <span class="fe-link-icone"><Icon name="link" size={16} stroke={1.75} /></span>
+              <a class="fe-link-url" href={linkPublico} target="_blank" rel="noopener" title={linkPublico}>{linkPublico}</a>
+              <span class="fe-link-acoes">
+                <button type="button" class="btn btn-text btn-sm" onClick={copiarLink}>
+                  <Icon name="copy" size={15} stroke={1.75} class="btn-icon" /> Copiar link
+                </button>
+              </span>
+            </div>
+            {!formulario.ativo && <span class="fe-aviso">O link só funciona com o formulário ativo.</span>}
+          </div>
         </div>
       </section>
 
@@ -289,31 +296,33 @@ export default function FormularioEditor({ formulario, origem }: Props) {
               <strong>{s.titulo}</strong>
               <span>{s.descricao}</span>
             </div>
-            {s.fluxo !== 'todos' && <span class="tag">Somente {s.fluxo}</span>}
-            {s.travada ? (
-              <span class="fe-travada" title="Seção obrigatória: dados de contato usados para criar o cliente e o evento"><Icon name="lock" size={14} /> Sempre ativa</span>
-            ) : (
-              <label class="switch">
-                <input
-                  type="checkbox"
-                  checked={s.ativa}
-                  aria-label={`Seção ${s.titulo} ${s.fluxo !== 'todos' ? s.fluxo : ''} ativa`}
-                  onChange={(e) => alterarSecao(s.chave, (x) => ({ ...x, ativa: e.currentTarget.checked }))}
-                />
-                Seção ativa
-              </label>
-            )}
+            <div class="fe-secao-lado">
+              {s.fluxo !== 'todos' && <span class="tag tag-accent tag-sm">Somente {s.fluxo}</span>}
+              {s.travada ? (
+                <span class="fe-travada" title="Seção obrigatória: dados de contato usados para criar o cliente e o evento"><Icon name="lock" size={13} stroke={1.75} /> Sempre ativa</span>
+              ) : (
+                <label class="switch">
+                  <input
+                    type="checkbox"
+                    checked={s.ativa}
+                    aria-label={`Seção ${s.titulo} ${s.fluxo !== 'todos' ? s.fluxo : ''} ativa`}
+                    onChange={(e) => alterarSecao(s.chave, (x) => ({ ...x, ativa: e.currentTarget.checked }))}
+                  />
+                  Seção ativa
+                </label>
+              )}
+            </div>
           </header>
 
           <ul class="fe-perguntas">
             {s.perguntas.map((p, idx) => (
               <li class={`fe-pergunta ${p.ativa ? '' : 'fe-off'}`} key={p.id} data-pergunta={p.id}>
                 <div class="fe-ordem">
-                  <button type="button" onClick={() => mover(s.chave, idx, -1)} disabled={idx === 0} aria-label="Mover para cima"><Icon name="keyboard_arrow_up" size={16} /></button>
-                  <button type="button" onClick={() => mover(s.chave, idx, 1)} disabled={idx === s.perguntas.length - 1} aria-label="Mover para baixo"><Icon name="keyboard_arrow_down" size={16} /></button>
+                  <button type="button" onClick={() => mover(s.chave, idx, -1)} disabled={idx === 0} aria-label="Mover para cima"><Icon name="chevron-up" size={14} stroke={1.75} /></button>
+                  <button type="button" onClick={() => mover(s.chave, idx, 1)} disabled={idx === s.perguntas.length - 1} aria-label="Mover para baixo"><Icon name="chevron-down" size={14} stroke={1.75} /></button>
                 </div>
                 <div class="fe-pergunta-info">
-                  <span class="fe-rotulo">{p.rotulo}{p.obrigatoria ? ' *' : ''}</span>
+                  <span class="fe-rotulo">{p.rotulo}{p.obrigatoria && <span class="fe-req"> *</span>}</span>
                   <span class="fe-meta">
                     {TIPOS_PERGUNTA[p.tipo]}
                     {p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
@@ -321,35 +330,37 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                     {rotuloCondicao(s, p) && ` · ${rotuloCondicao(s, p)}`}
                   </span>
                 </div>
-                {!p.padrao && (
-                  <div class="fe-acoes">
-                    <button type="button" class="row-action" onClick={() => abrirRascunho(s.chave, p)}>Editar</button>
-                    <button type="button" class="row-action danger" onClick={() => removerPergunta(s.chave, p)}>Remover</button>
-                  </div>
-                )}
-                {p.travada ? (
-                  <span class="fe-travada" title="Pergunta essencial para criar o cliente e o evento"><Icon name="lock" size={14} /> Obrigatória</span>
-                ) : (
-                  <>
-                    <label class="fe-obrigatoria">
-                      <input
-                        type="checkbox"
-                        checked={p.obrigatoria}
-                        disabled={!p.ativa}
-                        onChange={(e) => alterarPergunta(s.chave, p.id, { obrigatoria: e.currentTarget.checked })}
-                      />
-                      Obrigatória
-                    </label>
-                    <label class="switch" title={p.ativa ? 'Desativar pergunta' : 'Ativar pergunta'}>
-                      <input
-                        type="checkbox"
-                        checked={p.ativa}
-                        aria-label={`Pergunta ${p.rotulo} ativa`}
-                        onChange={(e) => alterarPergunta(s.chave, p.id, { ativa: e.currentTarget.checked })}
-                      />
-                    </label>
-                  </>
-                )}
+                <div class="fe-pergunta-lado">
+                  {!p.padrao && (
+                    <div class="fe-acoes">
+                      <button type="button" class="row-action" onClick={() => abrirRascunho(s.chave, p)}>Editar</button>
+                      <button type="button" class="row-action danger" onClick={() => removerPergunta(s.chave, p)}>Remover</button>
+                    </div>
+                  )}
+                  {p.travada ? (
+                    <span class="fe-travada" title="Pergunta essencial para criar o cliente e o evento"><Icon name="lock" size={13} stroke={1.75} /> Obrigatória</span>
+                  ) : (
+                    <>
+                      <label class="fe-obrigatoria">
+                        <input
+                          type="checkbox"
+                          checked={p.obrigatoria}
+                          disabled={!p.ativa}
+                          onChange={(e) => alterarPergunta(s.chave, p.id, { obrigatoria: e.currentTarget.checked })}
+                        />
+                        Obrigatória
+                      </label>
+                      <label class="switch" title={p.ativa ? 'Desativar pergunta' : 'Ativar pergunta'}>
+                        <input
+                          type="checkbox"
+                          checked={p.ativa}
+                          aria-label={`Pergunta ${p.rotulo} ativa`}
+                          onChange={(e) => alterarPergunta(s.chave, p.id, { ativa: e.currentTarget.checked })}
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -358,7 +369,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
             <div class="fe-rascunho">
               <div class="fe-rascunho-grid">
                 <div class="field fe-span">
-                  <label for={`fe-r-rotulo-${s.chave}`}>Pergunta*</label>
+                  <label for={`fe-r-rotulo-${s.chave}`}>Pergunta<span class="obrigatorio">*</span></label>
                   <input
                     id={`fe-r-rotulo-${s.chave}`}
                     value={rascunho.rotulo}
@@ -386,7 +397,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                 </div>
                 {TIPOS_COM_OPCOES.includes(rascunho.tipo) && (
                   <div class="field fe-span">
-                    <label for={`fe-r-opcoes-${s.chave}`}>Opções (uma por linha)*</label>
+                    <label for={`fe-r-opcoes-${s.chave}`}>Opções (uma por linha)<span class="obrigatorio">*</span></label>
                     <textarea
                       id={`fe-r-opcoes-${s.chave}`}
                       rows={4}
@@ -420,7 +431,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                 </div>
               </div>
               <div class="fe-rascunho-acoes">
-                <button type="button" class="btn btn-outline btn-md" onClick={() => setRascunho(null)}>Cancelar</button>
+                <button type="button" class="btn btn-secondary btn-md" onClick={() => setRascunho(null)}>Cancelar</button>
                 <button type="button" class="btn btn-primary btn-md" onClick={confirmarRascunho}>
                   {rascunho.id ? 'Atualizar pergunta' : 'Incluir pergunta'}
                 </button>
@@ -428,22 +439,27 @@ export default function FormularioEditor({ formulario, origem }: Props) {
             </div>
           ) : (
             <button type="button" class="fe-adicionar" onClick={() => abrirRascunho(s.chave)} disabled={Boolean(rascunho)}>
-              <Icon name="add_circle" size={18} /> Adicionar pergunta
+              <Icon name="circle-plus" size={15} stroke={1.75} /> Adicionar pergunta
             </button>
           )}
         </section>
       ))}
 
       <div class="fe-barra">
-        <span class="fe-estado">{alterado ? 'Alterações não salvas' : 'Tudo salvo'}</span>
+        <span class={`fe-estado ${alterado ? 'fe-estado-alterado' : ''}`}>
+          <Icon name={alterado ? 'alert-circle' : 'circle-check'} size={15} stroke={1.75} />
+          {alterado ? 'Alterações não salvas' : 'Tudo salvo'}
+        </span>
         <div class="fe-barra-acoes">
-          <a class="btn btn-outline btn-md" href={`/f/${formulario.slug}?previa=1`} target="_blank" rel="noopener" title="Abre a última versão salva">
-            Pré-visualizar
+          <a class="btn btn-secondary btn-sm" href={`/f/${formulario.slug}?previa=1`} target="_blank" rel="noopener" title="Abre a última versão salva">
+            <Icon name="eye" size={15} stroke={1.75} class="btn-icon" /> Pré-visualizar
           </a>
-          <a class="btn btn-outline btn-md" href={`/formularios/${formulario.id}/respostas`}>Respostas</a>
-          <button type="button" class="btn btn-outline btn-md" onClick={duplicar} disabled={salvando}>Duplicar</button>
-          <button type="button" class="btn btn-outline btn-md" onClick={excluir} disabled={salvando}>Excluir</button>
-          <button type="submit" class="btn btn-primary btn-md" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
+          <a class="btn btn-secondary btn-sm" href={`/formularios/${formulario.id}/respostas`}>Respostas</a>
+          <button type="button" class="btn btn-secondary btn-sm" onClick={duplicar} disabled={salvando}>
+            <Icon name="copy" size={15} stroke={1.75} class="btn-icon" /> Duplicar
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" onClick={excluir} disabled={salvando}>Excluir</button>
+          <button type="submit" class="btn btn-primary btn-sm" disabled={salvando}>{salvando ? 'Salvando…' : 'Salvar'}</button>
         </div>
       </div>
     </form>

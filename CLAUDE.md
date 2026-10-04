@@ -29,11 +29,13 @@ bebidas, staff, locação), a geração do PDF da proposta, o envio por e-mail, 
 | Senhas | `pgcrypto`: `crypt(senha, gen_salt('bf'))` (bcrypt no próprio Postgres) |
 | PDF | **Chromium** via `playwright-core` + **pdf-lib** para juntar capa/miolo/contracapa |
 | E-mail | API HTTP do **Resend** (sem chave, o e-mail vai para o log) |
+| Interface | CSS escrito à mão sobre os tokens do **design system** (`design-system/` → `src/styles/tokens.css`); fonte **General Sans** servida de `/public/fonts`; ícones **Tabler** em linha |
 | Testes | **Vitest** (unitários em `src/**/*.test.ts`) e **Playwright** (e2e em `tests/e2e`) |
 | Infra | Docker Compose; Nginx no host; deploy blue-green |
 | Node | >= 22.12 |
 
-Ícones: somente **Google Material Symbols** (`components/ui/Icon.astro` e `Icon.tsx`).
+Ícones: somente **Tabler Icons** (outline), desenhados em linha por `components/ui/Icon.astro` e `Icon.tsx` a partir de
+`lib/icones.ts`. Visual, tokens e componentes: ver [Design system](#design-system-interface).
 
 ---
 
@@ -89,6 +91,7 @@ src/
     api.ts             jsonEndpoint / readJson para endpoints JSON
     flash.ts           mensagens que sobrevivem ao redirect (cookie banket_flash)
     html.ts            escapeHtml + template tag html`` para montar células de tabela com segurança
+    icones.ts          ícones Tabler (miolo dos SVGs) + svgIcone() para scripts de navegador
     texto.ts           marcação simples dos blocos da proposta → HTML seguro
     money.ts datas.ts documento.ts pagination.ts nav.ts
     calculo/           cálculo PURO do orçamento e do staff (roda no navegador e no servidor)
@@ -100,12 +103,16 @@ src/
   components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/, cardapio/, formularios/),
                        proposta/Proposta.astro (layout impresso), eventos/, templates/
   layouts/             Layout, AppLayout (sidebar+topbar), AuthLayout, EventoLayout (abas do evento), FormularioLayout
-  styles/              global.css, orcamento.css, editor.css, formularios.css
+  styles/              tokens.css (tokens do design system + @font-face), global.css (base e classes utilitárias),
+                       orcamento.css, editor.css, formularios.css (ilhas Preact)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
 scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs
 tests/e2e/             Playwright (helpers.ts: login, leitura de links de e-mail no log do contêiner)
 public/ref/            PDFs de cardápios de referência (Brunch, Buffet, Boteco, Empratado) que originaram os seeds
+public/fonts/          General Sans (woff2, pesos 300–700 + itálicos); logos em public/logo-{dark,light,mark}.png
+design-system/         fonte de verdade do visual: readme.md (fundamentos), tokens/, components/ (especificação em
+                       React + CSS .bk-*), ui_kits/banket-app (telas de referência), guidelines/. Não entra no build.
 ```
 
 ---
@@ -347,6 +354,7 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `015_template_fundos_ia` | galeria `template_fundos_ia` (fundos gerados por IA, status gerando/pronto/erro) |
 | `016_fase4_ux` | `eventos.motivo_perda`/`fechado_em` (etapas recusado/aprovado), `evento_timeline.retorno_em` (anotações), `tenant_usuarios.ocultar_primeiros_passos` |
 | `017_hwesta_integracao` | `tenants.status`/`suspenso_em`/`suspenso_motivo` (kill-switch do Manager), `hwesta_entitlements` (snapshot do plano, RLS por tenant), `hwesta_events` (eventos recebidos, só conexão de sistema) |
+| `018_cores_etapas_design_system` | cores padrão das etapas do funil nos tons do design system (`#B0A194`, `#E35336`, `#5E8B65`, `#3A302A`); só troca etapas que ainda tinham a cor padrão antiga; `aplicar_padroes_tenant` passa a criar com as novas |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -570,9 +578,9 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
   `data-mascara="documento" data-mascara-tipo="<id do select PF/PJ>"` (+ `data-rotulo-documento` no label).
 - **Glossário** (`lib/rotulos.ts`): Tipo, Ocasião, Formato de serviço, Estilo gastronômico, Etapa, Funil de vendas.
   A interface usa estes nomes; o banco continua com `tipos_evento`, `categorias_evento`, `status_orcamento`.
-- **Cores** (`global.css`): texto laranja = `--color-primary-text`, auxiliar = `--color-text-muted`, borda de controle =
-  `--color-border-input`, botão principal = `--color-primary-action`; `--color-primary` só para bordas/fundos/ícones.
-  Foco: `:focus-visible` global; campos com estilo próprio precisam de um `:focus-visible` explícito.
+- **Cores e foco**: só tokens do design system (ver [Design system](#design-system-interface)). Foco: `:focus-visible`
+  global (`--focus-ring-forte`); campos usam borda `--border-focus` + `--focus-ring`; quem zera o `outline`/`box-shadow`
+  precisa repor o anel.
 - **Listas**: `EstadoVazio` no slot `empty` da `Table` (diferencie "sem cadastro" de "sem resultado": `estaFiltrando`);
   ordenação por coluna com `ordenar` na coluna + `orderBy(ord, MAPA, padrao)` no servidor (`lib/ordenacao.ts`: só
   expressões fixas do mapa entram no SQL); paginação com `?por=20|50|100`.
@@ -620,6 +628,98 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
 
 ---
 
+## Design system (interface)
+
+Fonte de verdade: o diretório [`design-system/`](design-system/readme.md) — `readme.md` (fundamentos de conteúdo e
+visual), `tokens/`, `components/<grupo>/` (cada componente em React com `.d.ts`, `.prompt.md` e o CSS `.bk-*` do grupo),
+`ui_kits/banket-app/` (telas de referência; abra o `index.html` por um servidor HTTP) e `guidelines/`.
+A aplicação **não importa** esse CSS nem os componentes React: ela implementa os mesmos valores nos componentes
+Astro/Preact, com os nomes de classe próprios. O CSS `.bk-*` é a especificação de medidas, cores e estados.
+
+**Direção:** "ateliê de cerâmica" — papel quente, argila e terracota; calmo e profissional. Cerca de 85% neutros
+quentes, 10% terracota, 5% esmaltes (sálvia, ocre, cobalto, vinho). Sem gradiente, textura, emoji ou cinza frio.
+
+### Tokens (`src/styles/tokens.css`)
+
+Cópia de `design-system/tokens/*.css` mais os `@font-face` (General Sans em `/public/fonts`). Ao mudar o design system,
+recopie os valores; não crie variável de cor fora dele. No código do produto use os **aliases semânticos**:
+
+| Papel | Tokens |
+|---|---|
+| Superfícies | `--bg-app` (fundo, argila-50) · `--bg-surface` (cards) · `--clay-25` (cabeçalho de tabela, hover de linha, painéis) · `--bg-subtle` · `--bg-sidebar` · `--bg-accent-subtle`/`--bg-accent-soft` (destaque terracota) · `--bg-overlay` (scrim) |
+| Texto | `--text-strong` · `--text-heading` · `--text-body` · `--text-secondary` · `--text-muted` · `--text-placeholder` · `--text-link`/`--text-accent` (terracota-700) · `--text-on-accent` |
+| Bordas | `--border-subtle` (divisórias) · `--border-default` (cards) · `--border-strong` (campos, botões secundários) · `--border-accent` · `--border-focus` + `--focus-ring` |
+| Ações | `--action-primary` (terracota-600; hover `-hover`, press `-active`) · `--action-secondary-*` · `--action-ghost-hover` |
+| Situação | `--success*` (sálvia) · `--warning*` (ocre) · `--danger*` (vinho — erro nunca é terracota) · `--info*` (cobalto) |
+| Funil | `--stage-new` · `--stage-negotiation` · `--stage-won` · `--stage-lost` (as etapas reais usam `status_orcamento.cor`, cujos padrões são estes tons) |
+| Tipografia | `--font-sans` (General Sans) · `--font-mono` (variáveis `{nome_cliente}` e hex) · `--fw-regular` 400 / `--fw-medium` 500 · `--fs-11…40` · papéis `--type-*` |
+| Espaço e forma | `--space-*` (base 4px) · `--radius-xs|sm|md|lg|xl|full` (4/6/8/12/16/pílula) · `--shadow-xs|sm|md|lg|xl|inset` · `--dur-fast|base|slow` + `--ease-out` |
+| Layout | `--sidebar-width` 248 · `--header-height` 64 · `--subnav-height` 48 · `--content-pad-x/y` 32/28 · `--drawer-width` 560 · `--control-h-sm|md|lg` 32/40/48 |
+
+### Regras
+
+- **Tipografia**: General Sans, pesos **400** (texto) e **500** (interface e títulos); 600/700 não são usados na interface.
+  Corpo 14px/1,5; rótulos 13px/500; legendas 12px; título de página 20px; saudação 24px; título de card 15px/500;
+  KPI 28px/500 com `--ls-tight`. Números em colunas e valores: `font-variant-numeric: tabular-nums` (classe `.tabular`).
+- **Caixa**: *sentence case* em títulos, botões, rótulos, abas e tags. Única exceção: **eyebrows** (rótulo de KPI, rótulo
+  de grupo, dias da semana) — classe `.eyebrow` (11px/500, caixa alta, `--ls-eyebrow`).
+- **Cantos**: campos e botões 8 · cards, tabelas e painéis 12 · tags 6 · checkbox e botões mínimos 4 · badges e switches em pílula.
+- **Cards**: fundo branco, borda `--border-default`, raio 12, `--shadow-xs`; título 15px/500 com ícone em quadro
+  `--bg-accent-subtle`/`--terracotta-600`. Card clicável: hover com `--border-strong` + `--shadow-md`.
+- **Sombras** quentes e curtas: `xs` cards, `sm` controles, `md` hover, `lg` menus e barra flutuante, `xl` drawers e diálogos.
+  Transparência e blur só no scrim (`--bg-overlay` + blur 2px) e na barra de ações flutuante (branco 92% + blur 8px).
+- **Estados**: hover escurece um passo (primário 600→700; `--action-ghost-hover` em ícones; `--clay-25` em linhas);
+  press = mais um passo + `translateY(.5px)`; movimento com `--dur-*` e `--ease-out`, sem bounce.
+- **Botões**: um só primário por região; ação de card = `secondary`; destrutiva = `danger`; de linha de tabela =
+  `.row-action`; texto no formato verbo + objeto ("Novo cliente", "Exportar CSV").
+- **Microcopy**: pt-BR, voz prática e direta; valor vazio = travessão `—` (`.vazio`; a `Table` já faz isso com `''`,
+  `null` e `'-'`); metadados separados por ` · `; contagens com dois dígitos em cards e colunas; sem emoji.
+- **Ícones**: Tabler outline, traço 1,5 (1,75 até 16px), tamanhos 16 (botões) · 18 (padrão) · 20 (sidebar) · 22–26
+  (estados vazios). `<Icon name="circle-plus" size={18} />`; em scripts, `svgIcone(nome, tamanho)`. Ícone novo: copie o
+  miolo de `icons/outline/<nome>.svg` do pacote `@tabler/icons@3.19.0` para `lib/icones.ts`. Em pseudo-elementos de CSS
+  use as data-URI de `global.css` (`--icone-chevron-down`, `--icone-alert-circle`, `--icone-check`) com `mask`.
+- **Celular** (≤768px) e tablet (769–1024px) seguem os mesmos tokens, sempre dentro de media query.
+- **`hidden`**: `global.css` garante `[hidden] { display: none !important }`; não precisa repetir por componente.
+- **Estilo de célula de tabela**: a `Table` não tem variante por coluna; as páginas usam
+  `:global(.data-table tbody td[data-key='…'])`. O cabeçalho da coluna `acoes` fica só para leitores de tela.
+
+### Do design system para o código
+
+| Design system | Na aplicação |
+|---|---|
+| Button, IconButton | `components/ui/Button.astro` (`primary · secondary/outline · ghost · soft · text · danger · success · dark`; `sm · md · large`; `icon`, `iconRight`); em HTML montado à mão e nas ilhas: `.btn .btn-<variante> .btn-<tamanho>` (os estilos ficam em `global.css`) |
+| TextInput, Select, Textarea, Field | `.field` + `label` + campo, `.control`, `.form-grid` (`global.css`); telas de autenticação: `components/ui/Input.astro` |
+| Checkbox, Switch | `components/ui/Checkbox.astro`; `.chip` (seleção em pílula) e `.switch` / `.switch-sm` (`global.css`) |
+| FileField | `components/ui/FileUpload.astro` |
+| SegmentedControl | `.segmented` |
+| Tag · StatusBadge · StageDot | `.tag` (+ `tag-accent|sage|ochre|cobalt|wine`, `tag-sm`) · `.badge` (+ `badge-success|warning|danger|info|accent`) · `.status-name` + `.dot` |
+| Table, Pagination, ReorderControls | `components/ui/Table.astro`, `Pagination.astro`, `Reordenar.astro` |
+| Card | `components/ui/SectionCard.astro` (`title`, `description`, `icon`, `collapsible`, slot `actions`); título avulso com ícone: `.bloco-titulo`; rótulo → valor: `.kv` |
+| CatalogCard | `components/ui/InfoCard.astro` (`title`, `description`, `rows`, `tags`; slots `status`, `subtitle`, padrão e `footer`) |
+| StatCard, FunnelBreakdown, AgendaItem | `pages/dashboard/index.astro` |
+| KanbanColumn, EventCard, Menu | `pages/eventos/index.astro` |
+| CalendarMonth | `pages/agenda/index.astro` |
+| Toolbar | `components/ui/PageToolbar.astro` |
+| EmptyState | `components/ui/EstadoVazio.astro` |
+| Drawer | `components/ui/Drawer.astro` (`md` = 560px, `lg` = 720px; Excluir/Salvar no cabeçalho) |
+| Sidebar, AppHeader, UserMenu, Tabs | `components/Sidebar.astro`, `Topbar.astro` (título "Módulo / Página" vira trilha), `Submenu.astro`, `MobileNav.astro`; abas dentro da página: `components/orcamento/OrcamentoAbas.astro` |
+| BackLink | classe `.voltar` (`global.css`) |
+| CopyField, FormSection | formulários (`pages/formularios/*`, `components/formularios/FormularioEditor.tsx`, `styles/formularios.css`); seções numeradas também no editor de opção (`styles/editor.css`) |
+| ActionBar (barra flutuante com o estado do salvamento) | editor de formulário (`styles/formularios.css`) e construtor de orçamento / blocos (`.orc-barra` em `styles/orcamento.css`) |
+| VariableChip, ColorInput | `pages/configuracoes/empresa.astro` (variáveis do e-mail) e `components/templates/TemplateForm.astro` (cores do template) |
+| Toast e modal de confirmação (não existem no kit) | `components/ui/Toast.astro` e `Confirmar.astro`, desenhados com os mesmos tokens |
+
+### Fora do design system
+
+- **PDF da proposta** (`components/proposta/Proposta.astro`, `pages/print/*`) e a prévia dele no editor de template:
+  fontes, cores e imagens são as do template de cada buffet.
+- **E-mails** (`server/emails.ts`, `server/envio.ts`): mesma paleta, mas com cores em hex e fontes de sistema — clientes
+  de e-mail não carregam webfont nem variáveis CSS (por isso títulos e botões usam peso 600: Arial não tem 500).
+- **Telas de autenticação** (`AuthLayout`): o véu terracota sobre `/bg-login.png` é o único gradiente da interface.
+- Cores escolhidas pela empresa (etapas do funil, templates) vêm do banco e são aplicadas por `style`.
+
+---
+
 ## Padrões de código
 
 - **Toda consulta de dados de empresa passa por `withTenant(tenantId, db => …)`**; `tenantId` vem de
@@ -636,6 +736,8 @@ destinatários são de domínio reservado (`example.com`, `.test`…, ver `domin
   `stringArray`, `tagList`…). Dinheiro no formato brasileiro via `lib/money.ts`.
 - HTML fora de template Astro: use `html``…`` / `escapeHtml` de `lib/html.ts`; textos de blocos via `renderTexto`.
 - Listagens: `pageParams`/`pageInfo`/`searchTerm` (`?q=&page=`, 20 por página).
+- Interface nova segue o [design system](#design-system-interface): só tokens de `tokens.css` (nada de hex, cinza frio,
+  peso 600/700 ou caixa alta fora de eyebrow), componentes de `components/ui` antes de CSS novo e ícones Tabler.
 - Funções puras que rodam no navegador (cálculo, modelo de formulário, money) não podem importar `db` nem Node.
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`

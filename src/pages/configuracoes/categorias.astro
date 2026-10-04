@@ -55,7 +55,7 @@ const eventoData = categoriasEvento.map((c) => ({
     tipos: c.tipos,
   })}">${c.nome}</button>`,
   tipos: html`<div class="inline-list">${tipos.map(
-    (t) => html`<label class="switch"><input type="checkbox" data-toggle-tipo data-categoria="${c.id}" data-tipo="${t.id}" ${
+    (t) => html`<label class="switch switch-sm"><input type="checkbox" data-toggle-tipo data-categoria="${c.id}" data-tipo="${t.id}" ${
       c.tipos.includes(t.id) && html`checked`
     } />${t.nome}</label>`
   )}</div>`,
@@ -81,13 +81,13 @@ const eventoData = categoriasEvento.map((c) => ({
           options: tipos.map((t) => ({ value: t.id, label: t.nome })),
         }}
       >
-        <Button icon="add_circle" data-drawer-open="drawer-cat-evento">Nova ocasião</Button>
+        <Button icon="circle-plus" data-drawer-open="drawer-cat-evento">Nova ocasião</Button>
       </PageToolbar>
       <Table
         columns={[
           { key: 'nome', label: ROTULOS.ocasiao, width: '28%' },
           { key: 'tipos', label: ROTULOS.tiposEvento },
-          { key: 'eventos', label: 'Eventos', align: 'center' },
+          { key: 'eventos', label: 'Eventos', align: 'right' },
           { key: 'acoes', label: 'Ações', align: 'right' },
         ]}
         data={eventoData}
@@ -146,24 +146,37 @@ const eventoData = categoriasEvento.map((c) => ({
 </script>
 
 <style>
-  .help {
-    margin-top: 16px;
-    color: var(--color-neutral-65);
-    font-size: 13px;
-  }
-
+  /* Nome da ocasião: célula em destaque que abre a edição */
   :global(.row-link) {
     background: none;
     border: none;
-    padding: 0;
-    font-size: 14px;
-    color: var(--color-neutral-80);
+    padding: var(--space-1);
+    margin: 0 calc(var(--space-1) * -1);
+    border-radius: var(--radius-xs);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
     cursor: pointer;
     text-align: left;
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
   :global(.row-link:hover) {
-    color: var(--color-primary-text);
+    color: var(--text-link);
     text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Tipos de cada ocasião: switches pequenos (.switch-sm) com mais respiro entre eles */
+  :global(.data-table .inline-list) {
+    gap: var(--space-2) var(--space-5);
+  }
+
+
+  @media (max-width: 768px) {
+    :global(.data-table .inline-list) {
+      justify-content: flex-end;
+    }
   }
 </style>

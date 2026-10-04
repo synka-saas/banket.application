@@ -1,13 +1,15 @@
 ---
-// Card de seção dos frames: ícone laranja + título em caixa alta; opcionalmente recolhível.
+// Card de seção (Card do design system): ícone em quadro terracota + título 15/500; opcionalmente recolhível.
 import Icon from './Icon.astro';
 
 interface Props {
   title: string;
+  /** Texto de apoio sob o título (13px muted) */
+  description?: string;
   icon?: string;
   collapsible?: boolean;
   open?: boolean;
-  /** Estilo do cabeçalho: "accent" (título laranja, padrão) ou "plain" (título escuro com divisória) */
+  /** Estilo do cabeçalho: "accent" (com ícone, padrão) ou "plain" (só o título) */
   variant?: 'accent' | 'plain';
   class?: string;
   id?: string;
@@ -15,7 +17,8 @@ interface Props {
 
 const {
   title,
-  icon = 'article',
+  description,
+  icon = 'file-text',
   collapsible = false,
   open = true,
   variant = 'accent',
@@ -29,10 +32,13 @@ const {
     <summary class="section-header">
       <span class="section-title">
         {variant === 'accent' && <Icon name={icon} size={18} class="section-icon" />}
-        {title}
+        <span class="section-titles">
+          {title}
+          {description && <span class="section-desc">{description}</span>}
+        </span>
       </span>
       <span class="section-actions"><slot name="actions" /></span>
-      <Icon name="expand_circle_down" size={22} class="section-toggle" />
+      <Icon name="chevron-down" size={18} class="section-toggle" />
     </summary>
     <div class="section-body"><slot /></div>
   </details>
@@ -41,7 +47,10 @@ const {
     <header class="section-header">
       <span class="section-title">
         {variant === 'accent' && <Icon name={icon} size={18} class="section-icon" />}
-        {title}
+        <span class="section-titles">
+          {title}
+          {description && <span class="section-desc">{description}</span>}
+        </span>
       </span>
       <span class="section-actions"><slot name="actions" /></span>
     </header>
@@ -50,21 +59,25 @@ const {
 )}
 
 <style>
+  /* Card do design system: branco, borda fina, raio 12, sombra curta; ícone em quadro terracota claro */
   .section-card {
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    min-width: 0;
   }
 
   .section-card + .section-card {
-    margin-top: 16px;
+    margin-top: var(--space-5);
   }
 
   .section-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 24px 28px 8px;
+    gap: var(--space-3);
+    padding: var(--space-5) var(--space-6) var(--space-4);
+    border-bottom: 1px solid var(--border-subtle);
     list-style: none;
   }
 
@@ -74,34 +87,58 @@ const {
 
   details > .section-header {
     cursor: pointer;
-    padding-bottom: 20px;
+    user-select: none;
   }
 
-  details[open] > .section-header {
-    border-bottom: 1px solid var(--border-color);
+  details:not([open]) > .section-header {
+    padding-bottom: var(--space-5);
+    border-bottom: 0;
   }
 
   .section-title {
     flex: 1;
+    min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
+    gap: var(--space-3);
+    font-size: var(--fs-15);
+    line-height: 1.35;
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
-  .section-accent .section-title {
-    color: var(--color-primary-text);
+  /* Com descrição, o ícone alinha pelo topo (como no Card do design system) */
+  .section-title:has(.section-desc) {
+    align-items: flex-start;
   }
 
-  .section-plain .section-title {
-    color: var(--color-neutral-80);
+  .section-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
   }
 
-  .section-plain > .section-header {
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
+  .section-desc {
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    font-weight: var(--fw-regular);
+    color: var(--text-muted);
+  }
+
+  .section-icon {
+    box-sizing: content-box;
+    padding: 7px;
+    border-radius: var(--radius-md);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
+  }
+
+  .section-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: none;
   }
 
   .section-actions:empty {
@@ -109,15 +146,25 @@ const {
   }
 
   .section-toggle {
-    color: var(--color-neutral-65);
-    transition: transform 0.2s ease;
+    color: var(--text-muted);
+    transition: transform var(--dur-base) var(--ease-out);
   }
 
-  details:not([open]) .section-toggle {
-    transform: rotate(-90deg);
+  details[open] .section-toggle {
+    transform: rotate(180deg);
   }
 
   .section-body {
-    padding: 20px 28px 28px;
+    padding: var(--space-5) var(--space-6) var(--space-6);
+  }
+
+  @media (max-width: 768px) {
+    .section-header {
+      padding: var(--space-4);
+    }
+
+    .section-body {
+      padding: var(--space-4);
+    }
   }
 </style>

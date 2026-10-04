@@ -35,7 +35,7 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="timeline">
   <section class="timeline-card anotacao-card">
-    <h3 class="bloco-titulo"><Icon name="edit_note" size={18} /> Nova anotação</h3>
+    <h3 class="bloco-titulo"><Icon name="edit" size={18} /> Nova anotação</h3>
     <form method="post" class="anotacao-form">
       <div class="anotacao-linha">
         <div class="field">
@@ -68,7 +68,7 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
       <ol class="timeline">
         {registros.map((r) => (
           <li class={`tl-${r.tipo}`}>
-            <span class="tl-icone"><Icon name={ICONES_TIMELINE[r.tipo] ?? 'info'} size={16} /></span>
+            <span class="tl-icone"><Icon name={ICONES_TIMELINE[r.tipo] ?? 'info-circle'} size={16} /></span>
             <div class="tl-conteudo">
               <p class="tl-descricao">{r.descricao}</p>
               <p class="tl-meta">
@@ -89,35 +89,59 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
 </EventoLayout>
 
 <style>
+  /* Cards do design system */
   .timeline-card {
     max-width: 900px;
-    padding: 28px 32px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .anotacao-card {
+    margin-bottom: var(--space-5);
+  }
+
+  .anotacao-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .anotacao-linha {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-4) var(--space-5);
+  }
+
+  .anotacao-acoes {
+    display: flex;
+    justify-content: flex-end;
   }
 
   .timeline {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 22px;
-  }
-
-  .timeline::before {
-    content: '';
-    position: absolute;
-    left: 15px;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    background: var(--color-neutral-20);
+    gap: var(--space-5);
   }
 
   .timeline li {
     position: relative;
     display: flex;
-    gap: 16px;
+    gap: var(--space-4);
+  }
+
+  /* Linha que liga cada registro ao seguinte, do pé do ícone até o próximo */
+  .timeline li:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 36px;
+    bottom: calc(var(--space-5) * -1 + var(--space-1));
+    width: 1px;
+    background: var(--border-default);
   }
 
   .tl-icone {
@@ -129,63 +153,73 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: var(--color-primary-10);
-    color: var(--color-primary-text);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
   }
 
   .tl-status .tl-icone {
-    background: #e6f2e8;
-    color: var(--color-secondary-60);
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  .tl-conteudo {
+    flex: 1;
+    min-width: 0;
+    padding-top: 5px;
   }
 
   .tl-descricao {
-    font-size: 14px;
-    color: var(--color-neutral-100);
+    font-size: var(--fs-14);
+    color: var(--text-heading);
+    overflow-wrap: anywhere;
   }
 
   .tl-meta {
-    font-size: 12px;
-    color: var(--color-text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-2);
     margin-top: 2px;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
-  .anotacao-card {
-    margin-bottom: 24px;
+  /* Anotações manuais ganham um card próprio */
+  .tl-anotacao .tl-conteudo {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
   }
 
-  .anotacao-form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .anotacao-linha {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 14px;
-  }
-
-  .anotacao-acoes {
-    display: flex;
-    justify-content: flex-end;
+  .tl-anotacao .tl-descricao {
+    white-space: pre-line;
   }
 
   .tl-retorno {
-    margin-left: 10px;
-    padding: 1px 8px;
-    border-radius: 10px;
-    background: #e8f2ea;
-    color: var(--color-secondary-80);
-    font-size: 12px;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--success-bg);
+    color: var(--sage-700);
+    font-size: var(--fs-12);
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
   }
 
+  /* Retorno vencido é alerta: vinho, nunca terracota */
   .tl-retorno.vencido {
-    background: var(--color-primary-10);
-    color: var(--color-primary-60);
+    background: var(--danger-bg);
+    color: var(--danger);
   }
 
   @media (max-width: 768px) {
+    .timeline-card {
+      padding: var(--space-4);
+    }
+
     .anotacao-linha {
       grid-template-columns: minmax(0, 1fr);
     }

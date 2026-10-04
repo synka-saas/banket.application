@@ -91,42 +91,48 @@
 <style is:global>
   .confirmar {
     width: min(440px, calc(100vw - 32px));
+    margin: auto;
     padding: 0;
-    border: 0;
-    border-radius: var(--border-radius);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
-    color: var(--color-neutral-80);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xl);
+    color: var(--text-body);
   }
 
   .confirmar::backdrop {
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-overlay);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
 
   .confirmar-caixa {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 24px;
+    gap: var(--space-2);
+    padding: var(--space-6);
   }
 
   .confirmar-titulo {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
     line-height: 1.35;
-    color: var(--color-neutral-100);
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
   }
 
   .confirmar-texto {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--fs-14);
     line-height: 1.5;
+    color: var(--text-secondary);
   }
 
   .confirmar-acoes {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 8px;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
   }
 </style>

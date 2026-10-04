@@ -75,8 +75,8 @@ const principais = categorias.filter((c) => c.tipo === 'principal');
 const secundarias = categorias.filter((c) => c.tipo === 'secundaria');
 
 const tableData = itens.map((i) => ({
-  nome: html`${i.nome}${!i.ativo && html` <span class="tag tag-off">Inativo</span>`}`,
-  descricao: i.descricao || '-',
+  nome: html`<span class="item-nome">${i.nome}${!i.ativo && html` <span class="badge">Inativo</span>`}</span>`,
+  descricao: i.descricao ? html`<span class="item-descricao">${i.descricao}</span>` : '',
   secao: i.secao_nome,
   preco: i.preco === null ? '-' : `${formatMoney(i.preco)} ${UNIDADES_COBRANCA[i.unidade_cobranca]}`,
   categoria: html`<form method="post" class="inline-form">
@@ -116,8 +116,8 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     filter={{ name: 'secao', placeholder: 'Seção', options: secoes.map((s) => ({ value: s.id, label: s.nome })) }}
     filters={[{ name: 'situacao', placeholder: 'Ativos e inativos', options: [{ value: 'ativos', label: 'Só ativos' }, { value: 'inativos', label: 'Só inativos' }] }]}
   >
-    <Button variant="outline" icon="upload_file" href="/cardapio/importar">Importar CSV</Button>
-    <Button icon="add_circle" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</Button>
+    <Button variant="secondary" icon="file-import" href="/cardapio/importar">Importar CSV</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</Button>
   </PageToolbar>
 
   <Table
@@ -136,11 +136,11 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
         <a class="btn btn-primary btn-md" href="/cardapio/secoes">Criar seção</a>
       </EstadoVazio>
     ) : filtrando ? (
-      <EstadoVazio slot="empty" icon="search_off" titulo="Nenhum item para este filtro">
-        <a class="btn btn-outline btn-md" href={Astro.url.pathname}>Limpar filtros</a>
+      <EstadoVazio slot="empty" icon="search-off" titulo="Nenhum item para este filtro">
+        <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>
       </EstadoVazio>
     ) : (
-      <EstadoVazio slot="empty" icon="restaurant_menu" titulo="Nenhum item cadastrado" texto="Cadastre os pratos, bebidas e serviços que você oferece para montar cardápios e orçamentos.">
+      <EstadoVazio slot="empty" icon="tools-kitchen-2" titulo="Nenhum item cadastrado" texto="Cadastre os pratos, bebidas e serviços que você oferece para montar cardápios e orçamentos.">
         <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-item" data-values={novoItem}>Novo item</button>
       </EstadoVazio>
     )}
@@ -148,7 +148,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
   </Table>
 
   <Drawer slot="overlays" id="drawer-item" formId="form-item" title="Novo item" editTitle="Editar item">
-    <button slot="actions" type="submit" form="form-item" name="_action" value="duplicar" class="btn btn-outline btn-md" formnovalidate data-edit-only data-carregando="Duplicando…">
+    <button slot="actions" type="submit" form="form-item" name="_action" value="duplicar" class="btn btn-secondary btn-sm" formnovalidate data-edit-only data-carregando="Duplicando…">
       Duplicar
     </button>
     <form id="form-item" method="post" class="form-grid">
@@ -230,6 +230,32 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     </form>
   </Drawer>
 </AppLayout>
+
+<style>
+  /* Células montadas com html``: nome em destaque, descrição secundária */
+  :global(.item-nome) {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.item-descricao) {
+    color: var(--text-secondary);
+  }
+
+  :global(.data-table tbody td[data-key='preco']) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 768px) {
+    :global(.item-nome) {
+      justify-content: flex-end;
+    }
+  }
+</style>
 
 <script>
   document.addEventListener('drawer:open', (e) => {

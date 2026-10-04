@@ -40,8 +40,9 @@ const categorias = await withTenant(tenantId, (db) => listarCategoriasItem(db, b
 const tableData = categorias.map((c) => {
   const valores = JSON.stringify({ id: c.id, nome: c.nome, tipo: c.tipo });
   return {
-    nome: html`<button type="button" class="row-link" data-drawer-open="drawer-cat-item" data-values="${valores}">${c.nome}</button>`,
-    tipo: TIPOS_CATEGORIA_ITEM[c.tipo],
+    // Principal (tipo do item) em terracota; secundária (momento do serviço) neutra
+    nome: html`<button type="button" class="tag ${c.tipo === 'principal' ? 'tag-accent' : ''} tag-botao" data-drawer-open="drawer-cat-item" data-values="${valores}">${c.nome}</button>`,
+    tipo: html`<span class="muted">${TIPOS_CATEGORIA_ITEM[c.tipo]}</span>`,
     acoes: html`<form method="post" class="cell-actions">
         <input type="hidden" name="id" value="${c.id}" />
         <button type="button" class="row-action" data-drawer-open="drawer-cat-item" data-values="${valores}">Editar</button>
@@ -59,7 +60,7 @@ const tableData = categorias.map((c) => {
       options: Object.entries(TIPOS_CATEGORIA_ITEM).map(([value, label]) => ({ value, label })),
     }}
   >
-    <Button icon="add_circle" data-drawer-open="drawer-cat-item">Nova categoria</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-cat-item">Nova categoria</Button>
   </PageToolbar>
 
   <Table
@@ -71,9 +72,9 @@ const tableData = categorias.map((c) => {
     data={tableData}
     emptyMessage="Nenhuma categoria de item cadastrada."
   />
-  <p class="help">
-    A <strong>categoria principal</strong> indica o tipo do item (Salgado, Doce, Bebida). A
-    <strong>secundária</strong> indica o momento do serviço (Recepção, Entrada, Prato principal, Sobremesa).
+  <p class="intro ajuda">
+    A <strong>categoria principal</strong> indica o tipo do item (Salgado, Doce, Bebida).
+    A <strong>secundária</strong> indica o momento do serviço (Recepção, Entrada, Prato principal, Sobremesa).
     Itens com categoria principal "Bebida" aparecem na aba Bebidas do orçamento.
   </p>
 
@@ -95,11 +96,24 @@ const tableData = categorias.map((c) => {
 </AppLayout>
 
 <style>
-  .help {
-    margin-top: 16px;
-    max-width: 720px;
-    font-size: 13px;
-    color: var(--color-text-muted);
-    line-height: 1.5;
+  .ajuda {
+    margin-top: var(--space-4);
+  }
+
+  /* O nome abre a edição: tag do design system em um botão */
+  :global(.tag-botao) {
+    border: 0;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+
+  :global(.tag-botao:hover) {
+    background: var(--bg-muted);
+    color: var(--text-strong);
+  }
+
+  :global(.tag-botao.tag-accent:hover) {
+    background: var(--bg-accent-soft);
+    color: var(--terracotta-900);
   }
 </style>

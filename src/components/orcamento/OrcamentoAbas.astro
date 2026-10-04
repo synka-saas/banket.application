@@ -25,83 +25,89 @@ const abas = [
     ))}
   </div>
   {versao && (
-    <span class:list={['orc-abas-versao', { congelada: versao.congelada }]}>
+    <span class:list={['orc-abas-versao', 'badge', { 'badge-success': !versao.congelada, congelada: versao.congelada }]}>
       Versão {String(versao.numero).padStart(2, '0')} · {versao.congelada ? 'congelada' : 'em edição'}
     </span>
   )}
 </nav>
 
 <style>
+  /* Tabs em linha do design system: sublinhado terracota de 2px na aba ativa */
   .orc-abas {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--border-color);
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border-default);
   }
 
   .orc-abas-lista {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    align-items: stretch;
+    gap: var(--space-7);
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .orc-abas-lista::-webkit-scrollbar {
+    display: none;
   }
 
   .orc-abas-lista a {
-    padding: 10px 14px;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-neutral-65);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    font-size: var(--fs-14);
+    font-weight: var(--fw-regular);
+    color: var(--text-secondary);
+    white-space: nowrap;
     text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .orc-abas-lista a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: transparent;
+    transition: background-color var(--dur-base) var(--ease-out);
   }
 
   .orc-abas-lista a:hover {
-    color: var(--color-primary-text);
+    color: var(--text-strong);
   }
 
   .orc-abas-lista a.ativa {
-    border-bottom-color: var(--color-primary-action);
-    color: var(--color-primary-text);
+    color: var(--terracotta-700);
+    font-weight: var(--fw-medium);
+  }
+
+  .orc-abas-lista a.ativa::after {
+    background: var(--terracotta-500);
   }
 
   .orc-abas-versao {
-    padding: 4px 10px;
-    border-radius: 12px;
-    background: #e8f2ea;
-    color: var(--color-secondary-80);
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .orc-abas-versao.congelada {
-    background: var(--color-neutral-20);
-    color: var(--color-neutral-80);
+    flex: none;
   }
 
   @media (max-width: 768px) {
     .orc-abas {
       align-items: stretch;
-      flex-direction: column;
-      gap: 8px;
-      padding-bottom: 8px;
+      flex-direction: column-reverse;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
     }
 
     .orc-abas-lista {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .orc-abas-lista::-webkit-scrollbar {
-      display: none;
-    }
-
-    .orc-abas-lista a {
-      white-space: nowrap;
+      gap: var(--space-5);
+      -webkit-overflow-scrolling: touch;
     }
 
     .orc-abas-versao {

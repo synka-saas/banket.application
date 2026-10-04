@@ -41,11 +41,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
 
 <AppLayout title="Empresa" heading="Configurações / Empresa" submenu={CONFIG_SUBMENU} submenuActive="empresa">
   <form method="post" enctype="multipart/form-data" class="empresa-form" data-form-sujo>
-    <div class="form-actions">
-      <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
-    </div>
-
-    <SectionCard title="Dados da empresa" icon="domain">
+    <SectionCard title="Dados da empresa" icon="building">
       <div class="form-grid">
         <div class="field">
           <label for="emp-nome">Nome fantasia<span class="obrigatorio">*</span></label>
@@ -92,19 +88,28 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
       </div>
     </SectionCard>
 
-    <SectionCard title="Parâmetros comerciais" icon="room_service">
+    <SectionCard title="Parâmetros comerciais" icon="coin">
       <div class="form-grid cols-3">
         <div class="field">
-          <label for="cfg-validade">Validade da proposta (dias)<span class="obrigatorio">*</span></label>
-          <input id="cfg-validade" name="validade_proposta_dias" type="number" min="1" required value={empresa.validade_proposta_dias} />
+          <label for="cfg-validade">Validade da proposta<span class="obrigatorio">*</span></label>
+          <div class="com-sufixo">
+            <input id="cfg-validade" name="validade_proposta_dias" type="number" min="1" required value={empresa.validade_proposta_dias} aria-describedby="cfg-validade-un" />
+            <span class="sufixo" id="cfg-validade-un">dias</span>
+          </div>
         </div>
         <div class="field">
-          <label for="cfg-isenta">Criança não paga até (anos)<span class="obrigatorio">*</span></label>
-          <input id="cfg-isenta" name="criancas_isentas_ate" type="number" min="0" required value={empresa.criancas_isentas_ate} />
+          <label for="cfg-isenta">Criança não paga até<span class="obrigatorio">*</span></label>
+          <div class="com-sufixo">
+            <input id="cfg-isenta" name="criancas_isentas_ate" type="number" min="0" required value={empresa.criancas_isentas_ate} aria-describedby="cfg-isenta-un" />
+            <span class="sufixo" id="cfg-isenta-un">anos</span>
+          </div>
         </div>
         <div class="field">
-          <label for="cfg-meia">Criança paga meia até (anos)<span class="obrigatorio">*</span></label>
-          <input id="cfg-meia" name="criancas_meia_ate" type="number" min="0" required value={empresa.criancas_meia_ate} />
+          <label for="cfg-meia">Criança paga meia até<span class="obrigatorio">*</span></label>
+          <div class="com-sufixo">
+            <input id="cfg-meia" name="criancas_meia_ate" type="number" min="0" required value={empresa.criancas_meia_ate} aria-describedby="cfg-meia-un" />
+            <span class="sufixo" id="cfg-meia-un">anos</span>
+          </div>
         </div>
         <div class="field span-3">
           <label for="cfg-local">Local padrão dos eventos</label>
@@ -113,7 +118,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
       </div>
     </SectionCard>
 
-    <SectionCard title="Assinatura da proposta" icon="edit">
+    <SectionCard title="Assinatura da proposta" icon="signature">
       <div class="form-grid cols-3">
         <div class="field">
           <label for="ass-nome">Nome</label>
@@ -130,7 +135,7 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
       </div>
     </SectionCard>
 
-    <SectionCard title="E-mail de envio do orçamento" icon="description">
+    <SectionCard title="E-mail de envio do orçamento" icon="mail">
       <div class="form-grid">
         <div class="field span-2">
           <label for="mail-assunto">Assunto<span class="obrigatorio">*</span></label>
@@ -155,18 +160,23 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
         </div>
       </div>
     </SectionCard>
+
+    <div class="form-actions">
+      <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
+    </div>
   </form>
 </AppLayout>
 
 <style>
   .empresa-form {
-    max-width: 1000px;
+    max-width: 960px;
   }
 
+  /* Ação única da página, ao fim do formulário */
   .form-actions {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 16px;
+    margin-top: var(--space-5);
   }
 
   .cols-3 {
@@ -177,51 +187,96 @@ const empresa = await withTenant(tenantId, (db) => carregarEmpresa(db));
     grid-column: 1 / -1;
   }
 
-  @media (max-width: 768px) {
-    .cols-3 {
-      grid-template-columns: minmax(0, 1fr);
-    }
+  /* Campo com unidade (addon final do design system): a unidade fica dentro da borda do campo */
+  .com-sufixo {
+    position: relative;
   }
 
+  .sufixo {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-3);
+    background: var(--bg-subtle);
+    border-left: 1px solid var(--border-default);
+    border-radius: 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+
+  .com-sufixo input {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Variáveis do modelo de e-mail (VariableChip do design system) */
   .vars {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1-5);
+  }
+
+  .vars .field-hint {
+    margin-right: var(--space-1);
   }
 
   .chip-var {
-    padding: 3px 10px;
-    border: 1px solid var(--color-border-input);
-    border-radius: 12px;
-    background: var(--color-white);
-    font-size: 12px;
-    font-family: monospace;
-    color: var(--color-neutral-80);
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--text-body);
     cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
   }
 
   .chip-var:hover {
-    border-color: var(--color-primary-50);
-    color: var(--color-primary-text);
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-800);
   }
 
+  /* Prévia do e-mail: painel sutil, sem sombra */
   .mail-previa {
-    padding: 14px 16px;
-    background: var(--color-neutral-10);
-    border: 1px dashed var(--color-neutral-30);
-    border-radius: var(--border-radius);
-    font-size: 13px;
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
     line-height: 1.6;
+    color: var(--text-body);
   }
 
   .mail-previa-assunto {
-    font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
   }
 
   .mail-previa-corpo {
+    font-size: var(--fs-13);
     white-space: pre-wrap;
+  }
+
+  @media (max-width: 768px) {
+    .cols-3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .form-actions :global(.btn) {
+      width: 100%;
+    }
   }
 </style>
 

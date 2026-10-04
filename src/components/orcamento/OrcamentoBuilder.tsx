@@ -160,46 +160,25 @@ export default function OrcamentoBuilder(props: Props) {
   return (
     <div class="orc">
       <section class="orc-cabecalho">
-        <div>
+        <div class="orc-cliente">
           <span class="rotulo">Cliente</span>
           <strong>{props.cliente.nome}</strong>
           {props.cliente.documento && <span class="muted">{props.cliente.documento}</span>}
         </div>
-        <div>
-          <span class="rotulo">Versão: {pad(props.numero)}</span>
-          <strong class="orc-total">{formatMoney(totais.total)}</strong>
-          {conteudo.total_manual !== null && <span class="muted">calculado: {formatMoney(totais.total_calc)}</span>}
-        </div>
-        <div class="orc-acoes">
-          <div class="orc-botoes">
-            <button
-              type="button"
-              class="btn btn-primary btn-md"
-              data-drawer-open="drawer-enviar"
-              onClick={() => estado === 'pendente' && salvarAgora()}
-            >
-              <Icon name="send" size={18} /> Enviar ao cliente
-            </button>
-            <button type="button" class="btn btn-outline btn-md" onClick={baixarPdf} disabled={gerandoPdf}>
-              <Icon name="download" size={18} />
-              {gerandoPdf ? 'Gerando PDF…' : disabled ? 'Baixar PDF' : 'Salvar e baixar PDF'}
-            </button>
-          </div>
-          {disabled ? (
-            <span class="selo-congelada">Versão congelada · somente leitura</span>
-          ) : (
-            <div class="orc-versao">
-              <span class={`orc-estado estado-${estado}`} role="status" title={erro ?? undefined}>
-                {rotuloEstado}
-              </span>
+        <div class="orc-valor">
+          <span class="orc-versao">
+            <span class="rotulo">Versão: {pad(props.numero)}</span>
+            {!disabled && (
               <form method="post" ref={formRef} onSubmit={novaVersao}>
                 <input type="hidden" name="_action" value="nova_versao" />
-                <button type="submit" class="btn btn-text btn-md">
+                <button type="submit" class="btn btn-text">
                   Criar nova versão
                 </button>
               </form>
-            </div>
-          )}
+            )}
+          </span>
+          <strong class="orc-total">{formatMoney(totais.total)}</strong>
+          {conteudo.total_manual !== null && <span class="muted">calculado: {formatMoney(totais.total_calc)}</span>}
         </div>
       </section>
 
@@ -236,7 +215,7 @@ export default function OrcamentoBuilder(props: Props) {
         </label>
         <div class="orc-equivalentes">
           <span class="rotulo" title="Pagantes = convidados − isentas − meia + meia × 0,5">
-            Pagantes <Icon name="help" size={14} />
+            Pagantes <Icon name="help-circle" size={14} />
           </span>
           <strong>{totais.pagantes_equivalentes.toLocaleString('pt-BR')}</strong>
         </div>
@@ -277,7 +256,7 @@ export default function OrcamentoBuilder(props: Props) {
       />
 
       <section class="orc-totais">
-        <h3 class="bloco-titulo"><Icon name="receipt_long" size={18} /> Resumo do orçamento</h3>
+        <h3 class="bloco-titulo"><Icon name="receipt" size={18} /> Resumo do orçamento</h3>
         <dl>
           <div>
             <dt>Alimentos</dt>
@@ -337,6 +316,31 @@ export default function OrcamentoBuilder(props: Props) {
           />
         </label>
       </section>
+
+      {/* Barra de ações flutuante: estado do salvamento automático à esquerda, ações à direita (primária por último) */}
+      <div class="orc-barra">
+        {disabled ? (
+          <span class="selo-congelada">Versão congelada · somente leitura</span>
+        ) : (
+          <span class={`orc-estado estado-${estado}`} role="status" title={erro ?? undefined}>
+            {rotuloEstado}
+          </span>
+        )}
+        <div class="orc-barra-acoes">
+          <button type="button" class="btn btn-outline btn-md" onClick={baixarPdf} disabled={gerandoPdf}>
+            <Icon name="download" size={18} />
+            {gerandoPdf ? 'Gerando PDF…' : disabled ? 'Baixar PDF' : 'Salvar e baixar PDF'}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-md"
+            data-drawer-open="drawer-enviar"
+            onClick={() => estado === 'pendente' && salvarAgora()}
+          >
+            <Icon name="send" size={18} /> Enviar ao cliente
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'contato',
     titulo: 'Olá! Vamos criar algo inesquecível?',
     descricao: 'Para começarmos a desenhar sua experiência, por favor, nos conte um pouco sobre você.',
-    icone: 'auto_awesome',
+    icone: 'sparkles',
     fluxo: 'todos',
     travada: true,
     perguntas: [
@@ -93,7 +93,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'local',
     titulo: 'Onde será o evento?',
     descricao: 'Precisamos entender o espaço para garantir a melhor logística da nossa cozinha central.',
-    icone: 'location_on',
+    icone: 'map-pin',
     fluxo: 'todos',
     perguntas: [
       {
@@ -124,7 +124,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'dimensionamento_b2b',
     titulo: 'Dimensionamento',
     descricao: 'Detalhes para formatarmos a proposta ideal para o seu perfil.',
-    icone: 'domain',
+    icone: 'building',
     fluxo: 'B2B',
     perguntas: [
       { chave: 'b2b_empresa', rotulo: 'Razão social / Empresa', tipo: 'texto', placeholder: 'Sua Empresa LTDA', obrigatoria: true },
@@ -178,7 +178,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'dimensionamento_b2c',
     titulo: 'Dimensionamento',
     descricao: 'Detalhes para formatarmos a proposta ideal para o seu perfil.',
-    icone: 'group',
+    icone: 'users',
     fluxo: 'B2C',
     perguntas: [
       {
@@ -224,7 +224,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'gastronomia',
     titulo: 'Gastronomia & Experiência',
     descricao: 'O sabor é a alma do evento. Como deseja servir seus convidados?',
-    icone: 'chef_hat',
+    icone: 'chef-hat',
     fluxo: 'todos',
     perguntas: [
       {
@@ -267,7 +267,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     chave: 'detalhes',
     titulo: 'Detalhes finais',
     descricao: 'Alguma observação extra para o seu evento?',
-    icone: 'add_comment',
+    icone: 'message-plus',
     fluxo: 'todos',
     perguntas: [
       {

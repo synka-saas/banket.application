@@ -42,10 +42,10 @@ const pad = (n: number) => String(n).padStart(2, '0');
   {orcamento && versao && token ? (
     <>
       <div class="previa-topo">
-        <p class="muted">
+        <p class="intro">
           É assim que a versão {pad(versao.numero)} chega ao cliente{versao.congelada ? '' : ' (com o conteúdo salvo até agora)'}.
         </p>
-        <Button variant="outline" icon="download" href={`/eventos/${id}/orcamento/pdf?versao=${versao.numero}`}>Baixar PDF</Button>
+        <Button variant="secondary" icon="download" href={`/eventos/${id}/orcamento/pdf?versao=${versao.numero}`}>Baixar PDF</Button>
       </div>
       <div class="previa-paginas">
         {partes.map((parte) => (
@@ -61,7 +61,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
       </div>
     </>
   ) : (
-    <EstadoVazio icon="request_quote" titulo="Este evento ainda não tem orçamento" texto="Crie o orçamento para pré-visualizar a proposta.">
+    <EstadoVazio icon="file-dollar" titulo="Este evento ainda não tem orçamento" texto="Crie o orçamento para pré-visualizar a proposta.">
       <a class="btn btn-primary btn-md" href={`/eventos/${id}/orcamento`}>Ir para o orçamento</a>
     </EstadoVazio>
   )}
@@ -89,25 +89,26 @@ const pad = (n: number) => String(n).padStart(2, '0');
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    max-width: 900px;
-    margin-bottom: 20px;
+    gap: var(--space-3);
+    max-width: 796px;
+    margin-bottom: var(--space-5);
   }
 
   .previa-paginas {
     display: flex;
     flex-direction: column;
-    gap: 28px;
-    max-width: 900px;
+    gap: var(--space-6);
+    max-width: 796px;
   }
 
+  /* Moldura de cada página A4 (794px + borda); o conteúdo é o do PDF e não leva estilo daqui */
   .previa-quadro {
     position: relative;
     overflow: hidden;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 
   .previa-quadro iframe {

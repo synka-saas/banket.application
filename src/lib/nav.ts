@@ -13,16 +13,16 @@ export interface ItemNavegacao {
 
 // Uma só lista para a sidebar (desktop) e a barra inferior + painel "Mais" (celular)
 export const NAV_PRINCIPAL: ItemNavegacao[] = [
-  { label: 'Dashboard', icon: 'dashboard', href: '/dashboard', match: ['/dashboard'], barra: true },
-  { label: ROTULOS.funil, icon: 'view_kanban', href: '/eventos', match: ['/eventos'], barra: true },
-  { label: 'Cardápios', icon: 'menu_book_2', href: '/cardapio/secoes', match: ['/cardapio'] },
-  { label: 'Clientes', icon: 'account_box', href: '/clientes', match: ['/clientes'], barra: true },
-  { label: 'Agenda', icon: 'calendar_today', href: '/agenda', match: ['/agenda'], barra: true },
-  { label: 'Formulários', icon: 'layers', href: '/formularios', match: ['/formularios'] },
-  { label: 'Staff', icon: 'group', href: '/staff/profissionais', match: ['/staff'] },
-  { label: 'Templates', icon: 'description', href: '/templates', match: ['/templates'] },
+  { label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard', match: ['/dashboard'], barra: true },
+  { label: ROTULOS.funil, icon: 'layout-kanban', href: '/eventos', match: ['/eventos'], barra: true },
+  { label: 'Cardápios', icon: 'tools-kitchen-2', href: '/cardapio/secoes', match: ['/cardapio'] },
+  { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true },
+  { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true },
+  { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'] },
+  { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
+  { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
-  { label: 'Suporte', icon: 'support_agent', href: '/suporte', match: ['/suporte'] },
+  { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
 
 export const navAtiva = (pathname: string, match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));

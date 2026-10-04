@@ -35,9 +35,18 @@ export function mensagemHtml(mensagem: string, empresa: string): string {
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean)
-    .map((p) => `<p style="margin:0 0 14px;font-size:14px;line-height:1.6">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
+    .map((p) => `<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#54483F">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:24px;font-family:Arial,sans-serif;color:#333">${paragrafos}<p style="margin:24px 0 0;font-size:12px;color:#888">Proposta enviada por ${escapeHtml(empresa)}.</p></body></html>`;
+  // Cores da paleta do design system em hex (clientes de e-mail não leem variáveis CSS nem webfont)
+  const fonte = "font-family:'General Sans',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
+  return (
+    `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:0;background:#FAF6F2;${fonte};color:#54483F">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6F2;padding:32px 16px"><tr><td align="center">` +
+    `<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E5DBD1;border-radius:12px;overflow:hidden">` +
+    `<tr><td style="padding:32px 32px 18px;${fonte};text-align:left">${paragrafos}</td></tr>` +
+    `<tr><td style="padding:16px 32px;background:#FDFBF8;border-top:1px solid #EDE5DD;${fonte};text-align:left"><p style="margin:0;font-size:12px;line-height:1.5;color:#807265">Proposta enviada por ${escapeHtml(empresa)}.</p></td></tr>` +
+    `</table></td></tr></table></body></html>`
+  );
 }
 
 async function contextoEnvio(db: Db, eventoId: string, numero: number) {

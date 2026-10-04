@@ -28,7 +28,7 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
 
 <AppLayout title="Minha conta" heading="Minha conta">
   <div class="conta">
-    <SectionCard title="Meus dados" icon="account_circle">
+    <SectionCard title="Meus dados" icon="user-circle">
       <form method="post" class="form-grid">
         <div class="field span-2">
           <label for="ct-nome">Nome e sobrenome<span class="obrigatorio">*</span></label>
@@ -71,14 +71,14 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
       </form>
     </SectionCard>
 
-    <SectionCard title="Minhas empresas" icon="apartment">
+    <SectionCard title="Minhas empresas" icon="building">
       <ul class="empresas">
         {empresas.map((e) => (
           <li>
-            <Icon name="apartment" size={18} />
+            <span class="empresa-icone"><Icon name="building" size={18} /></span>
             <span class="empresa-nome">{e.nome}</span>
             <span class="tag">{ROLE_LABELS[e.role]}</span>
-            {e.id === user.tenantId && <span class="tag tag-ok">Empresa atual</span>}
+            {e.id === user.tenantId && <span class="badge badge-success">Empresa atual</span>}
           </li>
         ))}
       </ul>
@@ -88,10 +88,10 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
 </AppLayout>
 
 <style>
+  /* O espaço entre os cards vem do próprio SectionCard (margem entre irmãos) */
   .conta {
     display: flex;
     flex-direction: column;
-    gap: 24px;
     max-width: 760px;
   }
 
@@ -100,11 +100,21 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
     justify-content: flex-end;
   }
 
+  /* E-mail de acesso: campo somente leitura */
+  .field input[readonly] {
+    background-color: var(--bg-subtle);
+    color: var(--text-muted);
+    box-shadow: none;
+  }
+
+  .field input[readonly]:hover {
+    border-color: var(--border-strong);
+  }
+
   .empresas {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-4);
     list-style: none;
     padding: 0;
   }
@@ -112,11 +122,33 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
   .empresas li {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+  }
+
+  .empresas li:first-child {
+    padding-top: 0;
+  }
+
+  .empresa-icone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
   }
 
   .empresa-nome {
-    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
   }
 </style>

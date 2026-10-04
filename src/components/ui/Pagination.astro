@@ -16,16 +16,18 @@ const fim = Math.min(info.page * info.pageSize, info.total);
 {info.total > 0 && (
 <nav class="pagination" aria-label="Paginação">
   <span class="pagination-status">
-    {info.total <= info.pageSize ? `${info.total} ${info.total === 1 ? 'registro' : 'registros'}` : `${inicio}–${fim} de ${info.total} registros`}
+    {info.total <= info.pageSize
+      ? <Fragment><strong>{info.total}</strong> {info.total === 1 ? 'registro' : 'registros'}</Fragment>
+      : <Fragment><strong>{inicio}–{fim}</strong> de {info.total} registros</Fragment>}
   </span>
 
   <div class="pagination-controls">
     {info.totalPages > 1 && (
       <>
         {prev ? (
-          <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron_left" size={18} /></a>
+          <a href={prev} class="page-btn" aria-label="Página anterior"><Icon name="chevron-left" size={16} /></a>
         ) : (
-          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_left" size={18} /></span>
+          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron-left" size={16} /></span>
         )}
         {paginasVisiveis(info.page, info.totalPages).map((p) =>
           p === null ? (
@@ -37,9 +39,9 @@ const fim = Math.min(info.page * info.pageSize, info.total);
           )
         )}
         {next ? (
-          <a href={next} class="page-btn" aria-label="Próxima página"><Icon name="chevron_right" size={18} /></a>
+          <a href={next} class="page-btn" aria-label="Próxima página"><Icon name="chevron-right" size={16} /></a>
         ) : (
-          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron_right" size={18} /></span>
+          <span class="page-btn disabled" aria-hidden="true"><Icon name="chevron-right" size={16} /></span>
         )}
       </>
     )}
@@ -61,24 +63,31 @@ const fim = Math.min(info.page * info.pageSize, info.total);
 )}
 
 <style>
+  /* Rodapé da tabela: contagem à esquerda, páginas e tamanho à direita */
+  .pagination-status :global(strong) {
+    color: var(--text-heading);
+  }
+
   .pagination {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 14px 36px;
-    background: var(--color-neutral-20);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-neutral-100);
+    gap: var(--space-4);
+    min-height: 52px;
+    padding: var(--space-2) var(--space-5);
+    background: var(--clay-25);
+    border-top: 1px solid var(--border-default);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
   }
 
   .pagination-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
   }
 
   .page-btn {
@@ -87,52 +96,76 @@ const fim = Math.min(info.page * info.pageSize, info.total);
     justify-content: center;
     min-width: 32px;
     height: 32px;
-    padding: 0 6px;
-    border: 1px solid var(--color-border-input);
-    border-radius: var(--border-radius-sm);
-    background: var(--color-white);
-    color: var(--color-neutral-80);
+    padding: 0 var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-weight: var(--fw-medium);
+    color: var(--text-body);
     text-decoration: none;
+    transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* Setas: botão de ícone secundário */
+  .page-btn:has(.icon) {
+    border-color: var(--border-strong);
+    background: var(--bg-surface);
+    color: var(--text-heading);
+    box-shadow: var(--shadow-xs);
   }
 
   .page-btn:hover:not(.disabled):not(.atual) {
-    border-color: var(--color-primary-50);
-    color: var(--color-primary-text);
+    background: var(--bg-subtle);
+  }
+
+  .page-btn:has(.icon):hover:not(.disabled) {
+    background: var(--action-secondary-hover);
+    border-color: var(--clay-400);
   }
 
   .page-btn.atual {
-    border-color: var(--color-primary-action);
-    background: var(--color-primary-action);
-    color: var(--color-white);
+    border-color: var(--action-primary);
+    background: var(--action-primary);
+    color: var(--text-on-accent);
   }
 
   .page-btn.disabled {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 
   .page-salto {
-    padding: 0 2px;
-    color: var(--color-text-muted);
+    min-width: 20px;
+    text-align: center;
+    color: var(--text-muted);
   }
 
   .page-tamanhos {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-left: 16px;
-    font-weight: 400;
-    color: var(--color-text-muted);
+    gap: var(--space-1);
+    margin-left: var(--space-4);
+    color: var(--text-muted);
   }
 
   .page-tamanho {
-    padding: 4px 6px;
-    border-radius: var(--border-radius-sm);
-    color: var(--color-primary-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 26px;
+    padding: 0 var(--space-1-5);
+    border-radius: var(--radius-xs);
+    color: var(--text-link);
+  }
+
+  a.page-tamanho:hover {
+    background: var(--bg-accent-subtle);
   }
 
   .page-tamanho.atual {
-    font-weight: 700;
-    color: var(--color-neutral-100);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+    background: var(--bg-subtle);
   }
 
   @media (max-width: 768px) {

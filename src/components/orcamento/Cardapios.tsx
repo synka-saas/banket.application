@@ -86,7 +86,7 @@ export default function Cardapios({ cardapios, catalogo, equivalentes, total, di
   }
 
   return (
-    <Acordeao titulo="Cardápios" icone="hand_meal" resumo={formatMoney(total)}>
+    <Acordeao titulo="Cardápios" icone="salad" resumo={formatMoney(total)}>
       {cardapios.length === 0 && <p class="vazio">Nenhum cardápio. Adicione uma opção pronta ou monte um do zero.</p>}
 
       {cardapios.map((c) => (
@@ -150,7 +150,7 @@ function CardapioBloco(props: {
     <article class="cardapio">
       <header class="cardapio-barra">
         <button type="button" class="cardapio-toggle" onClick={() => setAberto(!aberto)} aria-expanded={aberto} aria-label={`Recolher ${c.nome}`}>
-          <Icon name={aberto ? 'unfold_less' : 'unfold_more'} size={20} />
+          <Icon name={aberto ? 'chevron-up' : 'chevron-down'} size={20} />
         </button>
         {disabled ? (
           <strong class="cardapio-nome">{c.nome}</strong>
@@ -245,7 +245,7 @@ function SecaoBloco(props: {
   return (
     <div class="secao-orc">
       <div class="secao-orc-cabecalho">
-        <span class="secao-orc-nome"><Icon name="radio_button_checked" size={16} /> {s.nome}</span>
+        <span class="secao-orc-nome"><Icon name="circle-dot" size={16} /> {s.nome}</span>
         {s.escolha_qtd && (
           <span class={`escolha ${selecionados < s.escolha_qtd ? 'alerta' : ''}`}>
             Cliente escolhe {s.escolha_qtd}

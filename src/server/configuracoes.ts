@@ -288,7 +288,7 @@ export const statusSchema = z.object({
   nome: requiredText('Informe o nome do status.', 50),
   variante: z.enum(['novo', 'negociacao', 'aprovado', 'recusado'], { error: 'Selecione o tipo do status.' }),
   cor: z.preprocess(
-    (v) => (typeof v === 'string' && v ? v : '#888888'),
+    (v) => (typeof v === 'string' && v ? v : '#B0A194'),
     z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida.')
   ),
 });

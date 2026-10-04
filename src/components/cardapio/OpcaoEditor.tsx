@@ -257,14 +257,14 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
           <div class="ed-actions">
             {form.id && (
               <>
-                <button type="button" class="btn btn-outline btn-md" onClick={duplicar} disabled={salvando}>Duplicar</button>
-                <button type="button" class="btn btn-outline btn-md" onClick={excluir} disabled={salvando}>Excluir</button>
+                <button type="button" class="btn btn-secondary btn-sm" onClick={duplicar} disabled={salvando}>Duplicar</button>
+                <button type="button" class="btn btn-danger btn-sm" onClick={excluir} disabled={salvando}>Excluir</button>
               </>
             )}
-            <button type="submit" class="btn btn-primary btn-md" disabled={salvando || carregando}>
+            <button type="submit" class="btn btn-primary btn-sm" disabled={salvando || carregando}>
               {salvando ? 'Salvando…' : 'Salvar'}
             </button>
-            <button type="button" class="ed-close" onClick={fechar} aria-label="Fechar"><Icon name="close" size={24} /></button>
+            <button type="button" class="ed-close" onClick={fechar} aria-label="Fechar"><Icon name="x" size={18} /></button>
           </div>
         </header>
 
@@ -306,8 +306,8 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                 <option value="">Escolha uma seção do catálogo…</option>
                 {catalogo.map((s) => <option value={s.id}>{s.nome} ({s.itens.length} itens)</option>)}
               </select>
-              <button type="button" class="btn btn-primary btn-md" onClick={adicionarSecao}>
-                <Icon name="add_circle" size={18} /> Adicionar seção
+              <button type="button" class="btn btn-secondary btn-md" onClick={adicionarSecao}>
+                <Icon name="circle-plus" size={16} stroke={1.75} /> Adicionar seção
               </button>
             </div>
 
@@ -325,6 +325,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
               return (
                 <section class="ed-secao" key={s.key}>
                   <header class="ed-secao-header">
+                    <span class="ed-secao-num" aria-hidden="true">{idx + 1}</span>
                     <div class="ed-secao-nome">
                       <strong>{secao?.nome ?? 'Seção removida'}</strong>
                       <input
@@ -348,10 +349,10 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                       />
                     </label>
                     <div class="ed-secao-actions">
-                      <button type="button" onClick={() => moverSecao(s.key, -1)} disabled={idx === 0} aria-label="Mover para cima"><Icon name="keyboard_arrow_up" size={18} /></button>
-                      <button type="button" onClick={() => moverSecao(s.key, 1)} disabled={idx === form.secoes.length - 1} aria-label="Mover para baixo"><Icon name="keyboard_arrow_down" size={18} /></button>
+                      <button type="button" class="ed-mover" onClick={() => moverSecao(s.key, -1)} disabled={idx === 0} aria-label="Mover para cima"><Icon name="chevron-up" size={14} /></button>
+                      <button type="button" class="ed-mover" onClick={() => moverSecao(s.key, 1)} disabled={idx === form.secoes.length - 1} aria-label="Mover para baixo"><Icon name="chevron-down" size={14} /></button>
                       <button type="button" class="ed-remover" onClick={() => setForm((f) => ({ ...f, secoes: f.secoes.filter((x) => x.key !== s.key) }))}>
-                        <Icon name="do_not_disturb_on" size={18} /> Remover
+                        <Icon name="circle-minus" size={16} /> Remover
                       </button>
                     </div>
                   </header>

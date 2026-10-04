@@ -18,6 +18,8 @@ const names = userName.trim().split(/\s+/);
 // Seletor de empresa: só aparece para quem pertence a mais de uma
 const empresas = user ? await empresasDoUsuario(user.id) : [];
 const empresaAtual = empresas.find((e) => e.id === user?.tenantId);
+// "Módulo / Página" vira trilha: os níveis anteriores ficam em cinza (com `voltar`, o título é um nome livre)
+const trilha = voltar ? [title] : title.split(' / ');
 const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : names[0][0] ?? 'U').toUpperCase();
 ---
 
@@ -29,7 +31,15 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
         <span class="topbar-sep" aria-hidden="true">/</span>
       </>
     )}
-    <h2 class="topbar-title">{title}</h2>
+    <h1 class="topbar-title">
+      {trilha.map((parte, i) =>
+        i < trilha.length - 1 ? (
+          <Fragment><span class="topbar-crumb">{parte}</span><span class="topbar-sep" aria-hidden="true"> / </span></Fragment>
+        ) : (
+          parte
+        )
+      )}
+    </h1>
   </div>
   
   <div class="topbar-right">
@@ -40,7 +50,7 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
           <span class="user-name">{userName}</span>
           <span class="user-role">{userRole}{empresas.length > 1 && empresaAtual && ` · ${empresaAtual.nome}`}</span>
         </div>
-        <Icon name="expand_more" size={16} class="dropdown-icon" />
+        <Icon name="chevron-down" size={16} class="dropdown-icon" />
       </button>
 
       <!-- Menu Dropdown -->
@@ -52,7 +62,7 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
               <form method="post" action="/api/sessao/empresa">
                 <input type="hidden" name="tenant_id" value={e.id} />
                 <button type="submit" role="menuitem" class:list={['dropdown-item', 'empresa-item', { atual: e.id === user?.tenantId }]} disabled={e.id === user?.tenantId}>
-                  <Icon name={e.id === user?.tenantId ? 'check' : 'apartment'} size={16} /> {e.nome}
+                  <Icon name={e.id === user?.tenantId ? 'check' : 'building'} size={16} /> {e.nome}
                 </button>
               </form>
             ))}
@@ -60,7 +70,7 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
           </>
         )}
         <a href="/conta" class="dropdown-item" role="menuitem">
-          <Icon name="manage_accounts" size={16} /> Minha conta
+          <Icon name="user" size={16} /> Minha conta
         </a>
         <a href="/auth/logout" class="dropdown-item logout-item" role="menuitem">
           <Icon name="logout" size={16} /> Sair
@@ -108,52 +118,68 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 </script>
 
 <style>
-  .topbar-voltar {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .topbar-voltar:hover {
-    color: var(--color-primary-text);
-    text-decoration: underline;
-  }
-
-  .topbar-sep {
-    margin: 0 8px;
-    font-size: 22px;
-    color: var(--color-text-muted);
-  }
-
+  /* Cabeçalho do design system: 64px, título 20/500, trilha "Módulo / Página" e menu do usuário */
   .topbar {
-    min-height: 80px;
-    height: 80px;
-    background-color: var(--color-white);
-    border-bottom: 1px solid var(--border-color);
+    min-height: var(--header-height);
+    height: var(--header-height);
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-default);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 32px;
+    gap: var(--space-4);
+    padding: 0 var(--content-pad-x);
     flex-shrink: 0;
   }
 
   .topbar-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-2);
+    min-width: 0;
+    font-size: var(--type-h2-size);
+    line-height: var(--type-h2-lh);
+    letter-spacing: var(--ls-snug);
+    white-space: nowrap;
   }
 
   .topbar-title {
-    color: var(--color-neutral-80);
     margin: 0;
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
+  .topbar-crumb {
+    color: var(--text-muted);
+    font-weight: var(--fw-regular);
+  }
+
+  .topbar-voltar {
+    color: var(--text-muted);
+    font-weight: var(--fw-regular);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .topbar-voltar:hover {
+    color: var(--text-heading);
+  }
+
+  .topbar-sep {
+    color: var(--clay-300);
+    font-weight: var(--fw-light);
+  }
 
   .topbar-right {
     display: flex;
     align-items: center;
+    gap: var(--space-2);
+    flex: none;
   }
 
   .user-profile-area {
@@ -163,74 +189,86 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
   .user-profile {
     display: flex;
     align-items: center;
-    gap: 12px;
-    cursor: pointer;
+    gap: var(--space-2-5);
+    height: 48px;
+    padding: 0 var(--space-2) 0 var(--space-1-5);
     border: 0;
-    background: none;
+    border-radius: var(--radius-md);
+    background: transparent;
     font: inherit;
     text-align: left;
-    padding: 8px;
-    border-radius: 8px;
-    transition: background-color 0.2s;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
   }
-  
+
   .user-profile:hover {
-    background-color: #f9fafb;
+    background-color: var(--bg-app);
   }
 
   .dropdown-icon {
-    color: var(--color-neutral-65);
-    margin-left: 4px;
+    color: var(--text-muted);
   }
 
+  /* Menu (popover) do design system */
   .dropdown-menu {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 6px);
     right: 0;
-    background: white;
-    border: 1px solid var(--border-color, #e5e7eb);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    min-width: 200px;
+    min-width: 220px;
+    padding: var(--space-1-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.2s ease;
+    transform: translateY(-4px) scale(0.98);
+    transform-origin: top;
+    transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), visibility var(--dur-base);
   }
 
   .dropdown-menu.active {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: none;
   }
 
   .dropdown-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    color: var(--color-neutral-80, #374151);
+    gap: var(--space-2-5);
+    width: 100%;
+    min-height: 36px;
+    padding: 0 var(--space-2-5);
+    border-radius: var(--radius-md);
+    color: var(--text-body);
     text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s;
+    font-size: var(--fs-14);
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   }
 
-  .dropdown-item:hover {
-    background-color: #f3f4f6;
+  .dropdown-item :global(.icon) {
+    color: var(--text-muted);
+  }
+
+  .dropdown-item:hover:not(:disabled) {
+    background-color: var(--bg-app);
+    color: var(--text-strong);
   }
 
   .dropdown-rotulo {
     display: block;
-    padding: 10px 16px 4px;
-    font-size: 11px;
+    padding: var(--space-2) var(--space-2-5) var(--space-1);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase;
-    color: var(--color-neutral-65);
+    color: var(--text-muted);
   }
 
   .empresa-item {
-    width: 100%;
     border: none;
     background: none;
     cursor: pointer;
@@ -239,52 +277,59 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
   }
 
   .empresa-item.atual {
-    color: var(--color-primary-text);
+    color: var(--terracotta-700);
     cursor: default;
   }
 
-  .logout-item {
-    color: #d93025;
+  .empresa-item.atual :global(.icon) {
+    color: var(--terracotta-600);
   }
-  
-  .logout-item:hover {
-    background-color: #FCE8E6;
-    color: #d93025;
+
+  .logout-item,
+  .logout-item :global(.icon) {
+    color: var(--danger);
+  }
+
+  .logout-item:hover:not(:disabled) {
+    background-color: var(--danger-bg);
+    color: var(--danger);
   }
 
   .dropdown-divider {
     height: 1px;
-    background-color: var(--border-color, #e5e7eb);
-    margin: 4px 0;
+    margin: var(--space-1-5) var(--space-1);
+    background-color: var(--border-subtle);
   }
 
   .avatar {
-    width: 40px;
-    height: 40px;
-    background-color: var(--color-neutral-30);
-    color: var(--color-neutral-80);
-    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background-color: var(--terracotta-100);
+    color: var(--terracotta-800);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-14);
   }
 
   .user-info {
     display: flex;
     flex-direction: column;
+    line-height: 1.25;
   }
 
   .user-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--color-neutral-100);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-14);
+    color: var(--text-strong);
   }
 
   .user-role {
-    font-size: 12px;
-    color: var(--color-neutral-65);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
   @media (max-width: 1024px) {
@@ -295,31 +340,14 @@ const initials = (names.length > 1 ? names[0][0] + names[names.length - 1][0] : 
 
   @media (max-width: 768px) {
     .topbar {
-      height: 60px;
-      min-height: 60px;
+      height: 56px;
+      min-height: 56px;
       padding: 0 16px;
       gap: 8px;
     }
 
     .topbar-left {
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .topbar-title {
-      font-size: 17px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .topbar-voltar,
-    .topbar-sep {
-      font-size: 15px;
-    }
-
-    .topbar-sep {
-      margin: 0 2px;
+      font-size: var(--fs-17);
     }
 
     /* Só o avatar; nome e papel ficam no menu */

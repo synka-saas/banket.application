@@ -1,56 +1,76 @@
-/* Editor de formulários de captação (ilha FormularioEditor) */
+/* Editor de formulários de captação (ilha FormularioEditor).
+   Design system: Card (dados gerais), CopyField (link público), FormSection (seções e perguntas)
+   e ActionBar (barra flutuante de salvar). */
 .fe {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding-bottom: 80px;
+  gap: var(--space-4);
+  max-width: 1080px;
 }
 
 .fe-card,
 .fe-secao {
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
 }
 
+/* ---------- Dados gerais ---------- */
 .fe-card {
-  padding: 28px 32px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
 .fe-geral {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
-  gap: 20px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto;
+  gap: var(--space-4) var(--space-5);
 }
 
 .fe-span {
   grid-column: 1 / -1;
 }
 
+/* Campo com prefixo "/f/" (addon do design system): a borda e o foco ficam no conjunto */
 .fe-slug {
   display: flex;
   align-items: stretch;
-  border: 1px solid var(--color-neutral-40);
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
+  min-height: var(--control-h-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.fe-slug span {
+.fe-slug:hover {
+  border-color: var(--clay-400);
+}
+
+.fe-slug:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.fe-slug-prefixo {
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  background: var(--color-neutral-10);
-  color: var(--color-text-muted);
-  font-size: 13px;
+  padding: 0 var(--space-3);
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--border-default);
+  border-radius: calc(var(--radius-md) - 1px) 0 0 calc(var(--radius-md) - 1px);
+  color: var(--text-secondary);
+  font-size: var(--fs-13);
   white-space: nowrap;
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.field .fe-slug input:not([type='checkbox']) {
-  border: none;
-  border-radius: 0;
+.fe-slug #fe-slug {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0;
+  background: transparent;
   box-shadow: none;
 }
 
@@ -59,29 +79,73 @@
 }
 
 .fe-status .switch {
-  min-height: 40px;
+  min-height: var(--control-h-md);
+}
+
+/* Link público (CopyField): caixa de 40px com ícone, endereço truncado e ação de texto */
+.fe-link-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+  min-width: 0;
 }
 
 .fe-link {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-neutral-20);
-  font-size: 13px;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--control-h-md);
+  padding: 0 var(--space-2) 0 var(--space-3);
+  background: var(--clay-25);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.fe-link-icone {
+  display: flex;
+  flex: none;
+  color: var(--text-muted);
+}
+
+.fe-link-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.fe-link-url:hover {
+  color: var(--text-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.fe-link-acoes {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-3);
+  padding-right: var(--space-1);
 }
 
 .fe-aviso {
-  color: var(--color-primary-50);
+  font-size: var(--fs-12);
+  line-height: 1.4;
+  color: var(--warning);
 }
 
 .fe-resumo {
-  font-size: 13px;
-  color: var(--color-text-muted);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
 }
 
+/* ---------- Seções (FormSection) ---------- */
 .fe-secao {
   overflow: hidden;
 }
@@ -89,58 +153,98 @@
 .fe-secao-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: var(--color-neutral-10);
-  border-bottom: 1px solid var(--border-color);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--clay-25);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .fe-numero {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-white);
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--terracotta-500);
+  color: var(--text-on-accent);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-base) var(--ease-out);
 }
 
 .fe-secao-titulo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
 .fe-secao-titulo strong {
-  font-size: 15px;
-  color: var(--color-neutral-100);
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  color: var(--text-strong);
 }
 
 .fe-secao-titulo span {
-  font-size: 12px;
-  color: var(--color-text-muted);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.fe-secao-lado {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-3);
+}
+
+/* Seção desativada: número em argila e perguntas esmaecidas */
+.fe-inativa .fe-numero {
+  background: var(--clay-300);
 }
 
 .fe-inativa .fe-perguntas,
-.fe-inativa .fe-adicionar,
-.fe-inativa .fe-numero {
-  opacity: 0.45;
+.fe-inativa .fe-adicionar {
+  opacity: 0.5;
 }
 
 .fe-travada {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  gap: var(--space-1);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
+/* Switch pequeno (30×17) nos cabeçalhos de seção e nas linhas de pergunta */
+.fe-secao-header .switch,
+.fe-pergunta .switch {
+  gap: var(--space-2);
+  font-size: var(--fs-13);
+  white-space: nowrap;
+}
+
+.fe-secao-header .switch input,
+.fe-pergunta .switch input {
+  width: 30px;
+  height: 17px;
+}
+
+.fe-secao-header .switch input::before,
+.fe-pergunta .switch input::before {
+  width: 13px;
+  height: 13px;
+}
+
+.fe-secao-header .switch input:checked::before,
+.fe-pergunta .switch input:checked::before {
+  transform: translateX(13px);
+}
+
+/* ---------- Perguntas ---------- */
 .fe-perguntas {
   display: flex;
   flex-direction: column;
@@ -149,9 +253,14 @@
 .fe-pergunta {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--color-neutral-20);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.fe-pergunta:hover {
+  background: var(--clay-25);
 }
 
 .fe-pergunta.fe-off .fe-pergunta-info {
@@ -162,96 +271,160 @@
   text-decoration: line-through;
 }
 
+/* Reordenar: dois botões de ícone pequenos (ReorderControls) */
 .fe-ordem {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-0-5);
 }
 
 .fe-ordem button {
   display: inline-flex;
-  border: none;
-  background: none;
-  color: var(--color-text-muted);
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  color: var(--text-heading);
   cursor: pointer;
-  padding: 0 2px;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.fe-ordem button:hover:not(:disabled) {
+  background: var(--action-secondary-hover);
+  border-color: var(--clay-400);
 }
 
 .fe-ordem button:disabled {
-  opacity: 0.25;
-  cursor: default;
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .fe-pergunta-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
   min-width: 0;
 }
 
 .fe-rotulo {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-neutral-80);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.fe-req {
+  color: var(--terracotta-600);
 }
 
 .fe-meta {
-  font-size: 12px;
-  color: var(--color-text-muted);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.fe-pergunta-lado {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-5);
 }
 
 .fe-acoes {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .fe-acoes .row-action {
-  font-size: 13px;
+  font-size: var(--fs-13);
 }
 
+/* "Obrigatória": caixa de seleção pequena do design system */
 .fe-obrigatoria {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--color-neutral-65);
-  cursor: pointer;
+  gap: var(--space-1-5);
+  font-size: var(--fs-13);
+  color: var(--text-body);
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
 
+.fe-obrigatoria input {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface) center / 12px no-repeat;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.fe-obrigatoria:hover input:not(:disabled):not(:checked) {
+  border-color: var(--clay-500);
+}
+
+.fe-obrigatoria input:checked {
+  background-color: var(--action-primary);
+  background-image: var(--icone-check);
+  border-color: var(--action-primary);
+}
+
+.fe-obrigatoria:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fe-obrigatoria input:disabled {
+  cursor: not-allowed;
+}
+
+/* "Adicionar pergunta": botão de texto com acento no pé da seção */
 .fe-adicionar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-1-5);
   width: 100%;
-  padding: 14px 24px;
+  padding: var(--space-3) var(--space-5);
   border: none;
   background: none;
   text-align: left;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-primary-text);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-link);
   cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .fe-adicionar:hover:not(:disabled) {
-  background: var(--color-primary-10);
+  background: var(--clay-25);
+  color: var(--text-link-hover);
 }
 
 .fe-adicionar:disabled {
-  color: var(--color-neutral-40);
-  cursor: default;
+  color: var(--text-disabled);
+  cursor: not-allowed;
 }
 
+/* ---------- Pergunta em edição ---------- */
 .fe-rascunho {
-  padding: 20px 24px;
-  background: var(--color-primary-10);
+  padding: var(--space-5);
+  background: var(--bg-accent-subtle);
 }
 
 .fe-rascunho-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 20px;
+  gap: var(--space-4) var(--space-5);
 }
 
 .fe-rascunho-check {
@@ -259,48 +432,188 @@
 }
 
 .fe-rascunho-check .switch {
-  min-height: 40px;
+  min-height: var(--control-h-md);
 }
 
 .fe-rascunho-acoes {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
+/* ---------- Barra flutuante (ActionBar) ----------
+   O sticky é medido a partir da borda do conteúdo de .page-content (48px de padding inferior):
+   -32px deixa a barra flutuando a 16px da base da janela. */
 .fe-barra {
   position: sticky;
-  bottom: -48px;
+  bottom: -32px;
+  z-index: 5;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: var(--color-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .fe-estado {
-  font-size: 13px;
-  color: var(--color-text-muted);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.fe-estado .icon {
+  color: var(--success);
+}
+
+.fe-estado-alterado,
+.fe-estado-alterado .icon {
+  color: var(--warning);
 }
 
 .fe-barra-acoes {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1024px) {
+  /* .page-content tem 40px de padding inferior */
+  .fe-barra {
+    bottom: -24px;
+  }
 }
 
 /* ---------- Celular ---------- */
 @media (max-width: 768px) {
   .fe-card {
-    padding: 20px 16px;
+    padding: var(--space-4);
   }
 
   .fe-geral,
   .fe-rascunho-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fe-status {
+    min-width: 0;
+  }
+
+  .fe-secao-header {
+    flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .fe-secao-titulo {
+    flex-basis: calc(100% - 28px - var(--space-3));
+  }
+
+  /* Tag e switch da seção descem para a linha de baixo, alinhados ao título */
+  .fe-secao-lado {
+    flex-basis: 100%;
+    justify-content: space-between;
+    padding-left: calc(28px + var(--space-3));
+  }
+
+  .fe-pergunta {
+    flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  /* Ações da pergunta na segunda linha, à direita */
+  .fe-pergunta-lado {
+    flex-basis: 100%;
+    justify-content: flex-end;
+    gap: var(--space-4);
+  }
+
+  /* Alvos de toque: switch no tamanho padrão e setas maiores */
+  .fe-secao-header .switch input,
+  .fe-pergunta .switch input {
+    width: 36px;
+    height: 20px;
+  }
+
+  .fe-secao-header .switch input::before,
+  .fe-pergunta .switch input::before {
+    width: 16px;
+    height: 16px;
+  }
+
+  .fe-secao-header .switch input:checked::before,
+  .fe-pergunta .switch input:checked::before {
+    transform: translateX(16px);
+  }
+
+  .fe-ordem button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .fe-pergunta-info {
+    flex-basis: calc(100% - 66px - var(--space-3));
+  }
+
+  .fe-obrigatoria input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fe-adicionar {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .fe-rascunho {
+    padding: var(--space-4);
+  }
+
+  .fe-rascunho-check {
+    justify-content: flex-start;
+  }
+
+  /* Barra acima da navegação inferior: estado + Salvar na primeira linha, demais ações na segunda */
+  .fe-barra {
+    bottom: -12px;
+    flex-wrap: wrap;
+    gap: var(--space-1-5);
+    padding: var(--space-2-5) var(--space-3);
+  }
+
+  /* A base larga do estado reserva a primeira linha só para ele e o Salvar */
+  .fe-estado {
+    flex: 1 1 calc(100% - 120px);
+  }
+
+  .fe-barra-acoes {
+    display: contents;
+  }
+
+  .fe-barra-acoes .btn {
+    flex: 1 1 auto;
+    order: 2;
+    padding: 0 var(--space-1-5);
+  }
+
+  .fe-barra-acoes .btn-primary {
+    flex: 0 0 auto;
+    order: 1;
+    padding: 0 var(--space-5);
+  }
+
+  .fe-barra-acoes .btn .btn-icon {
+    display: none;
   }
 }

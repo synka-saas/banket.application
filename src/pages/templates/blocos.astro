@@ -41,7 +41,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
   <PageToolbar
     filter={{ name: 'pagina', placeholder: 'Página da proposta', options: Object.entries(PAGINAS_BLOCO).map(([value, label]) => ({ value, label })) }}
   >
-    <Button icon="add_circle" href="/templates/blocos?novo=1">Novo bloco</Button>
+    <Button icon="circle-plus" href="/templates/blocos?novo=1">Novo bloco</Button>
   </PageToolbar>
 
   <div class="grid-blocos">
@@ -72,7 +72,7 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
         </div>
         <div class="acoes">
           {selecionado && (
-            <button type="submit" name="_action" value="delete" formnovalidate class="btn btn-outline btn-md" data-confirm="Excluir este bloco? Propostas já criadas mantêm a cópia do texto.">Excluir</button>
+            <button type="submit" name="_action" value="delete" formnovalidate class="btn btn-danger btn-md" data-confirm="Excluir este bloco? Propostas já criadas mantêm a cópia do texto.">Excluir</button>
           )}
           <Button type="submit" variant="primary">Salvar</Button>
         </div>
@@ -84,16 +84,16 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
     </SectionCard>
 
     <aside class="lista">
-      <h3 class="bloco-titulo"><Icon name="view_agenda" size={18} /> Blocos</h3>
+      <h3 class="bloco-titulo"><Icon name="layout-list" size={18} /> Blocos</h3>
       {grupos.length === 0 && <p class="muted">Nenhum bloco encontrado.</p>}
       {grupos.map((g) => (
         <div class="grupo">
-          <span class="grupo-titulo">{PAGINAS_BLOCO[g.pagina]}</span>
+          <span class="eyebrow grupo-titulo">{PAGINAS_BLOCO[g.pagina]}</span>
           <div class="chips" data-reordenar="/api/templates/blocos/ordem" aria-label={`Blocos de ${PAGINAS_BLOCO[g.pagina]} (Alt+setas para reordenar)`}>
             {g.blocos.map((b) => (
               <a data-id={b.id} href={`/templates/blocos?id=${b.id}${paginaFiltro ? `&pagina=${paginaFiltro}` : ''}`} class:list={['chip', 'chip-bloco', { atual: b.id === selecionado?.id }]} title={b.ativo_por_padrao ? 'Incluído por padrão' : 'Não incluído por padrão'}>
                 {b.titulo}
-                {b.ativo_por_padrao && <span class="selo-padrao">Padrão</span>}
+                {b.ativo_por_padrao && <span class="tag tag-sm tag-accent selo-padrao">Padrão</span>}
               </a>
             ))}
           </div>
@@ -117,99 +117,111 @@ const grupos = (Object.keys(PAGINAS_BLOCO) as PaginaBloco[])
   .grid-blocos {
     display: grid;
     grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
-    gap: 30px;
+    gap: var(--space-5);
     align-items: start;
   }
 
   .form-bloco {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--space-5);
   }
 
   .linha {
     display: grid;
     grid-template-columns: 1fr 120px;
-    gap: 16px;
+    gap: var(--space-4) var(--space-5);
   }
 
   .acoes {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: var(--space-2);
   }
 
   .previa {
-    padding-top: 16px;
-    border-top: 1px dashed var(--color-neutral-30);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border-subtle);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .previa-texto {
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--color-neutral-100);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-body);
   }
 
   .previa-texto :global(ul) {
     list-style: disc;
-    padding-left: 20px;
+    padding-left: var(--space-5);
   }
 
   .previa-texto :global(h4) {
-    margin: 8px 0 4px;
+    margin: var(--space-2) 0 var(--space-1);
+  }
+
+  .previa-texto :global(h4:first-child) {
+    margin-top: 0;
   }
 
   .previa-texto :global(p + p) {
-    margin-top: 8px;
+    margin-top: var(--space-2);
   }
 
+  /* Lista de blocos por página da proposta: card do design system com grupos (eyebrow) e chips */
   .lista {
-    padding: 28px;
-    background: var(--color-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
+    padding: var(--space-5) var(--space-6) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .lista .bloco-titulo {
+    margin-bottom: var(--space-5);
   }
 
   .grupo + .grupo {
-    margin-top: 18px;
+    margin-top: var(--space-5);
   }
 
   .grupo-titulo {
     display: block;
-    font-size: 12px;
-    text-transform: uppercase;
-    color: var(--color-neutral-65);
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
+    color: var(--text-muted);
   }
 
   .chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .chip-bloco {
-    text-transform: uppercase;
-    font-size: 13px;
+    max-width: 100%;
+    height: auto;
+    padding: var(--space-1-5) var(--space-2-5) var(--space-1-5) var(--space-3);
+    white-space: normal;
   }
 
   .chip-bloco.atual {
-    border-color: var(--color-primary);
-    color: var(--color-primary-text);
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-800);
   }
 
   .selo-padrao {
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: 10px;
-    background: var(--color-primary-10);
-    color: var(--color-primary-text);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
+    flex: none;
+  }
+
+  .chip-bloco.atual .selo-padrao {
+    background: var(--bg-accent-soft);
   }
 
   @media (max-width: 1024px) {

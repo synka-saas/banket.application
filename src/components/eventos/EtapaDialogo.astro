@@ -4,8 +4,8 @@
 // { fechado_em } / { motivo_perda }, {} quando a etapa não pede nada, ou null se o usuário cancelar.
 ---
 
-<dialog class="etapa-dialogo" data-etapa-dialogo aria-labelledby="etapa-dialogo-titulo">
-  <form method="dialog" class="etapa-caixa">
+<dialog class="dialogo-form etapa-dialogo" data-etapa-dialogo aria-labelledby="etapa-dialogo-titulo">
+  <form method="dialog" class="dialogo-caixa etapa-caixa">
     <h2 id="etapa-dialogo-titulo" class="etapa-titulo"></h2>
 
     <div class="field" data-so="recusado">
@@ -29,8 +29,8 @@
       <input id="etapa-fechado" class="control" type="date" />
     </div>
 
-    <div class="etapa-acoes">
-      <button type="submit" value="cancelar" class="btn btn-outline btn-md">Voltar</button>
+    <div class="dialogo-acoes etapa-acoes">
+      <button type="submit" value="cancelar" class="btn btn-secondary btn-md">Voltar</button>
       <button type="submit" value="ok" class="btn btn-primary btn-md" data-etapa-ok>Confirmar</button>
     </div>
   </form>
@@ -85,35 +85,17 @@
 </script>
 
 <style is:global>
+  /* Caixa, sombra e fundo vêm de .dialogo-form (global.css); aqui só o que é próprio deste diálogo */
   .etapa-dialogo {
-    width: min(420px, calc(100vw - 32px));
-    padding: 0;
-    border: 0;
-    border-radius: var(--border-radius);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
-    color: var(--color-neutral-80);
+    width: min(440px, calc(100vw - 32px));
   }
 
-  .etapa-dialogo::backdrop {
-    background: rgba(0, 0, 0, 0.4);
-  }
-
-  .etapa-caixa {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 24px;
-  }
-
-  .etapa-titulo {
-    margin: 0;
-    font-size: 18px;
+  /* .field é flex: o atributo hidden precisa vencer para esconder os campos da outra variante */
+  .etapa-dialogo [hidden] {
+    display: none;
   }
 
   .etapa-acoes {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
 </style>

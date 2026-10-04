@@ -27,11 +27,11 @@ export default function Staff({ staff, catalogo, convidados, total, disabled, on
   }
 
   return (
-    <Acordeao titulo="Staff" icone="groups" resumo={formatMoney(total)} aberto={staff.length > 0}>
+    <Acordeao titulo="Staff" icone="users-group" resumo={formatMoney(total)} aberto={staff.length > 0}>
       {staff.length === 0 ? (
         <p class="vazio">Nenhum profissional incluído.</p>
       ) : (
-        <table class="tabela-orc">
+        <div class="tabela-orc-rolagem"><table class="tabela-orc">
           <thead>
             <tr>
               <th>Função</th>
@@ -56,13 +56,13 @@ export default function Staff({ staff, catalogo, convidados, total, disabled, on
                 <td class="num"><strong>{formatMoney(s.subtotal_calc ?? 0)}</strong></td>
                 {!disabled && (
                   <td class="num">
-                    <button type="button" class="remover" aria-label={`Remover ${s.funcao}`} onClick={() => remover(s, s.funcao)}><Icon name="close" size={18} /></button>
+                    <button type="button" class="remover" aria-label={`Remover ${s.funcao}`} onClick={() => remover(s, s.funcao)}><Icon name="x" size={18} /></button>
                   </td>
                 )}
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
       {!disabled && (
         <div class="adicionar-linha">

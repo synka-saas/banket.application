@@ -3,11 +3,12 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import InfoCard from '../../components/ui/InfoCard.astro';
 import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 import OpcaoEditor from '../../components/cardapio/OpcaoEditor';
 import { withTenant } from '../../lib/db';
 import { formatMoney } from '../../lib/money';
 import { CARDAPIO_SUBMENU } from '../../lib/nav';
-import { searchTerm } from '../../lib/pagination';
+import { estaFiltrando, searchTerm } from '../../lib/pagination';
 import { carregarCatalogo, listarOpcoes } from '../../server/cardapio';
 import { listarFormatosServico } from '../../server/configuracoes';
 
@@ -25,23 +26,27 @@ const { opcoes, catalogo, formatos } = await withTenant(tenantId, async (db) => 
 const pad = (n: number) => String(n).padStart(2, '0');
 const semRepetir = (tags: string[]) =>
   tags.filter((t, i) => tags.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i);
-const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.', ',')} ${h === 1 ? 'hora' : 'horas'}`);
+const horas = (h: number | null) => (h === null ? '—' : `${String(h).replace('.', ',')} ${h === 1 ? 'hora' : 'horas'}`);
 ---
 
 <AppLayout title="Opções de cardápio" heading="Cardápios / Opções de cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="opcoes">
   <PageToolbar
     filter={{ name: 'secao', placeholder: 'Seção', options: catalogo.map((s) => ({ value: s.id, label: s.nome })) }}
   >
-    <Button icon="add_circle" data-opcao-editar="">Nova opção de cardápio</Button>
+    <Button icon="circle-plus" data-opcao-editar="">Nova opção de cardápio</Button>
   </PageToolbar>
 
   {opcoes.length === 0 ? (
-    <div class="empty">Nenhum cardápio encontrado. Crie opções prontas combinando seções e itens do catálogo.</div>
+    <div class="vazio-card">
+      <EstadoVazio icon="salad" titulo="Nenhum cardápio encontrado" texto="Crie opções prontas combinando seções e itens do catálogo.">
+        {estaFiltrando(Astro.url) && <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>}
+      </EstadoVazio>
+    </div>
   ) : (
     <div class="cards-grid">
       {opcoes.map((o) => (
         <InfoCard
-          icon="hand_meal"
+          icon="salad"
           title={o.nome}
           muted={!o.ativo}
           rows={[
@@ -52,7 +57,7 @@ const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.'
           ]}
           tags={semRepetir([...(o.formato_nome ? [o.formato_nome] : []), ...o.tags, ...(o.ativo ? [] : ['Inativo'])])}
         >
-          <Button slot="footer" block data-opcao-editar={o.id}>Editar</Button>
+          <Button slot="footer" variant="secondary" block data-opcao-editar={o.id}>Editar</Button>
         </InfoCard>
       ))}
     </div>
@@ -62,11 +67,15 @@ const horas = (h: number | null) => (h === null ? '-' : `${String(h).replace('.'
 </AppLayout>
 
 <style>
-  .empty {
-    padding: 48px;
-    text-align: center;
-    color: var(--color-text-muted);
-    background: var(--color-white);
-    border-radius: var(--border-radius);
+  /* Grade de cards de catálogo do design system */
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .vazio-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
   }
 </style>
