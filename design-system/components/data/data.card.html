@@ -1,0 +1,45 @@
+<!-- @dsCard group="Components" viewport="700x700" name="Data display" subtitle="Table, Pagination, Tag, StatusBadge, StageDot, ProgressBar, InfoList, StatCard" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{background:var(--bg-app);padding:24px}.stack{display:flex;flex-direction:column;gap:16px}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Table, Pagination, Tag, StatusBadge, StageDot, ProgressBar, InfoList, StatCard, Button } = window.BanketDesignSystem_f9651f;
+const rows=[
+ {id:1,data:"20/03/2027",evento:"Aniversário – Pestana",cliente:"Pestana",conv:"50",stage:"negotiation",etapa:"Em negociação",orc:"R$ 9.200,00"},
+ {id:2,data:"10/01/2027",evento:"Confraternização TCBr",cliente:"TechCorp Brasil",conv:"540",stage:"won",etapa:"Aprovado",orc:"R$ 8.500,00"},
+ {id:3,data:"19/11/2026",evento:"Degustação 4 – Maria Eduarda",cliente:"Maria Eduarda Silva",conv:"50",stage:"new",etapa:"Novo orçamento",orc:"-"},
+];
+function Demo(){
+  const [sort,setSort]=React.useState({key:"data",dir:"desc"});const [pg,setPg]=React.useState(1);const [ps,setPs]=React.useState(20);
+  return <div className="stack">
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12}}>
+      <StatCard label="Pedidos recebidos" value="16" hint="últimos 90 dias"/>
+      <StatCard label="Aprovados" value="R$ 8.500,00" hint="1 evento" tone="success"/>
+      <StatCard label="Taxa de conversão" value="100%" hint="1 aprovados · 0 recusados"/>
+    </div>
+    <Table sort={sort} onSort={setSort} columns={[
+      {key:"data",header:"Data",sortable:true,numeric:true},
+      {key:"evento",header:"Evento",sortable:true,variant:"accent"},
+      {key:"conv",header:"Convidados",align:"right",numeric:true},
+      {key:"etapa",header:"Etapa",render:r=><StageDot stage={r.stage} label={r.etapa}/>},
+      {key:"orc",header:"Orçamento",align:"right",numeric:true},
+      {key:"a",header:"",variant:"actions",render:()=><Button variant="text">Abrir</Button>}]}
+      rows={rows} footer={<><span><strong>1–20</strong> de 175 registros</span><Pagination page={pg} pageCount={9} onPageChange={setPg} pageSize={ps} onPageSizeChange={setPs}/></>}/>
+    <div className="row"><Tag>Buffet</Tag><Tag>Brunch</Tag><Tag tone="cobalt">Corporativo</Tag><Tag tone="ochre">Religioso</Tag><Tag tone="sage">Vegano</Tag><Tag tone="accent" icon="clock">há 11 dias nesta etapa</Tag><Tag caps size="sm" tone="accent">Somente B2B</Tag></div>
+    <div className="row"><StatusBadge status="active"/><StatusBadge status="inactive"/><StatusBadge status="pending"/><StatusBadge status="sent"/><StatusBadge status="open"/><StatusBadge status="error"/></div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,alignItems:"center",background:"#fff",padding:16,borderRadius:12,border:"1px solid var(--border-default)"}}>
+      <div className="stack" style={{gap:10}}>
+        {[["new","Novo orçamento",5],["negotiation","Em negociação",10],["won","Aprovado",1]].map(([s,l,n])=><div key={s} style={{display:"grid",gridTemplateColumns:"130px 1fr",gap:12,alignItems:"center",fontSize:14}}><StageDot stage={s} label={l}/><ProgressBar value={n} max={10} color={"var(--stage-"+s+")"} size="sm"/></div>)}
+      </div>
+      <InfoList size="sm" items={[{label:"Pessoas",value:"50"},{label:"Formato de serviço",value:"Serviço volante"},{label:"Verba estimada",value:"-"},{label:"Data",value:"29/10/2026"}]}/>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

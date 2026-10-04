@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Layout" subtitle="Card, Toolbar, EmptyState, CopyField, ActionBar" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{background:var(--bg-app);padding:24px}.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Card, Toolbar, EmptyState, CopyField, ActionBar, Button, TextInput, Select, Switch } = window.BanketDesignSystem_f9651f;
+function Demo(){
+  return <div className="stack">
+    <Toolbar start={<><TextInput icon="search" placeholder="Pesquisar" style={{width:220}}/><Select placeholder="Seção" options={["Antepastos","Sanduíches"]} style={{width:150}}/></>}
+      end={<><Button variant="secondary" icon="file-import">Importar CSV</Button><Button icon="circle-plus">Novo item</Button></>}/>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+      <Card icon="bell" title="Retornos combinados" description="Anotações com data de retorno · não depende do período">
+        <p style={{fontSize:14,color:"var(--text-secondary)"}}>Nenhum retorno agendado. Registre anotações com data de retorno na linha do tempo dos eventos.</p>
+      </Card>
+      <Card icon="stack-2" title="Formulário de contato" actions={<Switch size="sm" defaultChecked/>}>
+        <CopyField url="https://app.banket.com.br/f/contato-6b4f89" onShare={()=>{}}/>
+      </Card>
+    </div>
+    <Card title="Identidade visual" collapsible divided defaultOpen={false} description="Logotipo, fontes e cores da proposta."/>
+    <Card padding="none"><EmptyState compact icon="headset" title="Nenhum chamado aberto" description="Quando precisar de ajuda, abra um chamado." action={<Button size="sm" icon="circle-plus">Novo chamado</Button>}/></Card>
+    <ActionBar sticky={false} status="Tudo salvo"><Button variant="secondary" size="sm" icon="eye">Pré-visualizar</Button><Button variant="secondary" size="sm">Duplicar</Button><Button variant="danger" size="sm">Excluir</Button><Button size="sm">Salvar</Button></ActionBar>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

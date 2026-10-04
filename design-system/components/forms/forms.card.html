@@ -1,0 +1,29 @@
+<!-- @dsCard group="Components" viewport="700x640" name="Forms" subtitle="Field, TextInput, Select, Textarea, Checkbox, Switch, ColorInput, FileField, VariableChip" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{background:var(--bg-surface);padding:24px}.g{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}.full{grid-column:1/-1}.row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Field, TextInput, Select, Textarea, Checkbox, Switch, ColorInput, FileField, VariableChip } = window.BanketDesignSystem_f9651f;
+function Demo(){
+  return <div className="g">
+    <Field label="Pesquisar"><TextInput icon="search" placeholder="Pesquisar por nome, e-mail ou documento"/></Field>
+    <Field label="Tipo"><Select options={["Pessoa física","Pessoa jurídica"]} defaultValue="Pessoa física"/></Field>
+    <Field label="Nome / razão social" required className="full" hint="Como aparece na proposta."><TextInput placeholder="Ex.: Maria Silva, TechCorp Brasil"/></Field>
+    <Field label="E-mail" error="Informe um e-mail válido."><TextInput invalid defaultValue="maria@"/></Field>
+    <Field label="Endereço público" required><TextInput prefix="/f/" defaultValue="contato-6b4f89"/></Field>
+    <Field label="Validade da proposta" required><TextInput type="number" defaultValue={7} addonEnd="dias"/></Field>
+    <Field label="Cor secundária (títulos)"><ColorInput defaultValue="#88B04B"/></Field>
+    <Field label="Mensagem após o envio" className="full"><Textarea rows={2} defaultValue="Seu pedido foi recebido. Nossa equipe vai analisar e entrar em contato em breve."/></Field>
+    <Field label="Logotipo" className="full" hint="Usado nos templates de orçamento."><FileField name="Logotipo atual"/></Field>
+    <div className="row full"><Switch label="Recebendo respostas" defaultChecked/><Switch label="Seção ativa" size="sm"/><Checkbox label="Obrigatória" size="sm" defaultChecked/><Checkbox label="Incluir bebidas"/><Checkbox indeterminate label="Parcial"/></div>
+    <div className="row full" style={{gap:6}}><span style={{fontSize:12,color:"var(--text-muted)",marginRight:4}}>Clique para inserir:</span>{["{nome_cliente}","{evento}","{data_evento}","{empresa}","{valor_total}"].map(v=><VariableChip key={v}>{v}</VariableChip>)}</div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

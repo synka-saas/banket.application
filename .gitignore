@@ -36,3 +36,7 @@ Makefile
 # testes e2e
 test-results/
 playwright-report/
+
+# design system: material bruto de origem (capturas do legado e fontes duplicadas, ~21 MB); o que vale está em
+# tokens/, components/, ui_kits/, guidelines/ e assets/
+design-system/uploads/

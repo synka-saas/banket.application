@@ -1,0 +1,37 @@
+<!-- @dsCard group="Components" viewport="700x1100" name="Domain" subtitle="KanbanColumn, EventCard, CatalogCard, CalendarMonth, FunnelBreakdown, AgendaItem, FormSection, ReorderControls" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{background:var(--bg-app);padding:24px}.stack{display:flex;flex-direction:column;gap:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { KanbanColumn, EventCard, CatalogCard, CalendarMonth, FunnelBreakdown, AgendaItem, FormSection, Card } = window.BanketDesignSystem_f9651f;
+function Demo(){
+  return <div className="stack">
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:12,alignItems:"start"}}>
+      <KanbanColumn title="Novo orçamento" stage="new" count={5} total="R$ 0,00">
+        <EventCard title="Casamento" client="Antonio Rodrigues Neto" eventType="Social" timeInStage="há 10 dias" rows={[{label:"Pessoas",value:"77"},{label:"Formato",value:"Ilhas gastronômicas"},{label:"Data",value:"12/11/2026"}]} menuItems={[{label:"Abrir"}]}/>
+      </KanbanColumn>
+      <KanbanColumn title="Em negociação" stage="negotiation" count={9} total="R$ 171.300,00">
+        <EventCard title="Degustação" client="Maria Eduarda Silva" eventType="Social" timeInStage="há 11 dias" rows={[{label:"Pessoas",value:"50"},{label:"Orçamento",value:"R$ 9.250,00"},{label:"Data",value:"29/10/2026"}]} menuItems={[{label:"Abrir"}]}/>
+      </KanbanColumn>
+      <KanbanColumn title="Recusado" stage="lost" count={0} total="R$ 0,00"/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <CatalogCard icon="salad" title="Buffet – Opção 03" rows={[{label:"Preço por pessoa",value:"R$ 140,00"},{label:"Seções",value:"10"},{label:"Itens",value:"61"}]} tags={["Buffet","Premium"]}/>
+      <Card icon="layout-kanban" title="Funil por etapa" description="Pedidos que entraram em: últimos 90 dias" padding="sm">
+        <FunnelBreakdown stages={[{label:"Novo orçamento",stage:"new",count:5,value:"R$ 0,00"},{label:"Em negociação",stage:"negotiation",count:10,value:"R$ 179.205"},{label:"Aprovado",stage:"won",count:1,value:"R$ 8.500"},{label:"Recusado",stage:"lost",count:0,value:"R$ 0,00"}]}/>
+        <div style={{height:12}}/>
+        <AgendaItem date="2026-10-29" title="Degustação 1 – Maria Eduarda" meta="Quinta · 11:00 · 50 convidados"/>
+      </Card>
+    </div>
+    <CalendarMonth year={2026} month={9} today="2026-10-04" events={[{date:"2026-09-30",time:"20:00",title:"Teste de cadastro de evento",stage:"negotiation"},{date:"2026-10-29",time:"11:00",title:"Degustação 1 – Maria Eduarda Silva",stage:"negotiation"},{date:"2026-10-17",time:"19:30",title:"Casamento – Fernanda",stage:"won"}]}/>
+    <FormSection index={3} title="Dimensionamento" description="Detalhes para formatarmos a proposta ideal para o seu perfil." badge="Somente B2B" questions={[{label:"Razão social / Empresa",type:"Texto curto",required:true},{label:"Data prevista",type:"Data",required:true},{label:"Processo de aprovação",type:"Texto curto"}]}/>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script></body></html>

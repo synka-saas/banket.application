@@ -1,0 +1,13 @@
+/* Banket — base element defaults. */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font-sans);font-size:var(--type-body-size);line-height:var(--type-body-lh);font-weight:var(--fw-regular);color:var(--text-body);background:var(--bg-app);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+h1,h2,h3,h4,h5,h6{margin:0;color:var(--text-heading);font-weight:var(--fw-medium);text-wrap:balance}
+p{margin:0;text-wrap:pretty}
+a{color:var(--text-link);text-decoration:none;transition:color var(--dur-fast) var(--ease-out)}
+a:hover{color:var(--text-link-hover);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:var(--terracotta-100);color:var(--terracotta-900)}
+:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.bk-tabular{font-variant-numeric:tabular-nums}
+.bk-eyebrow{font-size:var(--type-eyebrow-size);line-height:var(--type-eyebrow-lh);font-weight:var(--type-eyebrow-weight);letter-spacing:var(--type-eyebrow-ls);text-transform:uppercase;color:var(--text-accent)}

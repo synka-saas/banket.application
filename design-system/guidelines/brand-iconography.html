@@ -1,0 +1,12 @@
+<!-- @dsCard group="Brand" viewport="700x170" name="Iconography" subtitle="Tabler Icons outline · stroke 1.5 · currentColor" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="../_ds_bundle.js"></script>
+<style>body{margin:0;padding:18px 20px;background:#fff}#r{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}.i{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-radius:8px;color:var(--clay-700);font-size:8.5px;color:var(--text-muted);text-align:center}.i svg{color:var(--clay-800)}.i.a svg{color:var(--terracotta-600)}</style></head><body><div id="r"></div>
+<script>
+const { Icon } = window.BanketDesignSystem_f9651f;
+const names=["layout-dashboard","layout-kanban","tools-kitchen-2","user-square","calendar","stack-2","users","file-text","settings","headset","search","filter","download","file-import","circle-plus","pencil","trash","dots","building","bell","send","salad","soup","sparkles"];
+const h=React.createElement;
+ReactDOM.createRoot(document.getElementById("r")).render(names.map((n,i)=>h("div",{key:n,className:"i"+(i<10?" a":"")},h(Icon,{name:n,size:22}),n)));
+</script></body></html>
