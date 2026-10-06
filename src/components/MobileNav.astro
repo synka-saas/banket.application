@@ -3,8 +3,13 @@
 // e o botão "Mais" com os demais, num painel que sobe do rodapé.
 import Icon from './ui/Icon.astro';
 import { isAdmin } from '../lib/auth';
-import { NAV_PRINCIPAL, navAtiva } from '../lib/nav';
+import { NAV_PRINCIPAL, navAtiva, type BadgesNavegacao } from '../lib/nav';
 
+interface Props {
+  badges?: BadgesNavegacao;
+}
+
+const { badges = {} } = Astro.props;
 const { pathname } = Astro.url;
 const user = Astro.locals.user;
 
@@ -12,6 +17,7 @@ const itens = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user));
 const naBarra = itens.filter((i) => i.barra);
 const noPainel = itens.filter((i) => !i.barra);
 const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
+const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
 ---
 
 <nav class="mnav" aria-label="Navegação principal">
@@ -24,6 +30,7 @@ const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
   <button type="button" class:list={['mnav-item', { active: painelAtivo }]} data-mnav-mais aria-expanded="false" aria-controls="mnav-painel">
     <Icon name="layout-grid" size={22} />
     <span>Mais</span>
+    {badgePainel > 0 && <span class="mnav-badge tabular" aria-label={`${badgePainel} não lidas`}>{badgePainel > 99 ? '99+' : badgePainel}</span>}
   </button>
 </nav>
 
@@ -34,6 +41,7 @@ const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
     <a href={item.href} class:list={['mnav-painel-item', { active: navAtiva(pathname, item.match) }]}>
       <Icon name={item.icon} size={22} />
       <span>{item.label}</span>
+      {badges[item.href] ? <span class="mnav-badge mnav-badge-item tabular">{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
       <Icon name="chevron-right" size={20} class="mnav-seta" />
     </a>
   ))}
@@ -83,6 +91,7 @@ const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
     }
 
     .mnav-item {
+      position: relative;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -162,6 +171,33 @@ const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
       background: var(--bg-accent-subtle);
       color: var(--terracotta-700);
       font-weight: var(--fw-medium);
+    }
+
+    /* Contador de não lidas: no botão "Mais" sobre o ícone, no painel ao lado do rótulo */
+    .mnav-badge {
+      position: absolute;
+      top: 4px;
+      right: calc(50% - 22px);
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      background: var(--action-primary);
+      color: var(--text-on-accent);
+      font-size: 10px;
+      font-weight: var(--fw-medium);
+      line-height: 1;
+    }
+
+    .mnav-badge-item {
+      position: static;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      font-size: var(--fs-11);
     }
 
     .mnav-seta {

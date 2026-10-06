@@ -1,0 +1,99 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { dataHora } from '../../lib/datas';
+import { html } from '../../lib/html';
+import { estaFiltrando, pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
+import { dominioRespostas, listarConversas, listarUsuariosComConversas } from '../../server/conversas';
+import '../../styles/inbox.css';
+
+const user = Astro.locals.user;
+const admin = isAdmin(user);
+const url = Astro.url;
+const filtroParam = url.searchParams.get('filtro');
+const filtro = filtroParam === 'nao_lidas' || (filtroParam === 'minhas' && admin) ? filtroParam : 'todas';
+const arquivadas = url.searchParams.get('arquivadas') === '1';
+const page = pageParams(url);
+
+const { rows: conversas, total, usuarios } = await withTenant(user.tenantId, async (db) => ({
+  ...(await listarConversas(
+    db,
+    user,
+    { filtro, busca: searchTerm(url), usuarioId: admin ? url.searchParams.get('usuario') || null : null, arquivadas },
+    page
+  )),
+  usuarios: admin ? await listarUsuariosComConversas(db) : [],
+}));
+
+const tableData = conversas.map((c) => ({
+  assunto: html`<a class="link inbox-assunto ${c.nao_lidas > 0 ? 'nao-lida' : ''}" href="/inbox/${c.id}">${
+    c.nao_lidas > 0 ? html`<span class="inbox-ponto" aria-hidden="true"></span>` : ''
+  }${c.assunto}</a>${
+    c.ultimo_trecho
+      ? html`<span class="inbox-trecho"><span class="inbox-direcao">${c.ultima_direcao === 'entrada' ? 'Cliente:' : 'Você:'}</span> ${c.ultimo_trecho}</span>`
+      : ''
+  }`,
+  cliente: c.cliente_nome ?? '',
+  evento: html`<a class="link" href="/eventos/${c.evento_id}">${c.evento_titulo ?? 'Evento'}</a>`,
+  ...(admin ? { responsavel: c.usuario_nome ?? '' } : {}),
+  quando: c.ultima_mensagem_em ? dataHora(c.ultima_mensagem_em) : '',
+  nao_lidas: c.nao_lidas > 0 ? html`<span class="badge badge-accent tabular">${String(c.nao_lidas).padStart(2, '0')}</span>` : '',
+}));
+const filtrando = estaFiltrando(url) || filtro !== 'todas' || arquivadas;
+const linkFiltro = (f: string) => withQuery(url, { filtro: f === 'todas' ? null : f, page: null });
+const semDominio = !dominioRespostas();
+---
+
+<AppLayout title="Inbox" heading="Inbox">
+  <PageToolbar
+    searchPlaceholder="Pesquisar por cliente, evento, assunto ou e-mail"
+    filter={admin && usuarios.length ? { name: 'usuario', placeholder: 'Todos os responsáveis', options: usuarios.map((u) => ({ value: u.id, label: u.nome })) } : undefined}
+  >
+    <a class="btn btn-secondary btn-md" href={withQuery(url, { arquivadas: arquivadas ? null : '1', page: null })}>
+      {arquivadas ? 'Ver ativas' : 'Ver arquivadas'}
+    </a>
+  </PageToolbar>
+
+  <div class="inbox-filtros">
+    <nav class="segmented" aria-label="Filtro de conversas">
+      <a href={linkFiltro('todas')} class:list={{ active: filtro === 'todas' }}>Todas</a>
+      <a href={linkFiltro('nao_lidas')} class:list={{ active: filtro === 'nao_lidas' }}>Não lidas</a>
+      {admin && <a href={linkFiltro('minhas')} class:list={{ active: filtro === 'minhas' }}>Minhas</a>}
+    </nav>
+    {semDominio && <span class="field-hint">Recebimento de respostas não configurado (RESEND_INBOUND_DOMAIN): por enquanto só as mensagens enviadas aparecem aqui.</span>}
+  </div>
+
+  <Table
+    columns={[
+      { key: 'assunto', label: 'Conversa' },
+      { key: 'cliente', label: 'Cliente' },
+      { key: 'evento', label: 'Evento' },
+      ...(admin ? [{ key: 'responsavel', label: 'Responsável' }] : []),
+      { key: 'quando', label: 'Última mensagem' },
+      { key: 'nao_lidas', label: 'Não lidas', align: 'right' as const },
+    ]}
+    data={tableData}
+  >
+    <EstadoVazio
+      slot="empty"
+      icon="mail"
+      titulo={filtrando ? 'Nenhuma conversa para este filtro' : 'Nenhuma conversa ainda'}
+      texto={filtrando ? undefined : 'As propostas enviadas e as respostas dos clientes aparecem aqui. Envie uma proposta pelo orçamento de um evento ou escreva pela aba Mensagens do evento.'}
+    >
+      {filtrando ? <a class="btn btn-secondary btn-md" href={url.pathname}>Limpar filtros</a> : <a class="btn btn-primary btn-md" href="/eventos">Ir para o funil de vendas</a>}
+    </EstadoVazio>
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+</AppLayout>
+
+<style>
+  :global(.data-table tbody td[data-key='quando']) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+</style>

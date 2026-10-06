@@ -3,8 +3,13 @@
 // e a navegação passa a ser a barra inferior (MobileNav.astro).
 import Icon from './ui/Icon.astro';
 import { isAdmin } from '../lib/auth';
-import { NAV_PRINCIPAL, navAtiva } from '../lib/nav';
+import { NAV_PRINCIPAL, navAtiva, type BadgesNavegacao } from '../lib/nav';
 
+interface Props {
+  badges?: BadgesNavegacao;
+}
+
+const { badges = {} } = Astro.props;
 const { pathname } = Astro.url;
 const user = Astro.locals.user;
 
@@ -22,6 +27,7 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
       <a href={item.href} class:list={['nav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
         <Icon name={item.icon} size={20} class="nav-icon" />
         <span class="nav-label">{item.label}</span>
+        {badges[item.href] ? <span class="nav-badge tabular" aria-label={`${badges[item.href]} não lidas`}>{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
       </a>
     ))}
   </nav>
@@ -116,6 +122,23 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
     text-overflow: ellipsis;
   }
 
+  /* Contador (não lidas do Inbox): pílula terracota à direita do rótulo */
+  .nav-badge {
+    flex: none;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: var(--action-primary);
+    color: var(--text-on-accent);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    line-height: 1;
+  }
+
   /* Tablet: só ícones */
   @media (max-width: 1024px) {
     .sidebar {
@@ -139,6 +162,21 @@ const navItems = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user)
       justify-content: center;
       padding: 0;
       height: 44px;
+    }
+
+    .nav-item {
+      position: relative;
+    }
+
+    /* Tablet (só ícones): o contador vai para o canto do ícone */
+    .nav-badge {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      font-size: 10px;
     }
 
     /* Rótulo escondido visualmente, mas mantido para leitores de tela */

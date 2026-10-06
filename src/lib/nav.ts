@@ -1,6 +1,9 @@
 // Navegação principal e submenus compartilhados entre páginas de um mesmo módulo.
 import { ROTULOS } from './rotulos';
 
+/** Contadores mostrados ao lado de um item (chave = href), ex.: mensagens não lidas no Inbox */
+export type BadgesNavegacao = Record<string, number>;
+
 export interface ItemNavegacao {
   label: string;
   icon: string;
@@ -15,11 +18,13 @@ export interface ItemNavegacao {
 export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard', match: ['/dashboard'], barra: true },
   { label: ROTULOS.funil, icon: 'layout-kanban', href: '/eventos', match: ['/eventos'], barra: true },
+  { label: 'Inbox', icon: 'mail', href: '/inbox', match: ['/inbox'] },
   { label: 'Cardápios', icon: 'tools-kitchen-2', href: '/cardapio/secoes', match: ['/cardapio'] },
   { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true },
   { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true },
   { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'] },
   { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
+  { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'] },
   { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
@@ -33,7 +38,7 @@ export const CONFIG_SUBMENU = [
   { id: 'categorias', label: ROTULOS.ocasioes, href: '/configuracoes/categorias' },
   { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
-  { id: 'locacao', label: 'Locação', href: '/configuracoes/locacao' },
+  { id: 'modelos-email', label: 'Modelos de e-mail', href: '/configuracoes/modelos-email' },
   { id: 'empresa', label: 'Empresa', href: '/configuracoes/empresa' },
 ];
 

@@ -5,11 +5,12 @@ import { withTenant } from '../../lib/db';
 import { setFlash } from '../../lib/flash';
 import { formToObject, userMessage } from '../../lib/forms';
 import { criarEvento, errosDoFormularioEvento, opcoesFormularioEvento, validarFormularioEvento } from '../../server/eventos';
+import { espacoPadraoId } from '../../server/espacos';
 
 const user = Astro.locals.user;
 let erro = '';
 let erros: Record<string, string> = {};
-let valores: Record<string, unknown> = { local_tipo: 'casa' };
+let valores: Record<string, unknown> = {};
 
 if (Astro.request.method === 'POST') {
   valores = formToObject(await Astro.request.formData(), ['restricoes', 'compliance']);
@@ -26,14 +27,12 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const opcoes = await withTenant(user.tenantId, (db) => opcoesFormularioEvento(db));
-// Sugestão: o local padrão da empresa preenche o nome do local em eventos na casa (UX-152/D6)
-if (Astro.request.method !== 'POST' && !valores.local_nome) {
-  const { rows } = await withTenant(user.tenantId, (db) =>
-    db.query<{ local_padrao: string | null }>('SELECT local_padrao FROM configuracoes_tenant')
-  );
-  if (rows[0]?.local_padrao) valores.local_nome = rows[0].local_padrao;
-}
+// Sugestão: o espaço padrão da empresa já vem selecionado em eventos novos (UX-152/D6)
+const { opcoes, espacoPadrao } = await withTenant(user.tenantId, async (db) => ({
+  opcoes: await opcoesFormularioEvento(db),
+  espacoPadrao: await espacoPadraoId(db),
+}));
+if (Astro.request.method !== 'POST' && espacoPadrao) valores.espaco_id = espacoPadrao;
 if (!valores.cliente_id) {
   const clienteDaUrl = Astro.url.searchParams.get('cliente');
   if (clienteDaUrl) valores.cliente_id = clienteDaUrl;

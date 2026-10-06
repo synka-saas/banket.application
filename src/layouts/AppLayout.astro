@@ -9,6 +9,9 @@ import Toast from '../components/ui/Toast.astro';
 import Confirmar from '../components/ui/Confirmar.astro';
 import Mascaras from '../components/ui/Mascaras.astro';
 import Reordenar from '../components/ui/Reordenar.astro';
+import { withTenant } from '../lib/db';
+import { contarNaoLidas } from '../server/conversas';
+import type { BadgesNavegacao } from '../lib/nav';
 
 interface SubmenuItem {
   id: string;
@@ -28,10 +31,15 @@ interface Props {
 }
 
 const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
+
+// Mensagens não lidas no Inbox (uma consulta indexada por página); uma falha aqui nunca derruba a tela
+const user = Astro.locals.user;
+const naoLidas = user ? await withTenant(user.tenantId, (db) => contarNaoLidas(db, user)).catch(() => 0) : 0;
+const badges: BadgesNavegacao = naoLidas > 0 ? { '/inbox': naoLidas } : {};
 ---
 
 <Layout title={title}>
-  <Sidebar />
+  <Sidebar badges={badges} />
   <main class="main-content">
     <Topbar title={heading} voltar={voltar} />
     {submenu && (
@@ -43,7 +51,7 @@ const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
       <slot />
     </div>
   </main>
-  <MobileNav />
+  <MobileNav badges={badges} />
   <slot name="overlays" />
   <Toast flash={Astro.locals.flash} />
   <Confirmar />

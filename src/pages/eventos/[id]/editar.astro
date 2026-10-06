@@ -38,10 +38,10 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const { evento, opcoes } = await withTenant(user.tenantId, async (db) => ({
-  evento: await carregarEvento(db, id),
-  opcoes: await opcoesFormularioEvento(db),
-}));
+const { evento, opcoes } = await withTenant(user.tenantId, async (db) => {
+  const evento = await carregarEvento(db, id);
+  return { evento, opcoes: await opcoesFormularioEvento(db, evento.espaco_id) };
+});
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="resumo">

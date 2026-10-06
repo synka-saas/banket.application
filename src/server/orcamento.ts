@@ -4,7 +4,7 @@ import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { UserError } from '../lib/forms';
 import { dataCurta, faixaHorario, horasTexto } from '../lib/datas';
-import { descreverFaixa } from './configuracoes';
+import { espacosParaSelecao, referenciasLocacao } from './espacos';
 import { carregarEvento, type EventoDetalhe } from './eventos';
 import { registrarTimeline } from './timeline';
 import {
@@ -14,7 +14,8 @@ import {
   type BlocoInfo,
   type Cabecalho,
   type ConteudoOrcamento,
-  type FaixaLocacaoRef,
+  type EspacoRef,
+  type ReferenciasLocacao,
 } from '../lib/calculo/orcamento';
 
 // ---------------------------------------------------------------------------
@@ -142,11 +143,15 @@ export const conteudoSchema = z.object({
   locacao: z
     .object({
       incluir: z.boolean().default(false),
+      espaco_id: z.string().nullable().default(null),
+      espaco_nome: texto(120),
       faixa_id: z.string().nullable().default(null),
       descricao: texto(),
+      // Guardado para versões congeladas (recalculadas sem as referências de locação)
+      valor_calc: numNull,
       valor_manual: numNull,
     })
-    .default({ incluir: false, faixa_id: null, descricao: null, valor_manual: null }),
+    .default({ incluir: false, espaco_id: null, espaco_nome: null, faixa_id: null, descricao: null, valor_calc: null, valor_manual: null }),
   extras: z
     .array(
       z.object({
@@ -184,11 +189,9 @@ export function normalizarConteudo(raw: unknown): ConteudoOrcamento {
 // ---------------------------------------------------------------------------
 // Dados de apoio
 // ---------------------------------------------------------------------------
-export async function faixasLocacao(db: Db): Promise<FaixaLocacaoRef[]> {
-  const { rows } = await db.query<Omit<FaixaLocacaoRef, 'descricao'>>(
-    'SELECT id, min_convidados, max_convidados, valor FROM faixas_locacao ORDER BY min_convidados'
-  );
-  return rows.map((f) => ({ ...f, descricao: descreverFaixa(f) }));
+/** A versão em edição acompanha o espaço escolhido no evento (as congeladas guardam o que foi proposto). */
+function sincronizarLocacaoComEvento(conteudo: ConteudoOrcamento, e: EventoDetalhe): ConteudoOrcamento {
+  return { ...conteudo, locacao: { ...conteudo.locacao, espaco_id: e.espaco_id, espaco_nome: e.espaco_nome } };
 }
 
 export function cabecalhoDoEvento(e: EventoDetalhe): Cabecalho {
@@ -199,7 +202,7 @@ export function cabecalhoDoEvento(e: EventoDetalhe): Cabecalho {
     telefone: e.responsavel_whatsapp ?? e.cliente_telefone ?? null,
     data_evento: e.data_evento ? dataCurta(e.data_evento) : null,
     horario: e.hora_inicio ? faixaHorario(e.hora_inicio, e.hora_fim) : null,
-    local: e.local_nome ?? null,
+    local: e.espaco_nome ?? e.local_nome ?? null,
     formato_servico: e.formato_nome,
     duracao_evento: e.duracao_evento_horas ? horasTexto(e.duracao_evento_horas) : null,
     duracao_alimentacao: e.duracao_alimentacao_horas ? horasTexto(e.duracao_alimentacao_horas) : null,
@@ -209,7 +212,7 @@ export function cabecalhoDoEvento(e: EventoDetalhe): Cabecalho {
 const POLITICA_CANCELAMENTO =
   '30 dias ou mais da data do evento: multa de 30% sobre o valor total. De 29 a 11 dias: multa de 50%. De 10 dias até o dia do evento: multa de 80%.';
 
-async function conteudoInicial(db: Db, e: EventoDetalhe): Promise<ConteudoOrcamento> {
+async function conteudoInicial(db: Db, e: EventoDetalhe, refs: ReferenciasLocacao): Promise<ConteudoOrcamento> {
   const { rows: servicos } = await db.query(
     `SELECT id, funcao, cache_diaria, auxilio, por_evento, quantidade_fixa, convidados_por_profissional, minimo
        FROM staff_servicos WHERE ativo AND incluir_por_padrao ORDER BY ordem, lower(funcao)`
@@ -281,7 +284,17 @@ async function conteudoInicial(db: Db, e: EventoDetalhe): Promise<ConteudoOrcame
         minimo: s.minimo,
       },
     })),
-    locacao: { incluir: e.local_tipo === 'casa', faixa_id: null, descricao: null, valor_manual: null },
+    locacao: {
+      // Espaço próprio entra com a faixa; terceiro só quando tem valor de referência cadastrado
+      incluir:
+        e.espaco_tipo === 'proprio' ||
+        (e.espaco_tipo === 'terceiro' && refs.espacos.find((x) => x.id === e.espaco_id)?.valor_referencia != null),
+      espaco_id: e.espaco_id,
+      espaco_nome: e.espaco_nome,
+      faixa_id: null,
+      descricao: null,
+      valor_manual: null,
+    },
     informacoes_complementares: informacoes,
     condicoes_gerais: condicoes,
     blocos_texto: blocos.map((b) => ({ key: novaChave('t'), bloco_id: b.id, titulo: b.titulo, texto: b.texto, pagina: b.pagina })),
@@ -343,13 +356,19 @@ export async function carregarVersao(db: Db, eventoId: string, numero: number): 
   if (!v) throw new UserError('Versão do orçamento não encontrada.');
   let conteudo = normalizarConteudo(v.conteudo);
   // A versão em edição acompanha os dados atuais do evento; as congeladas preservam o que foi proposto
-  if (!v.congelada) {
+  // (recalculadas sem as referências de locação, para manter o valor gravado)
+  if (v.congelada) {
+    conteudo = calcularOrcamento(conteudo);
+  } else {
     const evento = await carregarEvento(db, eventoId);
     const pagantes =
       conteudo.pagantes.convidados === 0 && evento.numero_convidados
         ? { ...conteudo.pagantes, convidados: evento.numero_convidados }
         : conteudo.pagantes;
-    conteudo = calcularOrcamento({ ...conteudo, pagantes, cabecalho: cabecalhoDoEvento(evento) }, await faixasLocacao(db));
+    conteudo = calcularOrcamento(
+      sincronizarLocacaoComEvento({ ...conteudo, pagantes, cabecalho: cabecalhoDoEvento(evento) }, evento),
+      await referenciasLocacao(db)
+    );
   }
   return { ...v, conteudo };
 }
@@ -361,7 +380,8 @@ export async function criarOrcamento(db: Db, user: SessionUser, eventoId: string
   const existente = await carregarOrcamento(db, eventoId);
   if (existente) return { statusAlterado: false };
   const evento = await carregarEvento(db, eventoId);
-  const conteudo = calcularOrcamento(await conteudoInicial(db, evento), await faixasLocacao(db));
+  const refs = await referenciasLocacao(db);
+  const conteudo = calcularOrcamento(await conteudoInicial(db, evento, refs), refs);
 
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO orcamentos (tenant_id, evento_id, valor_total, versao_atual) VALUES ($1, $2, $3, 1) RETURNING id`,
@@ -397,9 +417,43 @@ const PARTES_EDITAVEIS = [
   'total_manual', 'mostrar_valor_total', 'observacoes',
 ] as const;
 
+/**
+ * Trocar o espaço na seção Locação do orçamento também muda o espaço do evento (o briefing e o orçamento
+ * apontam sempre para o mesmo lugar). O id vem do navegador: confere no tenant antes de gravar (FK não passa pelo RLS).
+ */
+async function aplicarEspacoAoEvento(db: Db, user: SessionUser, evento: EventoDetalhe, espacoId: string | null) {
+  let nome: string | null = null;
+  let tipo: 'casa' | 'externo' = 'externo';
+  let endereco: string | null = null;
+  if (espacoId) {
+    const { rows } = await db.query<{ nome: string; tipo: 'proprio' | 'terceiro'; endereco: string | null }>(
+      'SELECT nome, tipo, endereco FROM espacos WHERE id = $1',
+      [espacoId]
+    );
+    if (!rows[0]) throw new UserError('Espaço não encontrado.');
+    nome = rows[0].nome;
+    tipo = rows[0].tipo === 'proprio' ? 'casa' : 'externo';
+    endereco = rows[0].endereco;
+  }
+  await db.query(
+    `UPDATE eventos SET espaco_id = $2, local_tipo = $3, local_nome = COALESCE($4, local_nome),
+            endereco = COALESCE($5, endereco), updated_at = now()
+      WHERE id = $1`,
+    [evento.id, espacoId, tipo, nome, endereco]
+  );
+  await registrarTimeline(
+    db,
+    { tenantId: user.tenantId, eventoId: evento.id, usuarioId: user.id },
+    'editado',
+    `Espaço do evento alterado para "${nome ?? 'outro local'}" pelo orçamento`,
+    { espaco_id: espacoId, anterior: evento.espaco_nome }
+  );
+}
+
 /** Salva (parcialmente) a versão em edição e devolve o conteúdo recalculado. */
 export async function salvarVersao(
   db: Db,
+  user: SessionUser,
   eventoId: string,
   numero: number,
   parcial: Record<string, unknown>
@@ -419,10 +473,15 @@ export async function salvarVersao(
   const mesclado: Record<string, unknown> = { ...atual };
   for (const parte of PARTES_EDITAVEIS) if (parte in parcial) mesclado[parte] = parcial[parte];
 
-  const evento = await carregarEvento(db, eventoId);
+  let evento = await carregarEvento(db, eventoId);
+  const normalizado = normalizarConteudo(mesclado);
+  if ('locacao' in parcial && (normalizado.locacao.espaco_id ?? null) !== (evento.espaco_id ?? null)) {
+    await aplicarEspacoAoEvento(db, user, evento, normalizado.locacao.espaco_id ?? null);
+    evento = await carregarEvento(db, eventoId);
+  }
   const conteudo = calcularOrcamento(
-    { ...normalizarConteudo(mesclado), cabecalho: cabecalhoDoEvento(evento) },
-    await faixasLocacao(db)
+    sincronizarLocacaoComEvento({ ...normalizado, cabecalho: cabecalhoDoEvento(evento) }, evento),
+    await referenciasLocacao(db)
   );
   const total = conteudo.totais!.total;
   await db.query('UPDATE orcamento_versoes SET conteudo = $1, valor_total = $2, updated_at = now() WHERE id = $3', [
@@ -458,8 +517,8 @@ export async function criarNovaVersao(
 
   const evento = await carregarEvento(db, eventoId);
   const conteudo = calcularOrcamento(
-    { ...normalizarConteudo(rows[0].conteudo), cabecalho: cabecalhoDoEvento(evento) },
-    await faixasLocacao(db)
+    sincronizarLocacaoComEvento({ ...normalizarConteudo(rows[0].conteudo), cabecalho: cabecalhoDoEvento(evento) }, evento),
+    await referenciasLocacao(db)
   );
   const numero = Math.max(...orc.versoes.map((v) => v.numero)) + 1;
 
@@ -572,11 +631,14 @@ export async function catalogoConstrutor(db: Db): Promise<CatalogoConstrutor> {
 export async function contextoOrcamento(db: Db, eventoId: string, versaoParam: string | null) {
   const evento = await carregarEvento(db, eventoId);
   const orcamento = await carregarOrcamento(db, eventoId);
-  if (!orcamento) return { evento, orcamento: null, versao: null, faixas: [] as FaixaLocacaoRef[] };
+  const vazio = { espacos: [] as EspacoRef[], faixas: [] } as ReferenciasLocacao;
+  if (!orcamento) return { evento, orcamento: null, versao: null, refs: vazio, espacos: [] as EspacoRef[] };
   const pedida = Number.parseInt(versaoParam ?? '', 10);
   const numero = orcamento.versoes.some((v) => v.numero === pedida) ? pedida : orcamento.versao_atual;
   const versao = await carregarVersao(db, eventoId, numero);
-  return { evento, orcamento, versao, faixas: await faixasLocacao(db) };
+  // Espaços para o select da seção Locação: ativos mais o que a versão já usa (mesmo inativo)
+  const [refs, espacos] = await Promise.all([referenciasLocacao(db), espacosParaSelecao(db, versao.conteudo.locacao.espaco_id)]);
+  return { evento, orcamento, versao, refs, espacos };
 }
 
 /** Template usado no PDF da proposta (null = template padrão da empresa) */

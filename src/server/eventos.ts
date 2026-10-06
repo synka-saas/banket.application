@@ -96,7 +96,10 @@ export const eventoSchema = z
     duracao_alimentacao_horas: horas(),
     numero_convidados: optionalInt(),
     perfil_convidados: optionalText(120),
-    local_tipo: z.enum(['casa', 'externo']).default('casa'),
+    // Espaço cadastrado (próprio ou de terceiro); sem espaço, o local é texto livre
+    espaco_id: optionalUuid(),
+    // Só o formulário público informa local_tipo; no app ele é derivado do espaço (resolverLocal)
+    local_tipo: z.enum(['casa', 'externo']).optional(),
     local_nome: optionalText(255),
     endereco: optionalText(500),
     infraestrutura: optionalText(2000),
@@ -289,6 +292,9 @@ export interface EventoDetalhe extends Omit<EventoInput, 'cliente_novo'> {
   tipo_nome: string | null;
   categoria_nome: string | null;
   formato_nome: string | null;
+  espaco_id: string | null;
+  espaco_nome: string | null;
+  espaco_tipo: 'proprio' | 'terceiro' | null;
   valor_orcamento: number | null;
   tem_orcamento: boolean;
   origem: 'manual' | 'formulario';
@@ -306,6 +312,7 @@ export async function carregarEvento(db: Db, id: string): Promise<EventoDetalhe>
             e.convite_experiencia, e.estilo_principal, e.estilo_secundario, e.bebidas_alcoolicas,
             e.bebidas_sem_alcool, e.restricoes, e.compliance, e.staff_terceiros, e.comentario_cliente,
             e.origem, e.created_at, e.motivo_perda, to_char(e.fechado_em, 'YYYY-MM-DD') AS fechado_em,
+            e.espaco_id, es.nome AS espaco_nome, es.tipo AS espaco_tipo,
             c.nome AS cliente_nome, c.tipo_pessoa AS cliente_tipo, c.documento AS cliente_documento,
             c.email AS cliente_email, c.telefone AS cliente_telefone,
             s.nome AS status_nome, s.variante AS status_variante, s.cor AS status_cor,
@@ -317,6 +324,7 @@ export async function carregarEvento(db: Db, id: string): Promise<EventoDetalhe>
        LEFT JOIN tipos_evento t ON t.id = e.tipo_evento_id
        LEFT JOIN categorias_evento ce ON ce.id = e.categoria_evento_id
        LEFT JOIN formatos_servico f ON f.id = e.formato_servico_id
+       LEFT JOIN espacos es ON es.id = e.espaco_id
        LEFT JOIN orcamentos o ON o.evento_id = e.id
       WHERE e.id = $1`,
     [id]
@@ -345,7 +353,7 @@ export async function statusDeEntrada(db: Db): Promise<string> {
 // ---------------------------------------------------------------------------
 const CAMPOS = [
   'titulo', 'tipo_evento_id', 'categoria_evento_id', 'formato_servico_id', 'data_evento', 'hora_inicio', 'hora_fim',
-  'duracao_evento_horas', 'duracao_alimentacao_horas', 'numero_convidados', 'perfil_convidados', 'local_tipo',
+  'duracao_evento_horas', 'duracao_alimentacao_horas', 'numero_convidados', 'perfil_convidados', 'espaco_id', 'local_tipo',
   'local_nome', 'endereco', 'infraestrutura', 'verba_total', 'verba_por_pessoa', 'forma_pagamento', 'qualificacao',
   'responsavel_nome', 'responsavel_email', 'responsavel_whatsapp', 'convite_experiencia', 'estilo_principal',
   'estilo_secundario', 'bebidas_alcoolicas', 'bebidas_sem_alcool', 'restricoes', 'compliance', 'staff_terceiros',
@@ -363,12 +371,32 @@ async function validarReferencias(db: Db, input: EventoInput, clienteId: string 
     ['categorias_evento', input.categoria_evento_id, 'Categoria de evento inválida.'],
     ['formatos_servico', input.formato_servico_id, 'Formato de serviço inválido.'],
     ['status_orcamento', input.status_id, 'Status inválido.'],
+    ['espacos', input.espaco_id, 'Espaço inválido.'],
   ];
   for (const [tabela, id, mensagem] of refs) {
     if (!id) continue;
     const { rowCount } = await db.query(`SELECT 1 FROM ${tabela} WHERE id = $1`, [id]);
     if (!rowCount) throw new UserError(mensagem);
   }
+}
+
+/**
+ * Local do evento a partir do espaço escolhido: o tipo (casa/externo) e o nome espelham o espaço; o endereço do
+ * cadastro vale quando o usuário não informou outro. Sem espaço, fica o texto livre do formulário.
+ */
+async function resolverLocal(db: Db, input: EventoInput): Promise<EventoInput> {
+  if (!input.espaco_id) return { ...input, local_tipo: input.local_tipo ?? 'externo' };
+  const { rows } = await db.query<{ nome: string; tipo: 'proprio' | 'terceiro'; endereco: string | null }>(
+    'SELECT nome, tipo, endereco FROM espacos WHERE id = $1',
+    [input.espaco_id]
+  );
+  if (!rows[0]) throw new UserError('Espaço inválido.');
+  return {
+    ...input,
+    local_tipo: rows[0].tipo === 'proprio' ? 'casa' : 'externo',
+    local_nome: rows[0].nome,
+    endereco: input.endereco ?? rows[0].endereco,
+  };
 }
 
 async function tituloPadrao(db: Db, input: EventoInput, clienteId: string): Promise<string> {
@@ -392,6 +420,7 @@ export async function criarEvento(
 ): Promise<string> {
   const clienteId = clienteNovo ? await salvarCliente(db, user.tenantId, null, clienteNovo) : input.cliente_id!;
   await validarReferencias(db, input, clienteId);
+  input = await resolverLocal(db, input);
   const statusId = input.status_id ?? (await statusDeEntrada(db));
   const titulo = await tituloPadrao(db, input, clienteId);
   const valores = CAMPOS.map((c) => (c === 'titulo' ? titulo : input[c]));
@@ -421,6 +450,7 @@ export async function atualizarEvento(
   const antes = await carregarEvento(db, id);
   const clienteId = clienteNovo ? await salvarCliente(db, user.tenantId, null, clienteNovo) : input.cliente_id!;
   await validarReferencias(db, input, clienteId);
+  input = await resolverLocal(db, input);
   const titulo = await tituloPadrao(db, input, clienteId);
   const valores = CAMPOS.map((c) => (c === 'titulo' ? titulo : input[c]));
   await db.query(
@@ -436,6 +466,8 @@ export async function atualizarEvento(
   if (antes.numero_convidados !== input.numero_convidados)
     mudancas.push(`convidados: ${antes.numero_convidados ?? '-'} → ${input.numero_convidados ?? '-'}`);
   if (antes.cliente_id !== clienteId) mudancas.push('cliente alterado');
+  if ((antes.espaco_id ?? null) !== (input.espaco_id ?? null))
+    mudancas.push(`espaço: ${antes.espaco_nome ?? antes.local_nome ?? '-'} → ${input.local_nome ?? '-'}`);
   await registrarTimeline(
     db,
     { tenantId: user.tenantId, eventoId: id, usuarioId: user.id },
@@ -615,8 +647,17 @@ export function filtrosDaUrl(url: URL, busca: string | null): FiltrosEventos {
 }
 
 /** Listas usadas pelo formulário do evento. */
-export async function opcoesFormularioEvento(db: Db) {
-  const [clientes, tipos, categorias, formatos, status] = [
+/** Espaços oferecidos no formulário do evento: ativos mais o já escolhido (mesmo inativo), com endereço para a dica */
+export interface EspacoOpcao {
+  id: string;
+  nome: string;
+  tipo: 'proprio' | 'terceiro';
+  endereco: string | null;
+  ativo: boolean;
+}
+
+export async function opcoesFormularioEvento(db: Db, espacoAtualId: string | null = null) {
+  const [clientes, tipos, categorias, formatos, status, espacos] = [
     (await db.query<{ id: string; nome: string; documento: string | null }>(
       'SELECT id, nome, documento FROM clientes ORDER BY lower(nome)'
     )).rows,
@@ -629,6 +670,10 @@ export async function opcoesFormularioEvento(db: Db) {
     )).rows,
     (await db.query<{ id: string; nome: string }>('SELECT id, nome FROM formatos_servico ORDER BY ordem, lower(nome)')).rows,
     (await db.query<{ id: string; nome: string; variante: string }>('SELECT id, nome, variante FROM status_orcamento ORDER BY ordem')).rows,
+    (await db.query<EspacoOpcao>(
+      'SELECT id, nome, tipo, endereco, ativo FROM espacos WHERE ativo OR id = $1 ORDER BY tipo, ordem, lower(nome)',
+      [espacoAtualId]
+    )).rows,
   ];
-  return { clientes, tipos, categorias, formatos, status };
+  return { clientes, tipos, categorias, formatos, status, espacos };
 }

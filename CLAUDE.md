@@ -2,7 +2,8 @@
 
 SaaS multi-empresa (multi-tenant) para buffets e casas de eventos. Cobre a captação do pedido (formulário público ou
 cadastro manual), o quadro de vendas (Kanban), o orçamento versionado montado a partir do catálogo (cardápios,
-bebidas, staff, locação), a geração do PDF da proposta, o envio por e-mail, a agenda, o dashboard e a gestão da equipe.
+bebidas, staff, locação por espaço), a geração do PDF da proposta, o envio por e-mail com as respostas do cliente no
+Inbox, a agenda, o dashboard, os espaços de eventos e a gestão da equipe.
 
 - Produção: <https://app.banket.com.br> (VPS `synka-main`, código em `/var/www/banket`)
 - Repositório: `git@github.com:synka-saas/banket.application.git` (branch `main`)
@@ -84,7 +85,9 @@ src/
     rateLimit.ts       limite por janela fixa em memória + IP real atrás do Nginx
     senha.ts           política de senha
     storage.ts         arquivos em disco particionados por tenant
-    mail.ts            envio via Resend / log em dev; appUrl()
+    mail.ts            envio via Resend / log em dev; appUrl(); remetente com nome de exibição, Reply-To e cabeçalhos
+    resendReceiving.ts leitura de e-mails recebidos (Receiving API do Resend: corpo, cabeçalhos, anexos); injetável
+    resendWebhook.ts   verificação da assinatura Svix dos webhooks do Resend (node:crypto)
     openai.ts          chamada à OpenAI (Chat Completions) com imagem e resposta JSON estruturada
     forms.ts           FormData → objeto, preprocessadores zod, UserError, tradução de erros do Postgres
     actions.ts         handleFormPost (POST → redirect → GET com flash)
@@ -97,14 +100,20 @@ src/
     calculo/           cálculo PURO do orçamento e do staff (roda no navegador e no servidor)
     formularios/       modelo do formulário de captação (compartilhado servidor/ilha/página pública)
   server/              regras de negócio por domínio; recebem `db` já dentro de withTenant
+    espacos.ts         espaços de eventos (próprios/terceiros) e faixas de locação por espaço
+    emailModelos.ts    modelos de e-mail (assunto/corpo com variáveis) e aplicarVariaveis
+    emailTexto.ts      listaEmails, mensagemHtml (texto → HTML de e-mail), enderecoPuro
+    conversas.ts       Inbox: conversas/mensagens por evento, envio dentro da conversa, permissões por papel
+    inbox/receber.ts   processamento dos webhooks do Resend (e-mail recebido, status de entrega), idempotência
   pages/               rotas Astro (SSR); POST de formulário na própria página
-  pages/api/           endpoints JSON usados pelas ilhas Preact
+  pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta (só com print token)
   components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/, cardapio/, formularios/),
-                       proposta/Proposta.astro (layout impresso), eventos/, templates/
+                       proposta/Proposta.astro (layout impresso), eventos/, templates/, espacos/ (drawer),
+                       inbox/Conversa.astro (thread de e-mails com resposta)
   layouts/             Layout, AppLayout (sidebar+topbar), AuthLayout, EventoLayout (abas do evento), FormularioLayout
   styles/              tokens.css (tokens do design system + @font-face), global.css (base e classes utilitárias),
-                       orcamento.css, editor.css, formularios.css (ilhas Preact)
+                       orcamento.css, editor.css, formularios.css (ilhas Preact), inbox.css (thread e lista do Inbox)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
 scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs
@@ -113,6 +122,8 @@ public/ref/            PDFs de cardápios de referência (Brunch, Buffet, Boteco
 public/fonts/          General Sans (woff2, pesos 300–700 + itálicos); logos em public/logo-{dark,light,mark}.png
 design-system/         fonte de verdade do visual: readme.md (fundamentos), tokens/, components/ (especificação em
                        React + CSS .bk-*), ui_kits/banket-app (telas de referência), guidelines/. Não entra no build.
+site/                  site institucional (https://banket.com.br): HTML estático de página única (index.html), servido
+                       direto pelo Nginx. Não entra no build do app. Ver "Site institucional" em Infraestrutura e deploy.
 ```
 
 ---
@@ -208,9 +219,14 @@ UNIQUE quando informado: uma empresa por documento), `razao_social`, `email`, `t
 `expira_em`, `usado_em`, `criado_por`. Validades: verificação 24 h, reset 1 h, link de acesso 15 min, convite 7 dias.
 
 **`configuracoes_tenant`** — PK `tenant_id`. `validade_proposta_dias` (5), `criancas_isentas_ate` (5),
-`criancas_meia_ate` (11), `local_padrao`, `assinatura_nome/cargo/telefone`, `email_assunto` e `email_corpo` (modelos com
-variáveis `{nome_cliente} {evento} {data_evento} {empresa} {valor_total} {versao}`), `kanban_intervalo_meses`
-(NULL, 1, 3 ou 6).
+`criancas_meia_ate` (11), `espaco_padrao_id` (→ `espacos`, pré-selecionado em eventos novos e no formulário público),
+`assinatura_nome/cargo/telefone`, `kanban_intervalo_meses` (NULL, 1, 3 ou 6). `local_padrao`, `email_assunto` e
+`email_corpo` ficaram **sem uso** (substituídos por `espaco_padrao_id` e por `email_modelos`; remover num deploy futuro).
+
+**`email_modelos`** — modelos de e-mail (Configurações › Modelos de e-mail): `nome` (UNIQUE por empresa), `assunto`,
+`corpo` (variáveis `{nome_cliente} {evento} {data_evento} {empresa} {valor_total} {versao}`), `padrao` (índice parcial:
+um padrão por empresa), `ativo`, `ordem`. O padrão preenche o drawer de envio da proposta; qualquer modelo ativo pode
+ser escolhido no envio, na resposta do Inbox e na mensagem nova.
 
 ### Configurações da empresa
 
@@ -225,7 +241,13 @@ vai para o primeiro `negociacao`; dashboard usa `aprovado`/`recusado` para conve
 **`categorias_item`** (`nome`, `tipo` CHECK `principal | secundaria`, `ordem`) — principal = tipo do alimento
 (Salgado, Doce, **Bebida**); secundária = momento (Recepção, Entrada, Prato principal, Sobremesa). Seções cujos itens têm
 categoria principal "Bebida" aparecem na aba Bebidas do orçamento.
-**`faixas_locacao`** (`min_convidados`, `max_convidados` NULL = sem teto, `valor`, `observacao`) — locação do espaço.
+**`espacos`** — locais onde os eventos acontecem (menu Espaços, todos os usuários). `nome` (UNIQUE por empresa), `tipo`
+CHECK `proprio | terceiro`, `descricao`, `endereco`, `cidade`, `capacidade_min/max`, `contato_nome/telefone/email` e
+`valor_referencia` (só terceiros: locação sugerida), `observacoes`, `ativo`, `ordem`. Próprio = locação calculada pelas
+faixas; terceiro = valor de referência. Não pode ser excluído enquanto houver eventos nele (desative).
+**`faixas_locacao`** (`espaco_id` → `espacos` CASCADE, `min_convidados`, `max_convidados` NULL = sem teto, `valor`,
+`observacao`) — locação de um espaço **próprio** por faixa de convidados, sem sobreposição dentro do espaço. Faixas
+antigas sem `espaco_id` contam como do espaço padrão (`COALESCE` nas leituras).
 
 ### Cardápio
 
@@ -255,7 +277,8 @@ CHECK: precisa ser por evento, proporcional ou ter mínimo.
 **`eventos`** — briefing completo e card do Kanban. `cliente_id`, `status_id` (→ `status_orcamento`, RESTRICT), `titulo`
 (gerado se vazio: "Categoria – Cliente"), `tipo_evento_id`, `categoria_evento_id`, `formato_servico_id`,
 `data_evento DATE`, `hora_inicio`, `hora_fim`, `duracao_evento_horas`, `duracao_alimentacao_horas`, `numero_convidados`,
-`perfil_convidados`, `local_tipo` (`casa | externo`), `local_nome`, `endereco`, `infraestrutura`, `verba_total`,
+`perfil_convidados`, `espaco_id` (→ `espacos`, SET NULL), `local_tipo` (`casa | externo`, derivado do espaço: próprio =
+casa), `local_nome` (espelho do nome do espaço, ou texto livre em "Outro local"), `endereco`, `infraestrutura`, `verba_total`,
 `verba_por_pessoa`, `forma_pagamento`, `qualificacao` (`alta | media | baixa`), `responsavel_nome/email/whatsapp`,
 `convite_experiencia`, `estilo_principal`, `estilo_secundario`, `bebidas_alcoolicas`, `bebidas_sem_alcool`,
 `restricoes TEXT[]`, `compliance TEXT[]`, `staff_terceiros`, `comentario_cliente`, `origem` (`manual | formulario`),
@@ -263,8 +286,8 @@ CHECK: precisa ser por evento, proporcional ou ter mínimo.
 
 **`evento_checklist`** — `item`, `status` (`pendente | agendado | enviado | concluido`), `prazo`, `ordem`.
 **`evento_timeline`** — histórico: `tipo` (`criado, editado, status, checklist, orcamento_criado, orcamento_versao,
-pdf_gerado, email_enviado, formulario`), `descricao`, `dados JSONB`, `usuario_id`. Sempre gravar via
-`registrarTimeline()` (`server/timeline.ts`).
+pdf_gerado, email_enviado, email_recebido, formulario, anotacao`), `descricao`, `dados JSONB`, `usuario_id` (null nos
+registros do webhook). Sempre gravar via `registrarTimeline()` (`server/timeline.ts`).
 
 ### Orçamento e proposta
 
@@ -301,7 +324,8 @@ linha em branco separa parágrafos → `lib/texto.ts`), `ativo_por_padrao`, `ord
   "bebidas": [{ "key", "ref_id", "nome", "descricao", "unidade": "pessoa|unidade", "quantidade",
                 "preco_catalogo", "preco_manual", "subtotal_manual" }],
   "staff": [{ "key", "servico_id", "funcao", "regra": { RegraStaff }, "quantidade_manual", "valor_unit_manual" }],
-  "locacao": { "incluir", "faixa_id", "descricao", "valor_manual" },
+  "locacao": { "incluir", "espaco_id", "espaco_nome", "faixa_id", "descricao", "valor_calc", "valor_manual" },
+                                                 // espaco_id acompanha o evento na versão aberta; snapshot nas congeladas
   "extras": [{ "key", "descricao", "quantidade", "valor_unit" }],
   "informacoes_complementares": [BlocoInfo], "condicoes_gerais": [BlocoInfo],   // linhas label/valor, algumas "auto"
   "blocos_texto": [{ "key", "bloco_id", "titulo", "texto", "pagina" }],          // cópia do cadastro de blocos
@@ -321,16 +345,30 @@ conteúdo antigo ou parcial preenchendo padrões.
 **`formulario_respostas`** — `formulario_id`, `evento_id`, `cliente_id`, `dados JSONB` (snapshot legível
 `[{secao, chave, rotulo, valor}]`), `ip`.
 
+### Inbox (conversas por e-mail)
+
+**`conversas`** — uma por (evento, usuário dono): `evento_id` (CASCADE), `cliente_id`, `usuario_id` (quem enviou a
+proposta ou iniciou; owner/admin veem todas, usuário comum só as suas), `assunto`, `token` (UNIQUE: endereço de resposta
+`r-<token>@RESEND_INBOUND_DOMAIN`), `participantes TEXT[]` (e-mails do cliente), `ultima_mensagem_em`, `ultima_direcao`,
+`ultimo_trecho`, `nao_lidas`, `arquivada`.
+**`mensagens`** — cada e-mail: `conversa_id` (CASCADE), `direcao` (`entrada | saida`), `usuario_id` (remetente nas
+saídas), `de`, `para TEXT[]`, `cc TEXT[]`, `assunto`, `texto`, `html` (recebido, já sem script/handlers), `message_id`,
+`in_reply_to`, `referencias TEXT[]`, `resend_id` (UNIQUE parcial), `status` (`enviada | entregue | devolvida | falhou |
+recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanho, path|null}]`), `lida_em`.
+**`resend_events`** — eventos do webhook do Resend (`id` = svix-id, `type`, `payload`, `received_at`, `processed_at`,
+`error`); RLS forçado sem política: só a conexão de sistema. Idempotência e reprocessamento dos pendentes.
+
 ### Funções SQL
 
 | Função | O que faz |
 |---|---|
 | `app_tenant_id()` | tenant da transação (base de todas as políticas) |
 | `aplicar_rls(tabela)` | RLS forçado + política `tenant_isolation` + índice em `tenant_id` |
-| `aplicar_padroes_tenant(id)` | `configuracoes_tenant`, 4 status do Kanban, tipos Social/Corporativo, 5 formatos, categorias de item, 4 faixas de locação |
+| `aplicar_padroes_tenant(id)` | `configuracoes_tenant`, 4 status do Kanban, tipos Social/Corporativo, 5 formatos, categorias de item, espaço próprio "Nosso espaço" (padrão) com 4 faixas de locação |
 | `aplicar_padroes_tenant_proposta(id)` | template padrão + blocos Crianças, Hora adicional, Formas de pagamento |
 | `aplicar_padroes_formulario(id)` | formulário "Formulário de contato" com slug `contato-xxxxxx` |
-| `aplicar_padroes_tenant_completo(id)` | chama as três acima; usado no cadastro de empresa nova |
+| `aplicar_padroes_email_modelos(id)` | modelo "Proposta padrão" a partir de `email_assunto`/`email_corpo` |
+| `aplicar_padroes_tenant_completo(id)` | chama as quatro acima; usado no cadastro de empresa nova |
 
 ### Histórico das migrations
 
@@ -355,12 +393,16 @@ conteúdo antigo ou parcial preenchendo padrões.
 | `016_fase4_ux` | `eventos.motivo_perda`/`fechado_em` (etapas recusado/aprovado), `evento_timeline.retorno_em` (anotações), `tenant_usuarios.ocultar_primeiros_passos` |
 | `017_hwesta_integracao` | `tenants.status`/`suspenso_em`/`suspenso_motivo` (kill-switch do Manager), `hwesta_entitlements` (snapshot do plano, RLS por tenant), `hwesta_events` (eventos recebidos, só conexão de sistema) |
 | `018_cores_etapas_design_system` | cores padrão das etapas do funil nos tons do design system (`#B0A194`, `#E35336`, `#5E8B65`, `#3A302A`); só troca etapas que ainda tinham a cor padrão antiga; `aplicar_padroes_tenant` passa a criar com as novas |
+| `019_espacos` | tabela `espacos`; `faixas_locacao.espaco_id`, `configuracoes_tenant.espaco_padrao_id`, `eventos.espaco_id`; backfill de um espaço próprio por empresa (nome = `local_padrao` ou "Nosso espaço") com as faixas e os eventos "na casa"; `aplicar_padroes_tenant` cria o espaço |
+| `020_email_modelos` | tabela `email_modelos` (um padrão por empresa), `aplicar_padroes_email_modelos` (backfill "Proposta padrão" a partir de `email_assunto`/`email_corpo`), `aplicar_padroes_tenant_completo` com 4 chamadas |
+| `021_inbox` | `conversas`, `mensagens` (RLS) e `resend_events` (só sistema) |
 
 ### Seeds (somente dev, `--seed`)
 
 `001` tenant Banket + usuários · `002` tenant "Outro Buffet" (isolamento) · `003` ajuste de tipos/categorias demo ·
 `004` catálogo e opções a partir de `public/ref` · `005` staff e profissionais · `006` eventos demo · `007` template e
-blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario). `_legacy_*` são ignorados.
+blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario) · `009` espaço de terceiro "Sede
+TechCorp" ligado ao evento corporativo. `_legacy_*` são ignorados.
 
 ---
 
@@ -375,8 +417,9 @@ blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel us
 - Usuário com várias empresas troca a ativa por `POST /api/sessao/empresa` (reemite o JWT); lista em `empresasDoUsuario`.
 
 ### Middleware (`src/middleware.ts`)
-- Públicas: `/auth/*`, `/f/*`, `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/print/*` (exige print token),
-  `/_astro/*`, `/_image`, `/api/health` e estáticos de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
+- Públicas: `/auth/*`, `/f/*`, `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
+  Svix do Resend conferida na rota), `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e estáticos
+  de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
 - `/configuracoes*` e `/api/configuracoes*`: só `owner` e `admin` (403 / redirect para o dashboard).
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
@@ -424,8 +467,9 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 
 ## Funcionalidades (módulos e rotas)
 
-Navegação lateral (`components/Sidebar.astro`): Dashboard, Quadro de vendas, Cardápios, Clientes, Agenda, Formulários,
-Staff, Templates, Configurações (só admin), Suporte.
+Navegação lateral (`components/Sidebar.astro`): Dashboard, Funil de vendas, Inbox (com o contador de não lidas,
+calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, Staff, Espaços, Templates, Configurações (só
+admin), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -457,20 +501,33 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
   datas escolhidas no filtro substituem o intervalo. Datas relativas usam `America/Sao_Paulo`.
 - Exportação CSV (`/eventos/exportar`, separador `;` para o Excel em português).
 - Evento (`/eventos/novo`, `/eventos/:id`, `/editar`): briefing completo, cliente existente ou novo no mesmo formulário.
-  Abas do `EventoLayout`: resumo, **Orçamento**, Informações complementares, Condições gerais, Linha do tempo.
+  O local é um select de **Espaço** (nossos espaços, de terceiros ou "Outro local" com nome/endereço livres); o espaço
+  padrão da empresa já vem selecionado. Abas do `EventoLayout`: resumo, **Orçamento**, Informações complementares,
+  Condições gerais, **Mensagens** (Inbox do evento), Linha do tempo.
 - Checklist operacional por evento (degustação, laudos, documentos) com status e prazo.
-- Mudanças relevantes (data, convidados, cliente, status) vão para a linha do tempo.
+- Mudanças relevantes (data, convidados, cliente, espaço, status) vão para a linha do tempo.
+
+### Espaços — `/espacos`, `/espacos/:id` (`server/espacos.ts`, `components/espacos/EspacoDrawer.astro`)
+Cadastro dos locais onde os eventos acontecem, visível a todos os usuários. **Nosso espaço** (próprio): dados gerais,
+capacidade e, no detalhe, as **faixas de locação** por número de convidados (antes em Configurações › Locação).
+**Espaço de terceiro**: contato e valor de referência da locação. Espaços entram no select do evento, no select da seção
+Locação do orçamento e no "Espaço padrão" de Configurações › Empresa. Excluir é bloqueado com eventos vinculados
+(desative). O formulário público "no nosso espaço" aponta para o espaço padrão.
 
 ### Orçamento — `/eventos/:id/orcamento` (`server/orcamento.ts`, `lib/calculo/orcamento.ts`, `components/orcamento/*`)
 - Criar o orçamento gera a **versão 01** com conteúdo inicial (staff marcado como padrão, blocos ativos por padrão,
-  locação pela faixa) e move o evento de `novo` para o primeiro status `negociacao`.
+  locação pelo espaço do evento) e move o evento de `novo` para o primeiro status `negociacao`.
 - Construtor Preact (`OrcamentoBuilder`) com seções: Cardápios (a partir de opções prontas ou do catálogo, itens
   selecionáveis, preços manuais), Bebidas, Staff, Locação e extras, Textos da proposta (blocos). Salvamento automático
   parcial via `PUT /api/orcamentos/:eventoId/versoes/:numero`; o servidor mescla só as partes editáveis, **recalcula** e
   devolve o conteúdo.
 - **Versionamento**: só a versão não congelada é editável; "Criar nova versão" congela a atual e abre `n+1`
   (também serve para restaurar uma versão antiga como nova). A versão em edição acompanha os dados atuais do evento
-  (cabeçalho, convidados); versões congeladas preservam o que foi proposto e reaproveitam o PDF já gerado.
+  (cabeçalho, convidados, espaço); versões congeladas preservam o que foi proposto (recalculadas **sem** as referências
+  de locação, mantendo o `valor_calc` gravado) e reaproveitam o PDF já gerado.
+- **Espaço na seção Locação**: o select mostra os espaços ativos (mais o já escolhido); trocar o espaço no orçamento
+  também atualiza o evento (`salvarVersao` recebe `user`, grava `eventos.espaco_id/local_tipo/local_nome` e registra na
+  timeline). `contextoOrcamento` devolve `refs: ReferenciasLocacao` (todos os espaços + faixas) e `espacos` (seleção).
 - Template da proposta por orçamento (`definirTemplate`; vazio = padrão da empresa).
 
 **Regras de cálculo (função pura, mesmo código no navegador e no servidor):**
@@ -481,7 +538,8 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
 - Bebida: unitário × pagantes equivalentes (`pessoa`) ou × quantidade (`unidade`).
 - Staff: quantidade = `quantidade_fixa` se por evento, senão `max(minimo, ceil(convidados / convidados_por_profissional))`;
   unitário = cachê/diária + auxílio.
-- Locação: faixa que contém o nº de convidados (se `incluir`).
+- Locação (`calcularLocacao`): espaço próprio → faixa do espaço que contém o nº de convidados; espaço de terceiro →
+  `valor_referencia`; sem espaço (ou apagado) → 0, mantendo `espaco_nome` como snapshot. Só com `incluir`.
 - Total = alimentos + bebidas + staff + locação + extras (ou `total_manual`). Arredondamento a centavos.
 - Blocos automáticos em Informações complementares: equipe (linhas por função) e contagem de opções por restrição
   alimentar; viram manuais quando o usuário edita.
@@ -497,9 +555,31 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
 - O Dockerfile instala `chromium` e fontes Noto (acentuação/emoji); `CHROMIUM_PATH=/usr/bin/chromium-browser`.
 
 ### Envio da proposta (`server/envio.ts`)
-Rascunho com destinatário (responsável do evento ou e-mail do cliente), assunto e corpo do modelo da empresa com
-variáveis substituídas. Até 5 destinatários, PDF anexado, `reply-to` = e-mail do usuário. Grava `enviado_em`/
-`enviado_para` na versão e `email_enviado` na timeline.
+Rascunho com destinatário (responsável do evento ou e-mail do cliente) e select **Modelo** (modelos ativos com as
+variáveis aplicadas no servidor; o padrão preenche assunto/mensagem). Até 5 destinatários, PDF anexado. O envio abre (ou
+continua) a **conversa** do usuário com o cliente no evento (`obterOuCriarConversa` + `enviarNaConversa`): remetente
+`"<usuário> · <empresa>" <MAIL_FROM>`, `Reply-To` = endereço da conversa (`r-<token>@RESEND_INBOUND_DOMAIN`; sem o
+domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhecidos. Grava a mensagem de saída (PDF em
+`anexos`), `enviado_em`/`enviado_para` na versão e `email_enviado` na timeline.
+
+### Inbox — `/inbox`, `/inbox/:id`, `/eventos/:id/mensagens` (`server/conversas.ts`, `server/inbox/receber.ts`, `components/inbox/Conversa.astro`)
+- Conversas sempre ligadas a um evento: nascem no envio da proposta ou em "Nova mensagem" na aba Mensagens do evento.
+  Lista com busca, filtros todas / não lidas / minhas (admin), responsável (admin) e arquivadas; thread com as
+  mensagens enviadas (status de entrega) e recebidas (texto; "Ver e-mail formatado" abre o HTML limpo num
+  `<iframe sandbox>`), anexos (`/uploads/…`, sempre como download) e o form de resposta com "Inserir modelo".
+- **Permissões**: `owner`/`admin` veem e respondem todas as conversas da empresa; `usuario` só as suas (`usuario_id`).
+  Todas as consultas levam o fragmento `VISIVEL` (`isAdmin(user) OR usuario_id = user.id`); fora do escopo → UserError.
+- **Recebimento** (Resend Receiving, GA; o produto "Inboxes" do Resend não é usado): o domínio `RESEND_INBOUND_DOMAIN`
+  tem MX apontando para o Resend; `POST /api/webhooks/resend` verifica a assinatura Svix (`RESEND_WEBHOOK_SECRET`),
+  registra o evento em `resend_events` (duplicado → 200) e processa: `email.received` → conversa pelo token do
+  destinatário (ou por `In-Reply-To`/`References` contra `mensagens.message_id`) → corpo/cabeçalhos pela Receiving API e
+  anexos (≤ 10 MB, até 10; a URL de download vale 1 h) em `mensagens/{eventoId}/…` → `receberMensagem` (não lidas + 1,
+  timeline `email_recebido`); `email.delivered|bounced|complained|failed|delivery_delayed` → status da mensagem pelo
+  `resend_id`. Token desconhecido ou id de e-mail transacional → ignorado (200); erro transitório → 500 e o Resend
+  reenvia (o evento fica `pendente` e é reprocessado). Só o token → empresa e o `resend_id` → empresa usam a conexão de
+  sistema; o resto roda em `withTenant`.
+- Contador de não lidas no menu (`contarNaoLidas`, uma consulta por página no `AppLayout`); abrir a conversa zera.
+  Sem `RESEND_INBOUND_DOMAIN`, as telas avisam que as respostas vão para o e-mail do usuário.
 
 ### Cardápios — `/cardapio/itens`, `/cardapio/sessoes`, `/cardapio/opcoes` (`server/cardapio.ts`)
 Catálogo de seções e itens (preço, unidade de cobrança, custo, categorias principal/secundária, formato, composição,
@@ -542,13 +622,15 @@ próprio: liga/desliga e posição do logotipo principal. Blocos de informação
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
 Usuários e convites · Tipos de evento · Categorias (com toggles de tipo via `/api/configuracoes/categorias/tipos`) ·
 Status de orçamento (colunas do Kanban: nome, variante, cor, ordem, intervalo do Kanban) · Formatos de serviço ·
-Locação (faixas) · Empresa (dados cadastrais, logo, validade da proposta, faixas de crianças, local padrão, assinatura,
-modelo de e-mail).
+Modelos de e-mail (`/configuracoes/modelos-email`, `server/emailModelos.ts`: nome, assunto, corpo com chips de
+variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ativo assume) · Empresa (dados cadastrais, logo,
+validade da proposta, faixas de crianças, espaço padrão, assinatura). A locação saiu daqui: fica em Espaços.
 
 ### Uploads (`lib/storage.ts`, `pages/uploads/[...path].ts`)
 Disco em `{UPLOAD_DIR}/{tenantId}/{pasta}/{uuid}.{ext}` (volume Docker `/data/uploads`). Imagens PNG/JPEG/WebP/SVG até
 5 MB por padrão. `resolveKey` impede sair da pasta do tenant. Servidos em `/uploads/{tenantId}/…` apenas para a sessão
-do mesmo tenant (`Cache-Control: private`). Interface pensada para trocar por S3.
+do mesmo tenant (`Cache-Control: private`). Anexos de e-mails recebidos (`mensagens/…`) saem com
+`Content-Disposition: attachment`. Interface pensada para trocar por S3.
 
 ### Upload de arquivos (`components/ui/FileUpload.astro`)
 Todo campo de arquivo usa o `FileUpload`: área "arraste e solte ou procure" e, com arquivo, cartão com miniatura, nome
@@ -559,7 +641,10 @@ Remoção: `removerName` (checkbox aplicado ao salvar) ou `removerAcao` (submit 
 ### E-mail (`lib/mail.ts`, `server/emails.ts`)
 `sendMail` usa `https://api.resend.com/emails` com `RESEND_API_KEY`/`MAIL_FROM`; sem chave, ou quando todos os
 destinatários são de domínio reservado (`example.com`, `.test`…, ver `dominioReservado`), registra no log e retorna
-`delivered: false` — é assim que os e2e leem os links mesmo com a chave ativa. E-mails transacionais usam `emailLayout` (título, parágrafos, botão, rodapé). Links usam `APP_URL`.
+`delivered: false` — é assim que os e2e leem os links mesmo com a chave ativa. `fromName` troca só o nome de exibição
+(o endereço continua o de `MAIL_FROM`); `replyTo` aceita lista; `headers` leva `In-Reply-To`/`References`. E-mails
+transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do usuário (proposta, Inbox) usam
+`mensagemHtml` (`server/emailTexto.ts`). Links usam `APP_URL`.
 
 ### Componentes de interface compartilhados
 - **Drawer** (`components/ui/Drawer.astro`): envia o form por `fetch` com `Accept: application/json`; `handleFormPost`
@@ -758,7 +843,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `DATABASE_URL` / `DATABASE_URL_SYSTEM` | montadas pelo compose; defina à mão só fora do Docker |
 | `JWT_SECRET` | sessão, onboarding e print token (≥ 32 caracteres, obrigatório) |
 | `APP_URL` | URL pública nos links de e-mail |
-| `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção** |
+| `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção**. Para o Inbox a chave precisa ser de **acesso completo** (uma chave "sending only" recebe 401 na Receiving API) |
+| `RESEND_INBOUND_DOMAIN` / `RESEND_WEBHOOK_SECRET` | Inbox: domínio que recebe as respostas (`respostas.banket.com.br`, MX → Resend) e segredo `whsec_…` do webhook `/api/webhooks/resend`; sem o domínio, o Reply-To é o e-mail do usuário; sem o segredo, o webhook responde 503 |
 | `OPENAI_TOKEN` / `OPENAI_MODEL` / `OPENAI_IMAGE_MODEL` | IA do template: sugestões de fontes/cores (padrão `gpt-4.1-mini`) e imagens de fundo (padrão `gpt-image-2`) |
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
@@ -777,6 +863,28 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   `banket-postgres-1`.
 - **Nginx no host**: `/etc/nginx/sites-enabled/app.banket.com.br.conf` faz proxy para o upstream `banket_app`, definido em
   `/etc/nginx/conf.d/banket-upstream.conf` (reescrito a cada deploy). HTTPS via Certbot. `client_max_body_size 20m`.
+- **Site institucional** (`site/`, <https://banket.com.br>): HTML estático sem build nem contêiner. É **página única**:
+  todas as seções (hero, como funciona, recursos, para quem é, planos, dúvidas, contato) ficam no `index.html` e o menu
+  usa âncoras; só páginas de fato separadas ganham arquivo `.html` próprio. `assets/css/design-system.css` é cópia
+  concatenada de `design-system/tokens` e `components` (recopiar quando o design system mudar); `assets/css/site.css` e
+  `assets/js/site.js` são do site (JS puro: passos do "Como funciona", cobrança mensal/anual, comparação, dúvidas,
+  staff, formulário, menu do celular). Nginx: `/etc/nginx/sites-enabled/banket.com.br.conf` (root em
+  `/var/www/banket/site`, `www` e HTTP redirecionam, `/_prototipo/` bloqueado); certificado `banket.com.br` (Certbot);
+  DNS pelo Cloudflare (proxy), que guarda CSS/JS em cache: ao alterá-los, suba o `?v=` dos links no `index.html`.
+  Publicar = salvar o arquivo. `site/_prototipo/` guarda o export original do Claude Design (runtime `support.js` +
+  React), só como referência.
+- **Agendamento da demonstração** (formulário de `#contato`): acoplado à Agenda do Manager Hwesta
+  (`/var/www/hwesta/manager`, calendário público `crm-banket`, 30 min, Google Meet + e-mail pelo Resend). O navegador
+  só chama `/api/agenda/slots` (GET), `/api/agenda/bookings` (POST) e `/api/agenda/ics/<token>` (GET) no próprio
+  domínio; o Nginx repassa ao contêiner do Manager (`127.0.0.1:4329`, `/api/public/agenda/crm-banket/…`) com
+  `snippets/banket-agenda-proxy.conf`, método restrito por rota, `limit_req` por IP real (`conf.d/banket-site.conf`,
+  `CF-Connecting-IP`) e sem cookies. Não há chave de API no site: usa-se o modo público do Manager, que aplica limite
+  por IP, campo-isca `website` e máximo de 3 chamadas abertas por e-mail. Plano e volume de eventos vão em `notes`.
+  Cabeçalhos em `snippets/banket-site-headers.conf`: CSP `script-src 'self'` (nenhum script em linha nem externo —
+  o beacon do Cloudflare Web Analytics fica bloqueado), `connect-src 'self'`, `frame-ancestors 'self'`, HSTS.
+  No JS, tudo que vem da API entra por `textContent`; a tela de confirmação só mostra o convite `.ics` (token
+  validado por regex) — o link do Meet e o de cancelar chegam pelo e-mail. Para testar de ponta a ponta sem sujar a agenda, cancele a reserva com
+  `POST /api/public/agenda/bookings/<token>/cancel` no Manager.
 - **Blue-green** (`scripts/deploy-remoto.sh`): constrói e sobe a cor inativa, espera responder, troca o upstream,
   `nginx -t` + reload, drena 15 s e **para** (não remove) a cor antiga. Se a nova não subir, nada muda. A cor ativa fica em
   `.deploy-ativo` (fora do git). `--rollback` religa a cor anterior.
@@ -800,3 +908,10 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - O servidor sempre recalcula o orçamento; não confie em totais enviados pelo navegador.
 - Versão congelada não aceita edição (`salvarVersao` recusa); só uma versão aberta por orçamento (índice parcial).
 - O Chromium do PDF acessa o próprio app em `127.0.0.1:$PORT`; a página `/print/*` precisa funcionar sem sessão.
+- `conteudoSchema` descarta chaves desconhecidas: todo campo gravado numa versão congelada que precise sobreviver (ex.:
+  `locacao.valor_calc`) tem de estar no schema; versões congeladas são recalculadas sem referências de locação.
+- O webhook do Resend usa a conexão de sistema só para achar a empresa (token → conversa; `resend_id` → mensagem);
+  o resto roda em `withTenant`. Anexos recebidos nunca são servidos inline. Reenvios do Resend são normais: idempotência
+  por svix-id em `resend_events`.
+- Faixas de locação gravadas pela versão anterior do código (sem `espaco_id`) pertencem ao espaço padrão; `local_padrao`
+  e `email_assunto`/`email_corpo` ficaram sem uso até o próximo deploy.

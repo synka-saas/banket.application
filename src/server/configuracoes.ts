@@ -1,8 +1,8 @@
 // Cadastros de Configurações: tipos e categorias de evento, categorias de item,
-// formatos de serviço, faixas de locação e status do orçamento (colunas do Kanban).
+// formatos de serviço e status do orçamento (colunas do Kanban).
 import { z } from 'zod';
 import type { Db } from '../lib/db';
-import { UserError, optionalInt, optionalMoney, optionalText, requiredText, stringArray } from '../lib/forms';
+import { UserError, optionalText, requiredText, stringArray } from '../lib/forms';
 
 async function exigirAfetado(res: { rowCount: number | null }, entidade: string) {
   if (!res.rowCount) throw new UserError(`${entidade} não encontrado(a).`);
@@ -202,74 +202,6 @@ export async function salvarFormatoServico(db: Db, tenantId: string, id: string 
 
 export async function excluirFormatoServico(db: Db, id: string) {
   await exigirAfetado(await db.query('DELETE FROM formatos_servico WHERE id = $1', [id]), 'Formato de serviço');
-}
-
-// ---------------------------------------------------------------------------
-// Faixas de locação do espaço por número de convidados
-// ---------------------------------------------------------------------------
-export const faixaLocacaoSchema = z
-  .object({
-    min_convidados: optionalInt().refine((v) => v !== null, 'Informe o número mínimo de convidados.'),
-    max_convidados: optionalInt(),
-    valor: optionalMoney().refine((v) => v !== null, 'Informe o valor da locação.'),
-    observacao: optionalText(500),
-  })
-  .refine((f) => f.max_convidados === null || f.max_convidados >= (f.min_convidados ?? 0), {
-    message: 'O máximo de convidados deve ser maior ou igual ao mínimo.',
-    path: ['max_convidados'],
-  });
-
-export interface FaixaLocacao {
-  id: string;
-  min_convidados: number;
-  max_convidados: number | null;
-  valor: number;
-  observacao: string | null;
-}
-
-export async function listarFaixasLocacao(db: Db): Promise<FaixaLocacao[]> {
-  const { rows } = await db.query<FaixaLocacao>(
-    'SELECT id, min_convidados, max_convidados, valor, observacao FROM faixas_locacao ORDER BY min_convidados'
-  );
-  return rows;
-}
-
-export function descreverFaixa(f: Pick<FaixaLocacao, 'min_convidados' | 'max_convidados'>): string {
-  if (f.max_convidados === null) return `A partir de ${f.min_convidados} convidados`;
-  if (f.min_convidados <= 0) return `Até ${f.max_convidados} convidados`;
-  return `De ${f.min_convidados} a ${f.max_convidados} convidados`;
-}
-
-export async function salvarFaixaLocacao(db: Db, tenantId: string, id: string | null, input: z.infer<typeof faixaLocacaoSchema>) {
-  const max = input.max_convidados ?? 2_147_483_647;
-  const sobreposta = await contar(
-    db,
-    `SELECT count(*) AS n FROM faixas_locacao
-      WHERE ($1::uuid IS NULL OR id <> $1)
-        AND min_convidados <= $3 AND COALESCE(max_convidados, 2147483647) >= $2`,
-    [id, input.min_convidados, max]
-  );
-  if (sobreposta) throw new UserError('Esta faixa se sobrepõe a outra já cadastrada.');
-
-  const values = [input.min_convidados, input.max_convidados, input.valor, input.observacao];
-  if (id) {
-    await exigirAfetado(
-      await db.query(
-        'UPDATE faixas_locacao SET min_convidados = $1, max_convidados = $2, valor = $3, observacao = $4 WHERE id = $5',
-        [...values, id]
-      ),
-      'Faixa'
-    );
-  } else {
-    await db.query(
-      'INSERT INTO faixas_locacao (min_convidados, max_convidados, valor, observacao, tenant_id) VALUES ($1, $2, $3, $4, $5)',
-      [...values, tenantId]
-    );
-  }
-}
-
-export async function excluirFaixaLocacao(db: Db, id: string) {
-  await exigirAfetado(await db.query('DELETE FROM faixas_locacao WHERE id = $1', [id]), 'Faixa');
 }
 
 // ---------------------------------------------------------------------------

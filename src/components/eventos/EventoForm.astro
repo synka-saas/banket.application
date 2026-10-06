@@ -10,6 +10,7 @@ import {
   QUALIFICACOES,
   RESTRICOES_EVENTO,
   STAFF_TERCEIROS,
+  type EspacoOpcao,
 } from '../../server/eventos';
 import { ROTULOS } from '../../lib/rotulos';
 
@@ -26,6 +27,7 @@ interface Props {
   categorias: (Opcao & { tipos: string[] })[];
   formatos: Opcao[];
   status: Opcao[];
+  espacos: EspacoOpcao[];
   erro?: string;
   /** Erros do servidor por campo (name → mensagem): aparecem junto de cada campo */
   erros?: Record<string, string>;
@@ -33,7 +35,7 @@ interface Props {
   modo: 'criar' | 'editar';
 }
 
-const { valores: v, clientes, tipos, categorias, formatos, status, erro, erros = {}, cancelarHref, modo } = Astro.props;
+const { valores: v, clientes, tipos, categorias, formatos, status, espacos, erro, erros = {}, cancelarHref, modo } = Astro.props;
 const qtdErros = Object.keys(erros).length;
 
 const texto = (campo: string) => (v[campo] === null || v[campo] === undefined ? '' : String(v[campo]));
@@ -41,6 +43,10 @@ const lista = (campo: string): string[] => (Array.isArray(v[campo]) ? (v[campo] 
 const dinheiro = (campo: string) => (typeof v[campo] === 'number' ? moneyInput(v[campo] as number) : texto(campo));
 const decimal = (campo: string) => texto(campo).replace('.', ',');
 const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo === 'criar' && clientes.length === 0);
+const espacoId = texto('espaco_id');
+const espacosProprios = espacos.filter((e) => e.tipo === 'proprio');
+const espacosTerceiros = espacos.filter((e) => e.tipo === 'terceiro');
+const enderecosEspacos: Record<string, string> = Object.fromEntries(espacos.map((e) => [e.id, e.endereco ?? '']));
 ---
 
 <form method="post" id="form-evento" class="evento-form" data-evento-form novalidate data-erros={qtdErros ? JSON.stringify(erros) : undefined}>
@@ -216,18 +222,29 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
 
   <SectionCard title="Logística e infraestrutura" icon="building">
     <div class="form-grid">
-      <div class="field">
-        <span class="field-label">Local</span>
-        <div class="chip-group radios">
-          <label class="chip"><input type="radio" name="local_tipo" value="casa" checked={v.local_tipo !== 'externo'} />No nosso espaço</label>
-          <label class="chip"><input type="radio" name="local_tipo" value="externo" checked={v.local_tipo === 'externo'} />Local externo (empresa, residência ou espaço alugado)</label>
-        </div>
+      <div class="field span-2">
+        <label for="ev-espaco">Espaço</label>
+        <select id="ev-espaco" name="espaco_id" data-espaco-select data-enderecos={JSON.stringify(enderecosEspacos)}>
+          {espacosProprios.length > 0 && (
+            <optgroup label="Nossos espaços">
+              {espacosProprios.map((e) => <option value={e.id} selected={e.id === espacoId}>{e.nome}{e.ativo ? '' : ' (inativo)'}</option>)}
+            </optgroup>
+          )}
+          {espacosTerceiros.length > 0 && (
+            <optgroup label="Espaços de terceiros">
+              {espacosTerceiros.map((e) => <option value={e.id} selected={e.id === espacoId}>{e.nome}{e.ativo ? '' : ' (inativo)'}</option>)}
+            </optgroup>
+          )}
+          <option value="" selected={!espacoId}>Outro local (empresa, residência ou espaço alugado)</option>
+        </select>
+        <span class="field-hint" data-espaco-endereco hidden={!espacoId || !enderecosEspacos[espacoId]}>{espacoId ? enderecosEspacos[espacoId] : ''}</span>
+        {espacos.length === 0 && <span class="field-hint">Cadastre seus espaços em <a class="link" href="/espacos">Espaços</a> para escolhê-los aqui.</span>}
       </div>
-      <div class="field">
+      <div class="field" data-outro-local hidden={Boolean(espacoId)}>
         <label for="ev-local">Nome do local</label>
         <input id="ev-local" name="local_nome" value={texto('local_nome')} maxlength="255" />
       </div>
-      <div class="field span-2">
+      <div class="field span-2" data-outro-local hidden={Boolean(espacoId)}>
         <label for="ev-end">Endereço</label>
         <input id="ev-end" name="endereco" value={texto('endereco')} maxlength="500" />
       </div>
@@ -341,6 +358,22 @@ const clienteNovo = v.cliente_novo === '1' || v.cliente_novo === true || (modo =
         (usarNovo ? novo.querySelector<HTMLInputElement>('[name="cliente_nome"]') : existente.querySelector('select'))?.focus();
       })
     );
+
+    // Espaço cadastrado × outro local: nome e endereço livres só aparecem sem espaço; a dica mostra o endereço do cadastro
+    const espaco = form.querySelector<HTMLSelectElement>('[data-espaco-select]');
+    if (espaco) {
+      const enderecos = JSON.parse(espaco.dataset.enderecos ?? '{}') as Record<string, string>;
+      const dica = form.querySelector<HTMLElement>('[data-espaco-endereco]')!;
+      const outro = form.querySelectorAll<HTMLElement>('[data-outro-local]');
+      const atualizarLocal = () => {
+        const id = espaco.value;
+        outro.forEach((el) => (el.hidden = Boolean(id)));
+        dica.textContent = id ? enderecos[id] ?? '' : '';
+        dica.hidden = !id || !enderecos[id];
+      };
+      espaco.addEventListener('change', atualizarLocal);
+      atualizarLocal();
+    }
 
     // Categorias válidas para o tipo de evento escolhido.
     // A lista é reconstruída (option.hidden não funciona no Safari — UX-115)

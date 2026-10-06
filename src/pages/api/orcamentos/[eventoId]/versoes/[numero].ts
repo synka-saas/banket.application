@@ -10,7 +10,7 @@ export const PUT = jsonEndpoint(async ({ params, request, locals }) => {
   const corpo = await readJson(request);
   if (typeof corpo !== 'object' || corpo === null || Array.isArray(corpo)) throw new UserError('Dados inválidos.');
   const conteudo = await withTenant(locals.user.tenantId, (db) =>
-    salvarVersao(db, params.eventoId!, numero, corpo as Record<string, unknown>)
+    salvarVersao(db, locals.user, params.eventoId!, numero, corpo as Record<string, unknown>)
   );
   return { totais: conteudo.totais };
 });

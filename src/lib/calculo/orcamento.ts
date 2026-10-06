@@ -79,19 +79,42 @@ export interface ExtraOrcamento {
 
 export interface FaixaLocacaoRef {
   id: string;
+  /** Espaço próprio dono da faixa (null só em dados antigos, tratados como do espaço padrão pelo servidor) */
+  espaco_id: string | null;
   min_convidados: number;
   max_convidados: number | null;
   valor: number;
   descricao: string;
 }
 
+/** Espaço de eventos cadastrado (próprio = locação por faixa; terceiro = valor de referência) */
+export interface EspacoRef {
+  id: string;
+  nome: string;
+  tipo: 'proprio' | 'terceiro';
+  valor_referencia: number | null;
+  ativo: boolean;
+}
+
+/** Dados de apoio da locação: todos os espaços da empresa e as faixas de cada espaço próprio */
+export interface ReferenciasLocacao {
+  espacos: EspacoRef[];
+  faixas: FaixaLocacaoRef[];
+}
+
 export interface LocacaoOrcamento {
   incluir: boolean;
+  /** Espaço escolhido (acompanha o evento na versão em edição) */
+  espaco_id: string | null;
+  /** Snapshot do nome, para versões congeladas e espaços apagados */
+  espaco_nome: string | null;
   faixa_id: string | null;
   descricao: string | null;
   valor_calc?: number;
   valor_manual: number | null;
 }
+
+export const DESCRICAO_VALOR_REFERENCIA = 'Valor de referência do espaço';
 
 export interface LinhaInfo {
   key: string;
@@ -203,10 +226,31 @@ export function contarRestricoes(conteudo: Pick<ConteudoOrcamento, 'cardapios'>)
 }
 
 /**
- * Recalcula todos os valores derivados. Não altera os valores manuais.
- * `faixas` é opcional: sem ela, a locação mantém o valor calculado já presente.
+ * Locação pelo espaço escolhido: espaço próprio usa a faixa de convidados; espaço de terceiro usa o valor de
+ * referência; sem espaço (ou espaço apagado) o valor calculado é zero. O nome fica guardado como snapshot.
  */
-export function calcularOrcamento(conteudo: ConteudoOrcamento, faixas?: FaixaLocacaoRef[]): ConteudoOrcamento {
+export function calcularLocacao(locacao: LocacaoOrcamento, refs: ReferenciasLocacao, convidados: number): LocacaoOrcamento {
+  const base = { ...locacao, faixa_id: null, descricao: null, valor_calc: 0 };
+  if (!locacao.espaco_id) return { ...base, espaco_nome: null };
+  const espaco = refs.espacos.find((e) => e.id === locacao.espaco_id);
+  if (!espaco) return base;
+  if (espaco.tipo === 'terceiro') {
+    return {
+      ...base,
+      espaco_nome: espaco.nome,
+      descricao: espaco.valor_referencia === null ? null : DESCRICAO_VALOR_REFERENCIA,
+      valor_calc: espaco.valor_referencia ?? 0,
+    };
+  }
+  const faixa = faixaParaConvidados(refs.faixas.filter((f) => f.espaco_id === espaco.id), convidados);
+  return { ...base, espaco_nome: espaco.nome, faixa_id: faixa?.id ?? null, descricao: faixa?.descricao ?? null, valor_calc: faixa?.valor ?? 0 };
+}
+
+/**
+ * Recalcula todos os valores derivados. Não altera os valores manuais.
+ * `refs` é opcional: sem ele, a locação mantém o valor calculado já presente (versões congeladas).
+ */
+export function calcularOrcamento(conteudo: ConteudoOrcamento, refs?: ReferenciasLocacao): ConteudoOrcamento {
   const equivalentes = pagantesEquivalentes(conteudo.pagantes);
   const convidados = Math.max(0, conteudo.pagantes.convidados);
 
@@ -236,11 +280,7 @@ export function calcularOrcamento(conteudo: ConteudoOrcamento, faixas?: FaixaLoc
 
   const extras = conteudo.extras.map((e) => ({ ...e, subtotal_calc: arredondar(e.quantidade * e.valor_unit) }));
 
-  let locacao = conteudo.locacao;
-  if (faixas) {
-    const faixa = faixaParaConvidados(faixas, convidados);
-    locacao = { ...locacao, faixa_id: faixa?.id ?? null, descricao: faixa?.descricao ?? null, valor_calc: faixa?.valor ?? 0 };
-  }
+  const locacao = refs ? calcularLocacao(conteudo.locacao, refs, convidados) : conteudo.locacao;
   const valorLocacao = locacao.incluir ? efetivo(locacao.valor_manual, locacao.valor_calc) : 0;
 
   const alimentos = arredondar(cardapios.reduce((a, c) => a + efetivo(c.subtotal_manual, c.subtotal_calc), 0));

@@ -184,7 +184,7 @@ export async function primeirosPassos(db: Db): Promise<PassoInicial[]> {
             EXISTS (SELECT 1 FROM catalogo_itens) AS itens,
             EXISTS (SELECT 1 FROM cardapio_opcoes) AS opcoes,
             EXISTS (SELECT 1 FROM staff_servicos) AS staff,
-            EXISTS (SELECT 1 FROM faixas_locacao) AS faixas,
+            EXISTS (SELECT 1 FROM espacos es WHERE EXISTS (SELECT 1 FROM faixas_locacao f WHERE f.espaco_id = es.id) OR es.tipo = 'terceiro') AS faixas,
             EXISTS (SELECT 1 FROM eventos) AS eventos`
   );
   const r = rows[0];
@@ -193,7 +193,7 @@ export async function primeirosPassos(db: Db): Promise<PassoInicial[]> {
     { titulo: 'Itens do cardápio', descricao: 'Cadastre os itens e seções que você oferece.', href: '/cardapio/itens', feito: r.itens },
     { titulo: 'Opções de cardápio', descricao: 'Monte cardápios prontos para usar nos orçamentos.', href: '/cardapio/opcoes', feito: r.opcoes },
     { titulo: 'Staff', descricao: 'Funções, cachês e regras de dimensionamento da equipe.', href: '/staff/servicos', feito: r.staff },
-    { titulo: 'Locação', descricao: 'Valores do espaço por faixa de convidados.', href: '/configuracoes/locacao', feito: r.faixas, adminOnly: true },
+    { titulo: 'Espaços e locação', descricao: 'Cadastre seus espaços e os valores de locação por faixa de convidados.', href: '/espacos', feito: r.faixas },
     { titulo: 'Primeiro evento', descricao: 'Cadastre um pedido e confeccione o orçamento.', href: '/eventos/novo', feito: r.eventos },
   ];
 }

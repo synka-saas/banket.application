@@ -1,0 +1,156 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Conversa from '../../../components/inbox/Conversa.astro';
+import InfoCard from '../../../components/ui/InfoCard.astro';
+import Button from '../../../components/ui/Button.astro';
+import Drawer from '../../../components/ui/Drawer.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { dataHora } from '../../../lib/datas';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { carregarConversa, listarConversas, marcarComoLida, modelosParaEvento, novaMensagem, novaMensagemSchema } from '../../../server/conversas';
+import '../../../styles/inbox.css';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const propria = `/eventos/${id}/mensagens`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const input = novaMensagemSchema.parse(data);
+    const r = await withTenant(user.tenantId, (db) => novaMensagem(db, user, id, input));
+    return {
+      message: r.delivered ? `Mensagem enviada para ${input.para.join(', ')}.` : 'Mensagem registrada (sem envio real: domínio de teste ou e-mail não configurado).',
+      redirect: propria,
+    };
+  });
+}
+
+const { evento, conversas, conversa, modelos } = await withTenant(user.tenantId, async (db) => {
+  const evento = await carregarEvento(db, id);
+  const { rows: conversas } = await listarConversas(db, user, { eventoId: id, filtro: 'todas', arquivadas: false }, { page: 1, pageSize: 50, offset: 0 });
+  const { rows: arquivadas } = await listarConversas(db, user, { eventoId: id, filtro: 'todas', arquivadas: true }, { page: 1, pageSize: 50, offset: 0 });
+  const todas = [...conversas, ...arquivadas];
+  // Uma só conversa visível: a thread aparece direto na aba
+  const unica = todas.length === 1 ? await carregarConversa(db, user, todas[0].id) : null;
+  if (unica && unica.nao_lidas > 0) await marcarComoLida(db, unica.id);
+  return { evento, conversas: todas, conversa: unica, modelos: await modelosParaEvento(db, id) };
+});
+
+const paraPadrao = evento.responsavel_email ?? evento.cliente_email ?? '';
+const assuntoPadrao = evento.titulo ?? 'Seu evento';
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="mensagens">
+  <div class="mensagens-topo">
+    <p class="intro">
+      E-mails trocados com o cliente sobre este evento. A proposta enviada pelo orçamento abre a conversa; as respostas
+      do cliente chegam aqui e no <a class="link" href="/inbox">Inbox</a>.
+    </p>
+    <Button icon="message-plus" data-drawer-open="drawer-nova-mensagem">Nova mensagem</Button>
+  </div>
+
+  {conversa ? (
+    <Conversa conversa={conversa} modelos={modelos} voltar={propria} tenantId={user.tenantId} compacto />
+  ) : conversas.length === 0 ? (
+    <EstadoVazio icon="mail" titulo="Nenhuma conversa com o cliente ainda" texto="Envie a proposta pelo orçamento ou escreva uma mensagem avulsa para começar.">
+      <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-nova-mensagem">Nova mensagem</button>
+    </EstadoVazio>
+  ) : (
+    <div class="conversas-cards">
+      {conversas.map((c) => (
+        <InfoCard
+          title={c.assunto}
+          icon="mail"
+          description={c.ultimo_trecho ?? undefined}
+          rows={[
+            { label: 'Responsável', value: c.usuario_nome ?? '—' },
+            { label: 'Última mensagem', value: c.ultima_mensagem_em ? dataHora(c.ultima_mensagem_em) : '—' },
+            { label: 'Mensagens', value: String(c.total_mensagens).padStart(2, '0') },
+          ]}
+          muted={c.arquivada}
+        >
+          {c.nao_lidas > 0 && <span slot="status" class="badge badge-accent">{String(c.nao_lidas).padStart(2, '0')} não lidas</span>}
+          {c.arquivada && <span slot="status" class="badge">Arquivada</span>}
+          <Button slot="footer" variant="secondary" block href={`/inbox/${c.id}`}>Abrir conversa</Button>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+
+  <Drawer slot="overlays" id="drawer-nova-mensagem" formId="form-nova-mensagem" title="Nova mensagem" width="md" deletable={false} saveLabel="Enviar" saveLoadingLabel="Enviando…">
+    <form id="form-nova-mensagem" method="post" class="form-grid" data-nova-mensagem>
+      <div class="field span-2">
+        <label for="nm-para">Para<span class="obrigatorio">*</span></label>
+        <input id="nm-para" name="para" required value={paraPadrao} placeholder="email@cliente.com.br" />
+        <span class="field-hint">Até 5 e-mails separados por vírgula. A resposta do cliente chega nesta aba e no Inbox.</span>
+      </div>
+      <div class="field span-2">
+        <label for="nm-assunto">Assunto<span class="obrigatorio">*</span></label>
+        <input id="nm-assunto" name="assunto" required maxlength="255" value={assuntoPadrao} />
+      </div>
+      {modelos.length > 0 && (
+        <div class="field span-2">
+          <label for="nm-modelo">Modelo</label>
+          <select id="nm-modelo" name="modelo_id" data-modelos={JSON.stringify(modelos.map((m) => ({ id: m.id, assunto: m.assunto, corpo: m.corpo })))}>
+            <option value="">Nenhum</option>
+            {modelos.map((m) => <option value={m.id}>{m.nome}</option>)}
+          </select>
+        </div>
+      )}
+      <div class="field span-2">
+        <label for="nm-texto">Mensagem<span class="obrigatorio">*</span></label>
+        <textarea id="nm-texto" name="texto" rows="10" required maxlength="10000"></textarea>
+      </div>
+    </form>
+  </Drawer>
+</EventoLayout>
+
+<script>
+  // Modelo preenche assunto e mensagem da nova mensagem
+  const form = document.querySelector<HTMLFormElement>('[data-nova-mensagem]');
+  const select = form?.querySelector<HTMLSelectElement>('[name="modelo_id"]');
+  if (form && select) {
+    const modelos = JSON.parse(select.dataset.modelos ?? '[]') as { id: string; assunto: string; corpo: string }[];
+    select.addEventListener('change', () => {
+      const m = modelos.find((x) => x.id === select.value);
+      if (!m) return;
+      form.querySelector<HTMLInputElement>('[name="assunto"]')!.value = m.assunto;
+      const texto = form.querySelector<HTMLTextAreaElement>('[name="texto"]')!;
+      texto.value = m.corpo;
+      texto.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+</script>
+
+<style>
+  .mensagens-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .mensagens-topo :global(.btn) {
+    flex: none;
+  }
+
+  .intro {
+    max-width: 640px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .mensagens-topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>

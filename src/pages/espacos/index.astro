@@ -1,0 +1,112 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import EspacoDrawer from '../../components/espacos/EspacoDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { brl } from '../../lib/forms';
+import { html } from '../../lib/html';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { lerOrdenacao } from '../../lib/ordenacao';
+import { ROTULOS } from '../../lib/rotulos';
+import { TIPOS_ESPACO, espacoSchema, excluirEspaco, listarEspacos, salvarEspaco, type TipoEspaco } from '../../server/espacos';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirEspaco(db, id));
+      return 'Espaço removido.';
+    }
+    const input = espacoSchema.parse(data);
+    const salvoId = await withTenant(tenantId, (db) => salvarEspaco(db, tenantId, id, input));
+    if (id) return 'Espaço atualizado.';
+    // Espaço próprio novo: já abre o detalhe para cadastrar as faixas de locação
+    return { message: 'Espaço cadastrado.', redirect: input.tipo === 'proprio' ? `/espacos/${salvoId}` : '/espacos' };
+  });
+}
+
+const page = pageParams(Astro.url);
+const tipoFiltro = Astro.url.searchParams.get('tipo');
+const tipo: TipoEspaco | null = tipoFiltro === 'proprio' || tipoFiltro === 'terceiro' ? tipoFiltro : null;
+const { rows: espacos, total } = await withTenant(tenantId, (db) =>
+  listarEspacos(db, { busca: searchTerm(Astro.url), tipo }, page, lerOrdenacao(Astro.url))
+);
+
+const capacidade = (min: number | null, max: number | null) => {
+  if (min === null && max === null) return '';
+  if (min !== null && max !== null) return `${min}–${max}`;
+  return max !== null ? `até ${max}` : `a partir de ${min}`;
+};
+
+const tableData = espacos.map((e) => ({
+  nome: html`<a class="link esp-nome" href="/espacos/${e.id}">${e.nome}</a>${!e.ativo && html` <span class="badge">Inativo</span>`}`,
+  tipo: html`<span class="tag tag-sm ${e.tipo === 'proprio' ? 'tag-accent' : ''}">${TIPOS_ESPACO[e.tipo]}</span>`,
+  capacidade: capacidade(e.capacidade_min, e.capacidade_max),
+  cidade: e.cidade ?? '',
+  locacao:
+    e.tipo === 'proprio'
+      ? e.faixas_count
+        ? `${String(e.faixas_count).padStart(2, '0')} faixa${e.faixas_count === 1 ? '' : 's'}`
+        : html`<span class="muted">Sem faixas</span>`
+      : e.valor_referencia !== null
+        ? brl(e.valor_referencia)
+        : '',
+  acoes: html`<a class="row-action" href="/espacos/${e.id}">Abrir</a>`,
+}));
+const filtrando = estaFiltrando(Astro.url);
+---
+
+<AppLayout title={ROTULOS.espacos} heading={ROTULOS.espacos}>
+  <PageToolbar
+    searchPlaceholder="Pesquisar por nome, cidade ou endereço"
+    filter={{ name: 'tipo', placeholder: 'Todos os tipos', options: [{ value: 'proprio', label: 'Nossos espaços' }, { value: 'terceiro', label: 'Espaços de terceiros' }] }}
+  >
+    <Button icon="circle-plus" data-drawer-open="drawer-espaco" data-values={JSON.stringify({ tipo: 'proprio', ativo: true })}>Novo espaço</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Espaço', ordenar: 'nome' },
+      { key: 'tipo', label: 'Tipo', ordenar: 'tipo' },
+      { key: 'capacidade', label: 'Capacidade', ordenar: 'capacidade' },
+      { key: 'cidade', label: 'Cidade', ordenar: 'cidade' },
+      { key: 'locacao', label: 'Locação' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  >
+    <EstadoVazio
+      slot="empty"
+      icon="building"
+      titulo={filtrando ? 'Nenhum espaço para esta busca' : 'Nenhum espaço cadastrado'}
+      texto={filtrando ? undefined : 'Cadastre os salões, clubes e demais locais onde seus eventos acontecem. Espaços próprios têm faixas de locação por número de convidados; espaços de terceiros guardam contato e valor de referência.'}
+    >
+      {filtrando ? (
+        <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>
+      ) : (
+        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-espaco" data-values={JSON.stringify({ tipo: 'proprio', ativo: true })}>Novo espaço</button>
+      )}
+    </EstadoVazio>
+    <Pagination slot="footer" info={pageInfo(page, total)} />
+  </Table>
+
+  <EspacoDrawer slot="overlays" />
+</AppLayout>
+
+<style>
+  :global(.esp-nome) {
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='capacidade']),
+  :global(.data-table tbody td[data-key='locacao']) {
+    font-variant-numeric: tabular-nums;
+  }
+</style>

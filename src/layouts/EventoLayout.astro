@@ -6,7 +6,7 @@ import { ROTULOS } from '../lib/rotulos';
 interface Props {
   eventoId: string;
   titulo: string;
-  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'timeline';
+  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'mensagens' | 'timeline';
 }
 
 const { eventoId, titulo, aba } = Astro.props;
@@ -16,6 +16,7 @@ const base = `/eventos/${eventoId}`;
 const abas = [
   { id: 'resumo', label: 'Resumo do evento', href: base },
   { id: 'orcamento', label: 'Orçamento', href: `${base}/orcamento` },
+  { id: 'mensagens', label: 'Mensagens', href: `${base}/mensagens` },
   { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
 ];
 const abaAtiva = aba === 'informacoes' || aba === 'condicoes' ? 'orcamento' : aba;

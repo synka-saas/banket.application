@@ -171,7 +171,7 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
                 <h2 class="titulo-secao">Informações complementares</h2>
                 {totais.locacao > 0 && (
                   <article class="bloco">
-                    <h3>Locação do espaço</h3>
+                    <h3>Locação do espaço{c.locacao.espaco_nome ? ` — ${c.locacao.espaco_nome}` : ''}</h3>
                     <p>{c.locacao.descricao ? `${c.locacao.descricao}: ` : ''}{formatMoney(totais.locacao)}</p>
                   </article>
                 )}
@@ -207,7 +207,7 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
                     {totais.alimentos > 0 && <tr><td>Alimentação</td><td>{formatMoney(totais.alimentos)}</td></tr>}
                     {totais.bebidas > 0 && <tr><td>Bebidas</td><td>{formatMoney(totais.bebidas)}</td></tr>}
                     {totais.staff > 0 && <tr><td>Staff</td><td>{formatMoney(totais.staff)}</td></tr>}
-                    {totais.locacao > 0 && <tr><td>Locação do espaço</td><td>{formatMoney(totais.locacao)}</td></tr>}
+                    {totais.locacao > 0 && <tr><td>Locação do espaço{c.locacao.espaco_nome ? ` — ${c.locacao.espaco_nome}` : ''}</td><td>{formatMoney(totais.locacao)}</td></tr>}
                     {totais.extras > 0 && <tr><td>Adicionais</td><td>{formatMoney(totais.extras)}</td></tr>}
                     <tr class="total"><td>Valor total da proposta</td><td>{formatMoney(totais.total)}</td></tr>
                   </tbody>

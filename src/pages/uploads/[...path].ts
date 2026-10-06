@@ -12,11 +12,12 @@ export const GET: APIRoute = async ({ params, locals }) => {
   if (!key || tenantId !== locals.user.tenantId) return naoEncontrado();
   const file = await readFile(tenantId, key);
   if (!file) return naoEncontrado();
-  return new Response(new Uint8Array(file), {
-    headers: {
-      'Content-Type': contentTypeFor(key),
-      'Cache-Control': 'private, max-age=3600',
-      'X-Content-Type-Options': 'nosniff',
-    },
-  });
+  const headers: Record<string, string> = {
+    'Content-Type': contentTypeFor(key),
+    'Cache-Control': 'private, max-age=3600',
+    'X-Content-Type-Options': 'nosniff',
+  };
+  // Anexos de e-mails recebidos (inbox) vêm de fora: sempre como download, nunca renderizados na origem do app
+  if (key.startsWith('mensagens/')) headers['Content-Disposition'] = 'attachment';
+  return new Response(new Uint8Array(file), { headers });
 };

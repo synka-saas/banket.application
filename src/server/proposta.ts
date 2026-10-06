@@ -4,7 +4,8 @@ import { contentTypeFor, readFile } from '../lib/storage';
 import { dataCurta } from '../lib/datas';
 import { calcularOrcamento, novaChave, type ConteudoOrcamento } from '../lib/calculo/orcamento';
 import { CAMPOS_IMAGEM, listarBlocos, templateDaProposta, carregarTemplate, type CampoImagem, type Template } from './templates';
-import { carregarVersao, faixasLocacao } from './orcamento';
+import { carregarVersao } from './orcamento';
+import { referenciasLocacao } from './espacos';
 
 export interface PropostaView {
   template: Template;
@@ -72,6 +73,7 @@ export async function montarPropostaExemplo(db: Db, tenantId: string, templateId
   const blocos = await listarBlocos(db);
   const { rows: opcao } = await db.query<{ id: string }>(`SELECT id FROM cardapio_opcoes WHERE ativo ORDER BY lower(nome) LIMIT 1`);
   const k = () => novaChave('x');
+  const refs = await referenciasLocacao(db);
   const conteudo = calcularOrcamento(
     {
       cabecalho: {
@@ -119,7 +121,7 @@ export async function montarPropostaExemplo(db: Db, tenantId: string, templateId
         { key: k(), servico_id: null, funcao: 'Garçom', regra: { cache_diaria: 250, auxilio: 0, por_evento: false, quantidade_fixa: 1, convidados_por_profissional: 15, minimo: 0 }, quantidade_manual: null, valor_unit_manual: null },
         { key: k(), servico_id: null, funcao: 'Chef de cozinha', regra: { cache_diaria: 450, auxilio: 0, por_evento: true, quantidade_fixa: 1, convidados_por_profissional: null, minimo: 0 }, quantidade_manual: null, valor_unit_manual: null },
       ],
-      locacao: { incluir: true, faixa_id: null, descricao: null, valor_manual: null },
+      locacao: { incluir: true, espaco_id: refs.espacos.find((e) => e.tipo === 'proprio')?.id ?? null, espaco_nome: null, faixa_id: null, descricao: null, valor_manual: null },
       extras: [{ key: k(), descricao: 'Taxa de cerimônia no local', quantidade: 1, valor_unit: 500 }],
       informacoes_complementares: [
         { key: k(), titulo: 'Logística e cronograma', auto: null, linhas: [
@@ -137,7 +139,7 @@ export async function montarPropostaExemplo(db: Db, tenantId: string, templateId
       mostrar_valor_total: true,
       observacoes: null,
     },
-    await faixasLocacao(db)
+    refs
   );
   return {
     template,

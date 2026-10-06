@@ -1,0 +1,256 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { CONFIG_SUBMENU } from '../../lib/nav';
+import {
+  VARIAVEIS_EMAIL,
+  definirEmailModeloPadrao,
+  emailModeloSchema,
+  excluirEmailModelo,
+  listarEmailModelos,
+  salvarEmailModelo,
+} from '../../server/emailModelos';
+
+const { tenantId } = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = formId(data);
+    if (data._action === 'delete' && id) {
+      await withTenant(tenantId, (db) => excluirEmailModelo(db, id));
+      return 'Modelo removido.';
+    }
+    if (data._action === 'padrao' && id) {
+      await withTenant(tenantId, (db) => definirEmailModeloPadrao(db, id));
+      return 'Modelo padrão atualizado.';
+    }
+    const input = emailModeloSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarEmailModelo(db, tenantId, id, input));
+    return id ? 'Modelo atualizado.' : 'Modelo criado.';
+  });
+}
+
+const modelos = await withTenant(tenantId, (db) => listarEmailModelos(db));
+
+const tableData = modelos.map((m) => ({
+  nome: html`<span class="modelo-nome">${m.nome}${m.padrao && html` <span class="badge badge-accent">Padrão</span>`}${!m.ativo && html` <span class="badge">Inativo</span>`}</span>`,
+  assunto: m.assunto,
+  acoes: html`${
+    !m.padrao && m.ativo
+      ? html`<form method="post" class="inline-form"><input type="hidden" name="id" value="${m.id}" /><input type="hidden" name="_action" value="padrao" /><button type="submit" class="row-action">Definir como padrão</button></form>`
+      : ''
+  }<button type="button" class="row-action" data-drawer-open="drawer-modelo" data-values="${JSON.stringify({
+    id: m.id,
+    nome: m.nome,
+    assunto: m.assunto,
+    corpo: m.corpo,
+    padrao: m.padrao,
+    ativo: m.ativo,
+  })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Modelos de e-mail" heading="Configurações / Modelos de e-mail" submenu={CONFIG_SUBMENU} submenuActive="modelos-email">
+  <div class="topo">
+    <p class="intro">
+      Assunto e mensagem usados ao enviar a proposta e ao responder no Inbox. As variáveis são trocadas pelos dados do
+      evento na hora do envio; o modelo padrão já vem selecionado.
+    </p>
+    <Button icon="circle-plus" data-drawer-open="drawer-modelo" data-values={JSON.stringify({ ativo: true })}>Novo modelo</Button>
+  </div>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Modelo' },
+      { key: 'assunto', label: 'Assunto' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  >
+    <EstadoVazio slot="empty" icon="mail" titulo="Nenhum modelo cadastrado" texto="Crie o primeiro modelo para o envio das propostas.">
+      <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-modelo" data-values={JSON.stringify({ ativo: true })}>Novo modelo</button>
+    </EstadoVazio>
+  </Table>
+
+  <Drawer slot="overlays" id="drawer-modelo" formId="form-modelo" title="Novo modelo de e-mail" editTitle="Editar modelo de e-mail" width="lg" deleteConfirm="Excluir este modelo de e-mail?">
+    <form id="form-modelo" method="post" class="form-grid" data-modelo-form>
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="md-nome">Nome do modelo<span class="obrigatorio">*</span></label>
+        <input id="md-nome" name="nome" required maxlength="120" placeholder="Ex.: Proposta padrão, Lembrete de validade" />
+      </div>
+      <div class="field span-2">
+        <label for="md-assunto">Assunto<span class="obrigatorio">*</span></label>
+        <input id="md-assunto" name="assunto" required maxlength="255" />
+      </div>
+      <div class="field span-2">
+        <label for="md-corpo">Mensagem<span class="obrigatorio">*</span></label>
+        <textarea id="md-corpo" name="corpo" required rows="10" maxlength="10000"></textarea>
+        <div class="vars">
+          <span class="field-hint">Clique para inserir no campo:</span>
+          {VARIAVEIS_EMAIL.map((v) => (
+            <button type="button" class="chip-var" data-var={v}>{v}</button>
+          ))}
+        </div>
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Prévia com dados de exemplo</span>
+        <div class="mail-previa" data-mail-previa>
+          <p class="mail-previa-assunto" data-previa-assunto></p>
+          <p class="mail-previa-corpo" data-previa-corpo></p>
+        </div>
+      </div>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="padrao" />Modelo padrão</label>
+        <span class="field-hint">Pré-selecionado no envio da proposta.</span>
+      </div>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="ativo" />Modelo ativo</label>
+        <span class="field-hint">Inativo não aparece para seleção.</span>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<style>
+  .topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .topo :global(.btn) {
+    flex: none;
+  }
+
+  :global(.modelo-nome) {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='acoes'] .inline-form) {
+    display: inline;
+    margin-right: var(--space-3);
+  }
+
+  /* Variáveis do modelo de e-mail (VariableChip do design system) */
+  .vars {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1-5);
+    margin-top: var(--space-2);
+  }
+
+  .vars .field-hint {
+    margin-right: var(--space-1);
+  }
+
+  .chip-var {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .chip-var:hover {
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-800);
+  }
+
+  /* Prévia do e-mail: painel sutil, sem sombra */
+  .mail-previa {
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+    line-height: 1.6;
+    color: var(--text-body);
+  }
+
+  .mail-previa-assunto {
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .mail-previa-corpo {
+    font-size: var(--fs-13);
+    white-space: pre-wrap;
+  }
+
+  @media (max-width: 768px) {
+    .topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>
+
+<script>
+  // Chips inserem a variável no cursor e a prévia mostra o resultado com dados de exemplo (UX-151)
+  const form = document.querySelector<HTMLFormElement>('[data-modelo-form]');
+  if (form) {
+    const assunto = form.querySelector<HTMLInputElement>('[name="assunto"]')!;
+    const corpo = form.querySelector<HTMLTextAreaElement>('[name="corpo"]')!;
+    const previaAssunto = form.querySelector<HTMLElement>('[data-previa-assunto]')!;
+    const previaCorpo = form.querySelector<HTMLElement>('[data-previa-corpo]')!;
+    const EXEMPLO: Record<string, string> = {
+      nome_cliente: 'Maria Souza',
+      evento: 'Casamento – Maria Souza',
+      data_evento: '12/06/2027',
+      empresa: 'Sua empresa',
+      valor_total: 'R$ 25.400,00',
+      versao: '02',
+    };
+    const aplicar = (texto: string) => texto.replace(/\{(\w+)\}/g, (m, v: string) => EXEMPLO[v] ?? m);
+    const atualizar = () => {
+      previaAssunto.textContent = aplicar(assunto.value);
+      previaCorpo.textContent = aplicar(corpo.value);
+    };
+    assunto.addEventListener('input', atualizar);
+    corpo.addEventListener('input', atualizar);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', atualizar);
+    atualizar();
+
+    let alvo: HTMLInputElement | HTMLTextAreaElement = corpo;
+    assunto.addEventListener('focus', () => (alvo = assunto));
+    corpo.addEventListener('focus', () => (alvo = corpo));
+    form.querySelectorAll<HTMLButtonElement>('.chip-var').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        const v = chip.dataset.var!;
+        const inicio = alvo.selectionStart ?? alvo.value.length;
+        const fim = alvo.selectionEnd ?? alvo.value.length;
+        alvo.value = alvo.value.slice(0, inicio) + v + alvo.value.slice(fim);
+        alvo.focus();
+        alvo.setSelectionRange(inicio + v.length, inicio + v.length);
+        alvo.dispatchEvent(new Event('input', { bubbles: true }));
+        atualizar();
+      })
+    );
+  }
+</script>

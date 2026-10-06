@@ -45,6 +45,7 @@ if (Astro.request.method === 'POST') {
         case 'excluir':
           await excluirEvento(db, id);
           await removeDir(user.tenantId, `orcamentos/${id}`);
+          await removeDir(user.tenantId, `mensagens/${id}`);
           return { message: 'Evento excluído.', redirect: '/eventos' };
         case 'checklist_salvar': {
           const itemId = typeof data.checklist_id === 'string' && data.checklist_id ? data.checklist_id : null;
@@ -92,7 +93,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
     </div>
     <div>
       <span class="banner-label">Local do evento</span>
-      <strong>{e.local_nome ?? (e.local_tipo === 'casa' ? 'Nosso espaço' : 'Local externo')}</strong>
+      <strong>{e.espaco_id ? <a class="link" href={`/espacos/${e.espaco_id}`}>{e.espaco_nome}</a> : (e.local_nome ?? (e.local_tipo === 'casa' ? 'Nosso espaço' : 'Local externo'))}</strong>
       {e.endereco && <span class="banner-apoio banner-endereco">{e.endereco}</span>}
     </div>
     <form method="post" class="banner-status" data-form-etapa>
@@ -163,7 +164,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
 
       <SectionCard title="Logística e infraestrutura" variant="plain" collapsible>
         <dl class="kv">
-          <div><dt>Local</dt><dd>{e.local_tipo === 'externo' ? 'Local externo (empresa, residência ou espaço alugado)' : 'No nosso espaço'}{e.local_nome ? ` · ${e.local_nome}` : ''}</dd></div>
+          <div><dt>Local</dt><dd>{e.espaco_id ? <><a class="link" href={`/espacos/${e.espaco_id}`}>{e.espaco_nome}</a> <span class="tag tag-sm">{e.espaco_tipo === 'proprio' ? 'Nosso espaço' : 'Espaço de terceiro'}</span></> : <>{e.local_nome ?? 'Outro local'} <span class="tag tag-sm">{e.local_tipo === 'casa' ? 'Nosso espaço' : 'Outro local'}</span></>}</dd></div>
           <div><dt>Endereço</dt><dd>{e.endereco ?? <span class="vazio">—</span>}</dd></div>
           <div><dt>Infraestrutura</dt><dd>{e.infraestrutura ?? <span class="vazio">—</span>}</dd></div>
         </dl>

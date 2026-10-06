@@ -1,7 +1,8 @@
-// Acordeão "Locação e extras": locação por faixa de convidados e taxas avulsas (hora adicional, rolha…).
+// Acordeão "Locação e extras": locação pelo espaço escolhido (faixa de convidados no espaço próprio, valor de
+// referência no de terceiro) e taxas avulsas (hora adicional, rolha…). Trocar o espaço aqui também atualiza o evento.
 import { useEffect, useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
-import { novaChave, type ExtraOrcamento, type LocacaoOrcamento } from '../../lib/calculo/orcamento';
+import { novaChave, type EspacoRef, type ExtraOrcamento, type LocacaoOrcamento } from '../../lib/calculo/orcamento';
 import { Acordeao, Numero, ValorManual, useRemoverComDesfazer } from './controles';
 import { Icon } from '../ui/Icon';
 
@@ -9,6 +10,7 @@ const SUGESTOES = ['Hora adicional', 'Taxa de rolha', 'Taxa de serviço de chope
 
 interface Props {
   locacao: LocacaoOrcamento;
+  espacos: EspacoRef[];
   extras: ExtraOrcamento[];
   totalLocacao: number;
   totalExtras: number;
@@ -17,7 +19,15 @@ interface Props {
   onExtras: (e: ExtraOrcamento[]) => void;
 }
 
-export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtras, disabled, onLocacao, onExtras }: Props) {
+export default function LocacaoExtras({ locacao, espacos, extras, totalLocacao, totalExtras, disabled, onLocacao, onExtras }: Props) {
+  const proprios = espacos.filter((e) => e.tipo === 'proprio');
+  const terceiros = espacos.filter((e) => e.tipo === 'terceiro');
+  const espacoAtual = espacos.find((e) => e.id === locacao.espaco_id) ?? null;
+  const semFaixa = espacoAtual?.tipo === 'proprio' ? 'Nenhuma faixa de locação para este número de convidados' : null;
+  const trocarEspaco = (id: string) => {
+    const espaco = espacos.find((e) => e.id === id) ?? null;
+    onLocacao({ ...locacao, espaco_id: espaco?.id ?? null, espaco_nome: espaco?.nome ?? null });
+  };
   const remover = useRemoverComDesfazer(extras, onExtras);
   // Linha nova nasce vazia, com o foco na descrição (as sugestões aparecem na lista do campo)
   const [focar, setFocar] = useState<string | null>(null);
@@ -43,8 +53,25 @@ export default function LocacaoExtras({ locacao, extras, totalLocacao, totalExtr
         </label>
         {locacao.incluir && (
           <div class="locacao-detalhe">
-            <span class="muted">{locacao.descricao ?? 'Nenhuma faixa de locação para este número de convidados'}</span>
+            <label class="locacao-espaco">
+              <span>Espaço</span>
+              <select class="control compacto" value={locacao.espaco_id ?? ''} disabled={disabled} onChange={(e) => trocarEspaco(e.currentTarget.value)}>
+                {proprios.length > 0 && (
+                  <optgroup label="Nossos espaços">
+                    {proprios.map((e) => <option value={e.id}>{e.nome}{e.ativo ? '' : ' (inativo)'}</option>)}
+                  </optgroup>
+                )}
+                {terceiros.length > 0 && (
+                  <optgroup label="Espaços de terceiros">
+                    {terceiros.map((e) => <option value={e.id}>{e.nome}{e.ativo ? '' : ' (inativo)'}</option>)}
+                  </optgroup>
+                )}
+                <option value="">Outro local (sem espaço cadastrado)</option>
+              </select>
+            </label>
+            <span class="muted">{locacao.descricao ?? semFaixa ?? (locacao.espaco_id ? 'Sem valor de referência cadastrado' : 'Informe o valor da locação')}</span>
             <ValorManual label="Valor da locação" manual={locacao.valor_manual} calculado={locacao.valor_calc} disabled={disabled} onChange={(v) => onLocacao({ ...locacao, valor_manual: v })} />
+            {!disabled && <span class="field-hint locacao-dica">Trocar o espaço aqui também atualiza o evento.</span>}
           </div>
         )}
       </div>

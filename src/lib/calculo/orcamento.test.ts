@@ -6,6 +6,7 @@ import {
   precoSecao,
   type ConteudoOrcamento,
   type FaixaLocacaoRef,
+  type ReferenciasLocacao,
   type ItemOrcamento,
   type SecaoOrcamento,
 } from './orcamento';
@@ -34,10 +35,22 @@ const secao = (nome: string, itens: ItemOrcamento[], extra: Partial<SecaoOrcamen
 });
 
 const faixas: FaixaLocacaoRef[] = [
-  { id: 'f1', min_convidados: 0, max_convidados: 30, valor: 1000, descricao: 'Até 30' },
-  { id: 'f2', min_convidados: 31, max_convidados: 50, valor: 1500, descricao: '31 a 50' },
-  { id: 'f3', min_convidados: 51, max_convidados: null, valor: 2000, descricao: '51+' },
+  { id: 'f1', espaco_id: 'salao', min_convidados: 0, max_convidados: 30, valor: 1000, descricao: 'Até 30' },
+  { id: 'f2', espaco_id: 'salao', min_convidados: 31, max_convidados: 50, valor: 1500, descricao: '31 a 50' },
+  { id: 'f3', espaco_id: 'salao', min_convidados: 51, max_convidados: null, valor: 2000, descricao: '51+' },
+  // Faixa de outro espaço próprio: nunca entra no cálculo do salão
+  { id: 'f4', espaco_id: 'jardim', min_convidados: 0, max_convidados: null, valor: 9000, descricao: 'Jardim' },
 ];
+
+const refs: ReferenciasLocacao = {
+  espacos: [
+    { id: 'salao', nome: 'Salão', tipo: 'proprio', valor_referencia: null, ativo: true },
+    { id: 'jardim', nome: 'Jardim', tipo: 'proprio', valor_referencia: null, ativo: true },
+    { id: 'clube', nome: 'Clube', tipo: 'terceiro', valor_referencia: 3500, ativo: true },
+    { id: 'sitio', nome: 'Sítio', tipo: 'terceiro', valor_referencia: null, ativo: true },
+  ],
+  faixas,
+};
 
 function base(extra: Partial<ConteudoOrcamento> = {}): ConteudoOrcamento {
   return {
@@ -49,7 +62,7 @@ function base(extra: Partial<ConteudoOrcamento> = {}): ConteudoOrcamento {
     cardapios: [],
     bebidas: [],
     staff: [],
-    locacao: { incluir: false, faixa_id: null, descricao: null, valor_manual: null },
+    locacao: { incluir: false, espaco_id: null, espaco_nome: null, faixa_id: null, descricao: null, valor_manual: null },
     extras: [],
     informacoes_complementares: [],
     condicoes_gerais: [],
@@ -154,21 +167,50 @@ describe('calcularOrcamento', () => {
     expect(r.totais?.staff).toBe(2350);
   });
 
-  it('locação pela faixa de convidados, com ajuste manual e opção de não incluir', () => {
+  it('locação pela faixa de convidados do espaço próprio, com ajuste manual e opção de não incluir', () => {
     expect(faixaParaConvidados(faixas, 30)?.id).toBe('f1');
     expect(faixaParaConvidados(faixas, 31)?.id).toBe('f2');
     expect(faixaParaConvidados(faixas, 500)?.id).toBe('f3');
 
-    const locacao = { incluir: true, faixa_id: null, descricao: null, valor_manual: null };
-    expect(calcularOrcamento(base({ pagantes: { convidados: 40, criancas_meia: 0, criancas_isentas: 0 }, locacao }), faixas).totais?.locacao).toBe(1500);
-    expect(calcularOrcamento(base({ locacao: { ...locacao, valor_manual: 1200 } }), faixas).totais?.locacao).toBe(1200);
-    expect(calcularOrcamento(base({ locacao: { ...locacao, incluir: false } }), faixas).totais?.locacao).toBe(0);
+    const locacao = { incluir: true, espaco_id: 'salao', espaco_nome: null, faixa_id: null, descricao: null, valor_manual: null };
+    const r = calcularOrcamento(base({ pagantes: { convidados: 40, criancas_meia: 0, criancas_isentas: 0 }, locacao }), refs);
+    expect(r.totais?.locacao).toBe(1500);
+    expect(r.locacao.faixa_id).toBe('f2');
+    expect(r.locacao.espaco_nome).toBe('Salão');
+    expect(calcularOrcamento(base({ locacao: { ...locacao, valor_manual: 1200 } }), refs).totais?.locacao).toBe(1200);
+    expect(calcularOrcamento(base({ locacao: { ...locacao, incluir: false } }), refs).totais?.locacao).toBe(0);
+    // A faixa do jardim (9000) nunca vale para o salão
+    expect(calcularOrcamento(base({ locacao }), refs).totais?.locacao).toBe(2000);
+  });
+
+  it('locação de espaço de terceiro usa o valor de referência; sem espaço ou espaço apagado o valor é zero', () => {
+    const locacao = { incluir: true, espaco_id: 'clube', espaco_nome: null, faixa_id: null, descricao: null, valor_manual: null };
+    const clube = calcularOrcamento(base({ locacao }), refs);
+    expect(clube.totais?.locacao).toBe(3500);
+    expect(clube.locacao.descricao).toBe('Valor de referência do espaço');
+    expect(clube.locacao.espaco_nome).toBe('Clube');
+
+    const sitio = calcularOrcamento(base({ locacao: { ...locacao, espaco_id: 'sitio' } }), refs);
+    expect(sitio.totais?.locacao).toBe(0);
+    expect(sitio.locacao.descricao).toBeNull();
+
+    expect(calcularOrcamento(base({ locacao: { ...locacao, espaco_id: null } }), refs).totais?.locacao).toBe(0);
+    const apagado = calcularOrcamento(base({ locacao: { ...locacao, espaco_id: 'x', espaco_nome: 'Antigo' } }), refs);
+    expect(apagado.totais?.locacao).toBe(0);
+    expect(apagado.locacao.espaco_nome).toBe('Antigo');
+  });
+
+  it('sem referências (versão congelada) a locação preserva o valor calculado gravado', () => {
+    const locacao = { incluir: true, espaco_id: 'salao', espaco_nome: 'Salão', faixa_id: 'f1', descricao: 'Até 30', valor_calc: 1000, valor_manual: null };
+    const r = calcularOrcamento(base({ locacao }));
+    expect(r.totais?.locacao).toBe(1000);
+    expect(r.locacao).toEqual(locacao);
   });
 
   it('soma extras e compõe o total geral', () => {
     const r = calcularOrcamento(
       base({
-        locacao: { incluir: true, faixa_id: null, descricao: null, valor_manual: 2000 },
+        locacao: { incluir: true, espaco_id: null, espaco_nome: null, faixa_id: null, descricao: null, valor_manual: 2000 },
         extras: [{ key: 'e1', descricao: 'Hora adicional', quantidade: 2, valor_unit: 600 }],
       })
     );

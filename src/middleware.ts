@@ -7,7 +7,8 @@ import { getMembership } from './lib/membership';
 // Rotas acessíveis sem sessão
 // /print/* é acessado pelo Chromium interno e exige um token de impressão (lib/printToken)
 // /api/hwesta/* é chamado pelo Manager Hwesta (HCP): a autenticação é por Bearer nas próprias rotas (lib/hwesta)
-const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/api/hwesta/', '/print/', '/_astro/', '/_image'];
+// /api/webhooks/* recebe os webhooks do Resend (assinatura Svix conferida na própria rota)
+const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
 // Rotas restritas a owner/admin

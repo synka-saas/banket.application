@@ -1,0 +1,130 @@
+---
+// Drawer de cadastro/edição de espaço. O tipo (próprio × terceiro) mostra ou esconde os campos de terceiro
+// (contato e valor de referência); um espaço próprio tem a locação nas faixas, cadastradas no detalhe.
+import Drawer from '../ui/Drawer.astro';
+
+interface Props {
+  /** Página de detalhe: ao excluir, volta para a lista */
+  deletable?: boolean;
+}
+
+const { deletable = false } = Astro.props;
+---
+
+<Drawer
+  id="drawer-espaco"
+  formId="form-espaco"
+  title="Novo espaço"
+  editTitle="Editar espaço"
+  width="md"
+  deletable={deletable}
+  deleteConfirm="Excluir este espaço? As faixas de locação dele também serão removidas."
+>
+  <form id="form-espaco" method="post" class="form-grid" data-espaco-form>
+    <input type="hidden" name="id" />
+    <div class="field span-2">
+      <span class="field-label">Tipo<span class="obrigatorio">*</span></span>
+      <div class="chip-group radios">
+        <label class="chip"><input type="radio" name="tipo" value="proprio" checked />Nosso espaço</label>
+        <label class="chip"><input type="radio" name="tipo" value="terceiro" />Espaço de terceiro</label>
+      </div>
+      <span class="field-hint" data-tipo-dica="proprio">A locação é calculada por faixa de convidados, cadastrada no detalhe do espaço.</span>
+      <span class="field-hint" data-tipo-dica="terceiro" hidden>Local alugado ou do cliente: guarde o contato e, se quiser, um valor de referência da locação.</span>
+    </div>
+    <div class="field span-2">
+      <label for="esp-nome">Nome<span class="obrigatorio">*</span></label>
+      <input id="esp-nome" name="nome" required maxlength="120" placeholder="Ex.: Salão Jardim" />
+    </div>
+    <div class="field span-2">
+      <label for="esp-desc">Descrição</label>
+      <textarea id="esp-desc" name="descricao" maxlength="2000" rows="2" placeholder="Ex.: salão coberto com jardim anexo e estacionamento"></textarea>
+    </div>
+    <div class="field span-2">
+      <label for="esp-end">Endereço</label>
+      <input id="esp-end" name="endereco" maxlength="500" />
+    </div>
+    <div class="field">
+      <label for="esp-cidade">Cidade</label>
+      <input id="esp-cidade" name="cidade" maxlength="120" />
+    </div>
+    <div class="field">
+      <span class="field-label">Capacidade (convidados)</span>
+      <div class="faixa-capacidade">
+        <input name="capacidade_min" type="number" min="0" step="1" placeholder="mín." aria-label="Capacidade mínima" />
+        <span class="faixa-sep">a</span>
+        <input name="capacidade_max" type="number" min="0" step="1" placeholder="máx." aria-label="Capacidade máxima" />
+      </div>
+    </div>
+    <div class="field span-2 campos-terceiro" data-tipo-campos="terceiro" hidden>
+      <div class="form-grid">
+        <div class="field">
+          <label for="esp-contato">Contato</label>
+          <input id="esp-contato" name="contato_nome" maxlength="255" placeholder="Nome de quem responde pelo espaço" />
+        </div>
+        <div class="field">
+          <label for="esp-tel">Telefone / WhatsApp</label>
+          <input id="esp-tel" name="contato_telefone" inputmode="tel" placeholder="(00) 00000-0000" data-mascara="telefone" />
+        </div>
+        <div class="field">
+          <label for="esp-email">E-mail do contato</label>
+          <input id="esp-email" name="contato_email" type="email" />
+        </div>
+        <div class="field">
+          <label for="esp-valor">Valor de referência da locação (R$)</label>
+          <input id="esp-valor" name="valor_referencia" inputmode="decimal" placeholder="0,00" data-mascara="dinheiro" />
+          <span class="field-hint">Entra como valor sugerido da locação no orçamento.</span>
+        </div>
+      </div>
+    </div>
+    <div class="field span-2">
+      <label for="esp-obs">Observações</label>
+      <textarea id="esp-obs" name="observacoes" maxlength="5000" rows="3"></textarea>
+    </div>
+    <div class="field span-2">
+      <label class="switch"><input type="checkbox" name="ativo" />Espaço ativo (disponível para seleção)</label>
+    </div>
+  </form>
+</Drawer>
+
+<style>
+  .faixa-capacidade {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .faixa-capacidade input {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .faixa-sep {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  /* Bloco dos campos de terceiro: painel sutil dentro do formulário */
+  .campos-terceiro {
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+</style>
+
+<script>
+  // Tipo do espaço mostra os campos de terceiro e a dica correspondente (também ao abrir o drawer já preenchido)
+  const form = document.querySelector<HTMLFormElement>('[data-espaco-form]');
+  if (form) {
+    const atualizar = () => {
+      const tipo = form.querySelector<HTMLInputElement>('[name="tipo"]:checked')?.value ?? 'proprio';
+      form.querySelectorAll<HTMLElement>('[data-tipo-campos]').forEach((el) => (el.hidden = el.dataset.tipoCampos !== tipo));
+      form.querySelectorAll<HTMLElement>('[data-tipo-dica]').forEach((el) => (el.hidden = el.dataset.tipoDica !== tipo));
+    };
+    form.addEventListener('change', (e) => {
+      if ((e.target as HTMLElement).matches('[name="tipo"]')) atualizar();
+    });
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', atualizar);
+    atualizar();
+  }
+</script>

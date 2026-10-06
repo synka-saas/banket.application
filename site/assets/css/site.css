@@ -1,0 +1,89 @@
+/* Site institucional do Banket — estilos próprios das páginas.
+   Tokens e componentes (.bk-*) vêm de design-system.css; aqui ficam só os estados que o JS liga e desliga
+   e o comportamento responsivo. Os estilos em linha do HTML vencem as regras comuns: por isso os !important. */
+
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg-app); color: var(--text-body); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: var(--text-link); }
+a:hover { color: var(--text-link-hover); }
+::selection { background: var(--terracotta-100); }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* O logo leva a #produto: a margem compensa o cabeçalho fixo e a página volta ao topo de verdade. */
+#produto { scroll-margin-top: 73px; }
+
+/* Hover */
+.hover-acento:hover { color: var(--terracotta-700) !important; }
+.hover-card:hover { border-color: var(--border-strong) !important; box-shadow: var(--shadow-md) !important; }
+.hover-sublinhado:hover { text-decoration: underline !important; text-underline-offset: 3px !important; }
+
+/* Cabeçalho */
+.site-menu-btn { display: none; }
+.site-menu { display: none; }
+@media (max-width: 959px) {
+  .site-nav, .site-entrar { display: none !important; }
+  .site-menu-btn { display: inline-flex; }
+  .site-menu { display: flex; flex-direction: column; padding: 4px clamp(20px, 4vw, 40px) 16px; border-top: 1px solid var(--border-subtle); background: var(--bg-app); }
+  .site-menu a { padding: 14px 0; border-bottom: 1px solid var(--border-subtle); font-size: 16px; font-weight: var(--fw-medium); color: var(--text-body); text-decoration: none; }
+  .site-menu a:last-child { border-bottom: 0; }
+  .site-header-barra { gap: 12px !important; }
+}
+@media (max-width: 419px) {
+  .site-cta { display: none !important; }
+}
+
+/* Hero: cartões flutuantes só em telas largas */
+@media (max-width: 1279px) { .hero-float { display: none !important; } }
+.hero-toast { opacity: 0; transform: translateY(12px); }
+.hero-toast.is-on { opacity: 1; transform: translateY(0); }
+.hero-toast.is-out { transform: translateY(-12px); }
+
+/* Como funciona: passos */
+.tour-step { border: 1px solid transparent; background: transparent; box-shadow: none; }
+.tour-step.is-active { border-color: var(--border-default); background: var(--bg-surface); box-shadow: var(--shadow-md); }
+.tour-num { color: var(--text-muted); }
+.tour-step.is-active .tour-num { color: var(--terracotta-600); }
+.tour-step:not(.is-active) .tour-desc,
+.tour-step:not(.is-active) .tour-prog { display: none !important; }
+
+/* Planos */
+#btn-comparar svg { transition: transform var(--dur-base) var(--ease-out); }
+#btn-comparar[aria-expanded='true'] svg { transform: rotate(180deg); }
+
+/* Dúvidas */
+.faq-item.is-open .faq-chev { transform: rotate(180deg); }
+
+/* Fotos: .foto-slot é o espaço reservado; ao ter a imagem, troque por <img class="foto" src="assets/fotos/…" alt="…"> */
+.foto-slot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--clay-400); }
+.foto-slot span { display: none; }
+.foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Contato: agendamento da demonstração (Agenda do Manager Hwesta) */
+.agenda { display: flex; flex-direction: column; gap: 20px; }
+.agenda-isca { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.agenda-voltar { margin-left: -8px; }
+.agenda-erro { margin: 0; padding: 10px 12px; border: 1px solid var(--danger-border); border-radius: var(--radius-md); background: var(--danger-bg); color: var(--danger); font-size: 14px; line-height: 1.45; }
+.agenda-grade { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 20px; }
+.agenda-mes { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: var(--fw-medium); color: var(--text-strong); }
+.agenda-mes button[disabled] { visibility: hidden; }
+.agenda-semana, .agenda-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.agenda-semana span { padding: 4px 0; text-align: center; font-size: 11px; font-weight: var(--fw-medium); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.agenda-dia { aspect-ratio: 1; border: 0; border-radius: var(--radius-full); background: none; font: inherit; font-size: 13px; color: var(--text-placeholder); font-variant-numeric: tabular-nums; cursor: default; }
+.agenda-dia.livre { background: var(--bg-accent-subtle); color: var(--terracotta-700); font-weight: var(--fw-medium); cursor: pointer; }
+.agenda-dia.livre:hover { background: var(--terracotta-100); }
+.agenda-dia.hoje { box-shadow: inset 0 0 0 1px var(--border-strong); }
+.agenda-dia.ativo, .agenda-dia.livre.ativo { background: var(--action-primary); color: var(--text-on-accent); }
+.agenda-dia-rotulo { display: block; min-height: 20px; margin-bottom: 8px; font-size: 13px; font-weight: var(--fw-medium); color: var(--text-heading); }
+.agenda-slots { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px; }
+.agenda-slot { flex: none; height: 40px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-heading); font: inherit; font-size: 14px; font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; cursor: pointer; }
+.agenda-slot:hover { border-color: var(--terracotta-500); color: var(--terracotta-700); }
+.agenda-slot.ativo { background: var(--action-primary); border-color: var(--action-primary); color: var(--text-on-accent); }
+.agenda-vazio { font-size: 13px; color: var(--text-muted); }
+.agenda-escolhido { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--clay-25); font-size: 14px; font-weight: var(--fw-medium); color: var(--text-strong); }
+.agenda-escolhido .bk-icon { flex: none; color: var(--terracotta-600); }
+@media (max-width: 519px) {
+  .agenda-grade { grid-template-columns: 1fr; }
+  .agenda-slots { flex-direction: row; flex-wrap: wrap; max-height: none; }
+  .agenda-slot { flex: 1 1 80px; }
+}

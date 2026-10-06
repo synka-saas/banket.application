@@ -1,7 +1,7 @@
 // Editor das abas "Informações complementares" e "Condições gerais": blocos com linhas rótulo/valor.
 // Linhas automáticas (restrições, equipe) acompanham o orçamento até serem editadas à mão.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { calcularOrcamento, novaChave, type BlocoInfo, type ConteudoOrcamento, type FaixaLocacaoRef } from '../../lib/calculo/orcamento';
+import { calcularOrcamento, novaChave, type BlocoInfo, type ConteudoOrcamento, type ReferenciasLocacao } from '../../lib/calculo/orcamento';
 import { Acordeao } from './controles';
 import { Icon } from '../ui/Icon';
 import { confirmar, toast } from '../../lib/ui';
@@ -13,11 +13,12 @@ interface Props {
   congelada: boolean;
   campo: 'informacoes_complementares' | 'condicoes_gerais';
   conteudo: ConteudoOrcamento;
-  faixas: FaixaLocacaoRef[];
+  refs: ReferenciasLocacao;
 }
 
-export default function BlocosEditor({ eventoId, numero, congelada, campo, conteudo: inicial, faixas }: Props) {
-  const [conteudo, setConteudo] = useState(() => calcularOrcamento(inicial, faixas));
+export default function BlocosEditor({ eventoId, numero, congelada, campo, conteudo: inicial, refs }: Props) {
+  // Versão congelada recalcula sem as referências de locação (mantém o valor gravado)
+  const [conteudo, setConteudo] = useState(() => calcularOrcamento(inicial, congelada ? undefined : refs));
   const [estado, setEstado] = useState<'salvo' | 'pendente' | 'salvando' | 'erro'>('salvo');
   const timer = useRef<number | null>(null);
   const blocos = conteudo[campo];
@@ -45,7 +46,7 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
 
   function alterar(novos: BlocoInfo[]) {
     if (congelada) return;
-    setConteudo(calcularOrcamento({ ...conteudo, [campo]: novos }, faixas));
+    setConteudo(calcularOrcamento({ ...conteudo, [campo]: novos }, refs));
     salvar(novos);
   }
 

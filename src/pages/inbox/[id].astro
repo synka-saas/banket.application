@@ -1,0 +1,57 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Conversa from '../../components/inbox/Conversa.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { setFlash } from '../../lib/flash';
+import { UserError, userMessage } from '../../lib/forms';
+import { arquivarConversa, carregarConversa, marcarComoLida, modelosParaEvento, responder, respostaSchema } from '../../server/conversas';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const propria = `/inbox/${id}`;
+
+// Volta para a página de origem (inbox ou aba do evento), nunca para fora do app
+const destino = (voltar: unknown) => (typeof voltar === 'string' && /^\/(inbox|eventos)\/[0-9a-f-]{36}(\/mensagens)?$/i.test(voltar) ? voltar : propria);
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action === 'arquivar' || data._action === 'desarquivar') {
+      await withTenant(user.tenantId, (db) => arquivarConversa(db, user, id, data._action === 'arquivar'));
+      return { message: data._action === 'arquivar' ? 'Conversa arquivada.' : 'Conversa reaberta.', redirect: destino(data._voltar) };
+    }
+    const input = respostaSchema.parse(data);
+    const r = await withTenant(user.tenantId, (db) => responder(db, user, id, input));
+    return {
+      message: r.delivered ? 'Resposta enviada.' : 'Resposta registrada (sem envio real: domínio de teste ou e-mail não configurado).',
+      redirect: destino(input._voltar),
+    };
+  });
+}
+
+let conversa;
+let modelos;
+try {
+  ({ conversa, modelos } = await withTenant(user.tenantId, async (db) => {
+    const conversa = await carregarConversa(db, user, id);
+    if (conversa.nao_lidas > 0) await marcarComoLida(db, id);
+    return { conversa, modelos: await modelosParaEvento(db, conversa.evento_id) };
+  }));
+} catch (err) {
+  if (!(err instanceof UserError)) throw err;
+  setFlash(Astro.cookies, 'error', userMessage(err));
+  return Astro.redirect('/inbox');
+}
+---
+
+<AppLayout title={conversa.assunto} heading={conversa.assunto} voltar={{ href: '/inbox', label: 'Inbox' }}>
+  <div class="inbox-detalhe">
+    <Conversa conversa={conversa} modelos={modelos} voltar={propria} tenantId={user.tenantId} />
+  </div>
+</AppLayout>
+
+<style>
+  .inbox-detalhe {
+    max-width: 960px;
+  }
+</style>

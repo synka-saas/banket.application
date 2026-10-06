@@ -1,0 +1,270 @@
+/* Inbox: thread de e-mails (componente Conversa) e lista de conversas. Só tokens do design system. */
+
+.inbox-conversa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.conv-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.conv-assunto {
+  margin: 0 0 var(--space-1);
+  font-size: var(--fs-17);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.conv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.conv-meta .sep {
+  color: var(--text-placeholder);
+}
+
+.conv-acoes {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
+.conv-aviso {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--warning-border, var(--border-subtle));
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+  color: var(--text-body);
+}
+
+.conversa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Mensagem enviada à esquerda (argila); recebida do cliente à direita (terracota claro) */
+.mensagem {
+  max-width: 85%;
+  align-self: flex-start;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--clay-25);
+}
+
+.mensagem-entrada {
+  align-self: flex-end;
+  border-color: var(--terracotta-100);
+  background: var(--bg-accent-subtle);
+}
+
+.mensagem-autor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2-5);
+  margin-bottom: var(--space-1);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.mensagem-quando {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.mensagem-para {
+  margin-bottom: var(--space-2);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.mensagem-texto {
+  margin: 0;
+  font-size: var(--fs-14);
+  line-height: 1.55;
+  color: var(--text-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mensagem-formatado {
+  margin-top: var(--space-2);
+}
+
+.mensagem-formatado summary {
+  font-size: var(--fs-12);
+  color: var(--text-link);
+  cursor: pointer;
+}
+
+.mensagem-html {
+  width: 100%;
+  height: 420px;
+  margin-top: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.mensagem-anexos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mensagem-anexo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 var(--space-2-5);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: var(--fs-12);
+  color: var(--text-body);
+}
+
+.mensagem-anexo.indisponivel {
+  color: var(--text-muted);
+}
+
+.mensagem-status {
+  margin-top: var(--space-2);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.sem-mensagens {
+  color: var(--text-secondary);
+}
+
+.resposta-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.resposta-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.resposta-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Lista do inbox */
+.inbox-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: calc(var(--space-4) * -1) 0 var(--space-4);
+}
+
+.inbox-filtros form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.inbox-assunto {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--fw-regular);
+}
+
+.inbox-assunto.nao-lida {
+  font-weight: var(--fw-medium);
+  color: var(--text-strong);
+}
+
+.inbox-ponto {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--action-primary);
+}
+
+.inbox-trecho {
+  display: block;
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.inbox-direcao {
+  color: var(--text-muted);
+}
+
+/* Cartões das conversas de um evento (quando há mais de uma) */
+.conversas-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .inbox-conversa {
+    padding: var(--space-4);
+  }
+
+  .conv-cabecalho {
+    flex-direction: column;
+  }
+
+  .mensagem {
+    max-width: 100%;
+  }
+
+  .resposta-linha {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inbox-trecho {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

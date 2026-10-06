@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>Banket — Gestão completa para buffets e casas de eventos</title>
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/tokens/base.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/core/core.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/forms/forms.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/data/data.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/layout/layout.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/navigation/navigation.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/overlay/overlay.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/components/domain/domain.css">
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/styles.css">
+  <script src="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg-app);color:var(--text-body);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:var(--text-link)}
+    a:hover{color:var(--text-link-hover)}
+    ::selection{background:var(--terracotta-100)}
+    @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+  </style>
+</helmet>
+
+<header style="position:sticky; top:0; z-index:50; background:rgba(250,246,242,.86); backdrop-filter:saturate(1.2) blur(10px); border-bottom:1px solid var(--border-subtle)">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); height:72px; display:flex; align-items:center; gap:36px; box-sizing:border-box">
+    <a href="#produto" aria-label="Banket" style="display:flex; flex:none"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" height="{{ 30 }}" src="assets/logo-dark.png" hint-size="128px,30px"></x-import></a>
+    <sc-if value="{{ showLinks }}" hint-placeholder-val="{{ true }}">
+      <nav style="display:flex; align-items:center; gap:28px">
+        <a href="#como-funciona" style="font-size:14px; font-weight:500; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Como funciona</a>
+        <a href="#recursos" style="font-size:14px; font-weight:500; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Recursos</a>
+        <a href="#para-quem" style="font-size:14px; font-weight:500; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Para quem é</a>
+        <a href="#planos" style="font-size:14px; font-weight:500; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Planos</a>
+        <a href="#duvidas" style="font-size:14px; font-weight:500; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Dúvidas</a>
+      </nav>
+    </sc-if>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:8px">
+      <sc-if value="{{ showLinks }}" hint-placeholder-val="{{ true }}">
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="ghost" href="https://app.banket.com.br" hint-size="72px,40px">Entrar</x-import>
+      </sc-if>
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" href="#contato" hint-size="190px,40px">Agendar demonstração</x-import>
+    </div>
+  </div>
+</header>
+
+<section id="produto" data-screen-label="Hero" style="position:relative; overflow:hidden; padding:clamp(64px,9vw,104px) 0 0">
+  <sc-if value="{{ showOrbit }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" style="position:absolute; left:50%; top:300px; width:0; height:0; pointer-events:none">
+      <div style="position:absolute; left:-380px; top:-380px; width:760px; height:760px; border-radius:50%; border:1px solid var(--clay-200)"></div>
+      <div data-orbit="70000" style="position:absolute; left:-560px; top:-560px; width:1120px; height:1120px; border-radius:50%; border:1px dashed var(--clay-300)">
+        <span style="position:absolute; left:calc(50% - 6px); top:-6px; width:12px; height:12px; border-radius:50%; background:var(--terracotta-500); box-shadow:0 0 0 6px rgba(227,83,54,.14)"></span>
+      </div>
+      <div data-orbit="120000" data-dir="rev" style="position:absolute; left:-760px; top:-760px; width:1520px; height:1520px; border-radius:50%; border:1px solid var(--clay-150)">
+        <span style="position:absolute; left:calc(50% - 4px); bottom:-4px; width:8px; height:8px; border-radius:50%; background:var(--ochre-300)"></span>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:relative; max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-direction:column; align-items:center; text-align:center">
+    <div data-reveal="0"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" size="md" icon="layout-dashboard" hint-size="300px,28px">Gestão 360 para buffets e casas de eventos</x-import></div>
+    <h1 data-reveal="80" style="margin:24px 0 0; max-width:960px; font-size:clamp(40px,6.4vw,76px); line-height:1.02; font-weight:500; letter-spacing:-0.035em; color:var(--text-strong); text-wrap:balance">Do primeiro pedido ao evento realizado, <em style="font-style:italic; font-weight:400; color:var(--terracotta-600)">tudo em um só lugar.</em></h1>
+    <p data-reveal="160" style="margin:24px 0 0; max-width:660px; font-size:clamp(16px,1.6vw,19px); line-height:1.6; color:var(--text-secondary); text-wrap:pretty">O Banket reúne captação de pedidos, funil de vendas, orçamento, proposta em PDF, agenda e equipe em um sistema feito para buffets. Menos planilha, mais evento fechado.</p>
+    <div data-reveal="240" style="margin-top:36px; display:flex; flex-wrap:wrap; justify-content:center; gap:12px">
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" size="lg" icon-right="arrow-right" href="#planos" hint-size="170px,48px">Ver planos</x-import>
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" size="lg" icon="calendar-event" href="#contato" hint-size="230px,48px">Agendar demonstração</x-import>
+    </div>
+    <div data-reveal="300" style="margin-top:24px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px 24px; font-size:14px; color:var(--text-secondary)">
+      <span style="display:flex; align-items:center; gap:6px"><span style="display:flex; color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Sem instalação, direto no navegador</span>
+      <span style="display:flex; align-items:center; gap:6px"><span style="display:flex; color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Propostas com a marca do seu buffet</span>
+      <span style="display:flex; align-items:center; gap:6px"><span style="display:flex; color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Planos a partir de R$ 89/mês</span>
+    </div>
+
+    <div data-reveal="380" style="position:relative; width:100%; margin-top:64px; text-align:left">
+      <div style="border-radius:20px 20px 0 0; border:1px solid var(--border-default); border-bottom:0; background:var(--bg-surface); box-shadow:var(--shadow-xl); overflow:hidden">
+        <div style="height:44px; display:flex; align-items:center; gap:8px; padding:0 16px; border-bottom:1px solid var(--border-subtle); background:var(--clay-25)">
+          <span style="width:10px; height:10px; border-radius:50%; background:var(--clay-200)"></span>
+          <span style="width:10px; height:10px; border-radius:50%; background:var(--clay-200)"></span>
+          <span style="width:10px; height:10px; border-radius:50%; background:var(--clay-200)"></span>
+          <div style="flex:1; display:flex; justify-content:center">
+            <span style="display:flex; align-items:center; gap:6px; height:26px; padding:0 14px; border-radius:999px; background:var(--clay-100); font-size:12px; color:var(--text-muted)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="lock" size="{{ 13 }}" hint-size="13px,13px"></x-import>app.banket.com.br/funil</span>
+          </div>
+          <span style="width:46px"></span>
+        </div>
+        <div data-fit="1240" style="width:100%; min-width:0; overflow:hidden">
+          <div style="height:720px; display:flex; background:var(--bg-app); overflow:hidden">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Sidebar" active-key="funil" style="height:100%" hint-size="248px,720px"></x-import>
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.AppHeader" title="Funil de vendas" hint-size="100%,64px"></x-import>
+              <div style="padding:24px 28px; display:flex; flex-direction:column; gap:18px">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <div style="width:260px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="search" placeholder="Pesquisar" hint-size="260px,40px"></x-import></div>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ viewOpts }}" value="kanban" hint-size="190px,40px"></x-import>
+                  <div style="flex:1"></div>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="filter" hint-size="100px,40px">Filtros</x-import>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" icon="circle-plus" hint-size="140px,40px">Novo evento</x-import>
+                </div>
+                <div class="bk-kanban" style="grid-auto-columns:minmax(0,1fr); overflow:hidden">
+                  <sc-for list="{{ heroCols }}" as="col" hint-placeholder-count="3">
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.KanbanColumn" title="{{ col.title }}" stage="{{ col.stage }}" count="{{ col.count }}" total="{{ col.total }}" hint-size="100%,520px">
+                      <sc-for list="{{ col.cards }}" as="c" hint-placeholder-count="2">
+                        <x-import component-from-global-scope="BanketDesignSystem_f9651f.EventCard" title="{{ c.title }}" client="{{ c.client }}" kind="{{ c.kind }}" event-type="{{ c.type }}" time-in-stage="{{ c.dias }}" rows="{{ c.rows }}" hint-size="100%,210px"></x-import>
+                      </sc-for>
+                    </x-import>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" style="position:absolute; left:-2px; right:-2px; bottom:0; height:180px; background:linear-gradient(to bottom, rgba(250,246,242,0), var(--bg-app) 88%); pointer-events:none"></div>
+
+      <sc-if value="{{ wide }}" hint-placeholder-val="{{ false }}">
+        <div data-float="0" style="position:absolute; left:-36px; bottom:200px; width:340px; height:76px">
+          <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="1">
+            <div style="position:absolute; inset:0; display:flex; align-items:center; gap:12px; padding:0 16px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:14px; box-shadow:var(--shadow-lg); opacity:{{ t.op }}; transform:{{ t.tf }}; transition:opacity .5s cubic-bezier(.2,.7,.2,1), transform .5s cubic-bezier(.2,.7,.2,1)">
+              <span style="flex:none; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:{{ t.bg }}; color:{{ t.fg }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="{{ t.icon }}" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+              <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                <span style="font-size:14px; font-weight:500; color:var(--text-strong)">{{ t.title }}</span>
+                <span style="font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ t.meta }}</span>
+              </span>
+              <span style="flex:none; align-self:flex-start; margin-top:16px; font-size:11px; color:var(--text-muted)">{{ t.time }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div data-float="2400" style="position:absolute; right:-36px; top:140px; width:236px">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatCard" label="Taxa de conversão" value="59%" hint="13 aprovados · 9 recusados" icon="chart-bar" style="box-shadow:var(--shadow-lg)" hint-size="236px,120px"></x-import>
+        </div>
+        <div data-float="4200" style="position:absolute; right:-28px; bottom:150px; width:360px; padding:12px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:14px; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; gap:10px">
+          <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); padding:0 4px">Próximo evento</span>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.AgendaItem" date="2026-10-24" title="Aniversário – Fernanda Almeida Santos" meta="Sábado · 20:00 · 50 convidados" stage="won" stage-label="Aprovado" hint-size="100%,64px"></x-import>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</section>
+
+<section id="como-funciona" data-screen-label="Como funciona" style="padding:clamp(72px,9vw,120px) 0; scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-direction:column; gap:56px">
+    <div data-reveal="0" style="display:flex; flex-direction:column; gap:16px; max-width:760px">
+      <span style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Como funciona</span>
+      <h2 style="margin:0; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:var(--text-strong); text-wrap:balance">Uma jornada completa, do pedido ao evento</h2>
+      <p style="margin:0; font-size:17px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Cada etapa alimenta a próxima: o pedido vira orçamento, o orçamento vira proposta e a proposta aprovada entra na agenda — sem redigitar nada.</p>
+    </div>
+
+    <div data-reveal="100" onMouseEnter="{{ tourEnter }}" onMouseLeave="{{ tourLeave }}" style="display:flex; flex-wrap:wrap; gap:32px; align-items:flex-start">
+      <div style="flex:1 1 300px; max-width:420px; display:flex; flex-direction:column; gap:4px">
+        <button type="button" onClick="{{ s0.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s0.bd }}; background:{{ s0.bg }}; box-shadow:{{ s0.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s0.num }}; font-variant-numeric:tabular-nums">01</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Captação de pedidos</span>
+            <sc-if value="{{ s0.active }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Divulgue o formulário público do seu buffet. Cada resposta chega como um novo evento no funil, com cliente, data e convidados.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="0" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+        <button type="button" onClick="{{ s1.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s1.bd }}; background:{{ s1.bg }}; box-shadow:{{ s1.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s1.num }}; font-variant-numeric:tabular-nums">02</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Funil de vendas</span>
+            <sc-if value="{{ s1.active }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Acompanhe cada negociação por etapa, em Kanban ou lista, com o valor em aberto e há quantos dias o pedido está parado.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="1" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+        <button type="button" onClick="{{ s2.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s2.bd }}; background:{{ s2.bg }}; box-shadow:{{ s2.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s2.num }}; font-variant-numeric:tabular-nums">03</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Orçamento a partir do catálogo</span>
+            <sc-if value="{{ s2.active }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Monte o orçamento com cardápios, bebidas, staff e locação. Cada revisão fica guardada como uma nova versão.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="2" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+        <button type="button" onClick="{{ s3.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s3.bd }}; background:{{ s3.bg }}; box-shadow:{{ s3.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s3.num }}; font-variant-numeric:tabular-nums">04</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Proposta em PDF e envio</span>
+            <sc-if value="{{ s3.active }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Gere a proposta com capa, conteúdo e contracapa no visual do buffet e envie por e-mail direto do sistema.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="3" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+        <button type="button" onClick="{{ s4.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s4.bd }}; background:{{ s4.bg }}; box-shadow:{{ s4.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s4.num }}; font-variant-numeric:tabular-nums">05</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Agenda de eventos</span>
+            <sc-if value="{{ s4.active }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Os eventos aparecem no calendário com a cor da etapa. No Prime, cada salão tem a sua agenda, sem conflito de datas.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="4" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+        <button type="button" onClick="{{ s5.go }}" style="appearance:none; font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%; display:flex; gap:16px; padding:18px 20px; border-radius:14px; border:1px solid {{ s5.bd }}; background:{{ s5.bg }}; box-shadow:{{ s5.sh }}; transition:background .2s, border-color .2s, box-shadow .2s">
+          <span style="font-size:13px; font-weight:500; line-height:24px; color:{{ s5.num }}; font-variant-numeric:tabular-nums">06</span>
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:17px; font-weight:500; line-height:24px; color:var(--text-strong)">Dashboard e equipe</span>
+            <sc-if value="{{ s5.active }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Pedidos recebidos, valor em aberto, conversão e ticket médio — com permissões por perfil para cada pessoa da equipe.</span>
+              <span style="display:block; height:2px; margin-top:8px; border-radius:2px; background:var(--clay-150); overflow:hidden"><span data-progress="5" style="display:block; height:100%; background:var(--terracotta-500); transform-origin:left center; transform:{{ progFill }}"></span></span>
+            </sc-if>
+          </span>
+        </button>
+      </div>
+
+      <div style="flex:999 1 520px; min-width:0">
+        <div data-panel="true" style="background:var(--bg-surface); border:1px solid var(--border-default); border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden">
+          <div style="height:40px; display:flex; align-items:center; gap:8px; padding:0 16px; border-bottom:1px solid var(--border-subtle); background:var(--clay-25)">
+            <span style="width:9px; height:9px; border-radius:50%; background:var(--clay-200)"></span>
+            <span style="width:9px; height:9px; border-radius:50%; background:var(--clay-200)"></span>
+            <span style="width:9px; height:9px; border-radius:50%; background:var(--clay-200)"></span>
+            <span style="margin-left:10px; font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ tourPath }}</span>
+          </div>
+          <div style="padding:20px; background:var(--bg-app)">
+
+            <sc-if value="{{ s0.active }}" hint-placeholder-val="{{ true }}">
+              <div data-fit="840" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:600px; display:flex; flex-direction:column; gap:16px">
+                  <div style="background:var(--bg-surface); border:1px solid var(--border-default); border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:16px; box-shadow:var(--shadow-xs)">
+                    <span style="flex:none; width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="stack-2" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+                    <span style="flex:none; display:flex; flex-direction:column; gap:2px"><span style="font-size:15px; font-weight:500; color:var(--text-strong)">Pedido de orçamento</span><span style="font-size:13px; color:var(--text-muted)">Formulário público · 128 respostas</span></span>
+                    <div style="flex:1; min-width:0"><x-import component-from-global-scope="BanketDesignSystem_f9651f.CopyField" url="app.banket.com.br/f/buffet-jardim" hint-size="100%,40px"></x-import></div>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatusBadge" status="active" dot="{{ true }}" hint-size="150px,24px">Recebendo respostas</x-import>
+                  </div>
+                  <div style="flex:1; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:12px; padding:28px 32px; display:flex; flex-direction:column; gap:22px; box-shadow:var(--shadow-xs)">
+                    <div style="display:flex; flex-direction:column; gap:6px">
+                      <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Buffet Jardim</span>
+                      <span style="font-size:22px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Conte sobre o seu evento</span>
+                      <span style="font-size:14px; color:var(--text-secondary)">Precisamos de alguns detalhes para preparar uma proposta sob medida.</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px">
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Nome completo" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" default-value="Maria Eduarda Silva" hint-size="100%,40px"></x-import></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="E-mail" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" default-value="maria.eduarda@email.com" hint-size="100%,40px"></x-import></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Tipo de evento" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ selEvento }}" default-value="Casamento" hint-size="100%,40px"></x-import></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Data do evento" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="calendar" default-value="15/11/2026" hint-size="100%,40px"></x-import></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Número de convidados" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" default-value="150" suffix="convidados" hint-size="100%,40px"></x-import></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Formato de serviço" optional="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ selFormato }}" default-value="Empratado" hint-size="100%,40px"></x-import></x-import>
+                    </div>
+                    <div style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:16px">
+                      <span style="font-size:13px; color:var(--text-muted)">Seus dados são usados apenas para preparar o orçamento.</span>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" icon-right="send" hint-size="150px,40px">Enviar pedido</x-import>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ s1.active }}" hint-placeholder-val="{{ false }}">
+              <div data-fit="840" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:600px; display:flex; flex-direction:column; gap:16px">
+                  <div style="display:flex; align-items:center; gap:12px">
+                    <div style="width:240px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="search" placeholder="Pesquisar" hint-size="240px,40px"></x-import></div>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ viewOpts }}" value="lista" hint-size="190px,40px"></x-import>
+                    <div style="flex:1"></div>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="download" hint-size="140px,40px">Exportar CSV</x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" icon="circle-plus" hint-size="140px,40px">Novo evento</x-import>
+                  </div>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Table" columns="{{ listCols }}" rows="{{ listRows }}" sort="{{ listSort }}" on-sort="{{ noop }}" footer="{{ listFooter }}" hint-size="100%,500px"></x-import>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ s2.active }}" hint-placeholder-val="{{ false }}">
+              <div data-fit="840" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:600px; display:flex; flex-direction:column; gap:16px">
+                  <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px">
+                    <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:12px; color:var(--text-muted)">Evento nº 248 · Orçamento</span>
+                      <span style="font-size:22px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Casamento – Maria Eduarda Silva</span>
+                      <span style="font-size:13px; color:var(--text-secondary)">15/11/2026 · Domingo · 150 convidados · Empratado</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:14px">
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.StageDot" stage="negotiation" label="Em negociação" hint-size="120px,20px"></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ versoes }}" value="v3" hint-size="150px,40px"></x-import>
+                    </div>
+                  </div>
+                  <div style="background:var(--bg-surface); border:1px solid var(--border-default); border-radius:12px; box-shadow:var(--shadow-xs); overflow:hidden">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px">
+                      <span style="font-size:15px; font-weight:500; color:var(--text-strong)">Itens do orçamento</span>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" size="sm" icon="clock" hint-size="150px,22px">Versão 3 · há 2 horas</x-import>
+                    </div>
+                    <div style="display:grid; grid-template-columns:40px minmax(0,1fr) 150px 130px; gap:16px; align-items:center; padding:14px 20px; border-top:1px solid var(--border-subtle)">
+                      <span style="width:36px; height:36px; border-radius:9px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="tools-kitchen-2" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                      <span style="display:flex; flex-direction:column; gap:2px; min-width:0"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Buffet – Opção 02</span><span style="font-size:13px; color:var(--text-muted)">Cardápio · 10 seções · 52 itens</span></span>
+                      <span style="font-size:13px; color:var(--text-secondary); text-align:right; font-variant-numeric:tabular-nums">150 × R$ 105,00</span>
+                      <span style="font-size:14px; font-weight:500; color:var(--text-strong); text-align:right; font-variant-numeric:tabular-nums">R$ 15.750,00</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:40px minmax(0,1fr) 150px 130px; gap:16px; align-items:center; padding:14px 20px; border-top:1px solid var(--border-subtle)">
+                      <span style="width:36px; height:36px; border-radius:9px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="glass-full" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                      <span style="display:flex; flex-direction:column; gap:2px; min-width:0"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Bebidas sem álcool</span><span style="font-size:13px; color:var(--text-muted)">Sucos, refrigerantes e água</span></span>
+                      <span style="font-size:13px; color:var(--text-secondary); text-align:right; font-variant-numeric:tabular-nums">150 × R$ 28,00</span>
+                      <span style="font-size:14px; font-weight:500; color:var(--text-strong); text-align:right; font-variant-numeric:tabular-nums">R$ 4.200,00</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:40px minmax(0,1fr) 150px 130px; gap:16px; align-items:center; padding:14px 20px; border-top:1px solid var(--border-subtle)">
+                      <span style="width:36px; height:36px; border-radius:9px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="users" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                      <span style="display:flex; flex-direction:column; gap:2px; min-width:0"><span style="display:flex; align-items:center; gap:8px; font-size:14px; font-weight:500; color:var(--text-strong)">Staff <x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="sage" size="sm" hint-size="140px,20px">Calculado automaticamente</x-import></span><span style="font-size:13px; color:var(--text-muted)">8 garçons · 3 copeiros · 2 cozinheiros</span></span>
+                      <span style="font-size:13px; color:var(--text-secondary); text-align:right; font-variant-numeric:tabular-nums">13 profissionais</span>
+                      <span style="font-size:14px; font-weight:500; color:var(--text-strong); text-align:right; font-variant-numeric:tabular-nums">R$ 3.400,00</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns:40px minmax(0,1fr) 150px 130px; gap:16px; align-items:center; padding:14px 20px; border-top:1px solid var(--border-subtle)">
+                      <span style="width:36px; height:36px; border-radius:9px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="building" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                      <span style="display:flex; flex-direction:column; gap:2px; min-width:0"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Locação do espaço</span><span style="font-size:13px; color:var(--text-muted)">Salão principal · até 200 convidados</span></span>
+                      <span style="font-size:13px; color:var(--text-secondary); text-align:right; font-variant-numeric:tabular-nums">1 diária</span>
+                      <span style="font-size:14px; font-weight:500; color:var(--text-strong); text-align:right; font-variant-numeric:tabular-nums">R$ 2.150,00</span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; border-top:1px solid var(--border-default); background:var(--clay-25)">
+                      <span style="display:flex; flex-direction:column; gap:2px"><span style="font-size:13px; color:var(--text-muted)">Total da proposta</span><span style="font-size:13px; color:var(--text-secondary)">R$ 170,00 por convidado</span></span>
+                      <span style="font-size:28px; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); font-variant-numeric:tabular-nums">R$ 25.500,00</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; justify-content:flex-end; gap:10px">
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="eye" hint-size="170px,40px">Pré-visualizar PDF</x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" icon="send" hint-size="160px,40px">Enviar proposta</x-import>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ s3.active }}" hint-placeholder-val="{{ false }}">
+              <div data-fit="840" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:600px; display:flex; flex-direction:column; gap:18px">
+                  <div style="flex:1; border-radius:12px; background:var(--clay-150); display:flex; align-items:center; justify-content:center; gap:28px">
+                    <div style="width:330px; height:467px; background:#fff; border-radius:4px; box-shadow:var(--shadow-lg); overflow:hidden; display:flex; flex-direction:column">
+                      <div style="position:relative; flex:1; background:var(--terracotta-50)"><image-slot id="proposta-capa" shape="rect" placeholder="Fundo da capa (ex.: botânico em aquarela)" style="position:absolute; inset:0"></image-slot></div>
+                      <div style="padding:20px 24px 24px; display:flex; flex-direction:column; gap:6px">
+                        <span style="font-size:10px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--terracotta-700)">Buffet Jardim</span>
+                        <span style="font-size:22px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Proposta de casamento</span>
+                        <span style="font-size:12px; color:var(--text-secondary)">Maria Eduarda Silva · 15/11/2026 · 150 convidados</span>
+                      </div>
+                    </div>
+                    <div style="width:330px; height:467px; background:#fff; border-radius:4px; box-shadow:var(--shadow-lg); padding:28px 28px 20px; box-sizing:border-box; display:flex; flex-direction:column; gap:14px">
+                      <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted)"><span style="font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--terracotta-700)">Buffet Jardim</span><span>Proposta nº 248 · v3</span></div>
+                      <span style="font-size:17px; font-weight:500; color:var(--text-strong)">Cardápio empratado</span>
+                      <div style="display:flex; flex-direction:column; gap:8px; font-size:10.5px; line-height:1.45; color:var(--text-body)">
+                        <span style="font-size:9px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted)">Recepção</span>
+                        <span>Burrata com tomates frescos e pesto de manjericão</span>
+                        <span>Brie assado com castanhas, nozes e mel</span>
+                        <span style="font-size:9px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:4px">Prato principal</span>
+                        <span>Filé ao molho de vinho tinto e risoto de cogumelos</span>
+                        <span style="font-size:9px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-top:4px">Sobremesa</span>
+                        <span>Pavlova de frutas vermelhas</span>
+                      </div>
+                      <div style="margin-top:auto; display:flex; flex-direction:column; gap:5px; font-size:10.5px; color:var(--text-body); font-variant-numeric:tabular-nums">
+                        <span style="font-size:9px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted)">Investimento</span>
+                        <span style="display:flex; justify-content:space-between"><span>Cardápio</span><span>R$ 15.750,00</span></span>
+                        <span style="display:flex; justify-content:space-between"><span>Bebidas</span><span>R$ 4.200,00</span></span>
+                        <span style="display:flex; justify-content:space-between"><span>Staff</span><span>R$ 3.400,00</span></span>
+                        <span style="display:flex; justify-content:space-between"><span>Locação</span><span>R$ 2.150,00</span></span>
+                        <span style="display:flex; justify-content:space-between; padding-top:6px; margin-top:2px; border-top:1px solid var(--border-default); font-size:12px; font-weight:500; color:var(--text-strong)"><span>Total</span><span>R$ 25.500,00</span></span>
+                      </div>
+                      <span style="text-align:right; font-size:8.5px; color:var(--text-muted)">Página 2 de 6</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:12px; box-shadow:var(--shadow-xs)">
+                    <span style="flex:none; width:36px; height:36px; border-radius:9px; background:var(--cobalt-50); color:var(--cobalt-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="mail" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                    <span style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Enviada para maria.eduarda@email.com</span><span style="font-size:13px; color:var(--text-muted)">05/10/2026 · 14:32 · remetente comercial@buffetjardim.com.br</span></span>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatusBadge" status="sent" dot="{{ true }}" hint-size="90px,24px"></x-import>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ s4.active }}" hint-placeholder-val="{{ false }}">
+              <div data-fit="960" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:686px; display:flex; flex-direction:column; gap:14px; overflow:hidden">
+                  <div style="display:flex; align-items:center; gap:12px">
+                    <span style="font-size:20px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Outubro de 2026</span>
+                    <div style="display:flex; gap:16px; margin-left:16px">
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.StageDot" stage="new" label="Novo orçamento" hint-size="120px,20px"></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.StageDot" stage="negotiation" label="Em negociação" hint-size="120px,20px"></x-import>
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.StageDot" stage="won" label="Aprovado" hint-size="90px,20px"></x-import>
+                    </div>
+                    <div style="flex:1"></div>
+                    <div style="width:190px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ espacos }}" default-value="Todos os espaços" icon="building" hint-size="190px,40px"></x-import></div>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ calViews }}" value="mes" hint-size="150px,40px"></x-import>
+                  </div>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.CalendarMonth" year="{{ calYear }}" month="{{ calMonth }}" events="{{ calEvents }}" today="2026-10-05" max-per-day="{{ 2 }}" hint-size="100%,600px"></x-import>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ s5.active }}" hint-placeholder-val="{{ false }}">
+              <div data-fit="840" style="width:100%; min-width:0; overflow:hidden">
+                <div style="height:600px; display:flex; flex-direction:column; gap:16px">
+                  <div style="display:flex; flex-direction:column; gap:4px">
+                    <span style="font-size:22px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Olá, Carla</span>
+                    <span style="font-size:14px; color:var(--text-secondary)">Indicadores dos pedidos que entraram nos últimos 90 dias.</span>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px">
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatCard" label="Pedidos recebidos" value="42" hint="últimos 90 dias" hint-size="100%,110px"></x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatCard" label="Em aberto" value="R$ 186.400" hint="14 eventos no funil" hint-size="100%,110px"></x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatCard" label="Aprovados" value="R$ 112.300" hint="13 eventos" tone="success" hint-size="100%,110px"></x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatCard" label="Taxa de conversão" value="59%" hint="13 aprovados · 9 recusados" hint-size="100%,110px"></x-import>
+                  </div>
+                  <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start">
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Card" icon="layout-kanban" title="Funil por etapa" description="Pedidos dos últimos 90 dias" hint-size="100%,300px">
+                      <x-import component-from-global-scope="BanketDesignSystem_f9651f.FunnelBreakdown" stages="{{ funnel }}" hint-size="100%,200px"></x-import>
+                    </x-import>
+                    <x-import component-from-global-scope="BanketDesignSystem_f9651f.Card" icon="users" title="Equipe e permissões" description="Cada perfil vê só o que precisa" hint-size="100%,300px">
+                      <div style="display:flex; flex-direction:column; gap:12px">
+                        <div style="display:flex; align-items:center; gap:10px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="Carla Menezes" size="sm" hint-size="28px,28px"></x-import><span style="flex:1; display:flex; flex-direction:column"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Carla Menezes</span><span style="font-size:12px; color:var(--text-muted)">Proprietária</span></span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" size="sm" hint-size="90px,22px">Acesso total</x-import></div>
+                        <div style="display:flex; align-items:center; gap:10px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="Rafael Costa" size="sm" hint-size="28px,28px"></x-import><span style="flex:1; display:flex; flex-direction:column"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Rafael Costa</span><span style="font-size:12px; color:var(--text-muted)">Comercial</span></span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="neutral" size="sm" hint-size="120px,22px">Sem financeiro geral</x-import></div>
+                        <div style="display:flex; align-items:center; gap:10px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="Juliana Prado" size="sm" hint-size="28px,28px"></x-import><span style="flex:1; display:flex; flex-direction:column"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Juliana Prado</span><span style="font-size:12px; color:var(--text-muted)">Comercial</span></span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="neutral" size="sm" hint-size="120px,22px">Sem financeiro geral</x-import></div>
+                        <div style="display:flex; align-items:center; gap:10px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="Diego Alves" size="sm" hint-size="28px,28px"></x-import><span style="flex:1; display:flex; flex-direction:column"><span style="font-size:14px; font-weight:500; color:var(--text-strong)">Diego Alves</span><span style="font-size:12px; color:var(--text-muted)">Operacional</span></span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="sage" size="sm" hint-size="140px,22px">Agenda e ordens de serviço</x-import></div>
+                      </div>
+                    </x-import>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="recursos" data-screen-label="Recursos" style="padding:clamp(72px,9vw,120px) 0; background:var(--bg-surface); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-direction:column; gap:48px">
+    <div data-reveal="0" style="display:flex; flex-direction:column; gap:16px; max-width:760px">
+      <span style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Recursos</span>
+      <h2 style="margin:0; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:var(--text-strong); text-wrap:balance">Tudo o que um buffet precisa para vender e operar com controle</h2>
+      <p style="margin:0; font-size:17px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Do catálogo à ordem de serviço, cada recurso foi pensado para a rotina de quem vive de eventos.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px">
+      <div data-reveal="0" style="grid-column:1 / -1; display:flex; flex-wrap:wrap; background:var(--bg-app); border:1px solid var(--border-default); border-radius:20px; overflow:hidden">
+        <div style="flex:1 1 360px; padding:clamp(28px,4vw,48px); display:flex; flex-direction:column; justify-content:center; gap:16px">
+          <div><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" icon="users-group" hint-size="110px,24px">Experimente</x-import></div>
+          <h3 style="margin:0; font-size:clamp(24px,3vw,34px); line-height:1.15; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); text-wrap:balance">Staff calculado pelo número de convidados</h3>
+          <p style="margin:0; font-size:16px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Defina uma vez a proporção de garçons, copeiros e cozinheiros. A cada orçamento, o Banket dimensiona a equipe e soma o custo automaticamente.</p>
+          <span style="font-size:13px; color:var(--text-muted)">Proporções de exemplo · disponível nos planos Profissional e Prime</span>
+        </div>
+        <div style="flex:1 1 360px; padding:clamp(28px,4vw,48px); background:var(--bg-surface); border-left:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:22px">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px">
+            <span style="font-size:14px; font-weight:500; color:var(--text-heading)">Convidados</span>
+            <span style="font-size:36px; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); font-variant-numeric:tabular-nums">{{ guests }}</span>
+          </div>
+          <input type="range" min="30" max="500" step="10" value="{{ guests }}" onChange="{{ onGuests }}" aria-label="Número de convidados" style="width:100%; margin:0; accent-color:var(--terracotta-600); cursor:pointer">
+          <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px">
+            <div style="padding:16px; border-radius:12px; background:var(--clay-25); border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:4px">
+              <span style="font-size:28px; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); font-variant-numeric:tabular-nums">{{ staff.garcons }}</span>
+              <span style="font-size:14px; color:var(--text-heading)">Garçons</span>
+              <span style="font-size:12px; color:var(--text-muted)">1 a cada 20</span>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:var(--clay-25); border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:4px">
+              <span style="font-size:28px; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); font-variant-numeric:tabular-nums">{{ staff.copeiros }}</span>
+              <span style="font-size:14px; color:var(--text-heading)">Copeiros</span>
+              <span style="font-size:12px; color:var(--text-muted)">1 a cada 50</span>
+            </div>
+            <div style="padding:16px; border-radius:12px; background:var(--clay-25); border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:4px">
+              <span style="font-size:28px; font-weight:500; letter-spacing:-0.02em; color:var(--text-strong); font-variant-numeric:tabular-nums">{{ staff.cozinheiros }}</span>
+              <span style="font-size:14px; color:var(--text-heading)">Cozinheiros</span>
+              <span style="font-size:12px; color:var(--text-muted)">1 a cada 80</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding-top:16px; border-top:1px solid var(--border-subtle); font-size:14px; color:var(--text-secondary)">
+            <span>Equipe que entra no orçamento</span>
+            <span style="font-weight:500; color:var(--text-strong); font-variant-numeric:tabular-nums">{{ staff.total }} profissionais</span>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="0" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="tools-kitchen-2" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Catálogo completo</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Cardápios com seções, itens e opções, bebidas e fichas de custo — reaproveitados em cada orçamento.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" hint-size="130px,22px">Profissional e Prime</x-import></div>
+      </div>
+      <div data-reveal="80" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="file-dollar" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Orçamento versionado</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Cada ajuste vira uma nova versão, e o valor do evento vem sempre do orçamento mais recente.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" hint-size="110px,22px">Todos os planos</x-import></div>
+      </div>
+      <div data-reveal="160" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="palette" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Proposta com a sua marca</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Templates de capa, conteúdo e contracapa com o logotipo e as cores do buffet, sem a marca Banket.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" hint-size="130px,22px">Profissional e Prime</x-import></div>
+      </div>
+      <div data-reveal="240" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="mail" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Remetente próprio</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Envie propostas pelo domínio do seu buffet, com SMTP próprio ou remetente personalizado.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" hint-size="130px,22px">Profissional e Prime</x-import></div>
+      </div>
+      <div data-reveal="0" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="lock" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Permissões por perfil</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">O comercial vende, o operacional executa — e o financeiro geral fica só com quem deve ver.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" hint-size="130px,22px">Profissional e Prime</x-import></div>
+      </div>
+      <div data-reveal="80" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="building" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Múltiplos espaços</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Uma agenda por salão ou unidade, sem duas reservas para o mesmo ambiente na mesma data.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" tone="ochre" hint-size="60px,22px">Prime</x-import></div>
+      </div>
+      <div data-reveal="160" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="clipboard-list" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Ordem de serviço</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Espelho do evento para cozinha e salão, com cardápio, horários e equipe escalada.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" tone="ochre" hint-size="60px,22px">Prime</x-import></div>
+      </div>
+      <div data-reveal="240" style="display:flex; flex-direction:column; gap:14px; padding:24px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:16px; box-shadow:var(--shadow-xs); transition:border-color .12s, box-shadow .18s" style-hover="border-color:var(--border-strong); box-shadow:var(--shadow-md)">
+        <span style="width:40px; height:40px; border-radius:10px; background:var(--terracotta-50); color:var(--terracotta-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chart-bar" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        <h3 style="margin:0; font-size:17px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Lucratividade e sazonalidade</h3>
+        <p style="margin:0; font-size:14px; line-height:1.55; color:var(--text-secondary); text-wrap:pretty">Relatórios por tipo de evento para entender a margem e planejar os meses fortes e fracos.</p>
+        <div style="margin-top:auto"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" size="sm" tone="ochre" hint-size="60px,22px">Prime</x-import></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="para-quem" data-screen-label="Para quem é" style="padding:clamp(72px,9vw,120px) 0; scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-direction:column; gap:48px">
+    <div data-reveal="0" style="display:flex; flex-direction:column; gap:16px; max-width:760px">
+      <span style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Para quem é</span>
+      <h2 style="margin:0; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:var(--text-strong); text-wrap:balance">Feito para cada fase do seu buffet</h2>
+      <p style="margin:0; font-size:17px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Do banqueteiro que atende em domicílio à casa de eventos com vários salões: o Banket cresce junto com a operação.</p>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:24px">
+      <div data-reveal="0" style="display:flex; flex-direction:column; gap:18px">
+        <div style="position:relative; aspect-ratio:4 / 3; border-radius:16px; overflow:hidden; background:var(--clay-100)"><image-slot id="foto-domicilio" shape="rect" placeholder="Foto: buffet servindo em evento a domicílio" style="position:absolute; inset:0"></image-slot></div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <h3 style="margin:0; font-size:20px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Buffets a domicílio e autônomos</h3>
+          <p style="margin:0; font-size:15px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Organize pedidos, orçamentos e propostas desde o primeiro evento — sem planilhas nem documentos soltos.</p>
+          <a href="#planos" style="display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:14px; font-weight:500; color:var(--text-link); text-decoration:none" style-hover="text-decoration:underline; text-underline-offset:3px">Plano Essencial<x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="arrow-right" size="{{ 16 }}" hint-size="16px,16px"></x-import></a>
+        </div>
+      </div>
+      <div data-reveal="100" style="display:flex; flex-direction:column; gap:18px">
+        <div style="position:relative; aspect-ratio:4 / 3; border-radius:16px; overflow:hidden; background:var(--clay-100)"><image-slot id="foto-salao" shape="rect" placeholder="Foto: salão montado para casamento" style="position:absolute; inset:0"></image-slot></div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <h3 style="margin:0; font-size:20px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Buffets com salão próprio</h3>
+          <p style="margin:0; font-size:15px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Equipe comercial e operacional no mesmo fluxo, com permissões, catálogo completo e indicadores de conversão.</p>
+          <a href="#planos" style="display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:14px; font-weight:500; color:var(--text-link); text-decoration:none" style-hover="text-decoration:underline; text-underline-offset:3px">Plano Profissional<x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="arrow-right" size="{{ 16 }}" hint-size="16px,16px"></x-import></a>
+        </div>
+      </div>
+      <div data-reveal="200" style="display:flex; flex-direction:column; gap:18px">
+        <div style="position:relative; aspect-ratio:4 / 3; border-radius:16px; overflow:hidden; background:var(--clay-100)"><image-slot id="foto-casa-eventos" shape="rect" placeholder="Foto: casa de eventos com vários ambientes" style="position:absolute; inset:0"></image-slot></div>
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <h3 style="margin:0; font-size:20px; font-weight:500; letter-spacing:-0.01em; color:var(--text-strong)">Casas de eventos e redes</h3>
+          <p style="margin:0; font-size:15px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Vários salões ou unidades operando ao mesmo tempo, com agenda por ambiente e relatórios de lucratividade.</p>
+          <a href="#planos" style="display:inline-flex; align-items:center; gap:6px; margin-top:4px; font-size:14px; font-weight:500; color:var(--text-link); text-decoration:none" style-hover="text-decoration:underline; text-underline-offset:3px">Plano Prime<x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="arrow-right" size="{{ 16 }}" hint-size="16px,16px"></x-import></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="planos" data-screen-label="Planos" style="padding:clamp(72px,9vw,120px) 0; background:var(--bg-surface); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle); scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-direction:column; gap:48px">
+    <div data-reveal="0" style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:16px">
+      <span style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Planos</span>
+      <h2 style="margin:0; max-width:760px; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:var(--text-strong); text-wrap:balance">Escolha o plano do tamanho da sua operação</h2>
+      <p style="margin:0; max-width:620px; font-size:17px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Os planos variam por volume de eventos, número de usuários e personalização. No plano anual, a mensalidade fica menor.</p>
+      <div style="margin-top:8px; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px">
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ billingOpts }}" value="{{ billing }}" on-change="{{ setBilling }}" size="lg" hint-size="200px,48px"></x-import>
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="sage" hint-size="190px,24px">Economize até 34% no anual</x-import>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; align-items:stretch">
+      <div data-reveal="0" style="display:flex; flex-direction:column; gap:24px; padding:32px 28px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:20px; box-shadow:var(--shadow-xs)">
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="font-size:20px; font-weight:500; color:var(--text-strong)">Essencial</span>
+          <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); min-height:66px">Para buffets a domicílio, banqueteiros autônomos e quem está saindo das planilhas.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="height:18px; font-size:13px; color:var(--text-muted); text-decoration:line-through">{{ pr.essOld }}</span>
+          <div data-price="true" style="display:flex; align-items:baseline; gap:4px; color:var(--text-strong)"><span style="font-size:18px; font-weight:500">R$</span><span style="font-size:52px; font-weight:500; letter-spacing:-0.03em; line-height:1; font-variant-numeric:tabular-nums">{{ pr.ess }}</span><span style="font-size:15px; color:var(--text-muted)">/mês</span></div>
+          <span style="font-size:13px; color:var(--text-muted)">{{ pr.essNote }}</span>
+        </div>
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" size="lg" block="{{ true }}" href="#contato" on-click="{{ pickEss }}" hint-size="100%,48px">Começar no Essencial</x-import>
+        <div style="display:flex; flex-direction:column; gap:12px; padding-top:20px; border-top:1px solid var(--border-subtle)">
+          <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Limites</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="user" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>1 usuário administrador</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="calendar-event" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Até 8 eventos confirmados por mês</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="file-dollar" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Até 30 orçamentos por mês</span>
+        </div>
+        <ul style="list-style:none; margin:0; padding:20px 0 0; border-top:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:11px">
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Formulário público de captação</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Funil de vendas em Kanban</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Orçamento versionado com PDF</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>PDF com seu logo e rodapé discreto Banket</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Agenda de eventos</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Envio de propostas por e-mail</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Suporte por e-mail e central de ajuda</li>
+        </ul>
+      </div>
+
+      <div data-reveal="100" style="position:relative; display:flex; flex-direction:column; gap:24px; padding:32px 28px; background:var(--bg-surface); border:1px solid var(--terracotta-400); border-radius:20px; box-shadow:0 0 0 4px rgba(227,83,54,.08), var(--shadow-lg)">
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="display:flex; align-items:center; justify-content:space-between; gap:12px"><span style="font-size:20px; font-weight:500; color:var(--text-strong)">Profissional</span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" icon="star" hint-size="110px,24px">Recomendado</x-import></span>
+          <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); min-height:66px">Para buffets estabelecidos, com salão próprio e equipe comercial e operacional dedicada.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="height:18px; font-size:13px; color:var(--text-muted); text-decoration:line-through">{{ pr.proOld }}</span>
+          <div data-price="true" style="display:flex; align-items:baseline; gap:4px; color:var(--text-strong)"><span style="font-size:18px; font-weight:500">R$</span><span style="font-size:52px; font-weight:500; letter-spacing:-0.03em; line-height:1; font-variant-numeric:tabular-nums">{{ pr.pro }}</span><span style="font-size:15px; color:var(--text-muted)">/mês</span></div>
+          <span style="font-size:13px; color:var(--text-muted)">{{ pr.proNote }}</span>
+        </div>
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" size="lg" block="{{ true }}" href="#contato" on-click="{{ pickPro }}" hint-size="100%,48px">Começar no Profissional</x-import>
+        <div style="display:flex; flex-direction:column; gap:12px; padding-top:20px; border-top:1px solid var(--border-subtle)">
+          <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Limites</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="users" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Até 4 usuários · adicional R$ 35/mês</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="calendar-event" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Eventos confirmados ilimitados</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="file-dollar" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Orçamentos ilimitados</span>
+        </div>
+        <ul style="list-style:none; margin:0; padding:20px 0 0; border-top:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:11px">
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-strong); font-weight:500"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Tudo do Essencial</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Proposta 100% com a sua marca</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>SMTP próprio ou remetente personalizado</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Permissões por perfil da equipe</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Catálogo completo com fichas de custo</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Staff calculado por convidados</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Dashboard de conversão e faturamento previsto</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Suporte prioritário via WhatsApp e chat</li>
+        </ul>
+      </div>
+
+      <div data-reveal="200" style="display:flex; flex-direction:column; gap:24px; padding:32px 28px; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:20px; box-shadow:var(--shadow-xs)">
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <span style="display:flex; align-items:center; justify-content:space-between; gap:12px"><span style="font-size:20px; font-weight:500; color:var(--text-strong)">Prime</span><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="neutral" icon="building" hint-size="110px,24px">Multi-espaço</x-import></span>
+          <span style="font-size:14px; line-height:1.55; color:var(--text-secondary); min-height:66px">Para casas de eventos com vários ambientes ou mais de uma unidade sob a mesma gestão.</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="height:18px; font-size:13px; color:var(--text-muted); text-decoration:line-through">{{ pr.priOld }}</span>
+          <div data-price="true" style="display:flex; align-items:baseline; gap:4px; color:var(--text-strong)"><span style="font-size:18px; font-weight:500">R$</span><span style="font-size:52px; font-weight:500; letter-spacing:-0.03em; line-height:1; font-variant-numeric:tabular-nums">{{ pr.pri }}</span><span style="font-size:15px; color:var(--text-muted)">/mês</span></div>
+          <span style="font-size:13px; color:var(--text-muted)">{{ pr.priNote }}</span>
+        </div>
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" size="lg" block="{{ true }}" href="#contato" on-click="{{ pickPri }}" hint-size="100%,48px">Falar com vendas</x-import>
+        <div style="display:flex; flex-direction:column; gap:12px; padding-top:20px; border-top:1px solid var(--border-subtle)">
+          <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Limites</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="users-group" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Até 10 usuários</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="building" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Múltiplos espaços e agendas</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:14px; color:var(--text-heading)"><span style="display:flex; color:var(--clay-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="file-dollar" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Leads, propostas e eventos ilimitados</span>
+        </div>
+        <ul style="list-style:none; margin:0; padding:20px 0 0; border-top:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:11px">
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-strong); font-weight:500"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Tudo do Profissional</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Agenda por salão, sem conflito de datas</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Ordem de serviço e espelho do evento</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Relatórios de lucratividade e sazonalidade</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Permissões por unidade e ambiente</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Onboarding assistido com migração de cardápios</li>
+          <li style="display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--text-body)"><span style="flex:none; display:flex; margin-top:1px; color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>SLA garantido e gerente de conta</li>
+        </ul>
+      </div>
+    </div>
+
+    <div data-reveal="0" style="display:flex; flex-direction:column; align-items:center; gap:20px">
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="ghost" icon-right="{{ cmpIcon }}" on-click="{{ toggleCompare }}" hint-size="230px,40px">{{ cmpLabel }}</x-import>
+      <sc-if value="{{ compare }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%; overflow-x:auto">
+          <div style="min-width:820px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Table" columns="{{ cmpCols }}" rows="{{ cmpRows }}" hint-size="100%,640px"></x-import>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</section>
+
+<section id="duvidas" data-screen-label="Dúvidas" style="padding:clamp(72px,9vw,120px) 0; scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box; display:flex; flex-wrap:wrap; gap:48px 64px">
+    <div data-reveal="0" style="flex:1 1 300px; display:flex; flex-direction:column; gap:16px; align-items:flex-start">
+      <span style="font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--terracotta-700)">Dúvidas</span>
+      <h2 style="margin:0; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:var(--text-strong)">Perguntas frequentes</h2>
+      <p style="margin:0; font-size:17px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Não encontrou o que procurava? Agende uma demonstração e tire as dúvidas com a nossa equipe.</p>
+      <div style="margin-top:8px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="headset" href="#contato" hint-size="190px,40px">Falar com a equipe</x-import></div>
+    </div>
+    <div data-reveal="100" style="flex:2 1 520px; display:flex; flex-direction:column; border-top:1px solid var(--border-default)">
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f0.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>O que conta no limite de eventos do Essencial?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f0.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f0.open }}" hint-placeholder-val="{{ true }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">São até 8 eventos confirmados por mês e até 30 orçamentos criados no mesmo período. Se o seu volume passar disso, o Profissional libera eventos e orçamentos sem limite.</p></sc-if>
+      </div>
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f1.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>A proposta sai com a marca do meu buffet?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f1.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f1.open }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">Sim. No Essencial, o PDF leva o seu logotipo com um rodapé discreto do Banket. A partir do Profissional, o documento é 100% personalizado, sem a marca Banket, e o e-mail pode sair pelo seu próprio remetente.</p></sc-if>
+      </div>
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f2.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>Consigo trazer meus cardápios de planilhas?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f2.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f2.open }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">No Prime, o onboarding assistido inclui a migração de cardápios e itens iniciais por planilha. No Profissional, você conta com vídeos e templates; no Essencial, com a central de ajuda.</p></sc-if>
+      </div>
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f3.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>Posso mudar de plano depois?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f3.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f3.open }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">Sim. Comece pelo plano que faz sentido hoje e evolua quando a operação crescer — clientes, cardápios, eventos e orçamentos continuam no lugar.</p></sc-if>
+      </div>
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f4.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>Os dados do meu buffet ficam separados?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f4.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f4.open }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">Sim. O Banket é multi-empresa: cada buffet acessa apenas os próprios clientes, eventos e orçamentos. A partir do Profissional, você ainda define o que cada perfil da equipe pode ver.</p></sc-if>
+      </div>
+      <div style="border-bottom:1px solid var(--border-default)">
+        <button type="button" onClick="{{ f5.toggle }}" style="appearance:none; background:none; border:0; font:inherit; text-align:left; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; font-size:17px; font-weight:500; color:var(--text-strong)">
+          <span>Preciso instalar alguma coisa?</span>
+          <span style="flex:none; display:flex; color:var(--text-muted); transition:transform .2s cubic-bezier(.2,.7,.2,1); transform:{{ f5.rot }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="chevron-down" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+        </button>
+        <sc-if value="{{ f5.open }}" hint-placeholder-val="{{ false }}"><p style="margin:0; padding:0 48px 24px 0; font-size:15px; line-height:1.65; color:var(--text-secondary); text-wrap:pretty">Não. O Banket funciona no navegador: basta acessar app.banket.com.br com o seu usuário. O formulário de pedidos também é um link, pronto para o Instagram, o site ou o WhatsApp.</p></sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contato" data-screen-label="Demonstração" style="padding:0 0 clamp(72px,9vw,120px); scroll-margin-top:72px">
+  <div style="max-width:1200px; margin:0 auto; padding:0 clamp(20px,4vw,40px); box-sizing:border-box">
+    <div data-reveal="0" style="position:relative; overflow:hidden; border-radius:28px; background:var(--clay-900); padding:clamp(32px,6vw,72px); display:flex; flex-wrap:wrap; align-items:center; gap:48px">
+      <div aria-hidden="true" style="position:absolute; right:-220px; top:-220px; width:640px; height:640px; border-radius:50%; border:1px solid var(--clay-800); pointer-events:none"></div>
+      <div aria-hidden="true" data-orbit="80000" style="position:absolute; right:-360px; top:-360px; width:920px; height:920px; border-radius:50%; border:1px dashed rgba(211,198,186,.18); pointer-events:none">
+        <span style="position:absolute; left:calc(50% - 5px); bottom:-5px; width:10px; height:10px; border-radius:50%; background:var(--terracotta-500)"></span>
+      </div>
+      <div style="position:relative; flex:1 1 380px; display:flex; flex-direction:column; gap:20px">
+        <div style="display:flex; align-self:flex-start"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" height="{{ 30 }}" src="assets/logo-light.png" tone="light" hint-size="128px,30px"></x-import></div>
+        <h2 style="margin:8px 0 0; font-size:clamp(30px,4.2vw,48px); line-height:1.08; font-weight:500; letter-spacing:-0.028em; color:#fff; text-wrap:balance">Profissionalize a gestão do seu buffet</h2>
+        <p style="margin:0; font-size:17px; line-height:1.6; color:var(--clay-300); text-wrap:pretty">Mostramos o Banket com o cenário do seu buffet e ajudamos a escolher o plano certo para o seu volume de eventos.</p>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:4px">
+          <span style="display:flex; gap:10px; align-items:center; font-size:15px; color:var(--clay-200)"><span style="display:flex; color:var(--terracotta-400)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>Demonstração guiada pelo seu fluxo de vendas</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:15px; color:var(--clay-200)"><span style="display:flex; color:var(--terracotta-400)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>Recomendação de plano pelo seu volume de eventos</span>
+          <span style="display:flex; gap:10px; align-items:center; font-size:15px; color:var(--clay-200)"><span style="display:flex; color:var(--terracotta-400)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>Migração assistida de cardápios no Prime</span>
+        </div>
+      </div>
+      <div style="position:relative; flex:1 1 400px; background:var(--bg-surface); border-radius:20px; padding:clamp(24px,3vw,36px); box-shadow:var(--shadow-xl)">
+        <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+          <form onSubmit="{{ submitDemo }}" style="display:flex; flex-direction:column; gap:20px">
+            <div style="display:flex; flex-direction:column; gap:4px">
+              <span style="font-size:20px; font-weight:500; color:var(--text-strong)">Agende uma demonstração</span>
+              <span style="font-size:14px; color:var(--text-secondary)">Leva menos de um minuto para preencher.</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px 20px">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Seu nome" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" placeholder="Nome completo" required="{{ true }}" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Nome do buffet" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" placeholder="Ex.: Buffet Jardim" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="E-mail" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" type="email" icon="mail" placeholder="voce@seubuffet.com.br" required="{{ true }}" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="WhatsApp" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" type="tel" icon="brand-whatsapp" placeholder="(11) 98888-7777" required="{{ true }}" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Plano de interesse" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ planOpts }}" value="{{ plan }}" on-change="{{ onPlan }}" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Eventos por mês" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ volumeOpts }}" default-value="De 9 a 30" hint-size="100%,40px"></x-import></x-import>
+            </div>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" type="submit" size="lg" block="{{ true }}" icon-right="arrow-right" hint-size="100%,48px">Agendar demonstração</x-import>
+          </form>
+        </sc-if>
+        <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; align-items:flex-start; gap:16px; padding:24px 0">
+            <span style="width:52px; height:52px; border-radius:14px; background:var(--sage-50); color:var(--sage-600); display:flex; align-items:center; justify-content:center"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 26 }}" hint-size="26px,26px"></x-import></span>
+            <span style="font-size:22px; font-weight:500; color:var(--text-strong)">Pedido recebido</span>
+            <span style="font-size:15px; line-height:1.6; color:var(--text-secondary); text-wrap:pretty">Nossa equipe vai entrar em contato pelo e-mail ou WhatsApp informado para combinar o melhor horário da demonstração.</span>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="text" tone="accent" icon="refresh" on-click="{{ resetDemo }}" hint-size="170px,32px">Enviar outro pedido</x-import>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--border-subtle)">
+  <div style="max-width:1200px; margin:0 auto; padding:56px clamp(20px,4vw,40px) 32px; box-sizing:border-box; display:flex; flex-direction:column; gap:48px">
+    <div style="display:flex; flex-wrap:wrap; gap:40px 64px">
+      <div style="flex:1 1 260px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-self:flex-start"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" height="{{ 28 }}" src="assets/logo-dark.png" hint-size="120px,28px"></x-import></div>
+        <span style="max-width:300px; font-size:14px; line-height:1.6; color:var(--text-secondary)">Sistema de gestão para buffets e casas de eventos — da captação do pedido à agenda.</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:140px">
+        <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Produto</span>
+        <a href="#como-funciona" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Como funciona</a>
+        <a href="#recursos" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Recursos</a>
+        <a href="#planos" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Planos</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:140px">
+        <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Para você</span>
+        <a href="#para-quem" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Para quem é</a>
+        <a href="#duvidas" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Dúvidas</a>
+        <a href="#contato" style="font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Agendar demonstração</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; min-width:140px">
+        <span style="font-size:11px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted)">Acesso</span>
+        <a href="https://app.banket.com.br" style="display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--text-body); text-decoration:none" style-hover="color:var(--terracotta-700)">Entrar no Banket<x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="external-link" size="{{ 14 }}" hint-size="14px,14px"></x-import></a>
+      </div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; padding-top:24px; border-top:1px solid var(--border-subtle); font-size:13px; color:var(--text-muted)">
+      <span>© 2026 Banket. Todos os direitos reservados.</span>
+      <span>Feito para quem vive de eventos.</span>
+    </div>
+  </div>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;billingDefault&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;anual&quot;,&quot;mensal&quot;],&quot;default&quot;:&quot;anual&quot;,&quot;tsType&quot;:&quot;'anual' | 'mensal'&quot;,&quot;section&quot;:&quot;Planos&quot;},&quot;autoplayTour&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Como funciona&quot;},&quot;showOrbit&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hero&quot;}}">
+class Component extends DCLogic {
+  state = { step: 0, toast: 0, vw: typeof window !== "undefined" ? window.innerWidth : 1280, billing: null, faq: 0, compare: false, guests: 150, sent: false, plan: "Profissional" };
+
+  componentDidMount() {
+    this.rm = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    this.onResize = () => this.setState({ vw: window.innerWidth });
+    window.addEventListener("resize", this.onResize);
+    this.toastT = setInterval(() => this.setState(s => ({ toast: (s.toast + 1) % 3 })), 3800);
+    this.fitted = new WeakSet(); this.revealed = new WeakSet(); this.moved = new WeakSet(); this.anims = [];
+    this.fitRO = new ResizeObserver(es => es.forEach(e => this.fit(e.target)));
+    this.revIO = new IntersectionObserver(es => es.forEach(e => {
+      const el = e.target;
+      if (e.isIntersecting) { this.revIO.unobserve(el); if (el.dataset.hidden === "1") this.reveal(el); }
+      else if (!el.dataset.hidden && document.visibilityState === "visible") { el.dataset.hidden = "1"; el.style.opacity = "0"; }
+    }), { rootMargin: "0px 0px -6% 0px", threshold: 0.06 });
+    this.unhideAll = () => document.querySelectorAll('[data-hidden="1"]').forEach(el => { el.style.opacity = ""; delete el.dataset.hidden; this.revIO && this.revIO.unobserve(el); });
+    window.addEventListener("beforeprint", this.unhideAll);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "visible") this.unhideAll(); });
+    const tour = document.getElementById("como-funciona");
+    this.tourIO = new IntersectionObserver(([e]) => { this.tourVis = e.isIntersecting; this.syncProgress(); }, { threshold: 0.2 });
+    if (tour) this.tourIO.observe(tour);
+    this.prevS = { step: this.state.step, billing: this.state.billing };
+    this.scan();
+    this.startProgress();
+  }
+
+  componentDidUpdate(pp) {
+    pp = pp || {};
+    const ps = this.prevS || this.state;
+    this.prevS = { step: this.state.step, billing: this.state.billing };
+    this.scan();
+    if (ps.step !== this.state.step) { this.animatePanel(); this.startProgress(); }
+    else if (pp.autoplayTour !== this.props.autoplayTour) this.startProgress();
+    if (ps.billing !== this.state.billing || pp.billingDefault !== this.props.billingDefault) this.pulse("[data-price]");
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.onResize);
+    window.removeEventListener("beforeprint", this.unhideAll);
+    clearInterval(this.toastT);
+    [this.fitRO, this.revIO, this.tourIO].forEach(o => o && o.disconnect());
+    (this.anims || []).forEach(a => a.cancel());
+    if (this.prog) this.prog.cancel();
+  }
+
+  scan() {
+    document.querySelectorAll("[data-fit]").forEach(el => {
+      if (this.fitted.has(el)) return;
+      this.fitted.add(el); this.fitRO.observe(el); this.fit(el);
+    });
+    document.querySelectorAll("[data-reveal]").forEach(el => {
+      if (this.revealed.has(el)) return;
+      this.revealed.add(el);
+      if (this.rm) return;
+      this.revIO.observe(el);
+    });
+    if (this.rm) return;
+    document.querySelectorAll("[data-float]").forEach(el => {
+      if (this.moved.has(el)) return;
+      this.moved.add(el);
+      this.anims.push(el.animate([{ transform: "translateY(0)" }, { transform: "translateY(-8px)" }, { transform: "translateY(0)" }], { duration: 6400, delay: -(+el.dataset.float || 0), iterations: Infinity, easing: "ease-in-out" }));
+    });
+    document.querySelectorAll("[data-orbit]").forEach(el => {
+      if (this.moved.has(el)) return;
+      this.moved.add(el);
+      const deg = el.dataset.dir === "rev" ? -360 : 360;
+      this.anims.push(el.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(" + deg + "deg)" }], { duration: +el.dataset.orbit || 60000, iterations: Infinity }));
+    });
+  }
+
+  fit(el) {
+    const w = +el.dataset.fit, inner = el.firstElementChild;
+    if (!inner || !w || !el.clientWidth) return;
+    inner.style.width = w + "px";
+    inner.style.zoom = String(Math.min(1, el.clientWidth / w));
+  }
+
+  reveal(el) {
+    el.style.opacity = "";
+    delete el.dataset.hidden;
+    if (this.rm) return;
+    el.animate([{ opacity: 0, transform: "translateY(20px)" }, { opacity: 1, transform: "none" }], { duration: 760, delay: +el.dataset.reveal || 0, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" });
+  }
+
+  animatePanel() {
+    const p = document.querySelector("[data-panel]");
+    if (p && !this.rm) p.animate([{ opacity: 0.35, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.7,.2,1)" });
+  }
+
+  pulse(sel) {
+    if (this.rm) return;
+    document.querySelectorAll(sel).forEach(el => el.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.7,.2,1)" }));
+  }
+
+  startProgress() {
+    if (this.prog) { this.prog.onfinish = null; this.prog.cancel(); this.prog = null; }
+    if (!(this.props.autoplayTour ?? true)) return;
+    const bar = document.querySelector('[data-progress="' + this.state.step + '"]');
+    if (!bar) return;
+    this.prog = bar.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { duration: 7000, easing: "linear", fill: "forwards" });
+    this.prog.onfinish = () => this.setState(s => ({ step: (s.step + 1) % 6 }));
+    this.syncProgress();
+  }
+
+  syncProgress() {
+    if (!this.prog) return;
+    if (this.tourVis && !this.hover) this.prog.play(); else this.prog.pause();
+  }
+
+  renderVals() {
+    const s = this.state, P = this.props;
+    const NS = window.BanketDesignSystem_f9651f || {};
+    const billing = s.billing || P.billingDefault || "anual";
+    const anual = billing === "anual";
+    const autoplay = P.autoplayTour ?? true;
+
+    const st = i => {
+      const a = s.step === i;
+      return {
+        active: a,
+        bg: a ? "var(--bg-surface)" : "transparent",
+        bd: a ? "var(--border-default)" : "transparent",
+        sh: a ? "var(--shadow-md)" : "none",
+        num: a ? "var(--terracotta-600)" : "var(--text-muted)",
+        go: () => (this.state.step === i ? this.startProgress() : this.setState({ step: i })),
+      };
+    };
+    const fq = i => ({ open: s.faq === i, rot: s.faq === i ? "rotate(180deg)" : "none", toggle: () => this.setState(x => ({ faq: x.faq === i ? -1 : i })) });
+
+    const R = (p, f, k, v, d) => [{ label: "Pessoas", value: p }, { label: "Formato de serviço", value: f }, { label: k, value: v }, { label: "Data", value: d }];
+    const cA = { title: "Casamento", client: "Antonio Rodrigues Neto", kind: "person", type: "Social", dias: "há 2 dias nesta etapa", rows: R("77", "Ilhas gastronômicas", "Verba estimada", "-", "12/12/2026") };
+    const cB = { title: "Festa de 15 anos", client: "Camila Rocha Nogueira", kind: "person", type: "Social", dias: "há 1 dia nesta etapa", rows: R("120", "Serviço volante", "Verba estimada", "R$ 18.000,00", "23/01/2027") };
+    const cC = { title: "Casamento", client: "Maria Eduarda Silva", kind: "person", type: "Social", dias: "há 4 dias nesta etapa", rows: R("150", "Empratado", "Orçamento", "R$ 25.500,00", "15/11/2026") };
+    const cD = { title: "Confraternização de fim de ano", client: "TechCorp Brasil", kind: "company", type: "Corporativo", dias: "há 6 dias nesta etapa", rows: R("300", "Serviço volante", "Orçamento", "R$ 42.000,00", "10/12/2026") };
+    const cE = { title: "Aniversário", client: "Fernanda Almeida Santos", kind: "person", type: "Social", dias: "há 3 dias nesta etapa", rows: R("50", "Empratado", "Orçamento", "R$ 9.200,00", "24/10/2026") };
+    const heroCols = [
+      { title: "Novo orçamento", stage: "new", cards: [cA, cB], count: 2, total: "R$ 0,00" },
+      { title: "Em negociação", stage: "negotiation", cards: [cC, cD], count: 2, total: "R$ 67.500,00" },
+      { title: "Aprovado", stage: "won", cards: [cE], count: 1, total: "R$ 9.200,00" },
+    ];
+
+    const toastsData = [
+      { icon: "stack-2", bg: "var(--terracotta-50)", fg: "var(--terracotta-600)", title: "Novo pedido pelo formulário", meta: "Casamento · 150 convidados · 15/11/2026", time: "agora" },
+      { icon: "send", bg: "var(--cobalt-50)", fg: "var(--cobalt-600)", title: "Proposta enviada", meta: "Maria Eduarda Silva · R$ 25.500,00", time: "há 2 min" },
+      { icon: "circle-check", bg: "var(--sage-50)", fg: "var(--sage-600)", title: "Evento aprovado", meta: "TechCorp Brasil · movido para Aprovado", time: "há 5 min" },
+    ];
+    const toasts = toastsData.map((t, i) => ({ ...t, op: s.toast === i ? 1 : 0, tf: s.toast === i ? "translateY(0)" : (i === (s.toast + 2) % 3 ? "translateY(-12px)" : "translateY(12px)") }));
+
+    const stageLabel = { new: "Novo orçamento", negotiation: "Em negociação", won: "Aprovado", lost: "Recusado" };
+    const listCols = [
+      { key: "data", header: "Data", numeric: true, sortable: true, width: 110 },
+      { key: "evento", header: "Evento", variant: "accent" },
+      { key: "pessoas", header: "Convidados", align: "right", numeric: true, width: 110 },
+      { key: "stage", header: "Etapa", width: 160, render: r => (NS.StageDot ? React.createElement(NS.StageDot, { stage: r.stage, label: stageLabel[r.stage] }) : stageLabel[r.stage]) },
+      { key: "orc", header: "Orçamento", align: "right", numeric: true, width: 140 },
+    ];
+    const listRows = [
+      { id: 1, data: "14/10/2026", evento: "Degustação – Bruno Carvalho Pinto", pessoas: "4", stage: "new", orc: "-" },
+      { id: 2, data: "24/10/2026", evento: "Aniversário – Fernanda Almeida Santos", pessoas: "50", stage: "won", orc: "R$ 9.200,00" },
+      { id: 3, data: "15/11/2026", evento: "Casamento – Maria Eduarda Silva", pessoas: "150", stage: "negotiation", orc: "R$ 25.500,00" },
+      { id: 4, data: "10/12/2026", evento: "Confraternização de fim de ano – TechCorp", pessoas: "300", stage: "negotiation", orc: "R$ 42.000,00" },
+      { id: 5, data: "12/12/2026", evento: "Casamento – Antonio Rodrigues Neto", pessoas: "77", stage: "new", orc: "-" },
+      { id: 6, data: "23/01/2027", evento: "Festa de 15 anos – Camila Rocha Nogueira", pessoas: "120", stage: "new", orc: "-" },
+      { id: 7, data: "20/02/2027", evento: "Festa de 15 anos – João Pedro Oliveira", pessoas: "200", stage: "negotiation", orc: "R$ 18.000,00" },
+    ];
+
+    const calEvents = [
+      { date: "2026-10-03", time: "19:00", title: "Aniversário – Pestana", stage: "won" },
+      { date: "2026-10-09", time: "11:00", title: "Degustação – Maria Eduarda", stage: "negotiation" },
+      { date: "2026-10-10", time: "18:00", title: "Casamento – Família Souza", stage: "won" },
+      { date: "2026-10-14", time: "15:00", title: "Degustação – Bruno C.", stage: "new" },
+      { date: "2026-10-17", time: "12:00", title: "Festa infantil – Lucas", stage: "won" },
+      { date: "2026-10-17", time: "19:30", title: "Casamento – Ana e Rui", stage: "won" },
+      { date: "2026-10-22", time: "08:00", title: "Café corporativo – TechCorp", stage: "negotiation" },
+      { date: "2026-10-24", time: "20:00", title: "Aniversário – Fernanda A.", stage: "won" },
+      { date: "2026-10-29", time: "19:00", title: "Formatura – Direito 2026", stage: "negotiation" },
+      { date: "2026-10-31", time: "18:00", title: "Casamento – Camila e Léo", stage: "won" },
+    ];
+
+    const g = s.guests;
+    const staff = { garcons: Math.ceil(g / 20), copeiros: Math.ceil(g / 50), cozinheiros: Math.ceil(g / 80) };
+    staff.total = staff.garcons + staff.copeiros + staff.cozinheiros;
+
+    const pr = anual
+      ? { ess: "89", pro: "197", pri: "447", essOld: "R$ 127/mês", proOld: "R$ 297/mês", priOld: "R$ 597/mês", essNote: "R$ 1.068 cobrados por ano", proNote: "R$ 2.364 cobrados por ano", priNote: "R$ 5.364 cobrados por ano" }
+      : { ess: "127", pro: "297", pri: "597", essOld: "", proOld: "", priOld: "", essNote: "Cobrança mensal", proNote: "Cobrança mensal", priNote: "Cobrança mensal" };
+
+    const cmpCols = [
+      { key: "r", header: "Recurso", variant: "strong", width: "22%" },
+      { key: "e", header: "Essencial" },
+      { key: "p", header: "Profissional" },
+      { key: "x", header: "Prime / Multi-espaço" },
+    ];
+    const cmpRows = [
+      { id: 1, r: "Mensalidade", e: "R$ " + pr.ess + "/mês", p: "R$ " + pr.pro + "/mês", x: "R$ " + pr.pri + "/mês" },
+      { id: 2, r: "Usuários", e: "1", p: "Até 4 (+R$ 35/mês cada)", x: "Até 10" },
+      { id: 3, r: "Eventos confirmados", e: "Até 8 por mês", p: "Ilimitados", x: "Ilimitados" },
+      { id: 4, r: "Orçamentos", e: "Até 30 por mês", p: "Ilimitados", x: "Ilimitados" },
+      { id: 5, r: "Proposta em PDF", e: "Seu logo + rodapé Banket", p: "100% com a sua marca", x: "100% com a sua marca" },
+      { id: 6, r: "Envio de e-mail", e: "Servidor padrão Banket", p: "SMTP próprio ou remetente personalizado", x: "SMTP próprio ou remetente personalizado" },
+      { id: 7, r: "Espaços e agendas", e: "1 agenda geral", p: "1 espaço físico", x: "Vários salões e unidades" },
+      { id: 8, r: "Permissões de equipe", e: "Acesso único", p: "Por perfil", x: "Avançadas, por unidade e ambiente" },
+      { id: 9, r: "Catálogo", e: "Básico", p: "Completo, com fichas de custo e staff", x: "Completo, com fichas de custo e staff" },
+      { id: 10, r: "Relatórios", e: "-", p: "Conversão e faturamento previsto", x: "Lucratividade e sazonalidade" },
+      { id: 11, r: "Onboarding", e: "Self-service", p: "Vídeos e templates", x: "Acompanhamento dedicado" },
+      { id: 12, r: "Suporte", e: "E-mail e central de ajuda", p: "Prioritário via WhatsApp e chat", x: "SLA garantido e gerente de conta" },
+    ];
+
+    const pick = plan => () => this.setState({ plan });
+
+    return {
+      showLinks: s.vw >= 960,
+      wide: s.vw >= 1280,
+      showOrbit: P.showOrbit ?? true,
+      viewOpts: [{ value: "lista", label: "Lista", icon: "list" }, { value: "kanban", label: "Kanban", icon: "layout-kanban" }],
+      heroCols, toasts,
+      s0: st(0), s1: st(1), s2: st(2), s3: st(3), s4: st(4), s5: st(5),
+      progFill: autoplay ? "scaleX(0)" : "scaleX(1)",
+      tourPath: ["app.banket.com.br/f/buffet-jardim", "app.banket.com.br/funil?visao=lista", "app.banket.com.br/eventos/248/orcamento", "app.banket.com.br/eventos/248/proposta", "app.banket.com.br/agenda", "app.banket.com.br/dashboard"][s.step],
+      tourEnter: () => { this.hover = true; this.syncProgress(); },
+      tourLeave: () => { this.hover = false; this.syncProgress(); },
+      selEvento: ["Casamento", "Aniversário", "Festa de 15 anos", "Corporativo", "Degustação"],
+      selFormato: ["Empratado", "Serviço volante", "Ilhas gastronômicas", "Buffet"],
+      listCols, listRows, listSort: { key: "data", dir: "asc" }, listFooter: "7 registros", noop: () => {},
+      versoes: ["v1", "v2", "v3"],
+      espacos: ["Todos os espaços", "Salão Nobre", "Espaço Jardim"],
+      calViews: [{ value: "mes", label: "Mês" }, { value: "semana", label: "Semana" }],
+      calYear: 2026, calMonth: 9, calEvents,
+      funnel: [
+        { label: "Novo orçamento", stage: "new", count: 6, value: "R$ 0,00" },
+        { label: "Em negociação", stage: "negotiation", count: 14, value: "R$ 186.400,00" },
+        { label: "Aprovado", stage: "won", count: 13, value: "R$ 112.300,00" },
+        { label: "Recusado", stage: "lost", count: 9, value: "R$ 61.800,00" },
+      ],
+      guests: g, staff, onGuests: e => this.setState({ guests: +e.target.value }),
+      billing, billingOpts: [{ value: "mensal", label: "Mensal" }, { value: "anual", label: "Anual" }],
+      setBilling: v => this.setState({ billing: v }),
+      pr,
+      pickEss: pick("Essencial"), pickPro: pick("Profissional"), pickPri: pick("Prime / Multi-espaço"),
+      compare: s.compare,
+      cmpLabel: s.compare ? "Ocultar comparação" : "Comparar todos os recursos",
+      cmpIcon: s.compare ? "chevron-up" : "chevron-down",
+      toggleCompare: () => this.setState(x => ({ compare: !x.compare })),
+      cmpCols, cmpRows,
+      f0: fq(0), f1: fq(1), f2: fq(2), f3: fq(3), f4: fq(4), f5: fq(5),
+      plan: s.plan,
+      planOpts: ["Essencial", "Profissional", "Prime / Multi-espaço", "Ainda não sei"],
+      onPlan: e => this.setState({ plan: e && e.target ? e.target.value : e }),
+      volumeOpts: ["Até 8", "De 9 a 30", "Mais de 30"],
+      sent: s.sent, notSent: !s.sent,
+      submitDemo: e => { e.preventDefault(); this.setState({ sent: true }); },
+      resetDemo: () => this.setState({ sent: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 // com recálculo imediato no navegador e salvamento automático (o servidor recalcula e grava).
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
-import { calcularOrcamento, type ConteudoOrcamento, type FaixaLocacaoRef } from '../../lib/calculo/orcamento';
+import { calcularOrcamento, type ConteudoOrcamento, type EspacoRef, type ReferenciasLocacao } from '../../lib/calculo/orcamento';
 import type { CatalogoConstrutor } from '../../server/orcamento';
 import { Numero, ValorManual } from './controles';
 import Cardapios from './Cardapios';
@@ -20,7 +20,9 @@ interface Props {
   cliente: { nome: string; documento: string | null };
   conteudo: ConteudoOrcamento;
   catalogo: CatalogoConstrutor;
-  faixas: FaixaLocacaoRef[];
+  refs: ReferenciasLocacao;
+  /** Espaços para o select da locação (ativos + o já escolhido) */
+  espacos: EspacoRef[];
   idades: { isentas: number; meia: number };
   pdfUrl: string;
 }
@@ -30,7 +32,8 @@ type Estado = 'salvo' | 'pendente' | 'salvando' | 'erro';
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function OrcamentoBuilder(props: Props) {
-  const [conteudo, setConteudo] = useState<ConteudoOrcamento>(() => calcularOrcamento(props.conteudo, props.faixas));
+  // Versão congelada recalcula sem as referências de locação (mantém o valor gravado)
+  const [conteudo, setConteudo] = useState<ConteudoOrcamento>(() => calcularOrcamento(props.conteudo, props.congelada ? undefined : props.refs));
   const [estado, setEstado] = useState<Estado>('salvo');
   const [erro, setErro] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
@@ -84,7 +87,7 @@ export default function OrcamentoBuilder(props: Props) {
 
   function alterar(patch: Partial<ConteudoOrcamento>) {
     if (disabled) return;
-    const novo = calcularOrcamento({ ...ultimo.current, ...patch }, props.faixas);
+    const novo = calcularOrcamento({ ...ultimo.current, ...patch }, props.refs);
     ultimo.current = novo;
     setConteudo(novo);
     setEstado('pendente');
@@ -247,6 +250,7 @@ export default function OrcamentoBuilder(props: Props) {
       />
       <LocacaoExtras
         locacao={conteudo.locacao}
+        espacos={props.espacos}
         extras={conteudo.extras}
         totalLocacao={totais.locacao}
         totalExtras={totais.extras}

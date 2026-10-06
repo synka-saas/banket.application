@@ -35,7 +35,7 @@ if (Astro.request.method === 'POST') {
   );
 }
 
-const { evento, orcamento, versao, faixas, blocos } = await withTenant(user.tenantId, async (db) => ({
+const { evento, orcamento, versao, refs, blocos } = await withTenant(user.tenantId, async (db) => ({
   ...(await contextoOrcamento(db, id, Astro.url.searchParams.get('versao'))),
   blocos: await listarBlocos(db),
 }));
@@ -67,7 +67,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
             congelada={versao.congelada}
             campo="condicoes_gerais"
             conteudo={versao.conteudo}
-            faixas={faixas}
+            refs={refs}
           />
           <TextosProposta
             client:load

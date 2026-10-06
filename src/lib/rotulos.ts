@@ -6,6 +6,7 @@
 //   formatos_servico   → Formato de serviço (Buffet, Coquetel…)
 //   estilo_*           → Estilo gastronômico
 //   status_orcamento   → Etapa (coluna do funil)
+//   espacos            → Espaço (nosso espaço / espaço de terceiro)
 
 export const ROTULOS = {
   funil: 'Funil de vendas',
@@ -19,6 +20,8 @@ export const ROTULOS = {
   etapa: 'Etapa',
   etapas: 'Etapas do funil',
   verbaEstimada: 'Verba estimada',
+  espaco: 'Espaço',
+  espacos: 'Espaços',
 } as const;
 
 /** Natureza do pedido no formulário público (B2B/B2C) em linguagem do buffet. */

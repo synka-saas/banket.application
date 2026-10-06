@@ -14,6 +14,7 @@ export type TipoTimeline =
   | 'orcamento_versao'
   | 'pdf_gerado'
   | 'email_enviado'
+  | 'email_recebido'
   | 'formulario'
   | 'anotacao';
 
@@ -26,6 +27,7 @@ export const ICONES_TIMELINE: Record<string, string> = {
   orcamento_versao: 'history',
   pdf_gerado: 'file-text',
   email_enviado: 'send',
+  email_recebido: 'mail',
   formulario: 'stack-2',
   anotacao: 'edit',
 };

@@ -110,7 +110,8 @@ test.describe('Formulários', () => {
     const respostas = page.locator('details', { hasText: 'Respostas do formulário' });
     await expect(respostas).toContainText('Jardim encantado');
     await expect(respostas).toContainText('Open bar completo (alcoólicos)');
-    await expect(page.getByText('Local externo (empresa, residência ou espaço alugado)')).toBeVisible();
+    // Pedido em local externo: sem espaço cadastrado, o resumo mostra "Outro local"
+    await expect(page.locator('main')).toContainText('Outro local');
 
     await page.goto(`${page.url()}/linha-do-tempo`);
     await expect(page.getByText('Pedido recebido pelo formulário')).toBeVisible();

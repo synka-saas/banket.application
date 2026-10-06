@@ -17,6 +17,7 @@ import {
 } from '../lib/formularios/modelo';
 import { clienteSchema, salvarCliente } from './clientes';
 import { criarEvento, eventoSchema } from './eventos';
+import { espacoPadraoId } from './espacos';
 import { emailLayout } from './emails';
 
 // ---------------------------------------------------------------------------
@@ -331,6 +332,8 @@ async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
     data_evento: texto(b2b ? r.b2b_data : r.b2c_data) ?? '',
     numero_convidados: convidados > 0 ? String(convidados) : '',
     perfil_convidados: rotuloOpcao('b2b_perfil', texto(r.b2b_perfil)) ?? '',
+    // No nosso espaço = espaço padrão da empresa (se houver); externo fica como texto livre
+    espaco_id: r.local_tipo === 'externo' ? '' : ((await espacoPadraoId(db)) ?? ''),
     local_tipo: r.local_tipo === 'externo' ? 'externo' : 'casa',
     infraestrutura: rotuloOpcao('infraestrutura', texto(r.infraestrutura)) ?? '',
     endereco: texto(r.regiao) ?? '',

@@ -1,0 +1,173 @@
+---
+// Thread de e-mails de uma conversa do Inbox (cabeçalho, mensagens enviadas/recebidas, anexos e resposta).
+// Usada em /inbox/:id e na aba Mensagens do evento. O form de resposta posta em /inbox/:id e volta para `voltar`.
+import Icon from '../ui/Icon.astro';
+import Button from '../ui/Button.astro';
+import { dataHora } from '../../lib/datas';
+import { fileUrl } from '../../lib/storage';
+import { ROTULOS_STATUS, type ConversaDetalhe } from '../../server/conversas';
+import type { ModeloPronto } from '../../server/emailModelos';
+import '../../styles/inbox.css';
+
+interface Props {
+  conversa: ConversaDetalhe;
+  modelos: ModeloPronto[];
+  /** URL para onde voltar depois de responder (a própria página) */
+  voltar: string;
+  tenantId: string;
+  /** Na aba do evento: sem o link para o evento no cabeçalho */
+  compacto?: boolean;
+}
+
+const { conversa: c, modelos, voltar, tenantId, compacto = false } = Astro.props;
+
+const tamanho = (bytes: number | null) => {
+  if (bytes === null) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
+};
+
+// Texto simples de uma mensagem que só veio em HTML
+const textoDoHtml = (html: string) =>
+  html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const classeStatus: Record<string, string> = { entregue: 'badge-success', devolvida: 'badge-danger', falhou: 'badge-danger' };
+---
+
+<section class="inbox-conversa" data-conversa={c.id}>
+  <header class="conv-cabecalho">
+    <div>
+      <h3 class="conv-assunto">{c.assunto}</h3>
+      <p class="conv-meta">
+        {c.cliente_nome && <span>{c.cliente_nome}</span>}
+        {!compacto && (
+          <>
+            <span class="sep">·</span>
+            <a class="link" href={`/eventos/${c.evento_id}`}>{c.evento_titulo ?? 'Evento'}</a>
+          </>
+        )}
+        <span class="sep">·</span>
+        <span>Responsável: {c.usuario_nome ?? '—'}</span>
+        {c.participantes.length > 0 && (
+          <>
+            <span class="sep">·</span>
+            <span>Com {c.participantes.join(', ')}</span>
+          </>
+        )}
+      </p>
+    </div>
+    <form method="post" action={`/inbox/${c.id}`} class="conv-acoes">
+      <input type="hidden" name="_action" value={c.arquivada ? 'desarquivar' : 'arquivar'} />
+      <input type="hidden" name="_voltar" value={voltar} />
+      <Button type="submit" variant="secondary" size="sm" icon={c.arquivada ? 'history' : 'check'}>{c.arquivada ? 'Reabrir' : 'Arquivar'}</Button>
+    </form>
+  </header>
+
+  {!c.endereco_resposta && (
+    <p class="conv-aviso">
+      O recebimento de respostas no Banket não está configurado: as respostas do cliente vão para o e-mail de quem enviou.
+      Configure <code>RESEND_INBOUND_DOMAIN</code> para recebê-las aqui.
+    </p>
+  )}
+
+  {c.mensagens.length === 0 ? (
+    <p class="sem-mensagens">Nenhuma mensagem ainda.</p>
+  ) : (
+    <ol class="conversa">
+      {c.mensagens.map((m) => {
+        const texto = m.texto?.trim() || (m.html ? textoDoHtml(m.html) : '');
+        return (
+          <li class:list={['mensagem', m.direcao === 'entrada' ? 'mensagem-entrada' : 'mensagem-saida']} data-mensagem={m.id}>
+            <p class="mensagem-autor">
+              {m.direcao === 'saida' ? (m.usuario_nome ?? m.de) : m.de}
+              <span class="mensagem-quando">{dataHora(m.created_at)}</span>
+              {m.direcao === 'saida' && (
+                <span class:list={['badge', classeStatus[m.status]]} title={m.status_detalhe ?? undefined}>{ROTULOS_STATUS[m.status]}</span>
+              )}
+            </p>
+            {m.direcao === 'saida' && m.para.length > 0 && <p class="mensagem-para">Para {m.para.join(', ')}</p>}
+            <p class="mensagem-texto">{texto || <span class="vazio">(sem texto)</span>}</p>
+            {m.html && m.direcao === 'entrada' && (
+              <details class="mensagem-formatado">
+                <summary>Ver e-mail formatado</summary>
+                <iframe class="mensagem-html" sandbox="" srcdoc={m.html} title={`E-mail de ${m.de}`} loading="lazy"></iframe>
+              </details>
+            )}
+            {m.anexos.length > 0 && (
+              <ul class="mensagem-anexos">
+                {m.anexos.map((a) =>
+                  a.path ? (
+                    <li>
+                      <a class="mensagem-anexo" href={fileUrl(tenantId, a.path)} download={a.nome}>
+                        <Icon name="paperclip" size={14} /> {a.nome}{a.tamanho !== null ? ` · ${tamanho(a.tamanho)}` : ''}
+                      </a>
+                    </li>
+                  ) : (
+                    <li>
+                      <span class="mensagem-anexo indisponivel" title="Anexo grande demais: não foi guardado">
+                        <Icon name="paperclip" size={14} /> {a.nome}{a.tamanho !== null ? ` · ${tamanho(a.tamanho)}` : ''} (não guardado)
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+            )}
+            {m.status_detalhe && m.direcao === 'saida' && <p class="mensagem-status">{m.status_detalhe}</p>}
+          </li>
+        );
+      })}
+    </ol>
+  )}
+
+  <form method="post" action={`/inbox/${c.id}`} class="resposta-form" data-resposta-form>
+    <input type="hidden" name="_action" value="responder" />
+    <input type="hidden" name="_voltar" value={voltar} />
+    <div class="resposta-linha">
+      <div class="field">
+        <label for={`rs-texto-${c.id}`}>Responder<span class="obrigatorio">*</span></label>
+        <textarea id={`rs-texto-${c.id}`} name="texto" rows="5" required maxlength="10000" placeholder="Escreva a resposta ao cliente."></textarea>
+      </div>
+      {modelos.length > 0 && (
+        <div class="field">
+          <label for={`rs-modelo-${c.id}`}>Inserir modelo</label>
+          <select id={`rs-modelo-${c.id}`} name="modelo_id" data-modelos={JSON.stringify(modelos.map((m) => ({ id: m.id, corpo: m.corpo })))}>
+            <option value="">Nenhum</option>
+            {modelos.map((m) => <option value={m.id}>{m.nome}</option>)}
+          </select>
+        </div>
+      )}
+    </div>
+    <div class="resposta-acoes">
+      <Button type="submit" variant="primary" icon="send" data-carregando="Enviando…">Enviar resposta</Button>
+    </div>
+  </form>
+</section>
+
+<script>
+  // "Inserir modelo" coloca o texto do modelo (variáveis já aplicadas) na resposta
+  document.querySelectorAll<HTMLFormElement>('[data-resposta-form]').forEach((form) => {
+    const select = form.querySelector<HTMLSelectElement>('[name="modelo_id"]');
+    const texto = form.querySelector<HTMLTextAreaElement>('[name="texto"]')!;
+    if (!select) return;
+    const modelos = JSON.parse(select.dataset.modelos ?? '[]') as { id: string; corpo: string }[];
+    select.addEventListener('change', () => {
+      const m = modelos.find((x) => x.id === select.value);
+      if (!m) return;
+      texto.value = m.corpo;
+      texto.dispatchEvent(new Event('input', { bubbles: true }));
+      texto.focus();
+    });
+  });
+</script>

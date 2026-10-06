@@ -1,0 +1,309 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import Table from '../../components/ui/Table.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import EspacoDrawer from '../../components/espacos/EspacoDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { brl } from '../../lib/forms';
+import { html } from '../../lib/html';
+import { dataCurta } from '../../lib/datas';
+import { ROTULOS } from '../../lib/rotulos';
+import {
+  TIPOS_ESPACO,
+  carregarEspaco,
+  descreverFaixa,
+  espacoSchema,
+  excluirEspaco,
+  excluirFaixaLocacao,
+  faixaLocacaoSchema,
+  listarFaixasLocacao,
+  salvarEspaco,
+  salvarFaixaLocacao,
+} from '../../server/espacos';
+
+const { tenantId } = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/espacos/${id}`;
+
+if (!(await withTenant(tenantId, (db) => carregarEspaco(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action === 'delete') {
+      await withTenant(tenantId, (db) => excluirEspaco(db, id));
+      return { message: 'Espaço removido.', redirect: '/espacos' };
+    }
+    if (data._action === 'faixa_delete') {
+      const faixaId = formId(data);
+      if (faixaId) await withTenant(tenantId, (db) => excluirFaixaLocacao(db, id, faixaId));
+      return 'Faixa removida.';
+    }
+    if (data._action === 'faixa') {
+      const faixaId = formId(data);
+      const input = faixaLocacaoSchema.parse(data);
+      await withTenant(tenantId, (db) => salvarFaixaLocacao(db, tenantId, id, faixaId, input));
+      return faixaId ? 'Faixa atualizada.' : 'Faixa criada.';
+    }
+    const input = espacoSchema.parse(data);
+    await withTenant(tenantId, (db) => salvarEspaco(db, tenantId, id, input));
+    return 'Espaço atualizado.';
+  });
+}
+
+const { espaco, faixas, eventos } = await withTenant(tenantId, async (db) => {
+  const espaco = (await carregarEspaco(db, id))!;
+  const faixas = espaco.tipo === 'proprio' ? await listarFaixasLocacao(db, id) : [];
+  const { rows: eventos } = await db.query<{ id: string; titulo: string | null; data_evento: string | null; cliente: string | null; status: string; cor: string | null }>(
+    `SELECT e.id, e.titulo, to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento, c.nome AS cliente, s.nome AS status, s.cor
+       FROM eventos e LEFT JOIN clientes c ON c.id = e.cliente_id JOIN status_orcamento s ON s.id = e.status_id
+      WHERE e.espaco_id = $1
+      ORDER BY e.data_evento DESC NULLS LAST, e.created_at DESC
+      LIMIT 10`,
+    [id]
+  );
+  return { espaco, faixas, eventos };
+});
+
+const valoresDrawer = {
+  id: espaco.id,
+  nome: espaco.nome,
+  tipo: espaco.tipo,
+  descricao: espaco.descricao,
+  endereco: espaco.endereco,
+  cidade: espaco.cidade,
+  capacidade_min: espaco.capacidade_min,
+  capacidade_max: espaco.capacidade_max,
+  contato_nome: espaco.contato_nome,
+  contato_telefone: espaco.contato_telefone,
+  contato_email: espaco.contato_email,
+  valor_referencia: espaco.valor_referencia === null ? '' : espaco.valor_referencia.toFixed(2).replace('.', ','),
+  observacoes: espaco.observacoes,
+  ativo: espaco.ativo,
+};
+
+const capacidade =
+  espaco.capacidade_min === null && espaco.capacidade_max === null
+    ? null
+    : espaco.capacidade_min !== null && espaco.capacidade_max !== null
+      ? `${espaco.capacidade_min} a ${espaco.capacidade_max} convidados`
+      : espaco.capacidade_max !== null
+        ? `Até ${espaco.capacidade_max} convidados`
+        : `A partir de ${espaco.capacidade_min} convidados`;
+
+const faixasData = faixas.map((f) => ({
+  faixa: descreverFaixa(f),
+  valor: brl(f.valor),
+  observacao: f.observacao || '',
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-faixa" data-values="${JSON.stringify({
+    id: f.id,
+    min_convidados: f.min_convidados,
+    max_convidados: f.max_convidados,
+    valor: f.valor.toFixed(2).replace('.', ','),
+    observacao: f.observacao,
+  })}">Editar</button>`,
+}));
+
+const eventosData = eventos.map((e) => ({
+  evento: html`<a class="link" href="/eventos/${e.id}">${e.titulo ?? e.cliente ?? 'Evento'}</a>`,
+  data: e.data_evento ? dataCurta(e.data_evento) : '',
+  etapa: html`<span class="status-name"><span class="dot" style="background:${e.cor ?? 'var(--stage-new)'}"></span>${e.status}</span>`,
+}));
+---
+
+<AppLayout title={espaco.nome} heading={espaco.nome} voltar={{ href: '/espacos', label: ROTULOS.espacos }}>
+  <div class="espaco-topo">
+    <div class="espaco-tags">
+      <span class:list={['tag', { 'tag-accent': espaco.tipo === 'proprio' }]}>{TIPOS_ESPACO[espaco.tipo]}</span>
+      {!espaco.ativo && <span class="badge">Inativo</span>}
+      {capacidade && <span class="muted tabular">{capacidade}</span>}
+    </div>
+    <div class="espaco-acoes">
+      <Button variant="secondary" icon="pencil" data-drawer-open="drawer-espaco" data-values={JSON.stringify(valoresDrawer)}>Editar</Button>
+      <form method="post">
+        <input type="hidden" name="_action" value="delete" />
+        <Button
+          type="submit"
+          variant="danger"
+          data-confirm="Excluir este espaço?"
+          data-confirm-texto={espaco.tipo === 'proprio' ? 'As faixas de locação dele também serão removidas. Eventos que já usam o espaço impedem a exclusão.' : 'Eventos que já usam o espaço impedem a exclusão.'}
+          data-confirm-rotulo="Excluir"
+        >
+          Excluir
+        </Button>
+      </form>
+    </div>
+  </div>
+
+  <div class="espaco-grid">
+    <div class="espaco-coluna">
+      <SectionCard title="Dados do espaço" icon="building">
+        <dl class="kv">
+          <div><dt>Endereço</dt><dd>{espaco.endereco ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Cidade</dt><dd>{espaco.cidade ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Capacidade</dt><dd>{capacidade ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Descrição</dt><dd>{espaco.descricao ?? <span class="vazio">—</span>}</dd></div>
+          <div><dt>Observações</dt><dd class="pre">{espaco.observacoes ?? <span class="vazio">—</span>}</dd></div>
+        </dl>
+      </SectionCard>
+
+      {espaco.tipo === 'terceiro' && (
+        <SectionCard title="Contato e locação" icon="phone">
+          <dl class="kv">
+            <div><dt>Contato</dt><dd>{espaco.contato_nome ?? <span class="vazio">—</span>}</dd></div>
+            <div><dt>Telefone</dt><dd class="tabular">{espaco.contato_telefone ?? <span class="vazio">—</span>}</dd></div>
+            <div><dt>E-mail</dt><dd>{espaco.contato_email ? <a class="link" href={`mailto:${espaco.contato_email}`}>{espaco.contato_email}</a> : <span class="vazio">—</span>}</dd></div>
+            <div><dt>Valor de referência</dt><dd class="tabular">{espaco.valor_referencia !== null ? brl(espaco.valor_referencia) : <span class="vazio">—</span>}</dd></div>
+          </dl>
+          <p class="field-hint">O valor de referência entra como locação sugerida nos orçamentos deste espaço; cada orçamento pode ajustá-lo.</p>
+        </SectionCard>
+      )}
+
+      {espaco.tipo === 'proprio' && (
+        <SectionCard title="Faixas de locação" icon="coin" description="O valor entra no orçamento conforme o número de convidados do evento e pode ser ajustado em cada proposta.">
+          <Button slot="actions" size="sm" icon="circle-plus" data-drawer-open="drawer-faixa">Nova faixa</Button>
+          <Table
+            columns={[
+              { key: 'faixa', label: 'Faixa de convidados' },
+              { key: 'valor', label: 'Valor da locação' },
+              { key: 'observacao', label: 'Observação' },
+              { key: 'acoes', label: 'Ações', align: 'right' },
+            ]}
+            data={faixasData}
+          >
+            <EstadoVazio slot="empty" icon="coin" titulo="Nenhuma faixa cadastrada" texto="Sem faixas, a locação deste espaço não é calculada automaticamente no orçamento.">
+              <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-faixa">Nova faixa</button>
+            </EstadoVazio>
+          </Table>
+        </SectionCard>
+      )}
+    </div>
+
+    <div class="espaco-coluna">
+      <SectionCard title="Eventos neste espaço" icon="calendar-event" description={`${String(espaco.eventos_count).padStart(2, '0')} evento(s) vinculado(s)`}>
+        <Table
+          columns={[
+            { key: 'evento', label: 'Evento' },
+            { key: 'data', label: 'Data' },
+            { key: 'etapa', label: ROTULOS.etapa },
+          ]}
+          data={eventosData}
+        >
+          <EstadoVazio slot="empty" icon="calendar-event" titulo="Nenhum evento neste espaço" texto="Escolha o espaço no briefing do evento ou na seção Locação do orçamento." />
+        </Table>
+      </SectionCard>
+    </div>
+  </div>
+
+  <EspacoDrawer slot="overlays" />
+
+  {espaco.tipo === 'proprio' && (
+    <Drawer
+      slot="overlays"
+      id="drawer-faixa"
+      formId="form-faixa"
+      title="Nova faixa de locação"
+      editTitle="Editar faixa de locação"
+      width="md"
+      saveAction="faixa"
+      deleteConfirm="Remover esta faixa de locação?"
+    >
+      <form id="form-faixa" method="post" class="form-grid" data-faixa-form>
+        <input type="hidden" name="id" />
+        <div class="field">
+          <label for="fx-min">Mínimo de convidados<span class="obrigatorio">*</span></label>
+          <input id="fx-min" name="min_convidados" type="number" min="0" step="1" required />
+        </div>
+        <div class="field">
+          <label for="fx-max">Máximo de convidados</label>
+          <input id="fx-max" name="max_convidados" type="number" min="0" step="1" placeholder="Sem limite" />
+        </div>
+        <div class="field span-2">
+          <label for="fx-valor">Valor da locação (R$)<span class="obrigatorio">*</span></label>
+          <input id="fx-valor" name="valor" inputmode="decimal" required placeholder="0,00" data-mascara="dinheiro" />
+        </div>
+        <div class="field span-2">
+          <label for="fx-obs">Observação</label>
+          <input id="fx-obs" name="observacao" maxlength="500" placeholder="Ex.: Somente na modalidade coquetel" />
+        </div>
+      </form>
+    </Drawer>
+  )}
+</AppLayout>
+
+<style>
+  .espaco-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-5);
+  }
+
+  .espaco-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .espaco-acoes {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .espaco-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .espaco-coluna {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .pre {
+    white-space: pre-wrap;
+  }
+
+  :global(.data-table tbody td[data-key='faixa']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.data-table tbody td[data-key='faixa']),
+  :global(.data-table tbody td[data-key='valor']),
+  :global(.data-table tbody td[data-key='data']) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 1024px) {
+    .espaco-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .espaco-topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .espaco-acoes {
+      justify-content: stretch;
+    }
+
+    .espaco-acoes :global(.btn),
+    .espaco-acoes form {
+      flex: 1;
+    }
+  }
+</style>

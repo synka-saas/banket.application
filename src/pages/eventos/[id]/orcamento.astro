@@ -92,7 +92,8 @@ const { evento, orcamento, versao } = ctx;
           cliente={{ nome: evento.cliente_nome ?? '—', documento: evento.cliente_documento ? formatarDocumento(evento.cliente_documento) : null }}
           conteudo={versao.conteudo}
           catalogo={ctx.catalogo}
-          faixas={ctx.faixas}
+          refs={ctx.refs}
+          espacos={ctx.espacos}
           idades={ctx.idades}
           pdfUrl={`${base}/pdf?versao=${versao.numero}`}
         />
@@ -161,8 +162,16 @@ const { evento, orcamento, versao } = ctx;
             />
           </div>
           <span class="field-hint" id="env-para-dica">
-            Enter ou vírgula adiciona; até 5 destinatários. As respostas chegam no seu e-mail ({user.email}).
+            Enter ou vírgula adiciona; até 5 destinatários. As respostas do cliente chegam no <a class="link" href={`/eventos/${id}/mensagens`}>Inbox</a>.
           </span>
+        </div>
+        <div class="field">
+          <label for="env-modelo">Modelo</label>
+          <select id="env-modelo" name="modelo_id" data-modelos={JSON.stringify(ctx.envio.modelos.map((m) => ({ id: m.id, assunto: m.assunto, corpo: m.corpo })))}>
+            {ctx.envio.modelos.length === 0 && <option value="">Nenhum modelo cadastrado</option>}
+            {ctx.envio.modelos.map((m) => <option value={m.id} selected={m.padrao}>{m.nome}{m.padrao ? ' (padrão)' : ''}</option>)}
+          </select>
+          <span class="field-hint">Preenche assunto e mensagem; os modelos ficam em Configurações › Modelos de e-mail.</span>
         </div>
         <div class="field">
           <label for="env-assunto">Assunto<span class="obrigatorio">*</span></label>
@@ -171,7 +180,6 @@ const { evento, orcamento, versao } = ctx;
         <div class="field">
           <label for="env-mensagem">Mensagem<span class="obrigatorio">*</span></label>
           <textarea id="env-mensagem" name="mensagem" required rows="12" maxlength="10000">{ctx.envio.mensagem}</textarea>
-          <span class="field-hint">O modelo da mensagem fica em Configurações › Empresa.</span>
         </div>
         <div class="field">
           <span class="field-label">Prévia do e-mail</span>
@@ -266,6 +274,20 @@ const { evento, orcamento, versao } = ctx;
     };
     assunto.addEventListener('input', atualizarPrevia);
     corpo.addEventListener('input', atualizarPrevia);
+
+    // Trocar o modelo preenche assunto e mensagem (já com as variáveis do evento aplicadas no servidor)
+    const modelo = form.querySelector<HTMLSelectElement>('[name="modelo_id"]');
+    if (modelo) {
+      const modelos = JSON.parse(modelo.dataset.modelos ?? '[]') as { id: string; assunto: string; corpo: string }[];
+      modelo.addEventListener('change', () => {
+        const m = modelos.find((x) => x.id === modelo.value);
+        if (!m) return;
+        assunto.value = m.assunto;
+        corpo.value = m.corpo;
+        atualizarPrevia();
+        corpo.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
 
     const atualizarConfirmacao = () => {
       const destinatarios = emails.join(', ') || 'o cliente';
