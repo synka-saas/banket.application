@@ -159,7 +159,7 @@ export async function salvarModelo(
     const { rows } = await db.query<{ logo_path: string | null }>(
       `UPDATE documento_modelos SET nome = $1, descricao = $2, titulo = $3, corpo = $4, incluir_assinaturas = $5, testemunhas = $6,
               ativo = $7, ${CAMPOS_VISUAL.map((c, i) => `${c} = $${8 + i}`).join(', ')},
-              logo_path = CASE WHEN $${n + 2}::boolean THEN $${n + 3} ELSE logo_path END, updated_at = now()
+              logo_path = CASE WHEN $${n + 2}::boolean THEN $${n + 3} ELSE documento_modelos.logo_path END, updated_at = now()
         FROM documento_modelos antigo
         WHERE documento_modelos.id = $${n + 1} AND antigo.id = documento_modelos.id
         RETURNING antigo.logo_path`,

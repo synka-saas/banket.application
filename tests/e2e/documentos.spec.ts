@@ -6,6 +6,8 @@ import { confirmarModal, excluirEvento, expectToast, login, waitForIslands } fro
 
 const sufixo = Date.now();
 const NOME = `E2E Termo ${sufixo}`;
+// PNG 1×1 para o upload do logotipo
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 test.describe('Documentos', () => {
   test.beforeEach(async ({ page }) => {
@@ -31,6 +33,19 @@ test.describe('Documentos', () => {
     await expect(page).toHaveURL(/\/documentos\/[0-9a-f-]{36}$/);
     const modeloUrl = page.url();
     expect(corpo).toBeTruthy();
+
+    // Editar um modelo existente (logotipo, posição, cores, rodapé) e salvar de novo
+    await page.getByText('Identidade visual').click();
+    await page.locator('input[name=logo_path]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
+    await page.getByText('No rodapé', { exact: true }).click();
+    await page.locator('[data-hex="cor_primaria"]').fill('#1F3A5F');
+    await page.getByLabel('Texto do rodapé').fill(`Rodapé E2E ${sufixo}`);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expectToast(page, 'Modelo salvo.');
+    await page.reload();
+    await expect(page.locator('input[type="color"][name="cor_primaria"]')).toHaveValue('#1f3a5f');
+    await expect(page.getByLabel('Texto do rodapé')).toHaveValue(`Rodapé E2E ${sufixo}`);
+    await expect(page.locator('main')).toContainText('Logotipo atual');
 
     // PDF de exemplo
     const exemplo = await page.request.get(`${modeloUrl}/exemplo`);
