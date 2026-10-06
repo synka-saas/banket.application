@@ -1,0 +1,293 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Table from '../../../components/ui/Table.astro';
+import Drawer from '../../../components/ui/Drawer.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { dataHora } from '../../../lib/datas';
+import { html } from '../../../lib/html';
+import { removeFile } from '../../../lib/storage';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { listarTemplates } from '../../../server/templates';
+import { modelosParaEvento } from '../../../server/conversas';
+import {
+  camposDoFormulario,
+  criarDocumento,
+  enviarDocumento,
+  envioDocumentoSchema,
+  excluirDocumento,
+  gerarPdfDocumento,
+  listarDocumentosDoEvento,
+  listarModelos,
+  numeroDocumento,
+} from '../../../server/documentos';
+import { UserError, optionalUuid } from '../../../lib/forms';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const propria = `/eventos/${id}/documentos`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action === 'excluir') {
+      const docId = optionalUuid().parse(data.documento_id);
+      if (!docId) throw new UserError('Documento não encontrado.');
+      const pdf = await withTenant(user.tenantId, (db) => excluirDocumento(db, user, docId));
+      if (pdf) await removeFile(user.tenantId, pdf);
+      return 'Documento excluído.';
+    }
+    if (data._action === 'enviar') {
+      const docId = optionalUuid().parse(data.documento_id);
+      if (!docId) throw new UserError('Documento não encontrado.');
+      const input = envioDocumentoSchema.parse(data);
+      const r = await withTenant(user.tenantId, (db) => enviarDocumento(db, user, docId, input));
+      return {
+        message: r.delivered ? `Documento enviado para ${input.para.join(', ')}.` : 'Envio registrado (sem envio real: domínio de teste ou e-mail não configurado).',
+        redirect: propria,
+      };
+    }
+    const modeloId = optionalUuid().parse(data.modelo_id);
+    if (!modeloId) throw new UserError('Escolha o modelo do documento.', 'modelo_id');
+    const templateId = optionalUuid().parse(data.template_id);
+    // Grava (commit) e só então imprime: a página de impressão roda em outra requisição e precisa ver o documento
+    const doc = await withTenant(user.tenantId, (db) => criarDocumento(db, user, id, { modeloId, templateId, campos: camposDoFormulario(data) }));
+    try {
+      await withTenant(user.tenantId, (db) => gerarPdfDocumento(db, user.tenantId, doc.id));
+    } catch (err) {
+      console.error('[documentos] falha ao imprimir o PDF', doc.id, err);
+      return { message: `Documento ${numeroDocumento(doc)} gerado, mas o PDF falhou; ele é impresso de novo ao baixar.`, redirect: propria };
+    }
+    return { message: `Documento ${numeroDocumento(doc)} gerado.`, redirect: propria };
+  });
+}
+
+const { evento, documentos, modelos, templates, modelosEmail } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  documentos: await listarDocumentosDoEvento(db, id),
+  modelos: await listarModelos(db, { somenteAtivos: true }),
+  templates: await listarTemplates(db, null),
+  modelosEmail: await modelosParaEvento(db, id),
+}));
+
+const paraPadrao = evento.responsavel_email ?? evento.cliente_email ?? '';
+
+const modeloHtml = (nome: string | null) => (nome ? html`<span class="doc-modelo">${nome}</span>` : '');
+
+const tableData = documentos.map((d) => ({
+  numero: numeroDocumento(d),
+  // Nome do modelo em linha auxiliar (a expressão fica numa linha só: o compilador do Astro se perde em ${ } multilinha)
+  titulo: html`<a class="link doc-titulo" href="${propria}/${d.id}/pdf?ver=1" target="_blank" rel="noopener">${d.titulo}</a>${modeloHtml(d.modelo_nome)}`,
+  quando: dataHora(d.created_at),
+  por: d.criado_por_nome ?? '',
+  acoes: html`<a class="row-action" href="${propria}/${d.id}/pdf">Baixar</a>
+    <button type="button" class="row-action" data-drawer-open="drawer-enviar-doc" data-values="${JSON.stringify({ documento_id: d.id, para: paraPadrao, assunto: d.titulo })}">Enviar</button>
+    <form method="post" class="inline-form"><input type="hidden" name="_action" value="excluir" /><input type="hidden" name="documento_id" value="${d.id}" />
+      <button type="submit" class="row-action perigo" data-confirm="Excluir o documento ${numeroDocumento(d)}?" data-confirm-texto="O PDF guardado será apagado. O número não é reaproveitado." data-confirm-rotulo="Excluir">Excluir</button></form>`,
+}));
+
+const modelosJson = modelos.map((m) => ({ id: m.id, template_id: m.template_id, campos: m.campos }));
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="documentos">
+  <div class="documentos-topo">
+    <p class="intro">
+      Contratos e documentos formais deste evento, gerados a partir dos <a class="link" href="/documentos">modelos</a> com os
+      dados do evento, do cliente e do orçamento. Cada documento recebe um número e fica guardado em PDF.
+    </p>
+    <Button icon="circle-plus" data-drawer-open="drawer-gerar-doc" disabled={modelos.length === 0}>Gerar documento</Button>
+  </div>
+
+  <Table
+    columns={[
+      { key: 'numero', label: 'Nº' },
+      { key: 'titulo', label: 'Documento' },
+      { key: 'quando', label: 'Gerado em' },
+      { key: 'por', label: 'Por' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  >
+    <EstadoVazio slot="empty" icon="signature" titulo="Nenhum documento gerado" texto={modelos.length ? 'Gere o contrato ou outro documento a partir de um modelo.' : 'Cadastre um modelo em Documentos para gerar contratos neste evento.'}>
+      {modelos.length ? <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-gerar-doc">Gerar documento</button> : <a class="btn btn-secondary btn-md" href="/documentos">Ir para Documentos</a>}
+    </EstadoVazio>
+  </Table>
+
+  <Drawer slot="overlays" id="drawer-gerar-doc" formId="form-gerar-doc" title="Gerar documento" width="md" deletable={false} saveLabel="Gerar PDF" saveLoadingLabel="Gerando…">
+    <form id="form-gerar-doc" method="post" class="form-grid" data-gerar-doc data-modelos={JSON.stringify(modelosJson)}>
+      <div class="field span-2">
+        <label for="gd-modelo">Modelo<span class="obrigatorio">*</span></label>
+        <select id="gd-modelo" name="modelo_id" required>
+          <option value="">Selecione…</option>
+          {modelos.map((m) => <option value={m.id}>{m.nome}</option>)}
+        </select>
+      </div>
+      <div class="field span-2">
+        <label for="gd-template">Template visual</label>
+        <select id="gd-template" name="template_id">
+          <option value="">Padrão do modelo</option>
+          {templates.map((t) => <option value={t.id}>{t.nome}{t.padrao ? ' (padrão da empresa)' : ''}</option>)}
+        </select>
+      </div>
+      <div class="span-2 campos-gerar" data-campos hidden>
+        <span class="field-label">Informações para preencher</span>
+        <div class="form-grid" data-campos-lista></div>
+      </div>
+      <p class="field-hint span-2">Os demais dados (cliente, evento, valores, datas) vêm do cadastro do evento e do orçamento atual.</p>
+    </form>
+  </Drawer>
+
+  <Drawer slot="overlays" id="drawer-enviar-doc" formId="form-enviar-doc" title="Enviar documento por e-mail" width="md" deletable={false} saveLabel="Enviar" saveAction="enviar" saveLoadingLabel="Enviando…">
+    <form id="form-enviar-doc" method="post" class="form-grid" data-enviar-doc>
+      <input type="hidden" name="documento_id" />
+      <div class="field span-2">
+        <label for="ed-para">Para<span class="obrigatorio">*</span></label>
+        <input id="ed-para" name="para" required placeholder="email@cliente.com.br" />
+        <span class="field-hint">Até 5 e-mails separados por vírgula. O PDF vai em anexo e a conversa fica no Inbox.</span>
+      </div>
+      <div class="field span-2">
+        <label for="ed-assunto">Assunto<span class="obrigatorio">*</span></label>
+        <input id="ed-assunto" name="assunto" required maxlength="255" />
+      </div>
+      {modelosEmail.length > 0 && (
+        <div class="field span-2">
+          <label for="ed-modelo">Modelo de e-mail</label>
+          <select id="ed-modelo" name="modelo_id" data-modelos-email={JSON.stringify(modelosEmail.map((m) => ({ id: m.id, corpo: m.corpo })))}>
+            <option value="">Nenhum</option>
+            {modelosEmail.map((m) => <option value={m.id}>{m.nome}</option>)}
+          </select>
+        </div>
+      )}
+      <div class="field span-2">
+        <label for="ed-texto">Mensagem<span class="obrigatorio">*</span></label>
+        <textarea id="ed-texto" name="texto" rows="8" required maxlength="10000" placeholder="Olá, segue em anexo o contrato para conferência e assinatura."></textarea>
+      </div>
+    </form>
+  </Drawer>
+</EventoLayout>
+
+<script>
+  // Gerar: o modelo escolhido define o template padrão e os campos extras a preencher
+  const form = document.querySelector<HTMLFormElement>('[data-gerar-doc]');
+  if (form) {
+    const modelos = JSON.parse(form.dataset.modelos ?? '[]') as { id: string; template_id: string | null; campos: { chave: string; rotulo: string }[] }[];
+    const select = form.querySelector<HTMLSelectElement>('[name="modelo_id"]')!;
+    const template = form.querySelector<HTMLSelectElement>('[name="template_id"]')!;
+    const caixa = form.querySelector<HTMLElement>('[data-campos]')!;
+    const lista = form.querySelector<HTMLElement>('[data-campos-lista]')!;
+    const atualizar = () => {
+      const m = modelos.find((x) => x.id === select.value);
+      template.value = m?.template_id ?? '';
+      lista.replaceChildren(
+        ...(m?.campos ?? []).map((c) => {
+          const campo = document.createElement('div');
+          campo.className = 'field span-2';
+          const label = document.createElement('label');
+          label.htmlFor = `campo-${c.chave}`;
+          label.textContent = c.rotulo;
+          const obrig = document.createElement('span');
+          obrig.className = 'obrigatorio';
+          obrig.textContent = '*';
+          label.appendChild(obrig);
+          const input = document.createElement('input');
+          input.id = `campo-${c.chave}`;
+          input.name = `campo_${c.chave}`;
+          input.required = true;
+          input.maxLength = 2000;
+          campo.append(label, input);
+          return campo;
+        })
+      );
+      caixa.hidden = !(m?.campos.length);
+    };
+    select.addEventListener('change', atualizar);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', atualizar);
+    atualizar();
+  }
+
+  // Enviar: modelo de e-mail preenche a mensagem
+  const envio = document.querySelector<HTMLFormElement>('[data-enviar-doc]');
+  const selectEmail = envio?.querySelector<HTMLSelectElement>('[data-modelos-email]');
+  if (envio && selectEmail) {
+    const modelos = JSON.parse(selectEmail.dataset.modelosEmail ?? '[]') as { id: string; corpo: string }[];
+    selectEmail.addEventListener('change', () => {
+      const m = modelos.find((x) => x.id === selectEmail.value);
+      if (!m) return;
+      const texto = envio.querySelector<HTMLTextAreaElement>('[name="texto"]')!;
+      texto.value = m.corpo;
+      texto.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+</script>
+
+<style>
+  .documentos-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .documentos-topo :global(.btn) {
+    flex: none;
+  }
+
+  .intro {
+    max-width: 640px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  :global(.doc-titulo) {
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.doc-modelo) {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  :global(.data-table tbody td[data-key='numero']),
+  :global(.data-table tbody td[data-key='quando']) {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  :global(.data-table tbody td[data-key='acoes'] .inline-form) {
+    display: inline;
+  }
+
+  :global(.data-table tbody td[data-key='acoes'] .row-action) {
+    margin-left: var(--space-3);
+  }
+
+  :global(.row-action.perigo) {
+    color: var(--danger);
+  }
+
+  .campos-gerar {
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .campos-gerar .field-label {
+    display: block;
+    margin-bottom: var(--space-2);
+  }
+
+  @media (max-width: 768px) {
+    .documentos-topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+</style>

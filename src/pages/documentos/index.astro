@@ -1,0 +1,83 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import InfoCard from '../../components/ui/InfoCard.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { searchTerm } from '../../lib/pagination';
+import { listarModelos } from '../../server/documentos';
+
+const user = Astro.locals.user;
+const admin = isAdmin(user);
+const busca = searchTerm(Astro.url);
+const modelos = await withTenant(user.tenantId, (db) => listarModelos(db, { busca }));
+---
+
+<AppLayout title="Documentos" heading="Documentos">
+  <PageToolbar searchPlaceholder="Pesquisar modelo">
+    {admin && <Button icon="circle-plus" href="/documentos/novo">Novo modelo</Button>}
+  </PageToolbar>
+
+  <p class="intro">
+    Modelos de contratos e outros documentos formais. O texto usa variáveis do evento, do cliente e da empresa; na aba
+    Documentos de cada evento você escolhe o modelo, preenche o que faltar e gera o PDF.
+    {!admin && ' Só proprietários e administradores editam os modelos.'}
+  </p>
+
+  {modelos.length === 0 ? (
+    <EstadoVazio
+      icon={busca ? 'search-off' : 'signature'}
+      titulo={busca ? 'Nenhum modelo para esta busca' : 'Nenhum modelo de documento'}
+      texto={busca ? undefined : 'Crie o primeiro modelo, por exemplo um contrato de prestação de serviços.'}
+    >
+      {busca ? <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar busca</a> : admin ? <Button icon="circle-plus" href="/documentos/novo">Novo modelo</Button> : null}
+    </EstadoVazio>
+  ) : (
+    <div class="cards-grid">
+      {modelos.map((m) => (
+        <InfoCard
+          title={m.nome}
+          icon="signature"
+          description={m.descricao ?? m.titulo}
+          rows={[
+            { label: 'Template visual', value: m.template_nome ?? 'Padrão da empresa' },
+            { label: 'Campos ao gerar', value: m.campos.length ? m.campos.map((c) => c.rotulo).join(', ') : 'Nenhum' },
+            { label: 'Assinaturas', value: m.incluir_assinaturas ? (m.testemunhas ? 'Empresa, cliente e testemunhas' : 'Empresa e cliente') : 'Sem bloco' },
+          ]}
+          muted={!m.ativo}
+        >
+          {!m.ativo && <span slot="status" class="badge">Inativo</span>}
+          <div slot="footer" class="card-acoes">
+            <Button variant="secondary" icon="printer" href={`/documentos/${m.id}/exemplo`} target="_blank">Exemplo</Button>
+            {admin && <Button variant="secondary" href={`/documentos/${m.id}`}>Editar</Button>}
+          </div>
+        </InfoCard>
+      ))}
+    </div>
+  )}
+</AppLayout>
+
+<style>
+  .intro {
+    max-width: 720px;
+    margin-bottom: var(--space-5);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    max-width: 1000px;
+  }
+
+  .card-acoes {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .card-acoes :global(.btn) {
+    flex: 1;
+  }
+</style>

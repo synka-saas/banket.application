@@ -26,6 +26,7 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
   { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'] },
   { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
+  { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'] },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];

@@ -95,7 +95,10 @@ src/
     flash.ts           mensagens que sobrevivem ao redirect (cookie banket_flash)
     html.ts            escapeHtml + template tag html`` para montar células de tabela com segurança
     icones.ts          ícones Tabler (miolo dos SVGs) + svgIcone() para scripts de navegador
-    texto.ts           marcação simples dos blocos da proposta → HTML seguro
+    texto.ts           marcação simples dos blocos da proposta e dos documentos → HTML seguro
+    extenso.ts         números, valores e datas por extenso (documentos)
+    editorTexto.ts     barra de formatação do editor de documentos (aplica a marcação na seleção; navegador)
+    documentos/        variáveis dos modelos de documento ({cliente}, {data_evento_extenso}…) e campos extras (puro)
     money.ts datas.ts documento.ts pagination.ts nav.ts
     calculo/           cálculo PURO do orçamento e do staff (roda no navegador e no servidor)
     formularios/       modelo do formulário de captação (compartilhado servidor/ilha/página pública)
@@ -105,12 +108,14 @@ src/
     emailTexto.ts      listaEmails, mensagemHtml (texto → HTML de e-mail), enderecoPuro
     conversas.ts       Inbox: conversas/mensagens por evento, envio dentro da conversa, permissões por papel
     inbox/receber.ts   processamento dos webhooks do Resend (e-mail recebido, status de entrega), idempotência
+    documentos.ts      modelos de documento (contratos), geração por evento com numeração, PDF, envio pelo Inbox
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
-  pages/print/         páginas de impressão da proposta (só com print token)
+  pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
   components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/, cardapio/, formularios/),
                        proposta/Proposta.astro (layout impresso), eventos/, templates/, espacos/ (drawer),
-                       inbox/Conversa.astro (thread de e-mails com resposta)
+                       inbox/Conversa.astro (thread de e-mails com resposta), documentos/ (ModeloForm: editor com barra
+                       de formatação e prévia; DocumentoImpresso: página de impressão do documento)
   layouts/             Layout, AppLayout (sidebar+topbar), AuthLayout, EventoLayout (abas do evento), FormularioLayout
   styles/              tokens.css (tokens do design system + @font-face), global.css (base e classes utilitárias),
                        orcamento.css, editor.css, formularios.css (ilhas Preact), inbox.css (thread e lista do Inbox)
@@ -345,6 +350,17 @@ conteúdo antigo ou parcial preenchendo padrões.
 **`formulario_respostas`** — `formulario_id`, `evento_id`, `cliente_id`, `dados JSONB` (snapshot legível
 `[{secao, chave, rotulo, valor}]`), `ip`.
 
+### Documentos (contratos e formais)
+
+**`documento_modelos`** — modelos editados por owner/admin: `nome` (UNIQUE por empresa), `descricao`, `titulo` (aceita
+variáveis; vira o título da página e o nome do PDF), `template_id` (→ `orcamento_templates`, NULL = padrão da empresa),
+`corpo` (marcação simples com `{variaveis}`; toda variável que não é do sistema vira campo a preencher ao gerar),
+`incluir_assinaturas`, `testemunhas`, `ativo`, `ordem`.
+**`documentos`** — cada documento gerado num evento: `evento_id` (CASCADE), `cliente_id`, `modelo_id`, `template_id`,
+`ano` + `numero` (UNIQUE por empresa: `2026/0007`, sequencial por ano, lock consultivo na geração), `titulo`,
+`modelo_nome`, `corpo` (texto final com os dados aplicados), `campos JSONB` (extras digitados), `incluir_assinaturas`,
+`testemunhas`, `pdf_path` (`documentos/{eventoId}/{id}.pdf`), `pdf_gerado_em`, `criado_por`.
+
 ### Inbox (conversas por e-mail)
 
 **`conversas`** — uma por (evento, usuário dono): `evento_id` (CASCADE), `cliente_id`, `usuario_id` (quem enviou a
@@ -368,7 +384,8 @@ recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanh
 | `aplicar_padroes_tenant_proposta(id)` | template padrão + blocos Crianças, Hora adicional, Formas de pagamento |
 | `aplicar_padroes_formulario(id)` | formulário "Formulário de contato" com slug `contato-xxxxxx` |
 | `aplicar_padroes_email_modelos(id)` | modelo "Proposta padrão" a partir de `email_assunto`/`email_corpo` |
-| `aplicar_padroes_tenant_completo(id)` | chama as quatro acima; usado no cadastro de empresa nova |
+| `aplicar_padroes_documentos(id)` | modelo "Contrato de prestação de serviços" (texto genérico de exemplo) |
+| `aplicar_padroes_tenant_completo(id)` | chama as cinco acima; usado no cadastro de empresa nova |
 
 ### Histórico das migrations
 
@@ -396,6 +413,7 @@ recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanh
 | `019_espacos` | tabela `espacos`; `faixas_locacao.espaco_id`, `configuracoes_tenant.espaco_padrao_id`, `eventos.espaco_id`; backfill de um espaço próprio por empresa (nome = `local_padrao` ou "Nosso espaço") com as faixas e os eventos "na casa"; `aplicar_padroes_tenant` cria o espaço |
 | `020_email_modelos` | tabela `email_modelos` (um padrão por empresa), `aplicar_padroes_email_modelos` (backfill "Proposta padrão" a partir de `email_assunto`/`email_corpo`), `aplicar_padroes_tenant_completo` com 4 chamadas |
 | `021_inbox` | `conversas`, `mensagens` (RLS) e `resend_events` (só sistema) |
+| `022_documentos` | `documento_modelos` e `documentos`; `aplicar_padroes_documentos` (contrato de exemplo em toda empresa); `aplicar_padroes_tenant_completo` com 5 chamadas |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -468,8 +486,8 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 ## Funcionalidades (módulos e rotas)
 
 Navegação lateral (`components/Sidebar.astro`): Dashboard, Funil de vendas, Inbox (com o contador de não lidas,
-calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, Staff, Espaços, Templates, Configurações (só
-admin), Suporte.
+calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, Staff, Espaços, Templates, Documentos,
+Configurações (só admin), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -503,7 +521,7 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
 - Evento (`/eventos/novo`, `/eventos/:id`, `/editar`): briefing completo, cliente existente ou novo no mesmo formulário.
   O local é um select de **Espaço** (nossos espaços, de terceiros ou "Outro local" com nome/endereço livres); o espaço
   padrão da empresa já vem selecionado. Abas do `EventoLayout`: resumo, **Orçamento**, Informações complementares,
-  Condições gerais, **Mensagens** (Inbox do evento), Linha do tempo.
+  Condições gerais, **Mensagens** (Inbox do evento), **Documentos** (contratos gerados), Linha do tempo.
 - Checklist operacional por evento (degustação, laudos, documentos) com status e prazo.
 - Mudanças relevantes (data, convidados, cliente, espaço, status) vão para a linha do tempo.
 
@@ -545,7 +563,8 @@ Locação do orçamento e no "Espaço padrão" de Configurações › Empresa. E
   alimentar; viram manuais quando o usuário edita.
 
 ### PDF da proposta (`server/pdf.ts`, `server/proposta.ts`, `components/proposta/Proposta.astro`)
-- `GET /eventos/:id/orcamento/pdf[?versao=n][&ver=1]` baixa (ou abre) o PDF.
+- `GET /eventos/:id/orcamento/pdf[?versao=n][&ver=1]` baixa (ou abre) o PDF. Documentos usam o mesmo pipeline
+  (`imprimir`), só com a parte `miolo` e a página `/print/documento/:id` (`components/documentos/DocumentoImpresso.astro`).
 - Um Chromium compartilhado (lançado sob demanda, `--no-sandbox`) abre `http://127.0.0.1:$PORT/print/orcamento/:versaoId`
   com `?parte=capa|miolo|contracapa&token=<print token 5 min>`; cada parte vira um PDF A4 e o **pdf-lib** junta.
   Capa e contracapa só entram se ativas no template.
@@ -580,6 +599,23 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
   sistema; o resto roda em `withTenant`.
 - Contador de não lidas no menu (`contarNaoLidas`, uma consulta por página no `AppLayout`); abrir a conversa zera.
   Sem `RESEND_INBOUND_DOMAIN`, as telas avisam que as respostas vão para o e-mail do usuário.
+
+### Documentos — `/documentos`, `/documentos/:id`, `/eventos/:id/documentos` (`server/documentos.ts`)
+- **Modelos** (menu Documentos; lista visível a todos, edição só owner/admin): nome, descrição, título com variáveis,
+  template visual (fontes/cores/logo/rodapé da página de conteúdo; sem capa nem contracapa), corpo em marcação simples
+  editado com **barra de formatação** (`lib/editorTexto.ts`: negrito, itálico, título `# `, subtítulo `## `, lista,
+  lista numerada `1. `, centralizar `>> `, quebra de página `---`) e chips das variáveis do sistema
+  (`lib/documentos/variaveis.ts`, grupos empresa/cliente/evento/orçamento/documento, com `{valor_total_extenso}`,
+  `{data_evento_extenso}`, `{numero_documento}`…). Prévia ao vivo com dados de exemplo; "PDF de exemplo"
+  (`/documentos/:id/exemplo`); duplicar (nasce inativo), excluir. Toda `{variavel}` desconhecida vira **campo extra**
+  obrigatório na geração (`camposExtras`). Bloco de assinaturas (empresa com razão social/CNPJ e assinante das
+  Configurações, cliente com CPF/CNPJ) e testemunhas opcionais por modelo.
+- **Geração** (aba Documentos do evento): escolhe modelo, template (padrão do modelo) e preenche os campos extras;
+  `gerarDocumento` aplica as variáveis do evento/cliente/empresa/orçamento atual (`valoresDoEvento`), numera por
+  empresa e ano, grava o texto final e imprime o PDF (`/print/documento/:id`, token `alvo: 'documento'`, só a parte
+  `miolo`; `imprimir` de `server/pdf.ts` com título). Timeline `documento_gerado`. Lista com download (`…/pdf`, `?ver=1`
+  abre), **Enviar** por e-mail (PDF anexado na conversa do Inbox, `enviarDocumento`) e excluir (apaga o PDF; o número
+  não é reaproveitado). O PDF guardado é reusado; se faltar no disco, é reimpresso a partir do texto final.
 
 ### Cardápios — `/cardapio/itens`, `/cardapio/sessoes`, `/cardapio/opcoes` (`server/cardapio.ts`)
 Catálogo de seções e itens (preço, unidade de cobrança, custo, categorias principal/secundária, formato, composição,
@@ -820,6 +856,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - Validação com zod usando os preprocessadores de `lib/forms.ts` (`optionalText`, `optionalMoney`, `checkbox`,
   `stringArray`, `tagList`…). Dinheiro no formato brasileiro via `lib/money.ts`.
 - HTML fora de template Astro: use `html``…`` / `escapeHtml` de `lib/html.ts`; textos de blocos via `renderTexto`.
+  No frontmatter, não quebre linha dentro de `${ … }` de um `html``…`` com outro `html``…`` aninhado: o compilador do
+  Astro perde o fim do frontmatter ("CompilerError: Unexpected token"); extraia para uma função auxiliar.
 - Listagens: `pageParams`/`pageInfo`/`searchTerm` (`?q=&page=`, 20 por página).
 - Interface nova segue o [design system](#design-system-interface): só tokens de `tokens.css` (nada de hex, cinza frio,
   peso 600/700 ou caixa alta fora de eyebrow), componentes de `components/ui` antes de CSS novo e ícones Tabler.

@@ -1,0 +1,336 @@
+---
+// Documento formal para impressão (A4): só a página de conteúdo do template (logo no topo, rodapé repetido),
+// título do documento, corpo em marcação simples e bloco de assinaturas opcional.
+import { renderTexto } from '../../lib/texto';
+import type { DocumentoView } from '../../server/documentos';
+
+interface Props {
+  view: DocumentoView;
+}
+
+const { view } = Astro.props;
+const { template: t, imagens } = view;
+
+const fontes = [...new Set([t.fonte_titulo, t.fonte_corpo])]
+  .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;600;700`)
+  .join('&');
+const cssVars = [
+  `--fundo:${t.cor_fundo}`,
+  `--texto:${t.cor_texto_primaria}`,
+  `--destaque:${t.cor_texto_secundaria}`,
+  `--fonte-titulo:'${t.fonte_titulo}', 'Arial Black', sans-serif`,
+  `--fonte-corpo:'${t.fonte_corpo}', Arial, sans-serif`,
+].join(';');
+const logoRodape = t.rodape_logo_ativo ? imagens.logo_path : null;
+const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{view.titulo}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?${fontes}&display=block`} />
+  </head>
+  <body style={cssVars}>
+    <div class="fundo-fixo" style={imagens.miolo_imagem_path ? `background-image:url('${imagens.miolo_imagem_path}')` : undefined}></div>
+    <header class="topo">
+      {imagens.logo_path && <img src={imagens.logo_path} alt="" />}
+    </header>
+    {temRodape && (
+      <footer class:list={['rodape', `logo-${t.rodape_logo_posicao}`]}>
+        <div class="rodape-texto">
+          {t.rodape_titulo && <strong>{t.rodape_titulo}</strong>}
+          {t.rodape_conteudo && <span>{t.rodape_conteudo}</span>}
+        </div>
+        {logoRodape && <img src={logoRodape} alt="" />}
+      </footer>
+    )}
+
+    <table class="fluxo">
+      <thead><tr><td><div class:list={['espaco-topo', { 'sem-logo': !imagens.logo_path }]}></div></td></tr></thead>
+      <tfoot><tr><td><div class:list={['espaco-rodape', { com: temRodape }]}></div></td></tr></tfoot>
+      <tbody><tr><td class="conteudo">
+        <h1 class="titulo-doc">{view.titulo}</h1>
+        <p class="numero-doc">Documento nº {view.numero}</p>
+        <div class="corpo" set:html={renderTexto(view.corpo)} />
+
+        {view.incluir_assinaturas && (
+          <section class="assinaturas">
+            <p class="local-data">______________________________, {view.data}</p>
+            <div class="linhas">
+              <div class="assinante">
+                <div class="traco"></div>
+                <strong>{view.empresa.razao_social}</strong>
+                {view.empresa.documento && <span>{view.empresa.documento}</span>}
+                <span>{view.empresa.assinante}{view.empresa.cargo ? ` · ${view.empresa.cargo}` : ''}</span>
+                <em>Contratada</em>
+              </div>
+              <div class="assinante">
+                <div class="traco"></div>
+                <strong>{view.cliente.nome || ' '}</strong>
+                {view.cliente.documento && <span>{view.cliente.documento}</span>}
+                <em>Contratante</em>
+              </div>
+            </div>
+            {view.testemunhas && (
+              <div class="linhas testemunhas">
+                <div class="assinante">
+                  <div class="traco"></div>
+                  <strong>Testemunha</strong>
+                  <span>Nome: ______________________________</span>
+                  <span>CPF: ______________________________</span>
+                </div>
+                <div class="assinante">
+                  <div class="traco"></div>
+                  <strong>Testemunha</strong>
+                  <span>Nome: ______________________________</span>
+                  <span>CPF: ______________________________</span>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+      </td></tr></tbody>
+    </table>
+  </body>
+</html>
+
+<style is:global>
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-family: var(--fonte-corpo);
+    color: var(--texto);
+    background: var(--fundo);
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  .fundo-fixo {
+    position: fixed;
+    inset: 0;
+    background-color: var(--fundo);
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+  }
+
+  /* Cabeçalho repetido: só o logotipo, menor que o da proposta (o título fica no corpo) */
+  .topo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16mm;
+  }
+
+  .topo img {
+    max-height: 18mm;
+    max-width: 50mm;
+    object-fit: contain;
+  }
+
+  .rodape {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 16mm;
+    padding: 0 16mm 5mm;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8mm;
+    font-size: 8pt;
+  }
+
+  .rodape-texto {
+    grid-row: 1;
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rodape img {
+    grid-row: 1;
+    grid-column: 2;
+    max-height: 10mm;
+    max-width: 35mm;
+    object-fit: contain;
+  }
+
+  .rodape.logo-centro {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+
+  .rodape.logo-esquerda {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .rodape.logo-esquerda img {
+    grid-column: 1;
+  }
+
+  .rodape.logo-esquerda .rodape-texto {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .fluxo {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .espaco-topo {
+    height: 32mm;
+  }
+
+  .espaco-topo.sem-logo {
+    height: 20mm;
+  }
+
+  .espaco-rodape {
+    height: 14mm;
+  }
+
+  .espaco-rodape.com {
+    height: 22mm;
+  }
+
+  .conteudo {
+    padding: 0 20mm;
+    vertical-align: top;
+  }
+
+  .titulo-doc {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 16pt;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+    margin-bottom: 1.5mm;
+  }
+
+  .numero-doc {
+    text-align: center;
+    font-size: 9pt;
+    opacity: 0.8;
+    margin-bottom: 8mm;
+  }
+
+  .corpo {
+    text-align: justify;
+  }
+
+  .corpo h3 {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 11.5pt;
+    text-transform: uppercase;
+    margin: 6mm 0 2mm;
+    break-after: avoid;
+  }
+
+  .corpo h4 {
+    font-family: var(--fonte-titulo);
+    font-size: 10.5pt;
+    margin: 4mm 0 1.5mm;
+    break-after: avoid;
+  }
+
+  .corpo p {
+    margin: 0 0 2.5mm;
+  }
+
+  .corpo p.centro {
+    text-align: center;
+  }
+
+  .corpo ul,
+  .corpo ol {
+    margin: 0 0 2.5mm;
+    padding-left: 6mm;
+  }
+
+  .corpo li {
+    margin-bottom: 1mm;
+  }
+
+  .corpo .quebra-pagina {
+    break-after: page;
+    height: 0;
+  }
+
+  .assinaturas {
+    margin-top: 14mm;
+    break-inside: avoid;
+  }
+
+  .local-data {
+    text-align: center;
+    margin-bottom: 16mm;
+  }
+
+  .linhas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14mm;
+  }
+
+  .linhas.testemunhas {
+    margin-top: 14mm;
+  }
+
+  .assinante {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+
+  .assinante .traco {
+    width: 100%;
+    border-top: 1px solid var(--texto);
+    margin-bottom: 1.5mm;
+  }
+
+  .assinante strong {
+    font-family: var(--fonte-titulo);
+    color: var(--destaque);
+    font-size: 10pt;
+  }
+
+  .assinante em {
+    margin-top: 1mm;
+    text-transform: uppercase;
+    font-style: normal;
+    font-size: 8pt;
+    letter-spacing: 0.5pt;
+    opacity: 0.8;
+  }
+</style>

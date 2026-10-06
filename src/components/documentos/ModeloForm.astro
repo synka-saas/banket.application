@@ -1,0 +1,417 @@
+---
+// Editor de um modelo de documento: dados, template visual, corpo com barra de formatação e variáveis,
+// campos extras detectados no texto e prévia ao vivo com dados de exemplo.
+import Button from '../ui/Button.astro';
+import SectionCard from '../ui/SectionCard.astro';
+import Icon from '../ui/Icon.astro';
+import { renderTexto } from '../../lib/texto';
+import { EXEMPLO_VARIAVEIS, GRUPOS_VARIAVEL, VARIAVEIS_DOCUMENTO, aplicarVariaveis, camposExtras, type GrupoVariavel } from '../../lib/documentos/variaveis';
+import type { DocumentoModelo } from '../../server/documentos';
+
+interface Props {
+  modelo: Partial<DocumentoModelo>;
+  templates: { id: string; nome: string; padrao: boolean }[];
+}
+
+const { modelo: m, templates } = Astro.props;
+const novo = !m.id;
+const corpo = m.corpo ?? '';
+const titulo = m.titulo ?? '';
+const campos = camposExtras(titulo, corpo);
+const grupos = (Object.keys(GRUPOS_VARIAVEL) as GrupoVariavel[]).map((g) => ({ grupo: g, rotulo: GRUPOS_VARIAVEL[g], variaveis: VARIAVEIS_DOCUMENTO.filter((v) => v.grupo === g) }));
+const exemplo: Record<string, string> = { ...EXEMPLO_VARIAVEIS, ...Object.fromEntries(campos.map((c) => [c.chave, `[${c.rotulo}]`])) };
+const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
+  { formato: 'negrito', rotulo: 'Negrito', icone: 'bold' },
+  { formato: 'italico', rotulo: 'Itálico', icone: 'italic' },
+  { formato: 'titulo', rotulo: 'Título de seção', icone: 'heading' },
+  { formato: 'subtitulo', rotulo: 'Subtítulo', icone: 'heading-2' },
+  { formato: 'lista', rotulo: 'Lista', icone: 'list' },
+  { formato: 'numerada', rotulo: 'Lista numerada', icone: 'list-numbers' },
+  { formato: 'centro', rotulo: 'Centralizar', icone: 'layout-align-center' },
+  { formato: 'quebra', rotulo: 'Quebra de página', icone: 'page-break' },
+];
+---
+
+<form method="post" class="modelo-form" data-modelo-form data-form-sujo>
+  <div class="form-topo">
+    <div class="field nome">
+      <label for="md-nome">Nome do modelo<span class="obrigatorio">*</span></label>
+      <input id="md-nome" name="nome" required maxlength="120" value={m.nome ?? ''} placeholder="Ex.: Contrato de prestação de serviços" />
+    </div>
+    <div class="form-acoes">
+      {!novo && <Button variant="secondary" icon="printer" href={`/documentos/${m.id}/exemplo`} target="_blank">PDF de exemplo</Button>}
+      {!novo && <Button type="submit" variant="secondary" name="_action" value="duplicar" formnovalidate>Duplicar</Button>}
+      {!novo && (
+        <Button type="submit" variant="danger" name="_action" value="excluir" formnovalidate data-confirm="Excluir este modelo de documento?" data-confirm-texto="Documentos já gerados continuam guardados nos eventos.">
+          Excluir
+        </Button>
+      )}
+      <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
+    </div>
+  </div>
+
+  <div class="form-grid cabecalho">
+    <div class="field">
+      <label for="md-descricao">Descrição</label>
+      <input id="md-descricao" name="descricao" maxlength="500" value={m.descricao ?? ''} placeholder="Quando usar este documento" />
+    </div>
+    <div class="field">
+      <label for="md-template">Template visual</label>
+      <select id="md-template" name="template_id">
+        <option value="">Padrão da empresa</option>
+        {templates.map((t) => <option value={t.id} selected={t.id === m.template_id}>{t.nome}{t.padrao ? ' (padrão)' : ''}</option>)}
+      </select>
+      <span class="field-hint">Fontes, cores, logotipo e rodapé da página de conteúdo. Dá para trocar na hora de gerar.</span>
+    </div>
+    <div class="field span-2">
+      <label for="md-titulo">Título do documento<span class="obrigatorio">*</span></label>
+      <input id="md-titulo" name="titulo" required maxlength="255" value={titulo} placeholder="Ex.: Contrato de prestação de serviços – {evento}" data-titulo />
+      <span class="field-hint">Aparece no topo da página e no nome do PDF; aceita variáveis.</span>
+    </div>
+  </div>
+
+  <div class="editor-grid">
+    <SectionCard title="Conteúdo" icon="signature" description="Escreva o texto do documento. Use a barra para formatar e clique numa variável para inseri-la onde está o cursor.">
+      <div class="barra" role="toolbar" aria-label="Formatação">
+        {FERRAMENTAS.map((f) => (
+          <button type="button" class="ferramenta" data-formato={f.formato} title={f.rotulo} aria-label={f.rotulo}>
+            <Icon name={f.icone} size={16} />
+          </button>
+        ))}
+      </div>
+      <textarea id="md-corpo" name="corpo" rows="26" required maxlength="50000" data-corpo>{corpo}</textarea>
+      <details class="variaveis" open>
+        <summary>Variáveis do sistema</summary>
+        {grupos.map((g) => (
+          <div class="grupo-vars">
+            <span class="eyebrow">{g.rotulo}</span>
+            <div class="chips-vars">
+              {g.variaveis.map((v) => (
+                <button type="button" class="chip-var" data-var={`{${v.nome}}`} title={`${v.rotulo} · ex.: ${v.exemplo}`}>{`{${v.nome}}`}</button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <p class="field-hint">
+          Qualquer outra <code>{'{variavel}'}</code> que você escrever (ex.: <code>{'{numero_parcelas}'}</code>) vira um campo a preencher na hora de gerar o documento.
+        </p>
+      </details>
+      <div class="campos-extras">
+        <span class="field-label">Campos preenchidos ao gerar</span>
+        <div class="chips-vars" data-campos-extras>
+          {campos.length === 0 && <span class="muted" data-sem-campos>Nenhum: todos os dados vêm do evento.</span>}
+          {campos.map((c) => <span class="tag tag-sm">{c.rotulo} <code>{`{${c.chave}}`}</code></span>)}
+        </div>
+      </div>
+      <div class="form-grid opcoes">
+        <label class="switch"><input type="checkbox" name="incluir_assinaturas" checked={m.incluir_assinaturas ?? true} />Incluir bloco de assinaturas (empresa e cliente)</label>
+        <label class="switch"><input type="checkbox" name="testemunhas" checked={m.testemunhas ?? false} />Com duas testemunhas</label>
+        <label class="switch"><input type="checkbox" name="ativo" checked={m.ativo ?? true} />Modelo ativo (disponível para gerar)</label>
+      </div>
+    </SectionCard>
+
+    <SectionCard title="Prévia" icon="eye" description="Com dados de exemplo. O PDF usa o template visual escolhido." class="card-previa">
+      <div class="previa-doc" data-previa-exemplo={JSON.stringify(EXEMPLO_VARIAVEIS)}>
+        <h4 class="previa-titulo" data-previa-titulo>{aplicarVariaveis(titulo, exemplo) || 'Título do documento'}</h4>
+        <div class="previa-corpo" data-previa-corpo set:html={renderTexto(aplicarVariaveis(corpo, exemplo)) || '<p class="muted">Sem conteúdo.</p>'} />
+      </div>
+    </SectionCard>
+  </div>
+</form>
+
+<script>
+  import { renderTexto } from '../../lib/texto';
+  import { aplicarVariaveis, camposExtras } from '../../lib/documentos/variaveis';
+  import { aplicarFormato, inserirTexto, type FormatoTexto } from '../../lib/editorTexto';
+
+  const form = document.querySelector<HTMLFormElement>('[data-modelo-form]');
+  if (form) {
+    const corpo = form.querySelector<HTMLTextAreaElement>('[data-corpo]')!;
+    const titulo = form.querySelector<HTMLInputElement>('[data-titulo]')!;
+    const previa = form.querySelector<HTMLElement>('[data-previa-exemplo]')!;
+    const previaTitulo = form.querySelector<HTMLElement>('[data-previa-titulo]')!;
+    const previaCorpo = form.querySelector<HTMLElement>('[data-previa-corpo]')!;
+    const listaCampos = form.querySelector<HTMLElement>('[data-campos-extras]')!;
+    const exemplo = JSON.parse(previa.dataset.previaExemplo ?? '{}') as Record<string, string>;
+
+    const atualizar = () => {
+      const campos = camposExtras(titulo.value, corpo.value);
+      const valores = { ...exemplo, ...Object.fromEntries(campos.map((c) => [c.chave, `[${c.rotulo}]`])) };
+      previaTitulo.textContent = aplicarVariaveis(titulo.value, valores) || 'Título do documento';
+      previaCorpo.innerHTML = renderTexto(aplicarVariaveis(corpo.value, valores)) || '<p class="muted">Sem conteúdo.</p>';
+      listaCampos.replaceChildren(
+        ...(campos.length
+          ? campos.map((c) => {
+              const tag = document.createElement('span');
+              tag.className = 'tag tag-sm';
+              tag.textContent = `${c.rotulo} `;
+              const code = document.createElement('code');
+              code.textContent = `{${c.chave}}`;
+              tag.appendChild(code);
+              return tag;
+            })
+          : [Object.assign(document.createElement('span'), { className: 'muted', textContent: 'Nenhum: todos os dados vêm do evento.' })])
+      );
+    };
+    corpo.addEventListener('input', atualizar);
+    titulo.addEventListener('input', atualizar);
+
+    // Barra de formatação e chips de variável agem no campo que teve foco por último (corpo ou título)
+    let alvo: HTMLTextAreaElement | HTMLInputElement = corpo;
+    corpo.addEventListener('focus', () => (alvo = corpo));
+    titulo.addEventListener('focus', () => (alvo = titulo));
+    form.querySelectorAll<HTMLButtonElement>('[data-formato]').forEach((b) =>
+      b.addEventListener('click', () => aplicarFormato(corpo, b.dataset.formato as FormatoTexto))
+    );
+    form.querySelectorAll<HTMLButtonElement>('.chip-var').forEach((chip) =>
+      chip.addEventListener('click', () => {
+        if (alvo === titulo) {
+          const ini = titulo.selectionStart ?? titulo.value.length;
+          const fim = titulo.selectionEnd ?? titulo.value.length;
+          titulo.value = titulo.value.slice(0, ini) + chip.dataset.var! + titulo.value.slice(fim);
+          titulo.focus();
+          titulo.setSelectionRange(ini + chip.dataset.var!.length, ini + chip.dataset.var!.length);
+          titulo.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          inserirTexto(corpo, chip.dataset.var!);
+        }
+      })
+    );
+
+    // Atalhos de teclado do editor
+    corpo.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 'b') (e.preventDefault(), aplicarFormato(corpo, 'negrito'));
+      else if (e.key === 'i') (e.preventDefault(), aplicarFormato(corpo, 'italico'));
+    });
+  }
+</script>
+
+<style>
+  .modelo-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .form-topo {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+
+  .form-topo .nome {
+    flex: 1;
+    max-width: 520px;
+  }
+
+  .form-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .cabecalho {
+    padding: var(--space-5) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  /* Barra de formatação: botões mínimos (raio 4) agrupados sobre o textarea */
+  .barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: var(--space-1);
+    margin-bottom: var(--space-2);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .ferramenta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: var(--text-body);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+
+  .ferramenta:hover {
+    background: var(--action-ghost-hover);
+    color: var(--text-strong);
+  }
+
+  textarea[data-corpo] {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: var(--fs-13);
+    line-height: 1.55;
+    resize: vertical;
+  }
+
+  .variaveis {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+  }
+
+  .variaveis summary {
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+    cursor: pointer;
+  }
+
+  .grupo-vars {
+    margin-top: var(--space-3);
+  }
+
+  .chips-vars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1-5);
+    margin-top: var(--space-1-5);
+  }
+
+  .chip-var {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--text-body);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .chip-var:hover {
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-800);
+  }
+
+  .variaveis .field-hint {
+    margin-top: var(--space-3);
+  }
+
+  .campos-extras {
+    margin-top: var(--space-4);
+  }
+
+  .campos-extras code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+
+  .opcoes {
+    margin-top: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  /* Prévia: folha clara com a tipografia do documento (sem as fontes do template, que só entram no PDF) */
+  .previa-doc {
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+    line-height: 1.6;
+    color: var(--text-body);
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  .previa-titulo {
+    margin-bottom: var(--space-4);
+    text-align: center;
+    text-transform: uppercase;
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .previa-corpo :global(h3) {
+    margin: var(--space-4) 0 var(--space-1);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    text-transform: uppercase;
+    color: var(--text-accent);
+  }
+
+  .previa-corpo :global(h4) {
+    margin: var(--space-3) 0 var(--space-1);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .previa-corpo :global(p) {
+    margin: 0 0 var(--space-2);
+    text-align: justify;
+  }
+
+  .previa-corpo :global(p.centro) {
+    text-align: center;
+  }
+
+  .previa-corpo :global(ul),
+  .previa-corpo :global(ol) {
+    margin: 0 0 var(--space-2);
+    padding-left: var(--space-5);
+  }
+
+  .previa-corpo :global(.quebra-pagina) {
+    margin: var(--space-3) 0;
+    border-top: 1px dashed var(--border-strong);
+  }
+
+  .previa-corpo :global(.quebra-pagina)::after {
+    content: 'quebra de página';
+    display: block;
+    text-align: center;
+    font-size: var(--fs-11);
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 1024px) {
+    .editor-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .form-topo {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .form-acoes :global(.btn) {
+      flex: 1;
+    }
+  }
+</style>

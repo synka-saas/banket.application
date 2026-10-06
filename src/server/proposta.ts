@@ -23,7 +23,7 @@ async function dataUri(tenantId: string, path: string | null): Promise<string | 
   return arquivo ? `data:${contentTypeFor(path)};base64,${arquivo.toString('base64')}` : null;
 }
 
-async function dadosComuns(db: Db, tenantId: string, template: Template) {
+export async function dadosComuns(db: Db, tenantId: string, template: Template) {
   const { rows } = await db.query<{
     nome: string; telefone: string | null; email: string | null; logo_path: string | null;
     assinatura_nome: string | null; assinatura_cargo: string | null; assinatura_telefone: string | null;

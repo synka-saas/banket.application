@@ -1,0 +1,19 @@
+---
+// Página de impressão de um documento gerado (ou do exemplo de um modelo: id "exemplo:<modeloId>").
+// Só com print token (o Chromium interno não tem sessão).
+import DocumentoImpresso from '../../../components/documentos/DocumentoImpresso.astro';
+import { withTenant } from '../../../lib/db';
+import { verifyPrintToken } from '../../../lib/printToken';
+import { montarDocumentoExemplo, montarDocumentoView } from '../../../server/documentos';
+
+const id = Astro.params.id!;
+const claims = await verifyPrintToken(Astro.url.searchParams.get('token'), 'documento', id);
+if (!claims) return new Response('Não autorizado', { status: 401 });
+
+const exemplo = id.startsWith('exemplo:') ? id.slice('exemplo:'.length) : null;
+const view = await withTenant(claims.tenantId, (db) =>
+  exemplo ? montarDocumentoExemplo(db, claims.tenantId, exemplo) : montarDocumentoView(db, claims.tenantId, id)
+);
+---
+
+<DocumentoImpresso view={view} />

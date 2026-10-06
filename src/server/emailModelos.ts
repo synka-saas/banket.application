@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import { UserError, checkbox, requiredText } from '../lib/forms';
+import { aplicarVariaveis } from '../lib/documentos/variaveis';
 
 /** Variáveis aceitas nos modelos de e-mail. */
 export const VARIAVEIS_EMAIL = ['{nome_cliente}', '{evento}', '{data_evento}', '{empresa}', '{valor_total}', '{versao}'];
@@ -90,10 +91,7 @@ export async function excluirEmailModelo(db: Db, id: string): Promise<void> {
   await garantirPadrao(db);
 }
 
-/** Substitui {variavel} pelos valores; variáveis desconhecidas ficam como estão. */
-export function aplicarVariaveis(texto: string, valores: Record<string, string>): string {
-  return texto.replace(/\{(\w+)\}/g, (m, nome: string) => (nome in valores ? valores[nome] : m));
-}
+export { aplicarVariaveis };
 
 export interface ModeloPronto {
   id: string;

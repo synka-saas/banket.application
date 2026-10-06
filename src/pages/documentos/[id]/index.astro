@@ -1,0 +1,47 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import ModeloForm from '../../../components/documentos/ModeloForm.astro';
+import { withTenant } from '../../../lib/db';
+import { isAdmin } from '../../../lib/auth';
+import { handleFormPost } from '../../../lib/actions';
+import { setFlash } from '../../../lib/flash';
+import { listarTemplates } from '../../../server/templates';
+import { carregarModelo, duplicarModelo, excluirModelo, modeloSchema, salvarModelo } from '../../../server/documentos';
+
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+if (!isAdmin(user)) {
+  setFlash(Astro.cookies, 'error', 'Só proprietários e administradores editam modelos de documento.');
+  return Astro.redirect('/documentos');
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'duplicar') {
+        const novo = await duplicarModelo(db, user.tenantId, id);
+        return { message: 'Modelo duplicado (inativo até você revisar).', redirect: `/documentos/${novo}` };
+      }
+      if (data._action === 'excluir') {
+        await excluirModelo(db, id);
+        return { message: 'Modelo excluído.', redirect: '/documentos' };
+      }
+      await salvarModelo(db, user.tenantId, id, modeloSchema.parse(data));
+      return 'Modelo salvo.';
+    })
+  );
+}
+
+const { modelo, templates } = await withTenant(user.tenantId, async (db) => {
+  try {
+    return { modelo: await carregarModelo(db, id), templates: await listarTemplates(db, null) };
+  } catch {
+    return { modelo: null, templates: [] };
+  }
+});
+if (!modelo) return new Response(null, { status: 404 });
+---
+
+<AppLayout title={modelo.nome} heading={`Documentos / ${modelo.nome}`} voltar={{ href: '/documentos', label: 'Documentos' }}>
+  <ModeloForm modelo={modelo} templates={templates.map((t) => ({ id: t.id, nome: t.nome, padrao: t.padrao }))} />
+</AppLayout>

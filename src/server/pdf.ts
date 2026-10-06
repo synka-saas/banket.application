@@ -11,7 +11,7 @@ import { readFile, saveFile } from '../lib/storage';
 import { registrarTimeline } from './timeline';
 import { templateDaProposta } from './templates';
 
-type Parte = 'capa' | 'miolo' | 'contracapa';
+export type Parte = 'capa' | 'miolo' | 'contracapa';
 
 let browserPromise: Promise<Browser> | null = null;
 
@@ -43,7 +43,8 @@ function urlInterna(caminho: string): string {
   return `http://127.0.0.1:${process.env.PORT ?? 4321}${caminho}`;
 }
 
-async function imprimir(caminho: string, token: string, partes: Parte[]): Promise<Uint8Array> {
+/** Imprime as partes de uma página /print/* e junta num PDF só (proposta, exemplo de template ou documento). */
+export async function imprimir(caminho: string, token: string, partes: Parte[], titulo = 'Proposta de orçamento'): Promise<Uint8Array> {
   const browser = await navegador();
   const contexto = await browser.newContext();
   try {
@@ -54,7 +55,7 @@ async function imprimir(caminho: string, token: string, partes: Parte[]): Promis
         waitUntil: 'networkidle',
         timeout: 30_000,
       });
-      if (!res?.ok()) throw new Error(`Falha ao renderizar a proposta (${parte}): HTTP ${res?.status()}`);
+      if (!res?.ok()) throw new Error(`Falha ao renderizar a página de impressão (${parte}): HTTP ${res?.status()}`);
       await page.evaluate(() => document.fonts.ready);
       const pdf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
       await page.close();
@@ -62,7 +63,7 @@ async function imprimir(caminho: string, token: string, partes: Parte[]): Promis
       const paginas = await final.copyPages(doc, doc.getPageIndices());
       paginas.forEach((p) => final.addPage(p));
     }
-    final.setTitle('Proposta de orçamento');
+    final.setTitle(titulo);
     final.setCreator('Banket');
     return await final.save();
   } finally {

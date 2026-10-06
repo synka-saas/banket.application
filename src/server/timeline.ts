@@ -15,6 +15,7 @@ export type TipoTimeline =
   | 'pdf_gerado'
   | 'email_enviado'
   | 'email_recebido'
+  | 'documento_gerado'
   | 'formulario'
   | 'anotacao';
 
@@ -28,6 +29,7 @@ export const ICONES_TIMELINE: Record<string, string> = {
   pdf_gerado: 'file-text',
   email_enviado: 'send',
   email_recebido: 'mail',
+  documento_gerado: 'signature',
   formulario: 'stack-2',
   anotacao: 'edit',
 };

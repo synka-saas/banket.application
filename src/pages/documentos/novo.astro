@@ -1,0 +1,30 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import ModeloForm from '../../components/documentos/ModeloForm.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { handleFormPost } from '../../lib/actions';
+import { setFlash } from '../../lib/flash';
+import { listarTemplates } from '../../server/templates';
+import { modeloSchema, salvarModelo } from '../../server/documentos';
+
+const user = Astro.locals.user;
+if (!isAdmin(user)) {
+  setFlash(Astro.cookies, 'error', 'Só proprietários e administradores editam modelos de documento.');
+  return Astro.redirect('/documentos');
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const input = modeloSchema.parse(data);
+    const id = await withTenant(user.tenantId, (db) => salvarModelo(db, user.tenantId, null, input));
+    return { message: 'Modelo criado.', redirect: `/documentos/${id}` };
+  });
+}
+
+const templates = await withTenant(user.tenantId, (db) => listarTemplates(db, null));
+---
+
+<AppLayout title="Novo modelo" heading="Documentos / Novo modelo" voltar={{ href: '/documentos', label: 'Documentos' }}>
+  <ModeloForm modelo={{}} templates={templates.map((t) => ({ id: t.id, nome: t.nome, padrao: t.padrao }))} />
+</AppLayout>

@@ -20,4 +20,13 @@ describe('renderTexto', () => {
     expect(renderTexto('')).toBe('');
     expect(renderTexto(null)).toBe('');
   });
+
+  it('suporta título, lista numerada, itálico, centralizado e quebra de página (documentos)', () => {
+    const html = renderTexto('# Cláusula 1\n1. Primeiro _item_\n2) Segundo\n>> Centro\n---\nFim');
+    expect(html).toBe(
+      '<h3>Cláusula 1</h3><ol><li>Primeiro <em>item</em></li><li>Segundo</li></ol><p class="centro">Centro</p><div class="quebra-pagina"></div><p>Fim</p>'
+    );
+    // sublinhado dentro de palavra não vira itálico
+    expect(renderTexto('numero_parcelas e {prazo_pagamento_saldo}')).toBe('<p>numero_parcelas e {prazo_pagamento_saldo}</p>');
+  });
 });
