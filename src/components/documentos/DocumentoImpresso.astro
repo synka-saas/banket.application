@@ -1,6 +1,6 @@
 ---
-// Documento formal para impressão (A4): só a página de conteúdo do template (logo no topo, rodapé repetido),
-// título do documento, corpo em marcação simples e bloco de assinaturas opcional.
+// Documento formal para impressão (A4, fundo branco, sem imagem de fundo): logotipo no cabeçalho ou no rodapé,
+// rodapé opcional com texto, título do documento, corpo em marcação simples e bloco de assinaturas opcional.
 import { renderTexto } from '../../lib/texto';
 import type { DocumentoView } from '../../server/documentos';
 
@@ -9,20 +9,21 @@ interface Props {
 }
 
 const { view } = Astro.props;
-const { template: t, imagens } = view;
+const v = view.visual;
 
-const fontes = [...new Set([t.fonte_titulo, t.fonte_corpo])]
+const fontes = [...new Set([v.fonte_titulo, v.fonte_corpo])]
   .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@400;600;700`)
   .join('&');
 const cssVars = [
-  `--fundo:${t.cor_fundo}`,
-  `--texto:${t.cor_texto_primaria}`,
-  `--destaque:${t.cor_texto_secundaria}`,
-  `--fonte-titulo:'${t.fonte_titulo}', 'Arial Black', sans-serif`,
-  `--fonte-corpo:'${t.fonte_corpo}', Arial, sans-serif`,
+  `--primaria:${v.cor_primaria}`,
+  `--secundaria:${v.cor_secundaria}`,
+  `--texto:${v.cor_texto}`,
+  `--fonte-titulo:'${v.fonte_titulo}', Arial, sans-serif`,
+  `--fonte-corpo:'${v.fonte_corpo}', Arial, sans-serif`,
 ].join(';');
-const logoRodape = t.rodape_logo_ativo ? imagens.logo_path : null;
-const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
+const logoNoTopo = Boolean(view.logo && v.logo_local === 'cabecalho');
+const logoNoRodape = Boolean(view.logo && v.logo_local === 'rodape');
+const temRodape = v.rodape_ativo && (logoNoRodape || Boolean(v.rodape_texto));
 ---
 
 <!doctype html>
@@ -35,22 +36,21 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
     <link rel="stylesheet" href={`https://fonts.googleapis.com/css2?${fontes}&display=block`} />
   </head>
   <body style={cssVars}>
-    <div class="fundo-fixo" style={imagens.miolo_imagem_path ? `background-image:url('${imagens.miolo_imagem_path}')` : undefined}></div>
-    <header class="topo">
-      {imagens.logo_path && <img src={imagens.logo_path} alt="" />}
-    </header>
+    {logoNoTopo && (
+      <header class:list={['topo', `alinha-${v.logo_alinhamento}`]}>
+        <img src={view.logo} alt="" />
+      </header>
+    )}
     {temRodape && (
-      <footer class:list={['rodape', `logo-${t.rodape_logo_posicao}`]}>
-        <div class="rodape-texto">
-          {t.rodape_titulo && <strong>{t.rodape_titulo}</strong>}
-          {t.rodape_conteudo && <span>{t.rodape_conteudo}</span>}
-        </div>
-        {logoRodape && <img src={logoRodape} alt="" />}
+      <footer class:list={['rodape', `alinha-${v.logo_alinhamento}`, { 'com-logo': logoNoRodape }]}>
+        {logoNoRodape && v.logo_alinhamento === 'esquerda' && <img src={view.logo} alt="" />}
+        {v.rodape_texto && <span class="rodape-texto">{v.rodape_texto}</span>}
+        {logoNoRodape && v.logo_alinhamento !== 'esquerda' && <img src={view.logo} alt="" />}
       </footer>
     )}
 
     <table class="fluxo">
-      <thead><tr><td><div class:list={['espaco-topo', { 'sem-logo': !imagens.logo_path }]}></div></td></tr></thead>
+      <thead><tr><td><div class:list={['espaco-topo', { 'com-logo': logoNoTopo }]}></div></td></tr></thead>
       <tfoot><tr><td><div class:list={['espaco-rodape', { com: temRodape }]}></div></td></tr></tfoot>
       <tbody><tr><td class="conteudo">
         <h1 class="titulo-doc">{view.titulo}</h1>
@@ -119,21 +119,12 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
   body {
     font-family: var(--fonte-corpo);
     color: var(--texto);
-    background: var(--fundo);
+    background: #ffffff;
     font-size: 10.5pt;
     line-height: 1.5;
   }
 
-  .fundo-fixo {
-    position: fixed;
-    inset: 0;
-    background-color: var(--fundo);
-    background-size: cover;
-    background-position: center;
-    z-index: -1;
-  }
-
-  /* Cabeçalho repetido: só o logotipo, menor que o da proposta (o título fica no corpo) */
+  /* Cabeçalho repetido em todas as páginas: só o logotipo, alinhado conforme o modelo */
   .topo {
     position: fixed;
     top: 0;
@@ -143,7 +134,15 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 16mm;
+    padding: 0 20mm;
+  }
+
+  .topo.alinha-esquerda {
+    justify-content: flex-start;
+  }
+
+  .topo.alinha-direita {
+    justify-content: flex-end;
   }
 
   .topo img {
@@ -158,44 +157,38 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
     left: 0;
     right: 0;
     height: 16mm;
-    padding: 0 16mm 5mm;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: 8mm;
+    padding: 0 20mm 5mm;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6mm;
     font-size: 8pt;
+    color: var(--secundaria);
   }
 
-  .rodape-texto {
-    grid-row: 1;
-    grid-column: 1;
-    display: flex;
+  .rodape.com-logo.alinha-direita {
+    justify-content: space-between;
+  }
+
+  .rodape.com-logo.alinha-esquerda {
+    justify-content: space-between;
+  }
+
+  .rodape.com-logo.alinha-centro {
     flex-direction: column;
+    align-items: center;
+    gap: 1.5mm;
+    height: 22mm;
   }
 
   .rodape img {
-    grid-row: 1;
-    grid-column: 2;
     max-height: 10mm;
     max-width: 35mm;
     object-fit: contain;
   }
 
-  .rodape.logo-centro {
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  }
-
-  .rodape.logo-esquerda {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .rodape.logo-esquerda img {
-    grid-column: 1;
-  }
-
-  .rodape.logo-esquerda .rodape-texto {
-    grid-column: 2;
-    text-align: right;
+  .rodape-texto {
+    text-align: center;
   }
 
   .fluxo {
@@ -204,11 +197,11 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
   }
 
   .espaco-topo {
-    height: 32mm;
+    height: 20mm;
   }
 
-  .espaco-topo.sem-logo {
-    height: 20mm;
+  .espaco-topo.com-logo {
+    height: 32mm;
   }
 
   .espaco-rodape {
@@ -216,7 +209,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
   }
 
   .espaco-rodape.com {
-    height: 22mm;
+    height: 24mm;
   }
 
   .conteudo {
@@ -226,7 +219,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
 
   .titulo-doc {
     font-family: var(--fonte-titulo);
-    color: var(--destaque);
+    color: var(--primaria);
     font-size: 16pt;
     line-height: 1.2;
     text-align: center;
@@ -237,7 +230,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
   .numero-doc {
     text-align: center;
     font-size: 9pt;
-    opacity: 0.8;
+    color: var(--secundaria);
     margin-bottom: 8mm;
   }
 
@@ -247,7 +240,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
 
   .corpo h3 {
     font-family: var(--fonte-titulo);
-    color: var(--destaque);
+    color: var(--primaria);
     font-size: 11.5pt;
     text-transform: uppercase;
     margin: 6mm 0 2mm;
@@ -256,6 +249,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
 
   .corpo h4 {
     font-family: var(--fonte-titulo);
+    color: var(--primaria);
     font-size: 10.5pt;
     margin: 4mm 0 1.5mm;
     break-after: avoid;
@@ -321,7 +315,7 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
 
   .assinante strong {
     font-family: var(--fonte-titulo);
-    color: var(--destaque);
+    color: var(--primaria);
     font-size: 10pt;
   }
 
@@ -331,6 +325,6 @@ const temRodape = Boolean(logoRodape || t.rodape_titulo || t.rodape_conteudo);
     font-style: normal;
     font-size: 8pt;
     letter-spacing: 0.5pt;
-    opacity: 0.8;
+    color: var(--secundaria);
   }
 </style>

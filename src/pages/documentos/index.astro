@@ -42,7 +42,6 @@ const modelos = await withTenant(user.tenantId, (db) => listarModelos(db, { busc
           icon="signature"
           description={m.descricao ?? m.titulo}
           rows={[
-            { label: 'Template visual', value: m.template_nome ?? 'Padrão da empresa' },
             { label: 'Campos ao gerar', value: m.campos.length ? m.campos.map((c) => c.rotulo).join(', ') : 'Nenhum' },
             { label: 'Assinaturas', value: m.incluir_assinaturas ? (m.testemunhas ? 'Empresa, cliente e testemunhas' : 'Empresa e cliente') : 'Sem bloco' },
           ]}

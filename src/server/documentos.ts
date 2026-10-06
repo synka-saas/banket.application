@@ -1,5 +1,6 @@
 // Documentos formais (contratos etc.): modelos com {variáveis} e marcação simples, gerados por evento em PDF
-// com o visual de um template. Modelos são editados por owner/admin; qualquer usuário gera documentos.
+// com a identidade visual do próprio modelo (logo, rodapé, fontes, cores; A4 branco). Modelos são editados por
+// owner/admin; qualquer usuário gera documentos.
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
@@ -10,12 +11,11 @@ import { formatarDocumento } from '../lib/documento';
 import { dataPorExtenso, valorPorExtenso } from '../lib/extenso';
 import { EXEMPLO_VARIAVEIS, aplicarVariaveis, camposExtras, type CampoExtra } from '../lib/documentos/variaveis';
 import { signPrintToken } from '../lib/printToken';
-import { readFile, saveFile } from '../lib/storage';
+import { contentTypeFor, readFile, saveFile } from '../lib/storage';
 import { imprimir, type PdfGerado } from './pdf';
 import { carregarEvento } from './eventos';
 import { carregarEmpresa } from './empresa';
-import { carregarTemplate, templateDaProposta, type CampoImagem, type Template } from './templates';
-import { dadosComuns } from './proposta';
+import { FONTES } from './templates';
 import { registrarTimeline } from './timeline';
 import { enviarNaConversa, obterOuCriarConversa } from './conversas';
 import { listaEmails } from './emailTexto';
@@ -23,26 +23,72 @@ import { listaEmails } from './emailTexto';
 // ---------------------------------------------------------------------------
 // Modelos
 // ---------------------------------------------------------------------------
+export const LOCAIS_LOGO = { nenhum: 'Sem logotipo', cabecalho: 'No cabeçalho', rodape: 'No rodapé' } as const;
+export const ALINHAMENTOS_LOGO = { esquerda: 'Esquerda', centro: 'Centro', direita: 'Direita' } as const;
+export type LocalLogo = keyof typeof LOCAIS_LOGO;
+export type AlinhamentoLogo = keyof typeof ALINHAMENTOS_LOGO;
+
+const HEX = /^#[0-9a-fA-F]{6}$/;
+const cor = (padrao: string) =>
+  z.preprocess((v) => (typeof v === 'string' && v.trim() ? v.trim().toUpperCase() : padrao), z.string().regex(HEX, 'Cor inválida (use #RRGGBB).'));
+const fonte = (padrao: string) => z.preprocess((v) => (typeof v === 'string' && (FONTES as readonly string[]).includes(v) ? v : padrao), z.string());
+
+/** Identidade visual do documento: página A4 branca, sem imagem de fundo (documentos formais). */
+export interface VisualDocumento {
+  logo_path: string | null;
+  logo_local: LocalLogo;
+  logo_alinhamento: AlinhamentoLogo;
+  rodape_ativo: boolean;
+  rodape_texto: string | null;
+  fonte_titulo: string;
+  fonte_corpo: string;
+  /** Títulos e destaques */
+  cor_primaria: string;
+  /** Detalhes: número do documento, rótulos das assinaturas, rodapé */
+  cor_secundaria: string;
+  /** Texto corrido */
+  cor_texto: string;
+}
+
+export const VISUAL_PADRAO: VisualDocumento = {
+  logo_path: null,
+  logo_local: 'cabecalho',
+  logo_alinhamento: 'centro',
+  rodape_ativo: true,
+  rodape_texto: null,
+  fonte_titulo: 'Montserrat',
+  fonte_corpo: 'Open Sans',
+  cor_primaria: '#3A302A',
+  cor_secundaria: '#807265',
+  cor_texto: '#333333',
+};
+
 export const modeloSchema = z.object({
   nome: requiredText('Informe o nome do modelo.', 120),
   descricao: optionalText(500),
   titulo: requiredText('Informe o título do documento.', 255),
-  template_id: optionalUuid(),
   corpo: requiredText('Escreva o conteúdo do documento.', 50_000),
   incluir_assinaturas: checkbox(),
   testemunhas: checkbox(),
   ativo: checkbox(),
+  logo_local: z.enum(['nenhum', 'cabecalho', 'rodape']).default('cabecalho'),
+  logo_alinhamento: z.enum(['esquerda', 'centro', 'direita']).default('centro'),
+  rodape_ativo: checkbox(),
+  rodape_texto: optionalText(500),
+  fonte_titulo: fonte(VISUAL_PADRAO.fonte_titulo),
+  fonte_corpo: fonte(VISUAL_PADRAO.fonte_corpo),
+  cor_primaria: cor(VISUAL_PADRAO.cor_primaria),
+  cor_secundaria: cor(VISUAL_PADRAO.cor_secundaria),
+  cor_texto: cor(VISUAL_PADRAO.cor_texto),
 });
 
 export type ModeloInput = z.infer<typeof modeloSchema>;
 
-export interface DocumentoModelo {
+export interface DocumentoModelo extends VisualDocumento {
   id: string;
   nome: string;
   descricao: string | null;
   titulo: string;
-  template_id: string | null;
-  template_nome: string | null;
   corpo: string;
   incluir_assinaturas: boolean;
   testemunhas: boolean;
@@ -53,14 +99,29 @@ export interface DocumentoModelo {
   campos: CampoExtra[];
 }
 
-const COLUNAS_MODELO = `m.id, m.nome, m.descricao, m.titulo, m.template_id, t.nome AS template_nome, m.corpo,
-            m.incluir_assinaturas, m.testemunhas, m.ativo, m.ordem, m.updated_at`;
+const CAMPOS_VISUAL = ['logo_local', 'logo_alinhamento', 'rodape_ativo', 'rodape_texto', 'fonte_titulo', 'fonte_corpo', 'cor_primaria', 'cor_secundaria', 'cor_texto'] as const;
+
+const COLUNAS_MODELO = `m.id, m.nome, m.descricao, m.titulo, m.corpo, m.incluir_assinaturas, m.testemunhas, m.ativo, m.ordem, m.updated_at,
+            m.logo_path, ${CAMPOS_VISUAL.map((c) => `m.${c}`).join(', ')}`;
+
+export const visualDoModelo = (m: VisualDocumento): VisualDocumento => ({
+  logo_path: m.logo_path,
+  logo_local: m.logo_local,
+  logo_alinhamento: m.logo_alinhamento,
+  rodape_ativo: m.rodape_ativo,
+  rodape_texto: m.rodape_texto,
+  fonte_titulo: m.fonte_titulo,
+  fonte_corpo: m.fonte_corpo,
+  cor_primaria: m.cor_primaria,
+  cor_secundaria: m.cor_secundaria,
+  cor_texto: m.cor_texto,
+});
 
 const comCampos = <T extends { corpo: string; titulo: string }>(m: T) => ({ ...m, campos: camposExtras(m.titulo, m.corpo) });
 
 export async function listarModelos(db: Db, opts: { busca?: string | null; somenteAtivos?: boolean } = {}): Promise<DocumentoModelo[]> {
   const { rows } = await db.query<Omit<DocumentoModelo, 'campos'>>(
-    `SELECT ${COLUNAS_MODELO} FROM documento_modelos m LEFT JOIN orcamento_templates t ON t.id = m.template_id
+    `SELECT ${COLUNAS_MODELO} FROM documento_modelos m
       WHERE ($1::text IS NULL OR m.nome ILIKE $1 OR m.descricao ILIKE $1) ${opts.somenteAtivos ? 'AND m.ativo' : ''}
       ORDER BY m.ativo DESC, m.ordem, lower(m.nome)`,
     [opts.busca ?? null]
@@ -71,54 +132,116 @@ export async function listarModelos(db: Db, opts: { busca?: string | null; somen
 export async function carregarModelo(db: Db, id: string): Promise<DocumentoModelo> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new UserError('Modelo de documento não encontrado.');
   const { rows } = await db.query<Omit<DocumentoModelo, 'campos'>>(
-    `SELECT ${COLUNAS_MODELO} FROM documento_modelos m LEFT JOIN orcamento_templates t ON t.id = m.template_id WHERE m.id = $1`,
+    `SELECT ${COLUNAS_MODELO} FROM documento_modelos m WHERE m.id = $1`,
     [id]
   );
   if (!rows[0]) throw new UserError('Modelo de documento não encontrado.');
   return comCampos(rows[0]);
 }
 
-async function validarTemplate(db: Db, templateId: string | null) {
-  if (!templateId) return;
-  // O id vem do formulário: confere no tenant antes de gravar (FK não passa pelo RLS)
-  const { rowCount } = await db.query('SELECT 1 FROM orcamento_templates WHERE id = $1', [templateId]);
-  if (!rowCount) throw new UserError('Template não encontrado.', 'template_id');
-}
-
-export async function salvarModelo(db: Db, tenantId: string, id: string | null, input: ModeloInput): Promise<string> {
-  await validarTemplate(db, input.template_id);
-  const values = [input.nome, input.descricao, input.titulo, input.template_id, input.corpo, input.incluir_assinaturas, input.testemunhas, input.ativo];
+/**
+ * Grava o modelo. `logo`: undefined mantém o logotipo atual, null remove, string troca pelo arquivo novo.
+ * Devolve o id e o caminho do logotipo substituído/removido (para a página apagar se ninguém mais usa).
+ */
+export async function salvarModelo(
+  db: Db,
+  tenantId: string,
+  id: string | null,
+  input: ModeloInput,
+  logo?: string | null
+): Promise<{ id: string; logoAntigo: string | null }> {
+  const values = [
+    input.nome, input.descricao, input.titulo, input.corpo, input.incluir_assinaturas, input.testemunhas, input.ativo,
+    ...CAMPOS_VISUAL.map((c) => input[c]),
+  ];
+  const n = values.length;
   if (id) {
-    const res = await db.query(
-      `UPDATE documento_modelos SET nome = $1, descricao = $2, titulo = $3, template_id = $4, corpo = $5,
-              incluir_assinaturas = $6, testemunhas = $7, ativo = $8, updated_at = now()
-        WHERE id = $9`,
-      [...values, id]
+    const { rows } = await db.query<{ logo_path: string | null }>(
+      `UPDATE documento_modelos SET nome = $1, descricao = $2, titulo = $3, corpo = $4, incluir_assinaturas = $5, testemunhas = $6,
+              ativo = $7, ${CAMPOS_VISUAL.map((c, i) => `${c} = $${8 + i}`).join(', ')},
+              logo_path = CASE WHEN $${n + 2}::boolean THEN $${n + 3} ELSE logo_path END, updated_at = now()
+        FROM documento_modelos antigo
+        WHERE documento_modelos.id = $${n + 1} AND antigo.id = documento_modelos.id
+        RETURNING antigo.logo_path`,
+      [...values, id, logo !== undefined, logo ?? null]
     );
-    if (!res.rowCount) throw new UserError('Modelo de documento não encontrado.');
-    return id;
+    if (!rows[0]) throw new UserError('Modelo de documento não encontrado.');
+    const logoAntigo = logo !== undefined && rows[0].logo_path && rows[0].logo_path !== logo ? rows[0].logo_path : null;
+    return { id, logoAntigo };
   }
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO documento_modelos (nome, descricao, titulo, template_id, corpo, incluir_assinaturas, testemunhas, ativo, tenant_id, ordem)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, (SELECT COALESCE(max(ordem), 0) + 1 FROM documento_modelos)) RETURNING id`,
-    [...values, tenantId]
+    `INSERT INTO documento_modelos (nome, descricao, titulo, corpo, incluir_assinaturas, testemunhas, ativo, ${CAMPOS_VISUAL.join(', ')},
+                                    logo_path, tenant_id, ordem)
+     VALUES (${values.map((_, i) => `$${i + 1}`).join(', ')}, $${n + 1}, $${n + 2}, (SELECT COALESCE(max(ordem), 0) + 1 FROM documento_modelos))
+     RETURNING id`,
+    [...values, logo ?? null, tenantId]
   );
-  return rows[0].id;
+  return { id: rows[0].id, logoAntigo: null };
+}
+
+/** Salva a partir do formulário (multipart): logotipo novo, remoção ou manutenção do atual. */
+export async function salvarModeloDoFormulario(
+  db: Db,
+  tenantId: string,
+  id: string | null,
+  data: Record<string, unknown>,
+  raw: FormData,
+  storage: { saveUpload: (tenantId: string, folder: string, file: File) => Promise<string>; removeFile: (tenantId: string, key: string) => Promise<void> }
+): Promise<string> {
+  const input = modeloSchema.parse(data);
+  let logo: string | null | undefined;
+  const arquivo = raw.get('logo_path');
+  if (arquivo instanceof File && arquivo.size > 0) {
+    try {
+      logo = await storage.saveUpload(tenantId, 'documentos', arquivo);
+    } catch (err) {
+      throw new UserError(err instanceof Error ? err.message : 'Falha ao enviar o logotipo.', 'logo_path');
+    }
+  } else if (data.remover_logo_path === 'on') {
+    logo = null;
+  }
+  try {
+    const { id: salvo, logoAntigo } = await salvarModelo(db, tenantId, id, input, logo);
+    if (logoAntigo && !(await logoEmUso(db, logoAntigo))) await storage.removeFile(tenantId, logoAntigo);
+    return salvo;
+  } catch (err) {
+    if (logo) await storage.removeFile(tenantId, logo).catch(() => undefined);
+    throw err;
+  }
+}
+
+/** O mesmo arquivo de logotipo pode ser compartilhado por modelos duplicados e pelos documentos já gerados. */
+export async function logoEmUso(db: Db, caminho: string): Promise<boolean> {
+  const { rows } = await db.query<{ n: number }>(
+    `SELECT (SELECT count(*) FROM documento_modelos WHERE logo_path = $1) + (SELECT count(*) FROM documentos WHERE visual->>'logo_path' = $1) AS n`,
+    [caminho]
+  );
+  return Number(rows[0]?.n ?? 0) > 0;
 }
 
 export async function duplicarModelo(db: Db, tenantId: string, id: string): Promise<string> {
   const m = await carregarModelo(db, id);
   const { rows } = await db.query<{ n: number }>(`SELECT count(*) AS n FROM documento_modelos WHERE lower(nome) LIKE lower($1) || '%'`, [`${m.nome} (cópia`]);
   const nome = `${m.nome} (cópia${rows[0].n ? ` ${rows[0].n + 1}` : ''})`.slice(0, 120);
-  return salvarModelo(db, tenantId, null, {
-    nome, descricao: m.descricao, titulo: m.titulo, template_id: m.template_id, corpo: m.corpo,
-    incluir_assinaturas: m.incluir_assinaturas, testemunhas: m.testemunhas, ativo: false,
-  });
+  const { id: novo } = await salvarModelo(
+    db,
+    tenantId,
+    null,
+    {
+      nome, descricao: m.descricao, titulo: m.titulo, corpo: m.corpo,
+      incluir_assinaturas: m.incluir_assinaturas, testemunhas: m.testemunhas, ativo: false,
+      ...visualDoModelo(m),
+    },
+    m.logo_path
+  );
+  return novo;
 }
 
-export async function excluirModelo(db: Db, id: string): Promise<void> {
-  const res = await db.query('DELETE FROM documento_modelos WHERE id = $1', [id]);
-  if (!res.rowCount) throw new UserError('Modelo de documento não encontrado.');
+/** Exclui o modelo e devolve o logotipo órfão (se nenhum outro modelo/documento usa), para a página apagar. */
+export async function excluirModelo(db: Db, id: string): Promise<string | null> {
+  const { rows } = await db.query<{ logo_path: string | null }>('DELETE FROM documento_modelos WHERE id = $1 RETURNING logo_path', [id]);
+  if (!rows[0]) throw new UserError('Modelo de documento não encontrado.');
+  return rows[0].logo_path && !(await logoEmUso(db, rows[0].logo_path)) ? rows[0].logo_path : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +311,7 @@ export interface Documento {
   cliente_documento: string | null;
   modelo_id: string | null;
   modelo_nome: string | null;
-  template_id: string | null;
+  visual: VisualDocumento | null;
   ano: number;
   numero: number;
   titulo: string;
@@ -206,7 +329,7 @@ export interface Documento {
 export const numeroDocumento = (d: Pick<Documento, 'ano' | 'numero'>) => `${d.ano}/${String(d.numero).padStart(4, '0')}`;
 
 const COLUNAS_DOC = `d.id, d.evento_id, e.titulo AS evento_titulo, d.cliente_id, c.nome AS cliente_nome, c.documento AS cliente_documento,
-            d.modelo_id, d.modelo_nome, d.template_id, d.ano, d.numero, d.titulo, d.corpo, d.campos, d.incluir_assinaturas,
+            d.modelo_id, d.modelo_nome, d.visual, d.ano, d.numero, d.titulo, d.corpo, d.campos, d.incluir_assinaturas,
             d.testemunhas, d.pdf_path, d.pdf_gerado_em, d.criado_por, u.nome AS criado_por_nome, d.created_at`;
 const FROM_DOC = `FROM documentos d JOIN eventos e ON e.id = d.evento_id
             LEFT JOIN clientes c ON c.id = COALESCE(d.cliente_id, e.cliente_id)
@@ -226,7 +349,6 @@ export async function carregarDocumento(db: Db, id: string): Promise<Documento> 
 
 export interface GerarInput {
   modeloId: string;
-  templateId: string | null;
   /** Valores dos campos extras do modelo (chave → valor digitado) */
   campos: Record<string, string>;
 }
@@ -242,12 +364,11 @@ export function camposDoFormulario(data: Record<string, unknown>): Record<string
 
 /**
  * Cria o documento: aplica as variáveis do evento e os campos extras ao modelo, numera por empresa/ano e grava o
- * texto final (com o template escolhido, o do modelo ou o padrão da empresa). O PDF é impresso depois, em outra
+ * texto final e o snapshot do visual do modelo. O PDF é impresso depois, em outra
  * transação (`gerarPdfDocumento`): a página /print/documento/:id só enxerga o documento depois do commit.
  */
 export async function criarDocumento(db: Db, user: SessionUser, eventoId: string, input: GerarInput): Promise<Documento> {
   const modelo = await carregarModelo(db, input.modeloId);
-  const template = await templateDaProposta(db, input.templateId ?? modelo.template_id);
   const faltando = modelo.campos.filter((c) => !input.campos[c.chave]?.trim());
   if (faltando.length) throw new UserError(`Preencha: ${faltando.map((c) => c.rotulo).join(', ')}.`, `campo_${faltando[0].chave}`);
   const extras = Object.fromEntries(modelo.campos.map((c) => [c.chave, input.campos[c.chave].trim()]));
@@ -262,11 +383,11 @@ export async function criarDocumento(db: Db, user: SessionUser, eventoId: string
   const corpo = aplicarVariaveis(modelo.corpo, valores);
 
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO documentos (tenant_id, evento_id, cliente_id, modelo_id, template_id, ano, numero, titulo, modelo_nome, corpo, campos,
+    `INSERT INTO documentos (tenant_id, evento_id, cliente_id, modelo_id, visual, ano, numero, titulo, modelo_nome, corpo, campos,
                              incluir_assinaturas, testemunhas, criado_por)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-    [user.tenantId, eventoId, evento.cliente_id, modelo.id, template.id, ano, numero, titulo, modelo.nome, corpo, JSON.stringify(extras),
-     modelo.incluir_assinaturas, modelo.testemunhas, user.id]
+    [user.tenantId, eventoId, evento.cliente_id, modelo.id, JSON.stringify(visualDoModelo(modelo)), ano, numero, titulo, modelo.nome, corpo,
+     JSON.stringify(extras), modelo.incluir_assinaturas, modelo.testemunhas, user.id]
   );
   const id = rows[0].id;
   await registrarTimeline(
@@ -361,8 +482,9 @@ export async function enviarDocumento(
 // Impressão
 // ---------------------------------------------------------------------------
 export interface DocumentoView {
-  template: Template;
-  imagens: Record<CampoImagem, string | null>;
+  visual: VisualDocumento;
+  /** Logotipo como data URI (a página de impressão não tem sessão) */
+  logo: string | null;
   titulo: string;
   numero: string;
   corpo: string;
@@ -373,11 +495,16 @@ export interface DocumentoView {
   cliente: { nome: string; documento: string };
 }
 
-async function viewBase(db: Db, tenantId: string, template: Template, valores: Record<string, string>) {
-  const comuns = await dadosComuns(db, tenantId, template);
+async function logoDataUri(tenantId: string, caminho: string | null): Promise<string | null> {
+  if (!caminho) return null;
+  const arquivo = await readFile(tenantId, caminho);
+  return arquivo ? `data:${contentTypeFor(caminho)};base64,${arquivo.toString('base64')}` : null;
+}
+
+async function viewBase(db: Db, tenantId: string, visual: VisualDocumento, valores: Record<string, string>) {
   return {
-    template,
-    imagens: comuns.imagens,
+    visual,
+    logo: visual.logo_local === 'nenhum' ? null : await logoDataUri(tenantId, visual.logo_path),
     data: valores.data_hoje_extenso,
     empresa: {
       nome: valores.empresa,
@@ -390,10 +517,9 @@ async function viewBase(db: Db, tenantId: string, template: Template, valores: R
   };
 }
 
-/** Documento gerado, para a página /print/documento/:id. */
+/** Documento gerado, para a página /print/documento/:id (usa o visual guardado na geração). */
 export async function montarDocumentoView(db: Db, tenantId: string, id: string): Promise<DocumentoView> {
   const d = await carregarDocumento(db, id);
-  const template = d.template_id ? await carregarTemplate(db, d.template_id).catch(() => templateDaProposta(db, null)) : await templateDaProposta(db, null);
   const empresa = await carregarEmpresa(db);
   const valores = {
     data_hoje_extenso: dataPorExtenso(d.created_at.toISOString().slice(0, 10)),
@@ -406,7 +532,7 @@ export async function montarDocumentoView(db: Db, tenantId: string, id: string):
     cliente_documento: formatarDocumento(d.cliente_documento),
   };
   return {
-    ...(await viewBase(db, tenantId, template, valores)),
+    ...(await viewBase(db, tenantId, { ...VISUAL_PADRAO, ...(d.visual ?? {}) }, valores)),
     titulo: d.titulo,
     numero: numeroDocumento(d),
     corpo: d.corpo,
@@ -418,11 +544,10 @@ export async function montarDocumentoView(db: Db, tenantId: string, id: string):
 /** Exemplo de um modelo com dados fictícios (campos extras aparecem como [chave]). */
 export async function montarDocumentoExemplo(db: Db, tenantId: string, modeloId: string): Promise<DocumentoView> {
   const m = await carregarModelo(db, modeloId);
-  const template = await templateDaProposta(db, m.template_id);
   const valores: Record<string, string> = { ...EXEMPLO_VARIAVEIS };
   for (const c of m.campos) valores[c.chave] = `[${c.rotulo}]`;
   return {
-    ...(await viewBase(db, tenantId, template, valores)),
+    ...(await viewBase(db, tenantId, visualDoModelo(m), valores)),
     titulo: aplicarVariaveis(m.titulo, valores),
     numero: valores.numero_documento,
     corpo: aplicarVariaveis(m.corpo, valores),

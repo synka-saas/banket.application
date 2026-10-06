@@ -353,13 +353,17 @@ conteúdo antigo ou parcial preenchendo padrões.
 ### Documentos (contratos e formais)
 
 **`documento_modelos`** — modelos editados por owner/admin: `nome` (UNIQUE por empresa), `descricao`, `titulo` (aceita
-variáveis; vira o título da página e o nome do PDF), `template_id` (→ `orcamento_templates`, NULL = padrão da empresa),
-`corpo` (marcação simples com `{variaveis}`; toda variável que não é do sistema vira campo a preencher ao gerar),
-`incluir_assinaturas`, `testemunhas`, `ativo`, `ordem`.
-**`documentos`** — cada documento gerado num evento: `evento_id` (CASCADE), `cliente_id`, `modelo_id`, `template_id`,
-`ano` + `numero` (UNIQUE por empresa: `2026/0007`, sequencial por ano, lock consultivo na geração), `titulo`,
-`modelo_nome`, `corpo` (texto final com os dados aplicados), `campos JSONB` (extras digitados), `incluir_assinaturas`,
-`testemunhas`, `pdf_path` (`documentos/{eventoId}/{id}.pdf`), `pdf_gerado_em`, `criado_por`.
+variáveis; vira o título da página e o nome do PDF), `corpo` (marcação simples com `{variaveis}`; toda variável que não
+é do sistema vira campo a preencher ao gerar), `incluir_assinaturas`, `testemunhas`, `ativo`, `ordem` e a **identidade
+visual própria** (`VisualDocumento`): `logo_path` (upload em `documentos/`), `logo_local` (`nenhum | cabecalho | rodape`),
+`logo_alinhamento` (`esquerda | centro | direita`), `rodape_ativo`, `rodape_texto`, `fonte_titulo`, `fonte_corpo`
+(lista `FONTES`), `cor_primaria` (títulos), `cor_secundaria` (detalhes), `cor_texto`. Página sempre A4 branca, sem imagem
+de fundo. `template_id` ficou sem uso (migration 023).
+**`documentos`** — cada documento gerado num evento: `evento_id` (CASCADE), `cliente_id`, `modelo_id`, `visual JSONB`
+(snapshot do visual do modelo na geração: reimpressões saem iguais), `ano` + `numero` (UNIQUE por empresa: `2026/0007`,
+sequencial por ano, lock consultivo na geração), `titulo`, `modelo_nome`, `corpo` (texto final com os dados aplicados),
+`campos JSONB` (extras digitados), `incluir_assinaturas`, `testemunhas`, `pdf_path` (`documentos/{eventoId}/{id}.pdf`),
+`pdf_gerado_em`, `criado_por`.
 
 ### Inbox (conversas por e-mail)
 
@@ -414,6 +418,7 @@ recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanh
 | `020_email_modelos` | tabela `email_modelos` (um padrão por empresa), `aplicar_padroes_email_modelos` (backfill "Proposta padrão" a partir de `email_assunto`/`email_corpo`), `aplicar_padroes_tenant_completo` com 4 chamadas |
 | `021_inbox` | `conversas`, `mensagens` (RLS) e `resend_events` (só sistema) |
 | `022_documentos` | `documento_modelos` e `documentos`; `aplicar_padroes_documentos` (contrato de exemplo em toda empresa); `aplicar_padroes_tenant_completo` com 5 chamadas |
+| `023_documentos_visual` | identidade visual própria dos modelos de documento (logo e posição, rodapé, fontes, três cores) e `documentos.visual` (snapshot); `template_id` sem uso |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -602,18 +607,21 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
 
 ### Documentos — `/documentos`, `/documentos/:id`, `/eventos/:id/documentos` (`server/documentos.ts`)
 - **Modelos** (menu Documentos; lista visível a todos, edição só owner/admin): nome, descrição, título com variáveis,
-  template visual (fontes/cores/logo/rodapé da página de conteúdo; sem capa nem contracapa), corpo em marcação simples
-  editado com **barra de formatação** (`lib/editorTexto.ts`: negrito, itálico, título `# `, subtítulo `## `, lista,
+  card **Identidade visual** (logotipo com upload e "Capturar cores do logo" via `POST /api/templates/sugestao`, posição
+  do logo no cabeçalho ou no rodapé com alinhamento, rodapé sim/não com texto, fontes de título e texto, cores primária,
+  secundária e do texto; A4 branco, sem imagem de fundo; o arquivo do logo é apagado só quando nenhum modelo/documento
+  o usa, `logoEmUso`), corpo em marcação simples editado com **barra de formatação** (`lib/editorTexto.ts`: negrito, itálico, título `# `, subtítulo `## `, lista,
   lista numerada `1. `, centralizar `>> `, quebra de página `---`) e chips das variáveis do sistema
   (`lib/documentos/variaveis.ts`, grupos empresa/cliente/evento/orçamento/documento, com `{valor_total_extenso}`,
   `{data_evento_extenso}`, `{numero_documento}`…). Prévia ao vivo com dados de exemplo; "PDF de exemplo"
   (`/documentos/:id/exemplo`); duplicar (nasce inativo), excluir. Toda `{variavel}` desconhecida vira **campo extra**
   obrigatório na geração (`camposExtras`). Bloco de assinaturas (empresa com razão social/CNPJ e assinante das
   Configurações, cliente com CPF/CNPJ) e testemunhas opcionais por modelo.
-- **Geração** (aba Documentos do evento): escolhe modelo, template (padrão do modelo) e preenche os campos extras;
-  `gerarDocumento` aplica as variáveis do evento/cliente/empresa/orçamento atual (`valoresDoEvento`), numera por
-  empresa e ano, grava o texto final e imprime o PDF (`/print/documento/:id`, token `alvo: 'documento'`, só a parte
-  `miolo`; `imprimir` de `server/pdf.ts` com título). Timeline `documento_gerado`. Lista com download (`…/pdf`, `?ver=1`
+- **Geração** (aba Documentos do evento): escolhe o modelo e preenche os campos extras; `criarDocumento` aplica as
+  variáveis do evento/cliente/empresa/orçamento atual (`valoresDoEvento`), numera por empresa e ano e grava o texto
+  final com o snapshot do visual; **em outra transação** `gerarPdfDocumento` imprime o PDF (`/print/documento/:id`,
+  token `alvo: 'documento'`, só a parte `miolo`; `imprimir` de `server/pdf.ts` com título) — a página de impressão roda
+  em outra requisição e só enxerga o documento depois do commit. Timeline `documento_gerado`. Lista com download (`…/pdf`, `?ver=1`
   abre), **Enviar** por e-mail (PDF anexado na conversa do Inbox, `enviarDocumento`) e excluir (apaga o PDF; o número
   não é reaproveitado). O PDF guardado é reusado; se faltar no disco, é reimpresso a partir do texto final.
 

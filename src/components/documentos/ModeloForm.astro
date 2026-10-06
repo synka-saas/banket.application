@@ -4,17 +4,26 @@
 import Button from '../ui/Button.astro';
 import SectionCard from '../ui/SectionCard.astro';
 import Icon from '../ui/Icon.astro';
+import FileUpload from '../ui/FileUpload.astro';
+import { fileUrl } from '../../lib/storage';
 import { renderTexto } from '../../lib/texto';
 import { EXEMPLO_VARIAVEIS, GRUPOS_VARIAVEL, VARIAVEIS_DOCUMENTO, aplicarVariaveis, camposExtras, type GrupoVariavel } from '../../lib/documentos/variaveis';
-import type { DocumentoModelo } from '../../server/documentos';
+import { ALINHAMENTOS_LOGO, LOCAIS_LOGO, VISUAL_PADRAO, type DocumentoModelo } from '../../server/documentos';
+import { FONTES } from '../../server/templates';
 
 interface Props {
   modelo: Partial<DocumentoModelo>;
-  templates: { id: string; nome: string; padrao: boolean }[];
+  tenantId: string;
 }
 
-const { modelo: m, templates } = Astro.props;
+const { modelo: m, tenantId } = Astro.props;
 const novo = !m.id;
+const visual = { ...VISUAL_PADRAO, ...Object.fromEntries(Object.entries(m).filter(([, v]) => v !== undefined)) } as typeof VISUAL_PADRAO;
+const CORES = [
+  { campo: 'cor_primaria', rotulo: 'Cor primária', dica: 'Títulos, cláusulas e nomes nas assinaturas' },
+  { campo: 'cor_secundaria', rotulo: 'Cor secundária', dica: 'Número do documento, rodapé e rótulos' },
+  { campo: 'cor_texto', rotulo: 'Cor do texto', dica: 'Texto corrido (escura, para boa leitura)' },
+] as const;
 const corpo = m.corpo ?? '';
 const titulo = m.titulo ?? '';
 const campos = camposExtras(titulo, corpo);
@@ -32,7 +41,7 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
 ];
 ---
 
-<form method="post" class="modelo-form" data-modelo-form data-form-sujo>
+<form method="post" enctype="multipart/form-data" class="modelo-form" data-modelo-form data-form-sujo>
   <div class="form-topo">
     <div class="field nome">
       <label for="md-nome">Nome do modelo<span class="obrigatorio">*</span></label>
@@ -56,19 +65,69 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
       <input id="md-descricao" name="descricao" maxlength="500" value={m.descricao ?? ''} placeholder="Quando usar este documento" />
     </div>
     <div class="field">
-      <label for="md-template">Template visual</label>
-      <select id="md-template" name="template_id">
-        <option value="">Padrão da empresa</option>
-        {templates.map((t) => <option value={t.id} selected={t.id === m.template_id}>{t.nome}{t.padrao ? ' (padrão)' : ''}</option>)}
-      </select>
-      <span class="field-hint">Fontes, cores, logotipo e rodapé da página de conteúdo. Dá para trocar na hora de gerar.</span>
-    </div>
-    <div class="field span-2">
       <label for="md-titulo">Título do documento<span class="obrigatorio">*</span></label>
       <input id="md-titulo" name="titulo" required maxlength="255" value={titulo} placeholder="Ex.: Contrato de prestação de serviços – {evento}" data-titulo />
       <span class="field-hint">Aparece no topo da página e no nome do PDF; aceita variáveis.</span>
     </div>
   </div>
+
+  <SectionCard title="Identidade visual" icon="palette" description="Página A4 branca, sem imagem de fundo. Logotipo, rodapé, fontes e cores do documento." collapsible open={novo}>
+    <div class="visual-grid">
+      <div class="field">
+        <span class="field-label">Logotipo</span>
+        <FileUpload name="logo_path" atualUrl={m.logo_path ? fileUrl(tenantId, m.logo_path) : null} atualNome="Logotipo atual" removerName="remover_logo_path" comprimirKb={380} compacto />
+        <img data-logo src={m.logo_path ? fileUrl(tenantId, m.logo_path) : ''} alt="" hidden={!m.logo_path} class="logo-oculto" />
+      </div>
+      <div class="field">
+        <span class="field-label">Posição do logotipo</span>
+        <div class="chip-group radios">
+          {(Object.keys(LOCAIS_LOGO) as (keyof typeof LOCAIS_LOGO)[]).map((k) => (
+            <label class="chip"><input type="radio" name="logo_local" value={k} checked={visual.logo_local === k} />{LOCAIS_LOGO[k]}</label>
+          ))}
+        </div>
+        <div class="chip-group radios" data-alinhamento>
+          {(Object.keys(ALINHAMENTOS_LOGO) as (keyof typeof ALINHAMENTOS_LOGO)[]).map((k) => (
+            <label class="chip"><input type="radio" name="logo_alinhamento" value={k} checked={visual.logo_alinhamento === k} />{ALINHAMENTOS_LOGO[k]}</label>
+          ))}
+        </div>
+      </div>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="rodape_ativo" checked={visual.rodape_ativo} />Rodapé em todas as páginas</label>
+        <input name="rodape_texto" maxlength="500" value={visual.rodape_texto ?? ''} placeholder="Ex.: Banket Eventos · CNPJ 00.000.000/0001-00 · (11) 3333-0000" aria-label="Texto do rodapé" data-rodape-texto />
+        <span class="field-hint">O logotipo "no rodapé" também depende desta chave.</span>
+      </div>
+      <div class="field">
+        <label for="md-fonte-titulo">Fonte dos títulos</label>
+        <select id="md-fonte-titulo" name="fonte_titulo">
+          {FONTES.map((f) => <option value={f} selected={f === visual.fonte_titulo} style={`font-family:'${f}'`}>{f}</option>)}
+        </select>
+        <label for="md-fonte-corpo" class="label-seguinte">Fonte do texto</label>
+        <select id="md-fonte-corpo" name="fonte_corpo">
+          {FONTES.map((f) => <option value={f} selected={f === visual.fonte_corpo} style={`font-family:'${f}'`}>{f}</option>)}
+        </select>
+      </div>
+      <div class="field cores">
+        <div class="cores-topo">
+          <span class="field-label">Cores</span>
+          <button type="button" class="btn btn-soft btn-sm" data-capturar-cores title="Preencher as cores primária e do texto com a paleta do logotipo">
+            <Icon name="color-picker" size={16} /> Capturar cores do logo
+          </button>
+        </div>
+        {CORES.map((c) => (
+          <div class="linha-cor">
+            <div class="linha-texto">
+              <label for={`md-${c.campo}`}>{c.rotulo}</label>
+              <span class="field-hint">{c.dica}</span>
+            </div>
+            <div class="cor">
+              <input id={`md-${c.campo}`} type="color" name={c.campo} value={visual[c.campo]} />
+              <input class="control hex" value={visual[c.campo].toUpperCase()} data-hex={c.campo} maxlength="7" aria-label={`${c.rotulo} (hexadecimal)`} spellcheck="false" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </SectionCard>
 
   <div class="editor-grid">
     <SectionCard title="Conteúdo" icon="signature" description="Escreva o texto do documento. Use a barra para formatar e clique numa variável para inseri-la onde está o cursor.">
@@ -110,7 +169,7 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
       </div>
     </SectionCard>
 
-    <SectionCard title="Prévia" icon="eye" description="Com dados de exemplo. O PDF usa o template visual escolhido." class="card-previa">
+    <SectionCard title="Prévia" icon="eye" description="Com dados de exemplo; cores e fontes do modelo entram no PDF." class="card-previa">
       <div class="previa-doc" data-previa-exemplo={JSON.stringify(EXEMPLO_VARIAVEIS)}>
         <h4 class="previa-titulo" data-previa-titulo>{aplicarVariaveis(titulo, exemplo) || 'Título do documento'}</h4>
         <div class="previa-corpo" data-previa-corpo set:html={renderTexto(aplicarVariaveis(corpo, exemplo)) || '<p class="muted">Sem conteúdo.</p>'} />
@@ -123,6 +182,8 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
   import { renderTexto } from '../../lib/texto';
   import { aplicarVariaveis, camposExtras } from '../../lib/documentos/variaveis';
   import { aplicarFormato, inserirTexto, type FormatoTexto } from '../../lib/editorTexto';
+  import { toast } from '../../lib/ui';
+  import { svgIcone } from '../../lib/icones';
 
   const form = document.querySelector<HTMLFormElement>('[data-modelo-form]');
   if (form) {
@@ -178,6 +239,94 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
       })
     );
 
+    // ---------- Identidade visual ----------
+    // Cor: seletor e campo hexadecimal andam juntos
+    const definirCor = (campo: string, valor: string) => {
+      const seletor = form.querySelector<HTMLInputElement>(`input[type="color"][name="${campo}"]`)!;
+      const hex = form.querySelector<HTMLInputElement>(`[data-hex="${campo}"]`)!;
+      seletor.value = valor;
+      hex.value = valor.toUpperCase();
+      seletor.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    form.querySelectorAll<HTMLInputElement>('[data-hex]').forEach((hex) => {
+      const seletor = form.querySelector<HTMLInputElement>(`input[type="color"][name="${hex.dataset.hex}"]`)!;
+      seletor.addEventListener('input', () => (hex.value = seletor.value.toUpperCase()));
+      hex.addEventListener('input', () => {
+        const v = hex.value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(v)) definirCor(hex.dataset.hex!, v);
+      });
+      hex.addEventListener('blur', () => (hex.value = seletor.value.toUpperCase()));
+    });
+
+    // Alinhamento só faz sentido com logotipo no cabeçalho ou no rodapé
+    const alinhamento = form.querySelector<HTMLElement>('[data-alinhamento]')!;
+    const aplicarLocal = () => {
+      const local = form.querySelector<HTMLInputElement>('[name="logo_local"]:checked')?.value ?? 'cabecalho';
+      alinhamento.hidden = local === 'nenhum';
+    };
+    form.querySelectorAll<HTMLInputElement>('[name="logo_local"]').forEach((r) => r.addEventListener('change', aplicarLocal));
+    aplicarLocal();
+
+    // Logo recém-escolhido vira a imagem usada na captura de cores
+    const imgLogo = form.querySelector<HTMLImageElement>('[data-logo]')!;
+    form.querySelector<HTMLInputElement>('input[name="logo_path"]')?.addEventListener('change', (e) => {
+      const arquivo = (e.target as HTMLInputElement).files?.[0];
+      if (!arquivo) return;
+      imgLogo.src = URL.createObjectURL(arquivo);
+      imgLogo.hidden = false;
+    });
+
+    // Captura de cores do logotipo (IA): o logo vira um PNG reduzido no navegador, como no editor de templates
+    const logoComoPng = async (): Promise<string | null> => {
+      const removido = form.querySelector<HTMLInputElement>('[name="remover_logo_path"]')?.checked;
+      const novo = form.querySelector<HTMLInputElement>('input[name="logo_path"]')?.files?.length;
+      if (imgLogo.hidden || !imgLogo.getAttribute('src') || (removido && !novo)) return null;
+      await imgLogo.decode().catch(() => undefined);
+      const max = 512;
+      const w0 = imgLogo.naturalWidth || max;
+      const h0 = imgLogo.naturalHeight || max;
+      const escala = Math.min(1, max / Math.max(w0, h0));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(w0 * escala));
+      canvas.height = Math.max(1, Math.round(h0 * escala));
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(imgLogo, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png');
+    };
+    form.querySelector<HTMLButtonElement>('[data-capturar-cores]')?.addEventListener('click', async (e) => {
+      const botao = e.currentTarget as HTMLButtonElement;
+      const logo = await logoComoPng().catch(() => null);
+      if (!logo) return toast('Envie o logotipo para capturar as cores.', 'info');
+      botao.disabled = true;
+      const iconeOriginal = botao.querySelector('.icon');
+      const molde = document.createElement('template');
+      molde.innerHTML = svgIcone('loader-2', 16);
+      const iconeCarregando = molde.content.firstElementChild;
+      if (iconeOriginal && iconeCarregando) iconeOriginal.replaceWith(iconeCarregando);
+      try {
+        const res = await fetch('/api/templates/sugestao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logo, modo: 'capturar', campos: ['cor_texto_primaria', 'cor_texto_secundaria'] }),
+        });
+        const dados = await res.json().catch(() => ({ error: 'Falha na captura.' }));
+        if (!res.ok) throw new Error(dados.error ?? 'Falha na captura.');
+        // Destaque da marca → cor primária; cor de leitura → cor do texto
+        let aplicados = 0;
+        if (typeof dados.cor_texto_secundaria === 'string') (definirCor('cor_primaria', dados.cor_texto_secundaria), aplicados++);
+        if (typeof dados.cor_texto_primaria === 'string') (definirCor('cor_texto', dados.cor_texto_primaria), aplicados++);
+        if (!aplicados) throw new Error('A IA não trouxe uma cor válida. Tente de novo.');
+        toast(dados.motivo || 'Cores aplicadas. Salve para manter.', 'success');
+      } catch (err) {
+        toast(err instanceof Error ? err.message : 'Falha na captura.', 'error');
+      } finally {
+        botao.disabled = false;
+        if (iconeOriginal && iconeCarregando) iconeCarregando.replaceWith(iconeOriginal);
+      }
+    });
+
     // Atalhos de teclado do editor
     corpo.addEventListener('keydown', (e) => {
       if (!(e.ctrlKey || e.metaKey)) return;
@@ -218,6 +367,83 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xs);
+  }
+
+  .visual-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4) var(--space-6);
+  }
+
+  .visual-grid .radios + .radios {
+    margin-top: var(--space-2);
+  }
+
+  .visual-grid .switch {
+    margin-bottom: var(--space-2);
+  }
+
+  .label-seguinte {
+    margin-top: var(--space-3);
+  }
+
+  .logo-oculto {
+    display: none;
+  }
+
+  .cores {
+    grid-column: 1 / -1;
+  }
+
+  .cores-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+
+  .linha-cor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .linha-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .linha-texto label {
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .cor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .cor input[type='color'] {
+    width: 40px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    cursor: pointer;
+  }
+
+  .cor .hex {
+    width: 104px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
   }
 
   .editor-grid {
@@ -385,6 +611,15 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
     padding-left: var(--space-5);
   }
 
+  /* O global.css zera os marcadores; na prévia eles voltam, como no PDF */
+  .previa-corpo :global(ul) {
+    list-style: disc;
+  }
+
+  .previa-corpo :global(ol) {
+    list-style: decimal;
+  }
+
   .previa-corpo :global(.quebra-pagina) {
     margin: var(--space-3) 0;
     border-top: 1px dashed var(--border-strong);
@@ -400,6 +635,12 @@ const FERRAMENTAS: { formato: string; rotulo: string; icone: string }[] = [
 
   @media (max-width: 1024px) {
     .editor-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .visual-grid {
       grid-template-columns: minmax(0, 1fr);
     }
   }

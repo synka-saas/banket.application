@@ -5,8 +5,8 @@ import { withTenant } from '../../lib/db';
 import { isAdmin } from '../../lib/auth';
 import { handleFormPost } from '../../lib/actions';
 import { setFlash } from '../../lib/flash';
-import { listarTemplates } from '../../server/templates';
-import { modeloSchema, salvarModelo } from '../../server/documentos';
+import { removeFile, saveUpload } from '../../lib/storage';
+import { salvarModeloDoFormulario } from '../../server/documentos';
 
 const user = Astro.locals.user;
 if (!isAdmin(user)) {
@@ -15,16 +15,13 @@ if (!isAdmin(user)) {
 }
 
 if (Astro.request.method === 'POST') {
-  return handleFormPost(Astro, async (data) => {
-    const input = modeloSchema.parse(data);
-    const id = await withTenant(user.tenantId, (db) => salvarModelo(db, user.tenantId, null, input));
+  return handleFormPost(Astro, async (data, raw) => {
+    const id = await withTenant(user.tenantId, (db) => salvarModeloDoFormulario(db, user.tenantId, null, data, raw, { saveUpload, removeFile }));
     return { message: 'Modelo criado.', redirect: `/documentos/${id}` };
   });
 }
-
-const templates = await withTenant(user.tenantId, (db) => listarTemplates(db, null));
 ---
 
 <AppLayout title="Novo modelo" heading="Documentos / Novo modelo" voltar={{ href: '/documentos', label: 'Documentos' }}>
-  <ModeloForm modelo={{}} templates={templates.map((t) => ({ id: t.id, nome: t.nome, padrao: t.padrao }))} />
+  <ModeloForm modelo={{}} tenantId={user.tenantId} />
 </AppLayout>

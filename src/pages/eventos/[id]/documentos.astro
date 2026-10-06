@@ -10,7 +10,6 @@ import { dataHora } from '../../../lib/datas';
 import { html } from '../../../lib/html';
 import { removeFile } from '../../../lib/storage';
 import { carregarEvento, eventoExiste } from '../../../server/eventos';
-import { listarTemplates } from '../../../server/templates';
 import { modelosParaEvento } from '../../../server/conversas';
 import {
   camposDoFormulario,
@@ -54,9 +53,8 @@ if (Astro.request.method === 'POST') {
     }
     const modeloId = optionalUuid().parse(data.modelo_id);
     if (!modeloId) throw new UserError('Escolha o modelo do documento.', 'modelo_id');
-    const templateId = optionalUuid().parse(data.template_id);
     // Grava (commit) e só então imprime: a página de impressão roda em outra requisição e precisa ver o documento
-    const doc = await withTenant(user.tenantId, (db) => criarDocumento(db, user, id, { modeloId, templateId, campos: camposDoFormulario(data) }));
+    const doc = await withTenant(user.tenantId, (db) => criarDocumento(db, user, id, { modeloId, campos: camposDoFormulario(data) }));
     try {
       await withTenant(user.tenantId, (db) => gerarPdfDocumento(db, user.tenantId, doc.id));
     } catch (err) {
@@ -67,11 +65,10 @@ if (Astro.request.method === 'POST') {
   });
 }
 
-const { evento, documentos, modelos, templates, modelosEmail } = await withTenant(user.tenantId, async (db) => ({
+const { evento, documentos, modelos, modelosEmail } = await withTenant(user.tenantId, async (db) => ({
   evento: await carregarEvento(db, id),
   documentos: await listarDocumentosDoEvento(db, id),
   modelos: await listarModelos(db, { somenteAtivos: true }),
-  templates: await listarTemplates(db, null),
   modelosEmail: await modelosParaEvento(db, id),
 }));
 
@@ -91,7 +88,7 @@ const tableData = documentos.map((d) => ({
       <button type="submit" class="row-action perigo" data-confirm="Excluir o documento ${numeroDocumento(d)}?" data-confirm-texto="O PDF guardado será apagado. O número não é reaproveitado." data-confirm-rotulo="Excluir">Excluir</button></form>`,
 }));
 
-const modelosJson = modelos.map((m) => ({ id: m.id, template_id: m.template_id, campos: m.campos }));
+const modelosJson = modelos.map((m) => ({ id: m.id, campos: m.campos }));
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="documentos">
@@ -125,13 +122,6 @@ const modelosJson = modelos.map((m) => ({ id: m.id, template_id: m.template_id, 
         <select id="gd-modelo" name="modelo_id" required>
           <option value="">Selecione…</option>
           {modelos.map((m) => <option value={m.id}>{m.nome}</option>)}
-        </select>
-      </div>
-      <div class="field span-2">
-        <label for="gd-template">Template visual</label>
-        <select id="gd-template" name="template_id">
-          <option value="">Padrão do modelo</option>
-          {templates.map((t) => <option value={t.id}>{t.nome}{t.padrao ? ' (padrão da empresa)' : ''}</option>)}
         </select>
       </div>
       <div class="span-2 campos-gerar" data-campos hidden>
@@ -175,14 +165,12 @@ const modelosJson = modelos.map((m) => ({ id: m.id, template_id: m.template_id, 
   // Gerar: o modelo escolhido define o template padrão e os campos extras a preencher
   const form = document.querySelector<HTMLFormElement>('[data-gerar-doc]');
   if (form) {
-    const modelos = JSON.parse(form.dataset.modelos ?? '[]') as { id: string; template_id: string | null; campos: { chave: string; rotulo: string }[] }[];
+    const modelos = JSON.parse(form.dataset.modelos ?? '[]') as { id: string; campos: { chave: string; rotulo: string }[] }[];
     const select = form.querySelector<HTMLSelectElement>('[name="modelo_id"]')!;
-    const template = form.querySelector<HTMLSelectElement>('[name="template_id"]')!;
     const caixa = form.querySelector<HTMLElement>('[data-campos]')!;
     const lista = form.querySelector<HTMLElement>('[data-campos-lista]')!;
     const atualizar = () => {
       const m = modelos.find((x) => x.id === select.value);
-      template.value = m?.template_id ?? '';
       lista.replaceChildren(
         ...(m?.campos ?? []).map((c) => {
           const campo = document.createElement('div');
