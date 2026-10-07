@@ -1,0 +1,136 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import VersoesLateral from '../../../components/orcamento/VersoesLateral.astro';
+import ListaCompras from '../../../components/orcamento/ListaCompras';
+import Button from '../../../components/ui/Button.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { eventoExiste } from '../../../server/eventos';
+import { contextoOrcamento, criarNovaVersao } from '../../../server/orcamento';
+import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
+
+// Lista de compras da versão do orçamento (uso interno): porção por pessoa × convidados, com ajuste manual.
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/eventos/${id}/lista-compras`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'restaurar') {
+        const numero = await criarNovaVersao(db, user, id, Number(data.numero));
+        return { message: `Versão restaurada como versão ${String(numero).padStart(2, '0')}.`, redirect: base };
+      }
+      return '';
+    })
+  );
+}
+
+const { evento, orcamento, versao, refs } = await withTenant(user.tenantId, (db) =>
+  contextoOrcamento(db, id, Astro.url.searchParams.get('versao'))
+);
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="compras">
+  {orcamento && <OrcamentoAbas eventoId={id} ativa="compras" versao={versao ? { numero: versao.numero, congelada: versao.congelada } : null} />}
+  <div class="grid-evento">
+    <div class="coluna-principal">
+      {orcamento && versao ? (
+        <>
+          <p class="intro">
+            Quantidades de cada item selecionado no orçamento, calculadas pela <strong>porção por pessoa</strong> do cadastro do
+            item vezes os convidados. Ajuste à mão o que precisar, marque o que já foi comprado e acrescente linhas avulsas.
+            Esta lista é interna: não entra na proposta.
+          </p>
+          <ListaCompras
+            client:load
+            eventoId={id}
+            numero={versao.numero}
+            congelada={versao.congelada}
+            conteudo={versao.conteudo}
+            refs={refs}
+            exportarUrl={`${base}/exportar?versao=${versao.numero}`}
+          />
+        </>
+      ) : (
+        <section class="sem-orcamento">
+          <h3>Este evento ainda não tem orçamento</h3>
+          <p>A lista de compras é montada a partir dos itens do orçamento.</p>
+          <Button variant="primary" href={`/eventos/${id}/orcamento`}>Ir para o orçamento</Button>
+        </section>
+      )}
+    </div>
+    <div class="coluna-lateral">
+      {orcamento && versao && <VersoesLateral orcamento={orcamento} visualizando={versao.numero} basePath={base} />}
+      <EventoInfoLateral evento={evento} />
+    </div>
+  </div>
+</EventoLayout>
+
+<style>
+  .grid-evento {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .coluna-principal,
+  .coluna-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .intro {
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-secondary);
+    max-width: 720px;
+  }
+
+  .intro strong {
+    color: var(--text-body);
+    font-weight: var(--fw-medium);
+  }
+
+  .sem-orcamento {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-8);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .sem-orcamento h3 {
+    font-size: var(--fs-17);
+  }
+
+  .sem-orcamento p {
+    color: var(--text-secondary);
+    max-width: 620px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 1024px) {
+    .grid-evento {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sem-orcamento {
+      padding: var(--space-4);
+    }
+  }
+</style>

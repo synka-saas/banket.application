@@ -1382,3 +1382,110 @@ a.selo-acessar:hover {
     width: min(420px, calc(100vw - 66px));
   }
 }
+
+/* ---------- Lista de compras (uso interno) ---------- */
+.compras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.compras-resumo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.compras-resumo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--fs-13);
+}
+
+.compras-resumo > div:last-child {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.compras-resumo strong {
+  font-size: var(--fs-20);
+  line-height: 1.2;
+  letter-spacing: var(--ls-tight);
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.compras-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+  color: var(--warning);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border, var(--border-default));
+  border-radius: var(--radius-md);
+}
+
+.compras-aviso svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.compras-aviso span {
+  color: var(--text-body);
+}
+
+.compras-tabela .col-check {
+  width: 36px;
+  text-align: center;
+}
+
+.compras-tabela .col-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--terracotta-600);
+}
+
+.compras-tabela tr.comprado td {
+  color: var(--text-muted);
+}
+
+.compras-tabela tr.comprado td strong {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.compras-tabela .compras-qtd {
+  width: 96px;
+}
+
+.compras-tabela .compras-convertido {
+  display: block;
+  font-size: var(--fs-11);
+  text-align: right;
+}
+
+.compras-tabela td .control.compacto {
+  min-width: 140px;
+}
+
+@media (max-width: 768px) {
+  .compras-resumo {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+
+  .compras-resumo > div:last-child {
+    align-items: flex-start;
+    text-align: left;
+  }
+}

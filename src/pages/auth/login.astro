@@ -7,6 +7,7 @@ import { setOnboardingCookie, setSessionCookie, signOnboarding, signSession } fr
 import { setFlash } from '../../lib/flash';
 import { excedeu, ipDaRequisicao, permitir, zerar } from '../../lib/rateLimit';
 import { autenticar } from '../../server/autoatendimento';
+import { googleConfigurado } from '../../lib/google';
 
 // Só aceita redirecionamentos internos (evita open redirect)
 const nextParam = Astro.url.searchParams.get('next') ?? '';
@@ -14,6 +15,8 @@ const destino = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextP
 let email = Astro.url.searchParams.get('email') ?? '';
 // Em erro, a página é renderizada de novo com o e-mail preenchido (nada de dados pessoais na URL)
 let erro: string | null = null;
+const comGoogle = googleConfigurado();
+const urlGoogle = `/auth/google?${new URLSearchParams({ ...(nextParam ? { next: destino } : {}), ...(email ? { email } : {}) })}`;
 
 if (Astro.request.method === 'POST') {
   const data = await Astro.request.formData();
@@ -82,6 +85,11 @@ if (Astro.request.method === 'POST') {
     </div>
 
     <Button variant="primary" size="large" type="submit">Entrar</Button>
+    {comGoogle && (
+      <Button variant="secondary" size="large" href={urlGoogle} icon="brand-google" class="btn-google">
+        Entrar com o Google
+      </Button>
+    )}
     <Button variant="secondary" size="large" href={`/auth/link-acesso${email ? `?email=${encodeURIComponent(email)}` : ''}`} class="link-acesso">
       Entrar com link de acesso por e-mail
     </Button>
@@ -93,6 +101,11 @@ if (Astro.request.method === 'POST') {
 </AuthLayout>
 
 <style>
+  /* Google logo + rótulo, mesmo botão secundário do design system */
+  .btn-google {
+    margin-bottom: var(--space-2);
+  }
+
   .campo-senha {
     position: relative;
     margin-bottom: var(--space-3);

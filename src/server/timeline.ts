@@ -16,6 +16,7 @@ export type TipoTimeline =
   | 'email_enviado'
   | 'email_recebido'
   | 'documento_gerado'
+  | 'reuniao'
   | 'formulario'
   | 'anotacao';
 
@@ -30,6 +31,7 @@ export const ICONES_TIMELINE: Record<string, string> = {
   email_enviado: 'send',
   email_recebido: 'mail',
   documento_gerado: 'signature',
+  reuniao: 'video',
   formulario: 'stack-2',
   anotacao: 'edit',
 };

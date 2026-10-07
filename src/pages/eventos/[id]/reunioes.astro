@@ -1,0 +1,277 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
+import ReuniaoDrawer from '../../../components/reunioes/ReuniaoDrawer.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { UserError, optionalUuid } from '../../../lib/forms';
+import { dataComDiaSemana } from '../../../lib/datas';
+import { googleConfigurado } from '../../../lib/google';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { agendaAtiva } from '../../../server/googleConta';
+import { agendarReuniao, atualizarReuniao, cancelarReuniao, listarReunioesDoEvento, reuniaoSchema } from '../../../server/reunioes';
+
+// Aba Reuniões do evento: reuniões com o cliente agendadas na agenda Google do usuário (com Google Meet).
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'cancelar') {
+        const reuniaoId = optionalUuid().parse(data.reuniao_id);
+        if (!reuniaoId) throw new UserError('Reunião não encontrada.');
+        await cancelarReuniao(db, user, reuniaoId);
+        return 'Reunião cancelada. Os participantes foram avisados pelo Google Agenda.';
+      }
+      const input = reuniaoSchema.parse({ ...data, evento_id: id });
+      const reuniaoId = optionalUuid().parse(data.id);
+      if (reuniaoId) {
+        await atualizarReuniao(db, user, reuniaoId, input);
+        return 'Reunião atualizada. Os participantes recebem a alteração pelo Google Agenda.';
+      }
+      const r = await agendarReuniao(db, user, input);
+      return r.meet_link ? 'Reunião agendada na sua agenda Google, com o link do Google Meet.' : 'Reunião agendada na sua agenda Google.';
+    })
+  );
+}
+
+const [{ evento, reunioes }, ativa] = await Promise.all([
+  withTenant(user.tenantId, async (db) => ({ evento: await carregarEvento(db, id), reunioes: await listarReunioesDoEvento(db, id) })),
+  agendaAtiva(user.id),
+]);
+const configurado = googleConfigurado();
+const participantesPadrao = [evento.responsavel_email, evento.cliente_email].filter((e, i, l) => e && l.indexOf(e) === i).join(', ');
+const tituloPadrao = `Reunião · ${evento.titulo ?? evento.cliente_nome ?? 'Evento'}`;
+const novo = JSON.stringify({ titulo: tituloPadrao, participantes: participantesPadrao, duracao_min: '60' });
+const agora = new Date();
+const podeAlterar = (r: { usuario_id: string | null }) => user.role !== 'usuario' || r.usuario_id === user.id;
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="reunioes">
+  <div class="reunioes-topo">
+    <p class="intro">
+      Reuniões com o cliente deste evento. Cada reunião é criada na sua <strong>agenda Google</strong>, com a sala
+      do <strong>Google Meet</strong> e os convites aos participantes.
+    </p>
+    {ativa ? (
+      <Button icon="calendar-plus" data-drawer-open="drawer-reuniao" data-values={novo}>Agendar reunião</Button>
+    ) : configurado ? (
+      <Button variant="secondary" icon="brand-google" href="/api/google/vincular?agenda=1">Ativar agenda do Google</Button>
+    ) : null}
+  </div>
+
+  {!ativa && (
+    <p class="aviso-google">
+      <Icon name="info-circle" size={18} />
+      <span>
+        {configurado
+          ? 'Para agendar reuniões, vincule sua conta Google com acesso à agenda (ou entre com o Google). O evento e a sala do Meet ficam na sua agenda.'
+          : 'O login com o Google não está configurado neste servidor; o agendamento de reuniões fica indisponível.'}
+        {configurado && <> Veja em <a class="link" href="/conta">Minha conta › Conta Google</a>.</>}
+      </span>
+    </p>
+  )}
+
+  {reunioes.length === 0 ? (
+    <EstadoVazio icon="video" titulo="Nenhuma reunião agendada" texto="Agende a degustação, a visita ao espaço ou o alinhamento da proposta com o cliente.">
+      {ativa && <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-reuniao" data-values={novo}>Agendar reunião</button>}
+    </EstadoVazio>
+  ) : (
+    <ul class="reunioes">
+      {reunioes.map((r) => {
+        const passada = r.fim.getTime() < agora.getTime();
+        const valores = JSON.stringify({
+          id: r.id, titulo: r.titulo, data: r.data, hora: r.hora, duracao_min: String(r.duracao_min), participantes: r.participantes.join(', '),
+          local: r.local ?? '', descricao: r.descricao ?? '',
+        });
+        return (
+          <li class:list={['reuniao', { cancelada: r.status === 'cancelada', passada }]}>
+            <div class="reuniao-quando">
+              <span class="reuniao-dia tabular">{dataComDiaSemana(r.data)}</span>
+              <span class="reuniao-hora tabular">{r.hora} às {r.hora_fim}</span>
+            </div>
+            <div class="reuniao-corpo">
+              <strong>{r.titulo}</strong>
+              <span class="muted">
+                {r.status === 'cancelada' ? <span class="badge badge-danger">Cancelada</span> : passada ? <span class="badge">Realizada</span> : <span class="badge badge-info">Agendada</span>}
+                {r.organizador_nome && <> · organizada por {r.organizador_nome}</>}
+                {r.local && <> · {r.local}</>}
+              </span>
+              {r.participantes.length > 0 && <span class="muted participantes">{r.participantes.join(', ')}</span>}
+              {r.descricao && <p class="descricao">{r.descricao}</p>}
+            </div>
+            <div class="reuniao-acoes">
+              {r.status === 'agendada' && r.meet_link && (
+                <Button variant="primary" size="sm" icon="video" href={r.meet_link} target="_blank" rel="noopener">Entrar no Meet</Button>
+              )}
+              {r.google_link && <a class="row-action" href={r.google_link} target="_blank" rel="noopener">Abrir na agenda</a>}
+              {r.status === 'agendada' && !passada && podeAlterar(r) && (
+                <>
+                  <button type="button" class="row-action" data-drawer-open="drawer-reuniao" data-values={valores}>Editar</button>
+                  <form method="post" class="inline-form">
+                    <input type="hidden" name="_action" value="cancelar" />
+                    <input type="hidden" name="reuniao_id" value={r.id} />
+                    <button type="submit" class="row-action perigo" data-confirm={`Cancelar a reunião "${r.titulo}"?`} data-confirm-texto="O evento sai da agenda Google e os participantes são avisados." data-confirm-rotulo="Cancelar reunião">Cancelar</button>
+                  </form>
+                </>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+
+  <ReuniaoDrawer slot="overlays" eventoId={id} />
+</EventoLayout>
+
+<style>
+  .reunioes-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+
+  .intro {
+    max-width: 640px;
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+
+  .intro strong {
+    color: var(--text-body);
+    font-weight: var(--fw-medium);
+  }
+
+  .aviso-google {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--fs-13);
+    line-height: 1.5;
+    color: var(--text-body);
+    background: var(--info-bg);
+    border: 1px solid var(--info-border, var(--border-default));
+    border-radius: var(--radius-md);
+  }
+
+  .aviso-google svg {
+    flex: none;
+    color: var(--info);
+    margin-top: 1px;
+  }
+
+  .reunioes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+  }
+
+  /* Cartão da reunião: quando | o quê | ações */
+  .reuniao {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    font-size: var(--fs-14);
+  }
+
+  .reuniao.cancelada,
+  .reuniao.passada {
+    background: var(--bg-app);
+  }
+
+  .reuniao.cancelada .reuniao-corpo strong {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .reuniao-quando {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-right: var(--space-4);
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .reuniao-dia {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .reuniao-hora {
+    font-size: var(--fs-16);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .reuniao-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .reuniao-corpo strong {
+    font-size: var(--fs-15);
+    color: var(--text-strong);
+  }
+
+  .participantes,
+  .descricao {
+    overflow-wrap: anywhere;
+  }
+
+  .descricao {
+    margin-top: var(--space-1);
+    white-space: pre-line;
+    color: var(--text-body);
+  }
+
+  .reuniao-acoes {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+  }
+
+  @media (max-width: 768px) {
+    .reunioes-topo {
+      flex-direction: column;
+    }
+
+    .reuniao {
+      grid-template-columns: minmax(0, 1fr);
+      padding: var(--space-4);
+    }
+
+    .reuniao-quando {
+      padding-right: 0;
+      border-right: 0;
+    }
+
+    .reuniao-acoes {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+  }
+</style>

@@ -9,11 +9,17 @@ import { ROLE_LABELS } from '../lib/auth';
 import { REGRA_SENHA } from '../lib/senha';
 import { empresasDoUsuario } from '../server/autoatendimento';
 import { atualizarPerfil, carregarPerfil, perfilSchema, trocarSenha } from '../server/conta';
+import { contaGoogleDoUsuario, desvincularGoogle } from '../server/googleConta';
+import { googleConfigurado } from '../lib/google';
 
 const user = Astro.locals.user;
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data) => {
+    if (data._action === 'google_desvincular') {
+      await desvincularGoogle(user.id);
+      return 'Conta Google desvinculada. Para entrar, use e-mail e senha ou o link de acesso.';
+    }
     if (data._action === 'senha') {
       await trocarSenha(user.id, String(data.senha_atual ?? ''), String(data.senha ?? ''), String(data.confirma_senha ?? ''));
       return 'Senha alterada.';
@@ -23,7 +29,8 @@ if (Astro.request.method === 'POST') {
   });
 }
 
-const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasDoUsuario(user.id)]);
+const [perfil, empresas, google] = await Promise.all([carregarPerfil(user.id), empresasDoUsuario(user.id), contaGoogleDoUsuario(user.id)]);
+const googleDisponivel = googleConfigurado();
 ---
 
 <AppLayout title="Minha conta" heading="Minha conta">
@@ -71,6 +78,44 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
       </form>
     </SectionCard>
 
+    <SectionCard title="Conta Google" icon="brand-google" description="Login com o Google e reuniões com Google Meet na sua agenda">
+      {!googleDisponivel ? (
+        <p class="field-hint">A integração com o Google não está configurada neste servidor.</p>
+      ) : google ? (
+        <div class="google">
+          <dl class="kv kv-2">
+            <div><dt>Conta vinculada</dt><dd>{google.email}</dd></div>
+            <div>
+              <dt>Agenda (Google Calendar)</dt>
+              <dd>{google.agenda_ativa ? <span class="badge badge-success">Ativa</span> : <span class="badge badge-warning">Sem acesso</span>}</dd>
+            </div>
+          </dl>
+          <p class="field-hint">
+            {google.agenda_ativa
+              ? 'As reuniões agendadas no Banket são criadas na sua agenda Google, com a sala do Google Meet e os convites aos participantes.'
+              : 'Para agendar reuniões com Google Meet, ative a agenda e aceite a permissão "Ver e editar eventos" do Google Agenda.'}
+          </p>
+          <div class="acoes google-acoes">
+            <form method="post">
+              <input type="hidden" name="_action" value="google_desvincular" />
+              <Button type="submit" variant="danger" data-confirm="Desvincular a conta Google?" data-confirm-texto="Você deixa de entrar com o Google e de agendar reuniões com o Meet. Reuniões já agendadas continuam na sua agenda Google." data-confirm-rotulo="Desvincular">Desvincular</Button>
+            </form>
+            {!google.agenda_ativa && <Button variant="primary" href="/api/google/vincular?agenda=1" icon="calendar-plus">Ativar agenda</Button>}
+          </div>
+        </div>
+      ) : (
+        <div class="google">
+          <p class="field-hint">
+            Vincule sua conta Google para entrar com um clique e agendar reuniões com Google Meet direto no Banket (o evento e a
+            sala do Meet ficam na sua agenda Google).
+          </p>
+          <div class="acoes">
+            <Button variant="primary" href="/api/google/vincular" icon="brand-google">Vincular conta Google</Button>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+
     <SectionCard title="Minhas empresas" icon="building">
       <ul class="empresas">
         {empresas.map((e) => (
@@ -98,6 +143,16 @@ const [perfil, empresas] = await Promise.all([carregarPerfil(user.id), empresasD
   .acoes {
     display: flex;
     justify-content: flex-end;
+  }
+
+  .google {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .google-acoes {
+    gap: var(--space-2);
   }
 
   /* E-mail de acesso: campo somente leitura */

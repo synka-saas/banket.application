@@ -270,7 +270,7 @@
     const maiuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
     const quando = (inicio) => maiuscula(fmtDia.format(inicio)) + ', ' + fmtHora.format(inicio) + ' – ' + fmtHora.format(new Date(inicio.getTime() + SLOT_MINUTOS * 60000));
 
-    const selPlano = form.elements.plano;
+    const campoPlano = form.elements.plano; // oculto: preenchido pelos botões dos planos
     const btnEnviar = $('button[type="submit"]', form);
     const erro = $('#agenda-erro');
     const dias = $('#agenda-dias');
@@ -292,11 +292,23 @@
     const nomeFuso = new Intl.DateTimeFormat('pt-BR', { timeZoneName: 'long' }).formatToParts(hoje).find((p) => p.type === 'timeZoneName');
     $('#agenda-fuso').textContent = nomeFuso ? nomeFuso.value : fuso;
 
-    // Os botões dos planos (data-plano) levam ao formulário já com o plano escolhido.
+    // Os botões dos planos (data-plano) levam ao formulário e guardam o plano escolhido para a equipe.
     $$('[data-plano]').forEach((botao) => botao.addEventListener('click', () => {
-      const opcao = selPlano && [...selPlano.options].find((o) => o.value === botao.dataset.plano);
-      if (opcao) selPlano.value = opcao.value;
+      if (campoPlano) campoPlano.value = botao.dataset.plano;
     }));
+
+    // Máscara de telefone brasileiro: (11) 98888-7777 ou (11) 3333-4444; exige DDD + número.
+    const telefone = form.elements.whatsapp;
+    const mascararTelefone = () => {
+      const d = telefone.value.replace(/\D/g, '').slice(0, 11);
+      let v = d;
+      if (d.length > 2) v = '(' + d.slice(0, 2) + ') ' + d.slice(2);
+      if (d.length > 6) v = '(' + d.slice(0, 2) + ') ' + d.slice(2, d.length > 10 ? 7 : 6) + '-' + d.slice(d.length > 10 ? 7 : 6);
+      telefone.value = v;
+      telefone.setCustomValidity(d.length === 0 || d.length >= 10 ? '' : 'Informe o WhatsApp com DDD, ex.: (11) 98888-7777.');
+    };
+    telefone.addEventListener('input', mascararTelefone);
+    telefone.addEventListener('blur', mascararTelefone);
 
     const mostrarPasso = (passo) => {
       form.hidden = passo !== 'dados';
@@ -444,10 +456,10 @@
       rotulo.textContent = 'Agendando…';
       const campos = form.elements;
       const notas = [
-        'Plano de interesse: ' + campos.plano.value,
+        campos.plano.value ? 'Plano de interesse: ' + campos.plano.value : null,
         'Eventos por mês: ' + campos.eventos_mes.value,
         'Origem: banket.com.br',
-      ].join('\n');
+      ].filter(Boolean).join('\n');
       let res, corpo;
       try {
         res = await fetch('/api/agenda/bookings', {
@@ -458,7 +470,6 @@
             name: campos.nome.value.trim(),
             email: campos.email.value.trim(),
             phone: campos.whatsapp.value.trim(),
-            company: campos.buffet.value.trim(),
             notes: notas,
             website: campos.website.value,
             timezone: fuso,
@@ -503,9 +514,9 @@
     });
 
     $('#demo-novo').addEventListener('click', () => {
-      const planoAtual = selPlano ? selPlano.value : null;
+      const planoAtual = campoPlano ? campoPlano.value : '';
       form.reset();
-      if (selPlano && planoAtual) selPlano.value = planoAtual;
+      if (campoPlano) campoPlano.value = planoAtual;
       escolherHorario(null);
       mostrarPasso('dados');
     });

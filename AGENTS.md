@@ -3,7 +3,8 @@
 SaaS multi-empresa (multi-tenant) para buffets e casas de eventos. Cobre a captação do pedido (formulário público ou
 cadastro manual), o quadro de vendas (Kanban), o orçamento versionado montado a partir do catálogo (cardápios,
 bebidas, staff, locação por espaço), a geração do PDF da proposta, o envio por e-mail com as respostas do cliente no
-Inbox, a agenda, o dashboard, os espaços de eventos e a gestão da equipe.
+Inbox, a lista de compras por evento, a agenda com reuniões no Google Meet, o dashboard, os espaços de eventos e a gestão
+da equipe.
 
 - Produção: <https://app.banket.com.br> (VPS `synka-main`, código em `/var/www/banket`)
 - Repositório: `git@github.com:synka-saas/banket.application.git` (branch `main`)
@@ -26,7 +27,8 @@ Inbox, a agenda, o dashboard, os espaços de eventos e a gestão da equipe.
 | Banco | **PostgreSQL 15** (`postgres:15-alpine`) com **Row Level Security** por empresa |
 | Acesso a dados | `pg` (node-postgres), **sem ORM**, SQL escrito à mão |
 | Validação | **zod 4** |
-| Sessão | JWT HS256 com `jose`, em cookie httpOnly |
+| Sessão | JWT HS256 com `jose`, em cookie httpOnly; login por senha, link de acesso ou **Google** (OAuth 2.0) |
+| Google | Login (OpenID Connect) e **Calendar API** (reuniões com sala do Google Meet) só com `fetch`, em `lib/google.ts` |
 | Senhas | `pgcrypto`: `crypt(senha, gen_salt('bf'))` (bcrypt no próprio Postgres) |
 | PDF | **Chromium** via `playwright-core` + **pdf-lib** para juntar capa/miolo/contracapa |
 | E-mail | API HTTP do **Resend** (sem chave, o e-mail vai para o log) |
@@ -84,6 +86,8 @@ src/
     tokens.ts          tokens aleatórios de uso único (só o SHA-256 vai ao banco)
     rateLimit.ts       limite por janela fixa em memória + IP real atrás do Nginx
     senha.ts           política de senha
+    cripto.ts          AES-256-GCM com chave derivada do JWT_SECRET (tokens OAuth do Google guardados cifrados)
+    google.ts          OAuth do Google (state assinado + nonce), perfil, renovação de token e Calendar API (evento + Meet)
     storage.ts         arquivos em disco particionados por tenant
     mail.ts            envio via Resend / log em dev; appUrl(); remetente com nome de exibição, Reply-To e cabeçalhos
     resendReceiving.ts leitura de e-mails recebidos (Receiving API do Resend: corpo, cabeçalhos, anexos); injetável
@@ -109,10 +113,13 @@ src/
     conversas.ts       Inbox: conversas/mensagens por evento, envio dentro da conversa, permissões por papel
     inbox/receber.ts   processamento dos webhooks do Resend (e-mail recebido, status de entrega), idempotência
     documentos.ts      modelos de documento (contratos), geração por evento com numeração, PDF, envio pelo Inbox
+    googleConta.ts     conta Google do usuário (login, vínculo, agenda ativa, access token renovado); conexão de sistema
+    reunioes.ts        reuniões agendadas na agenda Google do organizador (Meet + convites), por evento ou avulsas
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
-  components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/, cardapio/, formularios/),
+  components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/ — inclui ListaCompras —, cardapio/,
+                       formularios/), reunioes/ReuniaoDrawer.astro (agendar/editar reunião),
                        proposta/Proposta.astro (layout impresso), eventos/, templates/, espacos/ (drawer),
                        inbox/Conversa.astro (thread de e-mails com resposta), documentos/ (ModeloForm: editor com barra
                        de formatação e prévia; DocumentoImpresso: página de impressão do documento)
@@ -259,7 +266,8 @@ antigas sem `espaco_id` contam como do espaço padrão (`COALESCE` nas leituras)
 **`catalogo_secoes`** — `nome`, `descricao`, `ordem`, `preco` (opcional), `unidade_cobranca` (`pessoa | unidade`).
 **`catalogo_itens`** — `secao_id` (NOT NULL, CASCADE), `nome` (UNIQUE por seção), `descricao`, `categoria_principal_id`,
 `categoria_secundaria_id`, `formato_servico_id`, `custo_unitario`, `preco`, `unidade_cobranca`, `composicao`,
-`restricoes TEXT[]` (`vegetariana, vegana, sem_gluten, sem_lactose, alergenicos`), `dados_operacionais TEXT[]`, `ativo`, `ordem`.
+`restricoes TEXT[]` (`vegetariana, vegana, sem_gluten, sem_lactose, alergenicos`), `dados_operacionais TEXT[]`, `ativo`, `ordem`,
+**`porcao_qtd`** + **`porcao_unidade`** (`g | kg | ml | l | un`): porção por pessoa, base da lista de compras do orçamento.
 **`cardapio_opcoes`** — "opções prontas"/pacotes: `nome`, `descricao`, `preco_por_pessoa`, `duracao_horas`,
 `formato_servico_id`, `tags TEXT[]`, `ativo`.
 **`cardapio_opcao_secoes`** — seções da opção: `opcao_id`, `secao_id`, `titulo` (nome alternativo), `escolha_qtd`
@@ -334,6 +342,8 @@ linha em branco separa parágrafos → `lib/texto.ts`), `ativo_por_padrao`, `ord
   "extras": [{ "key", "descricao", "quantidade", "valor_unit" }],
   "informacoes_complementares": [BlocoInfo], "condicoes_gerais": [BlocoInfo],   // linhas label/valor, algumas "auto"
   "blocos_texto": [{ "key", "bloco_id", "titulo", "texto", "pagina" }],          // cópia do cadastro de blocos
+  "lista_compras": [{ "key", "ref", "item_id", "nome", "grupo", "origem": "cardapio|bebida|manual", "unidade", "porcao",
+                      "quantidade_calc", "quantidade_manual", "comprado", "observacao" }],   // uso interno, não vai à proposta
   "total_manual": null, "mostrar_valor_total": true, "observacoes": null,
   "totais": { "alimentos", "bebidas", "staff", "locacao", "extras", "total_calc", "total", "pagantes_equivalentes" }
 }
@@ -341,7 +351,12 @@ linha em branco separa parágrafos → `lib/texto.ts`), `ativo_por_padrao`, `ord
 
 Campos `*_calc` e `totais` são recalculados; `*_catalogo` são snapshots do preço no momento da inclusão; `*_manual`
 são sobrescritas do usuário. O conteúdo é validado/normalizado por `conteudoSchema` (`server/orcamento.ts`), que aceita
-conteúdo antigo ou parcial preenchendo padrões.
+conteúdo antigo ou parcial preenchendo padrões. Itens de cardápio e bebidas carregam `porcao_qtd`/`porcao_unidade`
+(snapshot do catálogo; na versão em edição `sincronizarPorcoes` reaplica o cadastro atual). `lista_compras` é derivada
+por `calcularListaCompras`: linhas `cardapio`/`bebida` nascem dos itens selecionados (`ref` = `item:<id>` ou `nome:<nome>`,
+quantidade = porção × convidados; bebida por unidade = quantidade do orçamento; o mesmo item em dois cardápios soma) e só
+guardam os ajustes do usuário (`quantidade_manual`, `comprado`, `observacao`); linhas `manual` são do usuário; linha
+derivada cujo item saiu do orçamento desaparece.
 
 ### Formulários de captação
 
@@ -377,6 +392,16 @@ saídas), `de`, `para TEXT[]`, `cc TEXT[]`, `assunto`, `texto`, `html` (recebido
 recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanho, path|null}]`), `lida_em`.
 **`resend_events`** — eventos do webhook do Resend (`id` = svix-id, `type`, `payload`, `received_at`, `processed_at`,
 `error`); RLS forçado sem política: só a conexão de sistema. Idempotência e reprocessamento dos pendentes.
+
+### Google e reuniões
+
+**`usuario_google`** — conta Google vinculada ao usuário (global, como `usuarios`; RLS forçado sem política: só a conexão
+de sistema). PK `usuario_id`, `google_sub` (UNIQUE), `email`, `nome`, `refresh_token` e `access_token` **cifrados**
+(`lib/cripto.ts`), `access_expira_em`, `escopos`, `agenda_ativa` (escopo `calendar.events` concedido + refresh token
+guardado: pode agendar reuniões).
+**`reunioes`** — reunião criada na agenda Google do organizador: `evento_id` (CASCADE, opcional), `cliente_id`, `usuario_id`
+(organizador), `titulo`, `descricao`, `inicio`/`fim` TIMESTAMPTZ (interface em `America/Sao_Paulo`), `participantes TEXT[]`,
+`local`, `google_event_id`, `meet_link`, `google_link`, `status` (`agendada | cancelada`).
 
 ### Funções SQL
 
@@ -419,6 +444,8 @@ recebida`), `status_em`, `status_detalhe`, `anexos JSONB` (`[{nome, tipo, tamanh
 | `021_inbox` | `conversas`, `mensagens` (RLS) e `resend_events` (só sistema) |
 | `022_documentos` | `documento_modelos` e `documentos`; `aplicar_padroes_documentos` (contrato de exemplo em toda empresa); `aplicar_padroes_tenant_completo` com 5 chamadas |
 | `023_documentos_visual` | identidade visual própria dos modelos de documento (logo e posição, rodapé, fontes, três cores) e `documentos.visual` (snapshot); `template_id` sem uso |
+| `024_porcoes_lista_compras` | `catalogo_itens.porcao_qtd`/`porcao_unidade` (porção por pessoa; a lista de compras fica em `orcamento_versoes.conteudo.lista_compras`) |
+| `025_google_reunioes` | `usuario_google` (conta Google e tokens cifrados; só sistema) e `reunioes` (RLS) |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -472,6 +499,15 @@ um owner ativo; remover um membro apaga só o vínculo (a conta pode pertencer a
 5. **Recuperação de senha** (`/auth/recuperacao` → `/auth/redefinir`, 1 h) e **link de acesso sem senha**
    (`/auth/link-acesso` → `/auth/entrar`, 15 min). Nenhum desses fluxos revela se o e-mail existe.
 6. **Convite** (Configurações › Usuários): token de 7 dias; aceite em `/auth/cadastro-convidado` (`server/convites.ts`).
+7. **Login com o Google** (`/auth/google` → consentimento → `/auth/google/callback`; `lib/google.ts`, `server/googleConta.ts`):
+   só aparece com `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. O `state` é um JWT de 10 min (`google-oauth:` + `JWT_SECRET`)
+   com um nonce que também vai no cookie `banket_google_nonce` (evita login CSRF). O consentimento já pede o escopo
+   `calendar.events` com acesso offline: quem entra com o Google ativa a agenda para agendar reuniões. A conta é achada
+   pelo `sub`, senão pelo e-mail confirmado pelo Google (vinculando e marcando o e-mail como verificado), senão é criada
+   (senha aleatória; "Esqueceu a senha" define uma). Em **Minha conta › Conta Google** o usuário vincula/desvincula a conta
+   (`GET /api/google/vincular`, `?agenda=1` força `prompt=consent` para obter um refresh token novo) e vê se a agenda
+   está ativa. Tokens ficam cifrados em `usuario_google`; `accessTokenAgenda` renova pelo refresh token e, se o Google
+   revogou (`invalid_grant`), desativa a agenda e pede para reativar.
 
 Tokens: 32 bytes aleatórios em base64url; só o SHA-256 é gravado; emitir um token invalida os anteriores do mesmo tipo.
 
@@ -510,7 +546,8 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
   iframe e WhatsApp; confirmação por e-mail a quem preencheu; rascunho em `sessionStorage`.
 - **Importação CSV** (`server/importacao.ts` + `lib/csv.ts`): `/clientes/importar` e `/cardapio/importar`
   (modelo para baixar; válidas entram, inválidas voltam por linha; seções criadas pelo nome).
-- **Minha conta** (`/conta`, `server/conta.ts`, conexão de sistema): perfil, troca de senha, empresas.
+- **Minha conta** (`/conta`, `server/conta.ts`, conexão de sistema): perfil, troca de senha, empresas, **Conta Google**
+  (vincular/desvincular, situação da agenda, "Ativar agenda").
 - **Termos**: `/termos` e `/privacidade` (públicas), aceite com link no cadastro/convite.
 - **Login**: "Manter conectado" (cookie de sessão vs 7 dias, `setSessionCookie(…, persistente)`).
 - **Categorias de item**: em Cardápios › Categorias (`/cardapio/categorias`); Configurações ficou com Ocasiões.
@@ -552,6 +589,12 @@ Locação do orçamento e no "Espaço padrão" de Configurações › Empresa. E
   também atualiza o evento (`salvarVersao` recebe `user`, grava `eventos.espaco_id/local_tipo/local_nome` e registra na
   timeline). `contextoOrcamento` devolve `refs: ReferenciasLocacao` (todos os espaços + faixas) e `espacos` (seleção).
 - Template da proposta por orçamento (`definirTemplate`; vazio = padrão da empresa).
+- **Lista de compras** (`/eventos/:id/lista-compras`, sub-aba do orçamento, `components/orcamento/ListaCompras.tsx`; uso
+  interno, não entra na proposta): quantidade de cada item selecionado = **porção por pessoa** do cadastro do item
+  (Cardápios › Itens, campo "Porção por pessoa" + unidade; também na importação CSV, colunas `porcao`/`porcao_unidade`)
+  × convidados da versão. Ajuste manual por linha (vazio = calculado), "comprado", observação, linhas avulsas, aviso dos
+  itens sem porção e exportação CSV (`/eventos/:id/lista-compras/exportar?versao=n`). Salva como parte `lista_compras`
+  da versão pelo mesmo `PUT`; versão congelada é somente leitura. Quantidades em g/ml ≥ 1000 aparecem em kg/l.
 
 **Regras de cálculo (função pura, mesmo código no navegador e no servidor):**
 - Valor efetivo em todos os níveis = `manual ?? calculado`.
@@ -605,6 +648,18 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
 - Contador de não lidas no menu (`contarNaoLidas`, uma consulta por página no `AppLayout`); abrir a conversa zera.
   Sem `RESEND_INBOUND_DOMAIN`, as telas avisam que as respostas vão para o e-mail do usuário.
 
+### Reuniões — `/eventos/:id/reunioes`, `/reunioes` (`server/reunioes.ts`, `components/reunioes/ReuniaoDrawer.astro`)
+- Disponível só para quem tem a **agenda Google ativa** (login/vínculo com o Google, ver Autenticação); caso contrário as
+  telas mostram o aviso com o link para Minha conta (ou avisam que o Google não está configurado no servidor).
+- Agendar (título, evento opcional na página geral, data, horário, duração, participantes, local, descrição) cria o
+  evento na **agenda principal do usuário** com sala do **Google Meet** (`conferenceData.createRequest`) e convites
+  (`sendUpdates=all`), e grava em `reunioes` com `meet_link`/`google_link`; evento ligado recebe `reuniao` na timeline.
+  A aba do evento pré-preenche o título e os e-mails do responsável/cliente.
+- Editar e cancelar: só o organizador ou owner/admin; a alteração sai da agenda do organizador (token dele). Cancelar
+  apaga o evento no Google (404/410 contam como feito) e marca `cancelada`.
+- A **Agenda** (`/agenda`) mostra as reuniões no mês e na semana (tom cobalto, link para a aba do evento ou `/reunioes`)
+  e tem o botão "Reuniões" (`/reunioes`: próximas/passadas, Meet, editar, cancelar, drawer com select de eventos em aberto).
+
 ### Documentos — `/documentos`, `/documentos/:id`, `/eventos/:id/documentos` (`server/documentos.ts`)
 - **Modelos** (menu Documentos; lista visível a todos, edição só owner/admin): nome, descrição, título com variáveis,
   card **Identidade visual** (logotipo com upload e "Capturar cores do logo" via `POST /api/templates/sugestao`, posição
@@ -634,7 +689,8 @@ restrições, dados operacionais, ativo). Opções prontas (pacotes) editadas nu
 Cadastro PF/PJ com CPF/CNPJ validado, e-mail e documento únicos por empresa, histórico de eventos do cliente.
 
 ### Agenda — `/agenda` (`server/agenda.ts`)
-Eventos com data, por mês ou semana, coloridos pela cor do status; filtro por variante de status.
+Eventos com data, por mês ou semana, coloridos pela cor do status; filtro por variante de status. Mostra também as
+reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
 
 ### Formulários — `/formularios`, `/formularios/:id`, `/formularios/:id/respostas`, público `/f/:slug`
 - Modelo fixo em `lib/formularios/modelo.ts` (seções de boas-vindas, local, dimensionamento B2B/B2C, gastronomia &
@@ -892,6 +948,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção**. Para o Inbox a chave precisa ser de **acesso completo** (uma chave "sending only" recebe 401 na Receiving API) |
 | `RESEND_INBOUND_DOMAIN` / `RESEND_WEBHOOK_SECRET` | Inbox: domínio que recebe as respostas (`respostas.banket.com.br`, MX → Resend) e segredo `whsec_…` do webhook `/api/webhooks/resend`; sem o domínio, o Reply-To é o e-mail do usuário; sem o segredo, o webhook responde 503 |
 | `OPENAI_TOKEN` / `OPENAI_MODEL` / `OPENAI_IMAGE_MODEL` | IA do template: sugestões de fontes/cores (padrão `gpt-4.1-mini`) e imagens de fundo (padrão `gpt-image-2`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | login com o Google e reuniões com Google Meet (cliente OAuth 2.0 "Aplicativo da Web" com a API Google Calendar ativada; URI de redirecionamento padrão `APP_URL/auth/google/callback`). Sem as chaves, botão e agendamento ficam ocultos |
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
@@ -961,3 +1018,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   por svix-id em `resend_events`.
 - Faixas de locação gravadas pela versão anterior do código (sem `espaco_id`) pertencem ao espaço padrão; `local_padrao`
   e `email_assunto`/`email_corpo` ficaram sem uso até o próximo deploy.
+- Tokens do Google são cifrados com chave derivada do `JWT_SECRET`: trocar o segredo invalida os vínculos (cada usuário
+  precisa vincular de novo). `usuario_google` só é lida pela conexão de sistema (`server/googleConta.ts`); o resto das
+  reuniões roda em `withTenant`. O Google só manda `refresh_token` no primeiro consentimento (ou com `prompt=consent`):
+  por isso "Ativar agenda" usa `?agenda=1`.
+- A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

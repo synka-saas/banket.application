@@ -19,9 +19,9 @@ export const MODELO_CLIENTES = [
 ].join('\r\n');
 
 export const MODELO_ITENS = [
-  'secao;nome;descricao;preco;unidade_cobranca;composicao',
-  'Coquetel;Bruschetta de tomate;Tomate confitado com manjericão;9,50;pessoa;',
-  'Soft drinks;Pink lemonade;;12,00;unidade;Limão siciliano, framboesa e hortelã',
+  'secao;nome;descricao;preco;unidade_cobranca;porcao;porcao_unidade;composicao',
+  'Coquetel;Bruschetta de tomate;Tomate confitado com manjericão;9,50;pessoa;80;g;',
+  'Soft drinks;Pink lemonade;;12,00;unidade;300;ml;Limão siciliano, framboesa e hortelã',
 ].join('\r\n');
 
 const LIMITE_LINHAS = 500;
@@ -94,6 +94,8 @@ export async function importarItens(db: Db, tenantId: string, csv: string): Prom
         preco: valores.preco || null,
         custo_unitario: valores.custo_unitario || null,
         unidade_cobranca: (valores.unidade_cobranca || 'pessoa').toLowerCase(),
+        porcao_qtd: valores.porcao || null,
+        porcao_unidade: (valores.porcao_unidade || '').toLowerCase() || null,
         restricoes: [],
         dados_operacionais: [],
         ativo: 'on',

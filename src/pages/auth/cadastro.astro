@@ -7,12 +7,14 @@ import { formToObject, userMessage } from '../../lib/forms';
 import { REGRA_SENHA } from '../../lib/senha';
 import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
 import { cadastrarConta, cadastroSchema } from '../../server/autoatendimento';
+import { googleConfigurado } from '../../lib/google';
 
 // Cadastro self-service: cria a conta (e-mail ainda não confirmado) e envia o link de confirmação.
 // Em erro, a página é renderizada de novo com os valores (nada de dados pessoais na URL).
 let nome = '';
 let email = '';
 let erro: string | null = null;
+const comGoogle = googleConfigurado();
 
 if (Astro.request.method === 'POST') {
   const data = formToObject(await Astro.request.formData());
@@ -48,6 +50,11 @@ if (Astro.request.method === 'POST') {
     </Checkbox>
 
     <Button variant="primary" size="large" type="submit">Criar conta</Button>
+    {comGoogle && (
+      <Button variant="secondary" size="large" href="/auth/google" icon="brand-google">
+        Continuar com o Google
+      </Button>
+    )}
   </form>
 
   <div class="auth-links">

@@ -1,0 +1,73 @@
+---
+// Drawer de agendamento/edição de reunião (Google Calendar + Meet na agenda do usuário).
+// Abrir: data-drawer-open="drawer-reuniao" com data-values (id para editar; evento_id/participantes pré-preenchidos).
+import Drawer from '../ui/Drawer.astro';
+import { DURACOES } from '../../server/reunioes';
+
+interface Props {
+  /** Eventos para o select; omitido quando a reunião é sempre do evento da página (campo oculto) */
+  eventos?: { id: string; rotulo: string }[];
+  eventoId?: string;
+}
+
+const { eventos, eventoId } = Astro.props;
+---
+
+<Drawer id="drawer-reuniao" formId="form-reuniao" title="Agendar reunião" editTitle="Editar reunião" width="md" deletable={false} saveLabel="Agendar" saveLoadingLabel="Agendando…">
+  <form id="form-reuniao" method="post" class="form-grid">
+    <input type="hidden" name="id" />
+    <div class="field span-2">
+      <label for="re-titulo">Título<span class="obrigatorio">*</span></label>
+      <input id="re-titulo" name="titulo" required maxlength="200" placeholder="Ex.: Reunião de alinhamento do casamento" />
+    </div>
+    {eventos ? (
+      <div class="field span-2">
+        <label for="re-evento">Evento</label>
+        <select id="re-evento" name="evento_id">
+          <option value="">Sem evento</option>
+          {eventos.map((e) => <option value={e.id}>{e.rotulo}</option>)}
+        </select>
+      </div>
+    ) : (
+      <input type="hidden" name="evento_id" value={eventoId} />
+    )}
+    <div class="field">
+      <label for="re-data">Data<span class="obrigatorio">*</span></label>
+      <input id="re-data" name="data" type="date" required />
+    </div>
+    <div class="field">
+      <label for="re-hora">Horário<span class="obrigatorio">*</span></label>
+      <input id="re-hora" name="hora" type="time" required step="300" />
+    </div>
+    <div class="field">
+      <label for="re-duracao">Duração</label>
+      <select id="re-duracao" name="duracao_min">
+        {Object.entries(DURACOES).map(([v, l]) => <option value={v} selected={v === '60'}>{l}</option>)}
+      </select>
+    </div>
+    <div class="field">
+      <label for="re-local">Local (se presencial)</label>
+      <input id="re-local" name="local" maxlength="255" placeholder="Opcional" />
+    </div>
+    <div class="field span-2">
+      <label for="re-participantes">Participantes (e-mails)</label>
+      <textarea id="re-participantes" name="participantes" rows="2" placeholder="cliente@email.com, outro@email.com"></textarea>
+      <span class="field-hint">Cada participante recebe o convite do Google Agenda com o link do Google Meet.</span>
+    </div>
+    <div class="field span-2">
+      <label for="re-descricao">Descrição</label>
+      <textarea id="re-descricao" name="descricao" rows="3" maxlength="5000" placeholder="Pauta, observações…"></textarea>
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  // Em edição o botão principal passa a "Salvar"
+  document.addEventListener('drawer:open', (e) => {
+    const drawer = e.target as HTMLElement;
+    if (drawer.id !== 'drawer-reuniao') return;
+    const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+    const botao = drawer.querySelector<HTMLButtonElement>('[data-drawer-save]');
+    if (botao) botao.textContent = values.id ? 'Salvar' : 'Agendar';
+  });
+</script>

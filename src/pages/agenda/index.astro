@@ -4,6 +4,8 @@ import Button from '../../components/ui/Button.astro';
 import { withTenant } from '../../lib/db';
 import { faixaHorario } from '../../lib/datas';
 import { VARIANTES_STATUS } from '../../server/configuracoes';
+import { reunioesNoPeriodo } from '../../server/reunioes';
+import Icon from '../../components/ui/Icon.astro';
 import {
   DIAS_CURTOS,
   MESES_NOME,
@@ -26,8 +28,14 @@ const variante = params.get('status') && params.get('status')! in VARIANTES_STAT
 
 const grade = gradeDoMes(data);
 const dias = visao === 'semana' ? semanaDe(data) : grade.semanas.flat();
-const eventos = await withTenant(tenantId, (db) => eventosNoPeriodo(db, dias[0], dias[dias.length - 1], variante));
+const { eventos, reunioes } = await withTenant(tenantId, async (db) => ({
+  eventos: await eventosNoPeriodo(db, dias[0], dias[dias.length - 1], variante),
+  reunioes: await reunioesNoPeriodo(db, dias[0], dias[dias.length - 1]),
+}));
 const porDia = agruparPorDia(eventos);
+const reunioesPorDia = new Map<string, typeof reunioes>();
+for (const r of reunioes) reunioesPorDia.set(r.data, [...(reunioesPorDia.get(r.data) ?? []), r]);
+const linkReuniao = (r: (typeof reunioes)[number]) => (r.evento_id ? `/eventos/${r.evento_id}/reunioes` : '/reunioes');
 
 const [ano, mes] = data.split('-').map(Number);
 const mesVizinho = (delta: number) => {
@@ -74,6 +82,7 @@ const MAX_NO_DIA = 3;
         <a href={link({ visao: 'mes' })} class:list={{ ativo: visao === 'mes', active: visao === 'mes' }}>Mês</a>
         <a href={link({ visao: 'semana' })} class:list={{ ativo: visao === 'semana', active: visao === 'semana' }}>Semana</a>
       </div>
+      <Button variant="secondary" size="sm" href="/reunioes" icon="video">Reuniões</Button>
     </div>
   </div>
 
@@ -94,6 +103,12 @@ const MAX_NO_DIA = 3;
             {lista.length > MAX_NO_DIA && (
               <a class="mais" href={link({ data: dia, visao: 'semana' })}>+{lista.length - MAX_NO_DIA} mais</a>
             )}
+            {(reunioesPorDia.get(dia) ?? []).map((r) => (
+              <a class="evento reuniao" href={linkReuniao(r)} title={`Reunião · ${r.titulo}`}>
+                <b>{r.hora}</b>
+                <span class="evento-titulo">{r.titulo}</span>
+              </a>
+            ))}
           </div>
         );
       })}
@@ -108,7 +123,16 @@ const MAX_NO_DIA = 3;
               <span>{DIAS_CURTOS[i]}</span>
               <strong>{diaNum(dia)}</strong>
             </header>
-            {lista.length === 0 && <p class="vazio">—</p>}
+            {lista.length === 0 && (reunioesPorDia.get(dia) ?? []).length === 0 && <p class="vazio">—</p>}
+            {(reunioesPorDia.get(dia) ?? []).map((r) => (
+              <a class="cartao cartao-reuniao" href={linkReuniao(r)}>
+                <span class="status"><Icon name="video" size={14} /> Reunião</span>
+                <strong>{r.titulo}</strong>
+                {(r.evento_titulo ?? r.cliente_nome) && <span>{r.evento_titulo ?? r.cliente_nome}</span>}
+                <span class="muted">{r.hora} às {r.hora_fim}</span>
+                {r.meet_link && <a class="link" href={r.meet_link} target="_blank" rel="noopener">Entrar no Meet</a>}
+              </a>
+            ))}
             {lista.map((e) => (
               <a class="cartao" href={`/eventos/${e.id}`}>
                 <span class="status"><span class="dot" style={`background:${e.cor}`}></span>{e.status_nome}</span>
@@ -129,6 +153,7 @@ const MAX_NO_DIA = 3;
     {eventos.length === 0
       ? 'Nenhum evento com data neste período.'
       : `${eventos.length} evento${eventos.length === 1 ? '' : 's'} no período.`}{' '}
+    {reunioes.length > 0 && `${reunioes.length} ${reunioes.length === 1 ? 'reunião' : 'reuniões'}. `}
     Eventos sem data definida não aparecem na agenda.
   </p>
 </AppLayout>
@@ -281,6 +306,28 @@ const MAX_NO_DIA = 3;
 
   .evento:hover {
     background: var(--terracotta-100);
+  }
+
+  /* Reunião: tom cobalto, para distinguir dos eventos */
+  .evento.reuniao {
+    background: var(--cobalt-50);
+    color: var(--cobalt-700);
+  }
+
+  .evento.reuniao::before {
+    background: var(--cobalt-500, var(--info));
+  }
+
+  .evento.reuniao:hover {
+    background: var(--cobalt-100);
+  }
+
+  .cartao-reuniao {
+    border-color: var(--cobalt-100);
+  }
+
+  .cartao-reuniao .status {
+    color: var(--cobalt-700);
   }
 
   .evento b {

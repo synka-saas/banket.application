@@ -6,7 +6,7 @@ import { ROTULOS } from '../lib/rotulos';
 interface Props {
   eventoId: string;
   titulo: string;
-  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'mensagens' | 'documentos' | 'timeline';
+  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'compras' | 'mensagens' | 'reunioes' | 'documentos' | 'timeline';
 }
 
 const { eventoId, titulo, aba } = Astro.props;
@@ -17,10 +17,11 @@ const abas = [
   { id: 'resumo', label: 'Resumo do evento', href: base },
   { id: 'orcamento', label: 'Orçamento', href: `${base}/orcamento` },
   { id: 'mensagens', label: 'Mensagens', href: `${base}/mensagens` },
+  { id: 'reunioes', label: 'Reuniões', href: `${base}/reunioes` },
   { id: 'documentos', label: 'Documentos', href: `${base}/documentos` },
   { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
 ];
-const abaAtiva = aba === 'informacoes' || aba === 'condicoes' ? 'orcamento' : aba;
+const abaAtiva = aba === 'informacoes' || aba === 'condicoes' || aba === 'compras' ? 'orcamento' : aba;
 ---
 
 <AppLayout title={titulo} heading={titulo} voltar={{ href: '/eventos', label: ROTULOS.funil }} submenu={abas} submenuActive={abaAtiva}>

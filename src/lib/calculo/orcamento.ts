@@ -7,6 +7,10 @@ import { arredondar, custoSugerido, type RegraStaff } from './staff';
 
 export type Unidade = 'pessoa' | 'unidade';
 
+/** Unidade da porção por pessoa cadastrada no item (base da lista de compras) */
+export type UnidadePorcao = 'g' | 'kg' | 'ml' | 'l' | 'un';
+export const UNIDADES_PORCAO: Record<UnidadePorcao, string> = { g: 'g', kg: 'kg', ml: 'ml', l: 'l', un: 'un' };
+
 export interface ItemOrcamento {
   key: string;
   item_id: string | null;
@@ -17,6 +21,9 @@ export interface ItemOrcamento {
   preco_catalogo: number | null;
   preco_manual: number | null;
   restricoes: string[];
+  /** Porção por pessoa do catálogo (snapshot; a versão em edição acompanha o cadastro) */
+  porcao_qtd?: number | null;
+  porcao_unidade?: UnidadePorcao | null;
 }
 
 export interface SecaoOrcamento {
@@ -54,7 +61,32 @@ export interface BebidaOrcamento {
   preco_catalogo: number | null;
   preco_manual: number | null;
   subtotal_manual: number | null;
+  porcao_qtd?: number | null;
+  porcao_unidade?: UnidadePorcao | null;
   subtotal_calc?: number;
+}
+
+/**
+ * Linha da lista de compras do evento. As linhas de origem "cardapio"/"bebida" são derivadas dos itens
+ * selecionados no orçamento (quantidade = porção × convidados) e só guardam os ajustes do usuário
+ * (quantidade manual, comprado, observação); as de origem "manual" são inteiramente do usuário.
+ */
+export interface LinhaCompra {
+  key: string;
+  /** Identidade da linha derivada ("item:<id>" ou "nome:<nome>"); null nas manuais */
+  ref: string | null;
+  item_id: string | null;
+  nome: string;
+  /** Seção do cardápio (ou "Bebidas") de onde o item veio */
+  grupo: string | null;
+  origem: 'cardapio' | 'bebida' | 'manual';
+  unidade: UnidadePorcao | null;
+  /** Porção por pessoa que gerou o cálculo */
+  porcao: number | null;
+  quantidade_calc: number | null;
+  quantidade_manual: number | null;
+  comprado: boolean;
+  observacao: string | null;
 }
 
 export interface StaffOrcamento {
@@ -182,6 +214,7 @@ export interface ConteudoOrcamento {
   informacoes_complementares: BlocoInfo[];
   condicoes_gerais: BlocoInfo[];
   blocos_texto: BlocoTexto[];
+  lista_compras: LinhaCompra[];
   total_manual: number | null;
   mostrar_valor_total: boolean;
   observacoes: string | null;
@@ -293,6 +326,7 @@ export function calcularOrcamento(conteudo: ConteudoOrcamento, refs?: Referencia
   return {
     ...parcial,
     informacoes_complementares: preencherAutomaticos(parcial.informacoes_complementares, parcial),
+    lista_compras: calcularListaCompras(parcial),
     totais: {
       alimentos,
       bebidas: totalBebidas,
@@ -338,6 +372,102 @@ function preencherAutomaticos(blocos: BlocoInfo[], conteudo: ConteudoOrcamento):
       }),
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Lista de compras
+// ---------------------------------------------------------------------------
+const arredondarQtd = (n: number) => Math.round(n * 1000) / 1000;
+
+/**
+ * Monta a lista de compras a partir dos itens selecionados nos cardápios e das bebidas:
+ * quantidade = porção por pessoa × convidados (todos os convidados comem, inclusive crianças);
+ * bebida cobrada por unidade usa a quantidade do orçamento. O mesmo item em dois cardápios soma.
+ * Linhas derivadas preservam os ajustes do usuário (quantidade manual, comprado, observação) pela `ref`;
+ * linhas manuais ficam como estão; linhas derivadas cujo item saiu do orçamento desaparecem.
+ */
+export function calcularListaCompras(conteudo: Pick<ConteudoOrcamento, 'cardapios' | 'bebidas' | 'pagantes' | 'lista_compras'>): LinhaCompra[] {
+  const convidados = Math.max(0, conteudo.pagantes.convidados);
+  const anteriores = new Map<string, LinhaCompra>();
+  for (const l of conteudo.lista_compras ?? []) if (l.ref) anteriores.set(l.ref, l);
+
+  const derivadas = new Map<string, LinhaCompra>();
+  const incluir = (
+    ref: string,
+    base: Pick<LinhaCompra, 'item_id' | 'nome' | 'grupo' | 'origem' | 'unidade' | 'porcao'>,
+    quantidade: number | null
+  ) => {
+    const existente = derivadas.get(ref);
+    if (existente) {
+      // Mesmo item em mais de um cardápio: soma as quantidades calculadas
+      if (quantidade !== null) existente.quantidade_calc = arredondarQtd((existente.quantidade_calc ?? 0) + quantidade);
+      return;
+    }
+    const anterior = anteriores.get(ref);
+    derivadas.set(ref, {
+      key: anterior?.key ?? novaChave('lc'),
+      ref,
+      ...base,
+      quantidade_calc: quantidade === null ? null : arredondarQtd(quantidade),
+      quantidade_manual: anterior?.quantidade_manual ?? null,
+      comprado: anterior?.comprado ?? false,
+      observacao: anterior?.observacao ?? null,
+    });
+  };
+
+  const refDe = (item_id: string | null, nome: string) => (item_id ? `item:${item_id}` : `nome:${nome.trim().toLowerCase()}`);
+
+  for (const c of conteudo.cardapios)
+    for (const s of c.secoes)
+      for (const i of s.itens) {
+        if (!i.selecionado) continue;
+        const porcao = i.porcao_qtd ?? null;
+        incluir(
+          refDe(i.item_id, i.nome),
+          { item_id: i.item_id, nome: i.nome, grupo: s.nome, origem: 'cardapio', unidade: i.porcao_unidade ?? null, porcao },
+          porcao === null ? null : porcao * convidados
+        );
+      }
+
+  for (const b of conteudo.bebidas) {
+    const porcao = b.porcao_qtd ?? null;
+    const porUnidade = b.unidade === 'unidade';
+    incluir(
+      refDe(b.ref_id, b.nome),
+      {
+        item_id: b.ref_id,
+        nome: b.nome,
+        grupo: 'Bebidas',
+        origem: 'bebida',
+        unidade: porUnidade ? 'un' : (b.porcao_unidade ?? null),
+        porcao: porUnidade ? null : porcao,
+      },
+      porUnidade ? Math.max(0, b.quantidade) : porcao === null ? null : porcao * convidados
+    );
+  }
+
+  // Ordem: derivadas na ordem do orçamento, depois as manuais na ordem em que foram criadas
+  const manuais = (conteudo.lista_compras ?? []).filter((l) => l.ref === null);
+  return [...derivadas.values(), ...manuais];
+}
+
+/** Quantidade efetiva de uma linha (manual ?? calculada). */
+export const quantidadeCompra = (l: LinhaCompra): number | null => l.quantidade_manual ?? l.quantidade_calc;
+
+/** "15000 g" → "15 kg"; "2500 ml" → "2,5 l"; "120 un" → "120 un". Sem unidade, só o número. */
+export function formatarQuantidade(qtd: number | null | undefined, unidade: UnidadePorcao | null): string {
+  if (qtd === null || qtd === undefined) return '—';
+  let valor = qtd;
+  let un: string = unidade ?? '';
+  if (unidade === 'g' && valor >= 1000) {
+    valor = valor / 1000;
+    un = 'kg';
+  } else if (unidade === 'ml' && valor >= 1000) {
+    valor = valor / 1000;
+    un = 'l';
+  }
+  const texto = valor.toLocaleString('pt-BR', { maximumFractionDigits: unidade === 'un' ? 0 : 3 });
+  return un ? `${texto} ${un}` : texto;
 }
 
 let seq = 0;

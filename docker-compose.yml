@@ -19,6 +19,9 @@ services:
       - OPENAI_TOKEN=${OPENAI_TOKEN:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
       - OPENAI_IMAGE_MODEL=${OPENAI_IMAGE_MODEL:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
       - UPLOAD_DIR=/data/uploads
     volumes:
       - uploads_data:/data/uploads

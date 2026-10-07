@@ -41,6 +41,7 @@ export default function Bebidas({ bebidas, catalogo, equivalentes, total, disabl
         {
           key: novaChave('b'), ref_id: item.id, nome: item.nome, descricao: item.descricao, unidade: item.unidade,
           quantidade: item.unidade === 'unidade' ? 1 : 0, preco_catalogo: item.preco, preco_manual: null, subtotal_manual: null,
+          porcao_qtd: item.porcao_qtd ?? null, porcao_unidade: item.porcao_unidade ?? null,
         },
       ]);
     } else if (tipo === 'custom') {

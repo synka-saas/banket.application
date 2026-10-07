@@ -9,6 +9,7 @@ import { carregarEvento, type EventoDetalhe } from './eventos';
 import { registrarTimeline } from './timeline';
 import {
   NOMES_RESTRICOES,
+  UNIDADES_PORCAO,
   calcularOrcamento,
   novaChave,
   type BlocoInfo,
@@ -16,6 +17,7 @@ import {
   type ConteudoOrcamento,
   type EspacoRef,
   type ReferenciasLocacao,
+  type UnidadePorcao,
 } from '../lib/calculo/orcamento';
 
 // ---------------------------------------------------------------------------
@@ -25,6 +27,7 @@ const num = z.coerce.number().finite();
 const numNull = z.preprocess((v) => (v === '' || v === undefined ? null : v), num.nullable()).default(null);
 const chave = z.string().min(1).max(64).default(() => novaChave());
 const texto = (max = 500) => z.string().max(max).nullable().default(null);
+const unidadePorcao = z.enum(Object.keys(UNIDADES_PORCAO) as [UnidadePorcao, ...UnidadePorcao[]]).nullable().default(null);
 
 const itemSchema = z.object({
   key: chave,
@@ -35,6 +38,8 @@ const itemSchema = z.object({
   preco_catalogo: numNull,
   preco_manual: numNull,
   restricoes: z.array(z.string().max(40)).default([]),
+  porcao_qtd: numNull,
+  porcao_unidade: unidadePorcao,
 });
 
 const secaoSchema = z.object({
@@ -125,6 +130,8 @@ export const conteudoSchema = z.object({
         preco_catalogo: numNull,
         preco_manual: numNull,
         subtotal_manual: numNull,
+        porcao_qtd: numNull,
+        porcao_unidade: unidadePorcao,
       })
     )
     .default([]),
@@ -175,6 +182,24 @@ export const conteudoSchema = z.object({
       })
     )
     .default([]),
+  lista_compras: z
+    .array(
+      z.object({
+        key: chave,
+        ref: z.string().max(120).nullable().default(null),
+        item_id: z.string().nullable().default(null),
+        nome: z.string().max(300),
+        grupo: texto(200),
+        origem: z.enum(['cardapio', 'bebida', 'manual']).default('manual'),
+        unidade: unidadePorcao,
+        porcao: numNull,
+        quantidade_calc: numNull,
+        quantidade_manual: z.preprocess((v) => (v === '' ? null : v), num.min(0).nullable()).default(null),
+        comprado: z.boolean().default(false),
+        observacao: texto(500),
+      })
+    )
+    .default([]),
   total_manual: numNull,
   mostrar_valor_total: z.boolean().default(true),
   observacoes: texto(5000),
@@ -192,6 +217,29 @@ export function normalizarConteudo(raw: unknown): ConteudoOrcamento {
 /** A versão em edição acompanha o espaço escolhido no evento (as congeladas guardam o que foi proposto). */
 function sincronizarLocacaoComEvento(conteudo: ConteudoOrcamento, e: EventoDetalhe): ConteudoOrcamento {
   return { ...conteudo, locacao: { ...conteudo.locacao, espaco_id: e.espaco_id, espaco_nome: e.espaco_nome } };
+}
+
+/**
+ * A versão em edição acompanha a porção por pessoa cadastrada no catálogo (itens dos cardápios e bebidas);
+ * as congeladas guardam o snapshot. Itens personalizados (sem id) ficam como estão.
+ */
+async function sincronizarPorcoes(db: Db, conteudo: ConteudoOrcamento): Promise<ConteudoOrcamento> {
+  const ids = new Set<string>();
+  for (const c of conteudo.cardapios) for (const s of c.secoes) for (const i of s.itens) if (i.item_id) ids.add(i.item_id);
+  for (const b of conteudo.bebidas) if (b.ref_id) ids.add(b.ref_id);
+  if (!ids.size) return conteudo;
+  const { rows } = await db.query<{ id: string; porcao_qtd: number | null; porcao_unidade: UnidadePorcao | null }>(
+    'SELECT id, porcao_qtd, porcao_unidade FROM catalogo_itens WHERE id = ANY($1::uuid[])',
+    [[...ids].filter((id) => /^[0-9a-f-]{36}$/i.test(id))]
+  );
+  const porcoes = new Map(rows.map((r) => [r.id, { porcao_qtd: r.porcao_qtd === null ? null : Number(r.porcao_qtd), porcao_unidade: r.porcao_unidade }]));
+  const aplicar = <T extends { porcao_qtd?: number | null; porcao_unidade?: UnidadePorcao | null }>(x: T, id: string | null): T =>
+    id && porcoes.has(id) ? { ...x, ...porcoes.get(id)! } : x;
+  return {
+    ...conteudo,
+    cardapios: conteudo.cardapios.map((c) => ({ ...c, secoes: c.secoes.map((s) => ({ ...s, itens: s.itens.map((i) => aplicar(i, i.item_id)) })) })),
+    bebidas: conteudo.bebidas.map((b) => aplicar(b, b.ref_id)),
+  };
 }
 
 export function cabecalhoDoEvento(e: EventoDetalhe): Cabecalho {
@@ -366,7 +414,7 @@ export async function carregarVersao(db: Db, eventoId: string, numero: number): 
         ? { ...conteudo.pagantes, convidados: evento.numero_convidados }
         : conteudo.pagantes;
     conteudo = calcularOrcamento(
-      sincronizarLocacaoComEvento({ ...conteudo, pagantes, cabecalho: cabecalhoDoEvento(evento) }, evento),
+      await sincronizarPorcoes(db, sincronizarLocacaoComEvento({ ...conteudo, pagantes, cabecalho: cabecalhoDoEvento(evento) }, evento)),
       await referenciasLocacao(db)
     );
   }
@@ -414,7 +462,7 @@ export async function criarOrcamento(db: Db, user: SessionUser, eventoId: string
 
 const PARTES_EDITAVEIS = [
   'pagantes', 'cardapios', 'bebidas', 'staff', 'locacao', 'extras', 'informacoes_complementares', 'condicoes_gerais', 'blocos_texto',
-  'total_manual', 'mostrar_valor_total', 'observacoes',
+  'lista_compras', 'total_manual', 'mostrar_valor_total', 'observacoes',
 ] as const;
 
 /**
@@ -480,7 +528,7 @@ export async function salvarVersao(
     evento = await carregarEvento(db, eventoId);
   }
   const conteudo = calcularOrcamento(
-    sincronizarLocacaoComEvento({ ...normalizado, cabecalho: cabecalhoDoEvento(evento) }, evento),
+    await sincronizarPorcoes(db, sincronizarLocacaoComEvento({ ...normalizado, cabecalho: cabecalhoDoEvento(evento) }, evento)),
     await referenciasLocacao(db)
   );
   const total = conteudo.totais!.total;
@@ -517,7 +565,7 @@ export async function criarNovaVersao(
 
   const evento = await carregarEvento(db, eventoId);
   const conteudo = calcularOrcamento(
-    sincronizarLocacaoComEvento({ ...normalizarConteudo(rows[0].conteudo), cabecalho: cabecalhoDoEvento(evento) }, evento),
+    await sincronizarPorcoes(db, sincronizarLocacaoComEvento({ ...normalizarConteudo(rows[0].conteudo), cabecalho: cabecalhoDoEvento(evento) }, evento)),
     await referenciasLocacao(db)
   );
   const numero = Math.max(...orc.versoes.map((v) => v.numero)) + 1;
@@ -559,7 +607,16 @@ export interface CatalogoConstrutor {
     preco: number | null;
     unidade: 'pessoa' | 'unidade';
     bebida: boolean;
-    itens: { id: string; nome: string; descricao: string | null; preco: number | null; unidade: 'pessoa' | 'unidade'; restricoes: string[] }[];
+    itens: {
+      id: string;
+      nome: string;
+      descricao: string | null;
+      preco: number | null;
+      unidade: 'pessoa' | 'unidade';
+      restricoes: string[];
+      porcao_qtd: number | null;
+      porcao_unidade: UnidadePorcao | null;
+    }[];
   }[];
   opcoes: {
     id: string;
@@ -576,7 +633,8 @@ export async function catalogoConstrutor(db: Db): Promise<CatalogoConstrutor> {
             bool_or(ci.nome = 'Bebida') AS bebida,
             COALESCE(json_agg(json_build_object(
               'id', i.id, 'nome', i.nome, 'descricao', i.descricao, 'preco', i.preco,
-              'unidade', i.unidade_cobranca, 'restricoes', i.restricoes
+              'unidade', i.unidade_cobranca, 'restricoes', i.restricoes,
+              'porcao_qtd', i.porcao_qtd, 'porcao_unidade', i.porcao_unidade
             ) ORDER BY i.ordem, lower(i.nome)) FILTER (WHERE i.id IS NOT NULL AND i.ativo), '[]') AS itens
        FROM catalogo_secoes s
        LEFT JOIN catalogo_itens i ON i.secao_id = s.id
@@ -603,7 +661,7 @@ export async function catalogoConstrutor(db: Db): Promise<CatalogoConstrutor> {
       ...s,
       bebida: Boolean(s.bebida),
       preco: n(s.preco),
-      itens: s.itens.map((i: { preco: unknown }) => ({ ...i, preco: n(i.preco) })),
+      itens: s.itens.map((i: { preco: unknown; porcao_qtd: unknown }) => ({ ...i, preco: n(i.preco), porcao_qtd: n(i.porcao_qtd) })),
     })),
     opcoes: opcoes.map((o) => ({
       ...o,
@@ -639,6 +697,31 @@ export async function contextoOrcamento(db: Db, eventoId: string, versaoParam: s
   // Espaços para o select da seção Locação: ativos mais o que a versão já usa (mesmo inativo)
   const [refs, espacos] = await Promise.all([referenciasLocacao(db), espacosParaSelecao(db, versao.conteudo.locacao.espaco_id)]);
   return { evento, orcamento, versao, refs, espacos };
+}
+
+/** Lista de compras da versão em CSV (";" e BOM para o Excel em português). */
+export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoParam: string | null): Promise<{ csv: string; numero: number }> {
+  const { versao } = await contextoOrcamento(db, eventoId, versaoParam);
+  if (!versao) throw new UserError('Este evento ainda não tem orçamento.');
+  const celula = (v: string | number | null | undefined) => {
+    const t = v === null || v === undefined ? '' : String(v);
+    return /[";\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const numero = (v: number | null) => (v === null ? '' : String(v).replace('.', ','));
+  const linhas = [
+    ['Item', 'Origem', 'Porção por pessoa', 'Quantidade calculada', 'Quantidade', 'Unidade', 'Comprado', 'Observação'],
+    ...versao.conteudo.lista_compras.map((l) => [
+      l.nome,
+      l.origem === 'manual' ? 'Avulso' : (l.grupo ?? ''),
+      numero(l.porcao),
+      numero(l.quantidade_calc),
+      numero(l.quantidade_manual ?? l.quantidade_calc),
+      l.unidade ?? '',
+      l.comprado ? 'Sim' : 'Não',
+      l.observacao ?? '',
+    ]),
+  ];
+  return { csv: `\uFEFF${linhas.map((l) => l.map(celula).join(';')).join('\r\n')}`, numero: versao.numero };
 }
 
 /** Template usado no PDF da proposta (null = template padrão da empresa) */

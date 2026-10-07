@@ -20,9 +20,9 @@
     <link rel="icon" type="image/png" href="assets/logo-mark.png" />
     <link rel="preload" href="assets/fonts/GeneralSans-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/GeneralSans-Medium.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="assets/css/design-system.css?v=8" />
-    <link rel="stylesheet" href="assets/css/site.css?v=8" />
-    <script src="assets/js/site.js?v=8" defer></script>
+    <link rel="stylesheet" href="assets/css/design-system.css?v=9" />
+    <link rel="stylesheet" href="assets/css/site.css?v=9" />
+    <script src="assets/js/site.js?v=9" defer></script>
   </head>
 
   <body>
@@ -5053,20 +5053,15 @@
                   <label for="demo-website">Não preencha este campo</label>
                   <input type="text" id="demo-website" name="website" tabindex="-1" autocomplete="off" />
                 </div>
+                <input type="hidden" name="plano" id="demo-plano" value="" />
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px 20px">
-                  <div class="bk-field">
+                  <div class="bk-field" style="grid-column: 1 / -1">
                     <label class="bk-field__label" for="demo-nome">Seu nome<span class="bk-field__req" aria-hidden="true">*</span></label>
                     <div class="bk-control">
                       <input class="bk-control__input" placeholder="Nome completo" required="" id="demo-nome" name="nome" autocomplete="name" />
                     </div>
                   </div>
-                  <div class="bk-field">
-                    <label class="bk-field__label" for="demo-buffet">Nome do buffet</label>
-                    <div class="bk-control">
-                      <input class="bk-control__input" placeholder="Ex.: Buffet Jardim" id="demo-buffet" name="buffet" autocomplete="organization" />
-                    </div>
-                  </div>
-                  <div class="bk-field">
+                  <div class="bk-field" style="grid-column: 1 / -1">
                     <label class="bk-field__label" for="demo-email">E-mail<span class="bk-field__req" aria-hidden="true">*</span></label>
                     <div class="bk-control">
                       <span class="bk-control__icon"
@@ -5119,37 +5114,14 @@
                         class="bk-control__input"
                         type="tel"
                         placeholder="(11) 98888-7777"
+                        inputmode="tel"
+                        maxlength="15"
+                        data-mascara="telefone"
                         required=""
                         id="demo-whatsapp"
                         name="whatsapp"
                         autocomplete="tel"
                       />
-                    </div>
-                  </div>
-                  <div class="bk-field">
-                    <label class="bk-field__label" for="demo-plano">Plano de interesse</label>
-                    <div class="bk-control">
-                      <select class="bk-control__input bk-select" id="demo-plano" name="plano">
-                        <option value="Essencial">Essencial</option>
-                        <option value="Profissional" selected="">Profissional</option>
-                        <option value="Prime">Prime</option>
-                        <option value="Ainda não sei">Ainda não sei</option></select
-                      ><span class="bk-select__chev"
-                        ><svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.75"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          class="bk-icon"
-                          aria-hidden="true"
-                        >
-                          <path d="M6 9l6 6l6 -6"></path></svg
-                      ></span>
                     </div>
                   </div>
                   <div class="bk-field">

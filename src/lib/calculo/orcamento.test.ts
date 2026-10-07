@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calcularListaCompras,
   calcularOrcamento,
   faixaParaConvidados,
+  formatarQuantidade,
   pagantesEquivalentes,
   precoSecao,
   type ConteudoOrcamento,
@@ -67,6 +69,7 @@ function base(extra: Partial<ConteudoOrcamento> = {}): ConteudoOrcamento {
     informacoes_complementares: [],
     condicoes_gerais: [],
     blocos_texto: [],
+    lista_compras: [],
     total_manual: null,
     mostrar_valor_total: true,
     observacoes: null,
@@ -241,5 +244,108 @@ describe('calcularOrcamento', () => {
     const [restricoes, equipe] = r.informacoes_complementares;
     expect(restricoes.linhas.map((l) => l.valor)).toEqual(['2 opções', '1 opção', 'livre']);
     expect(equipe.linhas).toEqual([{ key: 'auto-s1', label: 'Chef', valor: '1 profissional', auto: 'staff' }]);
+  });
+});
+
+describe('calcularListaCompras', () => {
+  const cardapio = (itens: ItemOrcamento[], nomeSecao = 'Salgados') => ({
+    key: 'c', opcao_id: null, nome: 'Cardápio', preco_base: null, preco_pp_manual: null, subtotal_manual: null,
+    secoes: [secao(nomeSecao, itens)],
+  });
+
+  it('quantidade = porção por pessoa × convidados (todos os convidados, inclusive crianças)', () => {
+    const r = calcularListaCompras(
+      base({
+        pagantes: { convidados: 120, criancas_meia: 10, criancas_isentas: 5 },
+        cardapios: [cardapio([item('Coxinha', { item_id: 'i1', porcao_qtd: 3, porcao_unidade: 'un' }), item('Arroz', { item_id: 'i2', porcao_qtd: 80, porcao_unidade: 'g' })])],
+      })
+    );
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ ref: 'item:i1', nome: 'Coxinha', grupo: 'Salgados', origem: 'cardapio', unidade: 'un', porcao: 3, quantidade_calc: 360 });
+    expect(r[1]).toMatchObject({ ref: 'item:i2', unidade: 'g', quantidade_calc: 9600, quantidade_manual: null, comprado: false });
+  });
+
+  it('item sem porção entra com quantidade nula; item não selecionado fica de fora', () => {
+    const r = calcularListaCompras(
+      base({ cardapios: [cardapio([item('Sem porção', { item_id: 'i1' }), item('Fora', { item_id: 'i2', porcao_qtd: 1, selecionado: false })])] })
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ nome: 'Sem porção', quantidade_calc: null, unidade: null });
+  });
+
+  it('mesmo item em dois cardápios soma; itens personalizados são identificados pelo nome', () => {
+    const r = calcularListaCompras(
+      base({
+        pagantes: { convidados: 10, criancas_meia: 0, criancas_isentas: 0 },
+        cardapios: [
+          cardapio([item('Pão', { item_id: 'i1', porcao_qtd: 2, porcao_unidade: 'un' })]),
+          cardapio([item('Pão', { item_id: 'i1', porcao_qtd: 2, porcao_unidade: 'un' }), item('Especial da casa', { porcao_qtd: 50, porcao_unidade: 'g' })]),
+        ],
+      })
+    );
+    expect(r.map((l) => [l.ref, l.quantidade_calc])).toEqual([
+      ['item:i1', 40],
+      ['nome:especial da casa', 500],
+    ]);
+  });
+
+  it('bebidas: por pessoa usa a porção; por unidade usa a quantidade do orçamento', () => {
+    const r = calcularListaCompras(
+      base({
+        pagantes: { convidados: 50, criancas_meia: 0, criancas_isentas: 0 },
+        bebidas: [
+          { key: 'b1', ref_id: 'b1', nome: 'Refrigerante', descricao: null, unidade: 'pessoa', quantidade: 0, preco_catalogo: null, preco_manual: null, subtotal_manual: null, porcao_qtd: 600, porcao_unidade: 'ml' },
+          { key: 'b2', ref_id: 'b2', nome: 'Cerveja', descricao: null, unidade: 'unidade', quantidade: 120, preco_catalogo: null, preco_manual: null, subtotal_manual: null },
+        ],
+      })
+    );
+    expect(r[0]).toMatchObject({ grupo: 'Bebidas', origem: 'bebida', unidade: 'ml', quantidade_calc: 30000 });
+    expect(r[1]).toMatchObject({ unidade: 'un', porcao: null, quantidade_calc: 120 });
+  });
+
+  it('preserva os ajustes do usuário nas linhas derivadas e mantém as linhas avulsas no fim', () => {
+    const anterior = calcularListaCompras(
+      base({ pagantes: { convidados: 10, criancas_meia: 0, criancas_isentas: 0 }, cardapios: [cardapio([item('Pão', { item_id: 'i1', porcao_qtd: 1, porcao_unidade: 'un' })])] })
+    );
+    const ajustada = [
+      { ...anterior[0], quantidade_manual: 15, comprado: true, observacao: 'Padaria do João' },
+      { key: 'm1', ref: null, item_id: null, nome: 'Gelo', grupo: null, origem: 'manual' as const, unidade: 'kg' as const, porcao: null, quantidade_calc: null, quantidade_manual: 20, comprado: false, observacao: null },
+    ];
+    // Convidados mudaram: o calculado acompanha, os ajustes ficam
+    const r = calcularListaCompras(
+      base({
+        pagantes: { convidados: 30, criancas_meia: 0, criancas_isentas: 0 },
+        cardapios: [cardapio([item('Pão', { item_id: 'i1', porcao_qtd: 1, porcao_unidade: 'un' })])],
+        lista_compras: ajustada,
+      })
+    );
+    expect(r).toHaveLength(2);
+    expect(r[0]).toMatchObject({ key: anterior[0].key, quantidade_calc: 30, quantidade_manual: 15, comprado: true, observacao: 'Padaria do João' });
+    expect(r[1]).toMatchObject({ key: 'm1', nome: 'Gelo', quantidade_manual: 20 });
+  });
+
+  it('linha derivada some quando o item sai do orçamento', () => {
+    const r = calcularListaCompras(
+      base({
+        cardapios: [],
+        lista_compras: [{ key: 'x', ref: 'item:i1', item_id: 'i1', nome: 'Pão', grupo: 'Pães', origem: 'cardapio', unidade: 'un', porcao: 1, quantidade_calc: 10, quantidade_manual: 12, comprado: false, observacao: null }],
+      })
+    );
+    expect(r).toEqual([]);
+  });
+
+  it('calcularOrcamento devolve a lista junto com os totais', () => {
+    const r = calcularOrcamento(base({ cardapios: [cardapio([item('Pão', { item_id: 'i1', porcao_qtd: 2, porcao_unidade: 'un' })])] }), refs);
+    expect(r.lista_compras[0].quantidade_calc).toBe(200);
+  });
+});
+
+describe('formatarQuantidade', () => {
+  it('converte g→kg e ml→l a partir de 1000 e formata em pt-BR', () => {
+    expect(formatarQuantidade(15000, 'g')).toBe('15 kg');
+    expect(formatarQuantidade(2500, 'ml')).toBe('2,5 l');
+    expect(formatarQuantidade(800, 'g')).toBe('800 g');
+    expect(formatarQuantidade(120, 'un')).toBe('120 un');
+    expect(formatarQuantidade(null, 'g')).toBe('—');
   });
 });

@@ -28,6 +28,8 @@ function itemDoCatalogo(i: SecaoCatalogo['itens'][number], comPreco: boolean, se
     preco_catalogo: comPreco ? i.preco : null,
     preco_manual: null,
     restricoes: i.restricoes ?? [],
+    porcao_qtd: i.porcao_qtd ?? null,
+    porcao_unidade: i.porcao_unidade ?? null,
   };
 }
 
@@ -233,7 +235,7 @@ function SecaoBloco(props: {
       const nome = window.prompt('Nome do item personalizado:')?.trim();
       if (nome) {
         props.onChange({
-          itens: [...s.itens, { key: novaChave('i'), item_id: null, nome, descricao: null, selecionado: true, preco_catalogo: null, preco_manual: null, restricoes: [] }],
+          itens: [...s.itens, { key: novaChave('i'), item_id: null, nome, descricao: null, selecionado: true, preco_catalogo: null, preco_manual: null, restricoes: [], porcao_qtd: null, porcao_unidade: null }],
         });
       }
     } else {

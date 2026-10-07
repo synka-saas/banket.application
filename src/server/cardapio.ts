@@ -14,6 +14,8 @@ import {
 } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
+import { parseMoney } from '../lib/money';
+import { UNIDADES_PORCAO, type UnidadePorcao } from '../lib/calculo/orcamento';
 
 export const RESTRICOES = {
   vegetariana: 'Vegetariana',
@@ -32,6 +34,27 @@ export const DADOS_OPERACIONAIS = {
 } as const;
 
 export const UNIDADES_COBRANCA = { pessoa: 'por pessoa', unidade: 'por unidade' } as const;
+
+/** Unidades da porção por pessoa (rótulos do select do item) */
+export const UNIDADES_PORCAO_ROTULOS: Record<UnidadePorcao, string> = {
+  g: 'gramas (g)',
+  kg: 'quilos (kg)',
+  ml: 'mililitros (ml)',
+  l: 'litros (l)',
+  un: 'unidades (un)',
+};
+
+/** Porção por pessoa: aceita "150", "0,5" ou "1.5"; vazio vira null. */
+const porcaoQtd = () =>
+  z.preprocess(
+    (v) => parseMoney(v),
+    z.number({ error: 'Porção inválida.' }).positive('A porção precisa ser maior que zero.').max(1_000_000).nullable()
+  );
+const porcaoUnidade = () =>
+  z.preprocess(
+    (v) => (v === '' || v === undefined ? null : v),
+    z.enum(Object.keys(UNIDADES_PORCAO) as [UnidadePorcao, ...UnidadePorcao[]], { error: 'Unidade da porção inválida.' }).nullable()
+  );
 
 const unidade = z.enum(['pessoa', 'unidade']).default('pessoa');
 const codigos = <T extends Record<string, string>>(mapa: T) =>
@@ -120,6 +143,8 @@ export const itemSchema = z.object({
   custo_unitario: optionalMoney(),
   preco: optionalMoney(),
   unidade_cobranca: unidade,
+  porcao_qtd: porcaoQtd(),
+  porcao_unidade: porcaoUnidade(),
   restricoes: codigos(RESTRICOES),
   dados_operacionais: codigos(DADOS_OPERACIONAIS),
   ativo: checkbox(),
@@ -141,6 +166,8 @@ export interface ItemRow {
   custo_unitario: number | null;
   preco: number | null;
   unidade_cobranca: 'pessoa' | 'unidade';
+  porcao_qtd: number | null;
+  porcao_unidade: UnidadePorcao | null;
   restricoes: string[];
   dados_operacionais: string[];
   ativo: boolean;
@@ -161,8 +188,8 @@ export async function listarItens(
   const { rows } = await db.query<ItemRow>(
     `SELECT i.id, i.nome, i.descricao, i.composicao, i.secao_id, s.nome AS secao_nome,
             i.categoria_principal_id, cp.nome AS categoria_principal_nome, i.categoria_secundaria_id,
-            i.formato_servico_id, i.custo_unitario, i.preco, i.unidade_cobranca, i.restricoes,
-            i.dados_operacionais, i.ativo
+            i.formato_servico_id, i.custo_unitario, i.preco, i.unidade_cobranca, i.porcao_qtd, i.porcao_unidade,
+            i.restricoes, i.dados_operacionais, i.ativo
        FROM catalogo_itens i
        JOIN catalogo_secoes s ON s.id = i.secao_id
        LEFT JOIN categorias_item cp ON cp.id = i.categoria_principal_id
@@ -193,14 +220,17 @@ export async function salvarItem(db: Db, tenantId: string, id: string | null, in
     input.restricoes,
     input.dados_operacionais,
     input.ativo,
+    // Porção por pessoa: a unidade só vale com quantidade (e vice-versa: quantidade sem unidade assume "g")
+    input.porcao_qtd,
+    input.porcao_qtd === null ? null : (input.porcao_unidade ?? 'g'),
   ];
   if (id) {
     const res = await db.query(
       `UPDATE catalogo_itens SET nome = $1, secao_id = $2, descricao = $3, composicao = $4,
               categoria_principal_id = $5, categoria_secundaria_id = $6, formato_servico_id = $7,
               custo_unitario = $8, preco = $9, unidade_cobranca = $10, restricoes = $11,
-              dados_operacionais = $12, ativo = $13, updated_at = now()
-        WHERE id = $14`,
+              dados_operacionais = $12, ativo = $13, porcao_qtd = $14, porcao_unidade = $15, updated_at = now()
+        WHERE id = $16`,
       [...values, id]
     );
     if (!res.rowCount) throw new UserError('Item não encontrado.');
@@ -209,8 +239,8 @@ export async function salvarItem(db: Db, tenantId: string, id: string | null, in
   await db.query(
     `INSERT INTO catalogo_itens (nome, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
                                  formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
-                                 dados_operacionais, ativo, tenant_id, ordem)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                                 dados_operacionais, ativo, porcao_qtd, porcao_unidade, tenant_id, ordem)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
              (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = $2))`,
     [...values, tenantId]
   );
@@ -234,10 +264,10 @@ export async function duplicarItem(db: Db, id: string): Promise<{ id: string; no
   const novo = await db.query<{ id: string }>(
     `INSERT INTO catalogo_itens (nome, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
                                  formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
-                                 dados_operacionais, ativo, tenant_id, ordem)
+                                 dados_operacionais, ativo, porcao_qtd, porcao_unidade, tenant_id, ordem)
      SELECT $2, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
             formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
-            dados_operacionais, ativo, tenant_id, (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = i.secao_id)
+            dados_operacionais, ativo, porcao_qtd, porcao_unidade, tenant_id, (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = i.secao_id)
        FROM catalogo_itens i WHERE id = $1
      RETURNING id`,
     [id, nome]

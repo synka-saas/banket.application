@@ -135,6 +135,7 @@ export async function montarPropostaExemplo(db: Db, tenantId: string, templateId
         ] },
       ],
       blocos_texto: blocos.filter((b) => b.ativo_por_padrao).map((b) => ({ key: k(), bloco_id: b.id, titulo: b.titulo, texto: b.texto, pagina: b.pagina })),
+      lista_compras: [],
       total_manual: null,
       mostrar_valor_total: true,
       observacoes: null,

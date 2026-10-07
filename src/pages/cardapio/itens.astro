@@ -9,12 +9,14 @@ import { withTenant } from '../../lib/db';
 import { formId, handleFormPost } from '../../lib/actions';
 import { html } from '../../lib/html';
 import { moneyInput, formatMoney } from '../../lib/money';
+import { formatarQuantidade } from '../../lib/calculo/orcamento';
 import { CARDAPIO_SUBMENU } from '../../lib/nav';
 import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import {
   DADOS_OPERACIONAIS,
   RESTRICOES,
   UNIDADES_COBRANCA,
+  UNIDADES_PORCAO_ROTULOS,
   atualizarCategoriaPrincipal,
   duplicarItem,
   excluirItem,
@@ -79,6 +81,7 @@ const tableData = itens.map((i) => ({
   descricao: i.descricao ? html`<span class="item-descricao">${i.descricao}</span>` : '',
   secao: i.secao_nome,
   preco: i.preco === null ? '-' : `${formatMoney(i.preco)} ${UNIDADES_COBRANCA[i.unidade_cobranca]}`,
+  porcao: i.porcao_qtd === null ? '-' : `${formatarQuantidade(i.porcao_qtd, i.porcao_unidade)}/pessoa`,
   categoria: html`<form method="post" class="inline-form">
       <input type="hidden" name="id" value="${i.id}" />
       <input type="hidden" name="_action" value="categoria" />
@@ -99,6 +102,8 @@ const tableData = itens.map((i) => ({
     custo_unitario: moneyInput(i.custo_unitario),
     preco: moneyInput(i.preco),
     unidade_cobranca: i.unidade_cobranca,
+    porcao_qtd: i.porcao_qtd === null ? '' : String(i.porcao_qtd).replace('.', ','),
+    porcao_unidade: i.porcao_unidade ?? 'g',
     restricoes: i.restricoes,
     dados_operacionais: i.dados_operacionais,
     ativo: i.ativo,
@@ -108,7 +113,7 @@ const tableData = itens.map((i) => ({
 
 const filtrando = estaFiltrando(Astro.url);
 // Novo item já vem na seção filtrada (se houver) e ativo
-const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa' });
+const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unidade_cobranca: 'pessoa', porcao_unidade: 'g' });
 ---
 
 <AppLayout title="Itens do cardápio" heading="Cardápios / Itens do cardápio" submenu={CARDAPIO_SUBMENU} submenuActive="itens">
@@ -126,6 +131,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
       { key: 'descricao', label: 'Descrição', width: '28%' },
       { key: 'secao', label: 'Seção', ordenar: 'secao' },
       { key: 'preco', label: 'Preço', ordenar: 'preco' },
+      { key: 'porcao', label: 'Porção' },
       { key: 'categoria', label: 'Categoria' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
@@ -200,6 +206,16 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
           {Object.entries(UNIDADES_COBRANCA).map(([value, label]) => <option value={value}>{label}</option>)}
         </select>
       </div>
+      <div class="field">
+        <label for="it-porcao">Porção por pessoa</label>
+        <div class="porcao-campos">
+          <input id="it-porcao" name="porcao_qtd" inputmode="decimal" placeholder="Ex.: 150" />
+          <select name="porcao_unidade" aria-label="Unidade da porção">
+            {Object.entries(UNIDADES_PORCAO_ROTULOS).map(([value, label]) => <option value={value}>{label}</option>)}
+          </select>
+        </div>
+        <span class="field-hint">Quantidade que cada convidado consome. Multiplicada pelos convidados do evento, monta a lista de compras do orçamento.</span>
+      </div>
       <div class="field span-2">
         <label for="it-desc">Descrição comercial</label>
         <textarea id="it-desc" name="descricao" maxlength="2000" placeholder="Texto exibido na proposta"></textarea>
@@ -246,8 +262,16 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     color: var(--text-secondary);
   }
 
-  :global(.data-table tbody td[data-key='preco']) {
+  :global(.data-table tbody td[data-key='preco']),
+  :global(.data-table tbody td[data-key='porcao']) {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Porção: quantidade + unidade lado a lado */
+  .porcao-campos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2);
   }
 
   @media (max-width: 768px) {
