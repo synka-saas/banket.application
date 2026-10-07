@@ -82,6 +82,7 @@ const tableData = itens.map((i) => ({
   secao: i.secao_nome,
   preco: i.preco === null ? '-' : `${formatMoney(i.preco)} ${UNIDADES_COBRANCA[i.unidade_cobranca]}`,
   porcao: i.porcao_qtd === null ? '-' : `${formatarQuantidade(i.porcao_qtd, i.porcao_unidade)}/pessoa`,
+  estoque: i.estoque_gerenciado ? html`<a class="link tabular" href="/estoque?q=${encodeURIComponent(i.nome)}">${formatarQuantidade(Number(i.estoque_quantidade), i.estoque_unidade)}</a>` : '',
   categoria: html`<form method="post" class="inline-form">
       <input type="hidden" name="id" value="${i.id}" />
       <input type="hidden" name="_action" value="categoria" />
@@ -104,6 +105,7 @@ const tableData = itens.map((i) => ({
     unidade_cobranca: i.unidade_cobranca,
     porcao_qtd: i.porcao_qtd === null ? '' : String(i.porcao_qtd).replace('.', ','),
     porcao_unidade: i.porcao_unidade ?? 'g',
+    estoque_gerenciado: i.estoque_gerenciado,
     restricoes: i.restricoes,
     dados_operacionais: i.dados_operacionais,
     ativo: i.ativo,
@@ -132,6 +134,7 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
       { key: 'secao', label: 'Seção', ordenar: 'secao' },
       { key: 'preco', label: 'Preço', ordenar: 'preco' },
       { key: 'porcao', label: 'Porção' },
+      { key: 'estoque', label: 'Estoque' },
       { key: 'categoria', label: 'Categoria' },
       { key: 'acoes', label: 'Ações', align: 'right' },
     ]}
@@ -243,6 +246,10 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
       <div class="field span-2">
         <label class="switch"><input type="checkbox" name="ativo" />Item ativo (disponível para novos orçamentos)</label>
       </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="estoque_gerenciado" />Gerenciado no estoque</label>
+        <span class="field-hint">Adiciona o item ao Estoque, com saldo e movimentações. A lista de compras do orçamento passa a mostrar se o estoque cobre a quantidade do evento.</span>
+      </div>
     </form>
   </Drawer>
 </AppLayout>
@@ -263,7 +270,8 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
   }
 
   :global(.data-table tbody td[data-key='preco']),
-  :global(.data-table tbody td[data-key='porcao']) {
+  :global(.data-table tbody td[data-key='porcao']),
+  :global(.data-table tbody td[data-key='estoque']) {
     font-variant-numeric: tabular-nums;
   }
 

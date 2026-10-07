@@ -9,7 +9,8 @@
 //   espacos            → Espaço (nosso espaço / espaço de terceiro)
 
 export const ROTULOS = {
-  funil: 'Funil de vendas',
+  funil: 'Propostas',
+  painelPropostas: 'Painel de Propostas',
   tipoEvento: 'Tipo',
   tiposEvento: 'Tipos de evento',
   ocasiao: 'Ocasião',

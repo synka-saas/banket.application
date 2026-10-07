@@ -1,4 +1,5 @@
 ---
+import { ROTULOS } from '../../lib/rotulos';
 import AppLayout from '../../layouts/AppLayout.astro';
 import EventoForm from '../../components/eventos/EventoForm.astro';
 import { withTenant } from '../../lib/db';
@@ -39,6 +40,6 @@ if (!valores.cliente_id) {
 }
 ---
 
-<AppLayout title="Novo evento" heading="Funil de vendas / Novo evento">
+<AppLayout title="Novo evento" heading={`${ROTULOS.funil} / Novo evento`}>
   <EventoForm valores={valores} {...opcoes} erro={erro} erros={erros} cancelarHref="/eventos" modo="criar" />
 </AppLayout>

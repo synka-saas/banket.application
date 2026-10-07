@@ -5,6 +5,8 @@ import type { SessionUser } from '../lib/auth';
 import { UserError } from '../lib/forms';
 import { dataCurta, faixaHorario, horasTexto } from '../lib/datas';
 import { espacosParaSelecao, referenciasLocacao } from './espacos';
+import { estoqueParaLista } from './estoque';
+import { situacaoEstoque, type SituacaoEstoque } from '../lib/calculo/estoque';
 import { carregarEvento, type EventoDetalhe } from './eventos';
 import { registrarTimeline } from './timeline';
 import {
@@ -708,8 +710,9 @@ export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoPa
     return /[";\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
   };
   const numero = (v: number | null) => (v === null ? '' : String(v).replace('.', ','));
+  const estoque = await estoqueParaLista(db);
   const linhas = [
-    ['Item', 'Origem', 'Porção por pessoa', 'Quantidade calculada', 'Quantidade', 'Unidade', 'Comprado', 'Observação'],
+    ['Item', 'Origem', 'Porção por pessoa', 'Quantidade calculada', 'Quantidade', 'Unidade', 'Comprado', 'Estoque', 'Observação'],
     ...versao.conteudo.lista_compras.map((l) => [
       l.nome,
       l.origem === 'manual' ? 'Avulso' : (l.grupo ?? ''),
@@ -718,10 +721,33 @@ export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoPa
       numero(l.quantidade_manual ?? l.quantidade_calc),
       l.unidade ?? '',
       l.comprado ? 'Sim' : 'Não',
+      textoEstoque(situacaoEstoque(l, estoque), l.unidade),
       l.observacao ?? '',
     ]),
   ];
   return { csv: `\uFEFF${linhas.map((l) => l.map(celula).join(';')).join('\r\n')}`, numero: versao.numero };
+}
+
+/** Situação no estoque em texto (CSV e PDF): "Em estoque", "Faltam 2 kg", "Sem estoque" ou vazio. */
+export function textoEstoque(s: SituacaoEstoque, unidade: string | null): string {
+  if (!s) return '';
+  if (s.tipo === 'suficiente') return 'Em estoque';
+  if (s.tipo === 'parcial') return `Faltam ${String(s.faltam).replace('.', ',')} ${unidade ?? s.item.unidade}`;
+  if (s.tipo === 'sem') return 'Sem estoque';
+  return 'Ver estoque';
+}
+
+/** Dados da lista de compras para impressão (página /print/compras/:versaoId, aberta pelo Chromium com print token). */
+export async function listaComprasParaImpressao(db: Db, versaoId: string) {
+  const { rows } = await db.query<{ evento_id: string; numero: number; empresa: string }>(
+    `SELECT o.evento_id, v.numero, t.nome AS empresa
+       FROM orcamento_versoes v JOIN orcamentos o ON o.id = v.orcamento_id JOIN tenants t ON t.id = v.tenant_id
+      WHERE v.id = $1`,
+    [versaoId]
+  );
+  if (!rows[0]) throw new UserError('Versão do orçamento não encontrada.');
+  const versao = await carregarVersao(db, rows[0].evento_id, rows[0].numero);
+  return { empresa: rows[0].empresa, numero: rows[0].numero, conteudo: versao.conteudo, estoque: await estoqueParaLista(db) };
 }
 
 /** Template usado no PDF da proposta (null = template padrão da empresa) */

@@ -68,7 +68,7 @@ const tableData = status.map((s) => ({
   <!-- Sem busca: o texto de apoio ocupa a esquerda da barra e a ação fica à direita -->
   <div class="topo">
     <p class="intro">
-      Cada etapa é uma coluna do <strong>{ROTULOS.funil}</strong>, na ordem abaixo. A função define como a etapa entra nas
+      Cada etapa é uma coluna do <strong>{ROTULOS.painelPropostas}</strong>, na ordem abaixo. A função define como a etapa entra nas
       métricas: novos pedidos (formulário ou cadastro) caem na primeira etapa de <em>entrada</em>.
     </p>
     <Button icon="circle-plus" data-drawer-open="drawer-status">Nova etapa</Button>
@@ -90,7 +90,7 @@ const tableData = status.map((s) => ({
     title="Intervalo de trabalho do funil"
     icon="calendar"
     id="intervalo-kanban"
-    description={`O ${ROTULOS.funil} mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.`}
+    description={`O ${ROTULOS.painelPropostas} mostra os eventos de hoje até o fim do intervalo escolhido. Eventos ainda sem data sempre aparecem. Vale para todos os usuários; o filtro de datas do quadro serve só para consultas pontuais.`}
   >
     <form method="post" class="intervalo-form">
       <input type="hidden" name="_action" value="intervalo" />

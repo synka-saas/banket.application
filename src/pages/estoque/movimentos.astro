@@ -1,0 +1,115 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import MovimentoDrawer from '../../components/estoque/MovimentoDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { dataHora } from '../../lib/datas';
+import { formatMoney } from '../../lib/money';
+import { ESTOQUE_SUBMENU } from '../../lib/nav';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { formatarQuantidade } from '../../lib/calculo/orcamento';
+import { RAZOES, TIPOS_MOVIMENTO, itensParaSelecao, listarMovimentos, movimentar, movimentoSchema, type TipoMovimento } from '../../server/estoque';
+import { ehRazao } from '../../lib/estoqueRazoes';
+import { eventosParaReuniao } from '../../server/reunioes';
+import { espacosParaSelecao } from '../../server/espacos';
+
+// Histórico de movimentações do estoque (todas ou de um item: ?item=).
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      const r = await movimentar(db, user, movimentoSchema.parse(data));
+      return `Movimentação registrada. Saldo de ${r.nome}: ${formatarQuantidade(r.saldo, r.unidade)}.`;
+    })
+  );
+}
+
+const p = Astro.url.searchParams;
+const page = pageParams(Astro.url);
+const itemId = /^[0-9a-f-]{36}$/i.test(p.get('item') ?? '') ? p.get('item') : null;
+const tipo = p.get('tipo') && p.get('tipo')! in TIPOS_MOVIMENTO ? (p.get('tipo') as TipoMovimento) : null;
+const razao = ehRazao(p.get('razao')) ? p.get('razao') as keyof typeof RAZOES : null;
+
+const { lista, itens, eventos, espacos } = await withTenant(user.tenantId, async (db) => ({
+  lista: await listarMovimentos(db, { itemId, tipo, razao, busca: searchTerm(Astro.url) }, page),
+  itens: await itensParaSelecao(db),
+  eventos: await eventosParaReuniao(db),
+  espacos: await espacosParaSelecao(db, null),
+}));
+
+const ROTULO_BADGE: Record<TipoMovimento, string> = { entrada: 'badge-success', saida: 'badge-warning', ajuste: 'badge-info' };
+const variacao = (m: (typeof lista.rows)[number]) => {
+  const q = Number(m.quantidade);
+  return `${q > 0 ? '+' : q < 0 ? '−' : ''}${formatarQuantidade(Math.abs(q), m.unidade)}`;
+};
+// Detalhes por motivo: fornecedor e nota, evento, espaço e observação
+const detalhes = (m: (typeof lista.rows)[number]) =>
+  html`${m.fornecedor ? html`<span class="mv-linha">${m.fornecedor}${m.documento ? ` · NF ${m.documento}` : ''}</span>` : ''}${m.evento_id ? html`<a class="link mv-linha" href="/eventos/${m.evento_id}">${m.evento_titulo ?? 'Evento'}</a>` : ''}${m.espaco_nome ? html`<span class="mv-linha">${m.espaco_nome}</span>` : ''}${m.observacao ? html`<span class="mv-linha mv-obs">${m.observacao}</span>` : ''}`;
+
+const tableData = lista.rows.map((m) => ({
+  quando: dataHora(m.created_at),
+  item: html`<a class="link" href="/estoque/movimentos?item=${m.estoque_item_id}">${m.item_nome}</a>`,
+  tipo: html`<span class="badge ${ROTULO_BADGE[m.tipo]}">${TIPOS_MOVIMENTO[m.tipo]}</span><span class="mv-razao">${RAZOES[m.razao]?.rotulo ?? m.razao}</span>`,
+  quantidade: html`<span class="tabular">${variacao(m)}</span>`,
+  saldo: html`<span class="tabular">${formatarQuantidade(Number(m.saldo_apos), m.unidade)}</span>`,
+  detalhes: detalhes(m),
+  custo: m.custo_unitario === null ? '' : formatMoney(Number(m.custo_unitario)),
+  por: m.usuario_nome ?? '',
+}));
+const itemAtual = itemId ? itens.find((i) => i.id === itemId) : null;
+---
+
+<AppLayout title="Movimentações do estoque" heading="Estoque / Movimentações" submenu={ESTOQUE_SUBMENU} submenuActive="movimentos">
+  <PageToolbar
+    filter={{ name: 'item', placeholder: 'Todos os itens', options: itens.map((i) => ({ value: i.id, label: i.nome })) }}
+    filters={[
+      { name: 'tipo', placeholder: 'Todos os tipos', options: Object.entries(TIPOS_MOVIMENTO).map(([value, label]) => ({ value, label })) },
+      { name: 'razao', placeholder: 'Todos os motivos', options: Object.entries(RAZOES).map(([value, r]) => ({ value, label: r.rotulo })) },
+    ]}
+  >
+    <Button icon="arrows-exchange" data-drawer-open="drawer-movimento" data-values={JSON.stringify(itemAtual ? { estoque_item_id: itemAtual.id } : {})} disabled={itens.length === 0}>Nova movimentação</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'quando', label: 'Quando' },
+      { key: 'item', label: 'Item' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'quantidade', label: 'Variação', align: 'right' },
+      { key: 'saldo', label: 'Saldo após', align: 'right' },
+      { key: 'custo', label: 'Custo unit.', align: 'right' },
+      { key: 'detalhes', label: 'Detalhes' },
+      { key: 'por', label: 'Por' },
+    ]}
+    data={tableData}
+  >
+    <EstadoVazio slot="empty" icon="arrows-exchange" titulo={estaFiltrando(Astro.url) ? 'Nenhuma movimentação para este filtro' : 'Nenhuma movimentação'} texto="Entradas, saídas e ajustes de contagem aparecem aqui." />
+    <Pagination slot="footer" info={pageInfo(page, lista.total)} />
+  </Table>
+
+  <MovimentoDrawer slot="overlays" itens={itens} eventos={eventos} espacos={espacos} />
+</AppLayout>
+
+<style>
+  :global(.mv-razao),
+  :global(.mv-linha) {
+    display: block;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  :global(.mv-razao) {
+    margin-top: var(--space-1);
+  }
+
+  :global(.mv-obs) {
+    color: var(--text-body);
+  }
+</style>

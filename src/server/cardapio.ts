@@ -16,6 +16,7 @@ import type { PageParams } from '../lib/pagination';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
 import { parseMoney } from '../lib/money';
 import { UNIDADES_PORCAO, type UnidadePorcao } from '../lib/calculo/orcamento';
+import { sincronizarItemCardapio } from './estoque';
 
 export const RESTRICOES = {
   vegetariana: 'Vegetariana',
@@ -145,6 +146,8 @@ export const itemSchema = z.object({
   unidade_cobranca: unidade,
   porcao_qtd: porcaoQtd(),
   porcao_unidade: porcaoUnidade(),
+  /** Gerenciado no estoque: liga o item a um item de estoque (server/estoque.ts) */
+  estoque_gerenciado: checkbox(),
   restricoes: codigos(RESTRICOES),
   dados_operacionais: codigos(DADOS_OPERACIONAIS),
   ativo: checkbox(),
@@ -168,6 +171,9 @@ export interface ItemRow {
   unidade_cobranca: 'pessoa' | 'unidade';
   porcao_qtd: number | null;
   porcao_unidade: UnidadePorcao | null;
+  estoque_gerenciado: boolean;
+  estoque_quantidade: number | null;
+  estoque_unidade: UnidadePorcao | null;
   restricoes: string[];
   dados_operacionais: string[];
   ativo: boolean;
@@ -189,10 +195,12 @@ export async function listarItens(
     `SELECT i.id, i.nome, i.descricao, i.composicao, i.secao_id, s.nome AS secao_nome,
             i.categoria_principal_id, cp.nome AS categoria_principal_nome, i.categoria_secundaria_id,
             i.formato_servico_id, i.custo_unitario, i.preco, i.unidade_cobranca, i.porcao_qtd, i.porcao_unidade,
-            i.restricoes, i.dados_operacionais, i.ativo
+            i.restricoes, i.dados_operacionais, i.ativo,
+            COALESCE(est.ativo, false) AS estoque_gerenciado, est.quantidade AS estoque_quantidade, est.unidade AS estoque_unidade
        FROM catalogo_itens i
        JOIN catalogo_secoes s ON s.id = i.secao_id
        LEFT JOIN categorias_item cp ON cp.id = i.categoria_principal_id
+       LEFT JOIN estoque_itens est ON est.catalogo_item_id = i.id
        ${where}
       ORDER BY ${orderBy(ord, ORDEM_ITENS, 's.ordem, lower(s.nome), i.ordem, lower(i.nome)')}
       LIMIT $4 OFFSET $5`,
@@ -234,16 +242,19 @@ export async function salvarItem(db: Db, tenantId: string, id: string | null, in
       [...values, id]
     );
     if (!res.rowCount) throw new UserError('Item não encontrado.');
+    await sincronizarItemCardapio(db, tenantId, id, input.estoque_gerenciado);
     return;
   }
-  await db.query(
+  const { rows } = await db.query<{ id: string }>(
     `INSERT INTO catalogo_itens (nome, secao_id, descricao, composicao, categoria_principal_id, categoria_secundaria_id,
                                  formato_servico_id, custo_unitario, preco, unidade_cobranca, restricoes,
                                  dados_operacionais, ativo, porcao_qtd, porcao_unidade, tenant_id, ordem)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-             (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = $2))`,
+             (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_itens WHERE secao_id = $2))
+     RETURNING id`,
     [...values, tenantId]
   );
+  if (input.estoque_gerenciado) await sincronizarItemCardapio(db, tenantId, rows[0].id, true);
 }
 
 /** Copia o item na mesma seção com o nome "X (cópia)" (numerado se já existir) e devolve o novo id. */

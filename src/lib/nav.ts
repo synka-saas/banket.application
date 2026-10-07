@@ -23,6 +23,7 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true },
   { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true },
   { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'] },
+  { label: 'Estoque', icon: 'building-warehouse', href: '/estoque', match: ['/estoque'] },
   { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
   { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'] },
   { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
@@ -49,6 +50,11 @@ export const CARDAPIO_SUBMENU = [
   { id: 'itens', label: 'Itens do cardápio', href: '/cardapio/itens' },
   { id: 'opcoes', label: 'Opções de cardápio', href: '/cardapio/opcoes' },
   { id: 'categorias', label: 'Categorias', href: '/cardapio/categorias' },
+];
+
+export const ESTOQUE_SUBMENU = [
+  { id: 'itens', label: 'Itens em estoque', href: '/estoque' },
+  { id: 'movimentos', label: 'Movimentações', href: '/estoque/movimentos' },
 ];
 
 export const STAFF_SUBMENU = [

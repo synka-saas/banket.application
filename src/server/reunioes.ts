@@ -6,7 +6,7 @@ import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { isAdmin } from '../lib/auth';
 import { UserError, optionalText, optionalUuid, requiredText } from '../lib/forms';
-import { atualizarEventoAgenda, criarEventoAgenda, excluirEventoAgenda, type DadosEventoAgenda } from '../lib/google';
+import { GoogleApiError, atualizarEventoAgenda, criarEventoAgenda, excluirEventoAgenda, type DadosEventoAgenda } from '../lib/google';
 import { accessTokenAgenda } from './googleConta';
 import { registrarTimeline } from './timeline';
 
@@ -138,12 +138,31 @@ async function eventoDaReuniao(db: Db, eventoId: string | null): Promise<{ id: s
 
 const podeAlterar = (user: SessionUser, r: Reuniao) => isAdmin(user) || r.usuario_id === user.id;
 
+/** Erros da API do Google viram mensagem para o usuário (ex.: API do Calendar desativada no projeto, token revogado). */
+async function comGoogle<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof GoogleApiError) {
+      console.error('[reunioes] Google Calendar', err.status, err.message);
+      if (/has not been used in project|is disabled/i.test(err.message)) {
+        throw new UserError('A API Google Calendar não está ativada no projeto do Google Cloud. Ative-a em "APIs e serviços" e tente de novo em alguns minutos.');
+      }
+      if (err.status === 401 || err.status === 403) {
+        throw new UserError(`O Google recusou o acesso à agenda (${err.message}). Reative a agenda em Minha conta › Conta Google.`);
+      }
+      throw new UserError(`O Google Agenda respondeu com erro: ${err.message}`);
+    }
+    throw err;
+  }
+}
+
 /** Agenda a reunião na agenda Google do usuário (com Meet e convites) e grava no sistema. */
 export async function agendarReuniao(db: Db, user: SessionUser, input: ReuniaoInput): Promise<Reuniao> {
   const token = await accessTokenAgenda(user.id);
   const evento = await eventoDaReuniao(db, input.evento_id ?? null);
   const dados = dadosAgenda(input, { eventoTitulo: evento?.titulo ?? null });
-  const criado = await criarEventoAgenda(token, dados, crypto.randomUUID());
+  const criado = await comGoogle(() => criarEventoAgenda(token, dados, crypto.randomUUID()));
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO reunioes (tenant_id, evento_id, cliente_id, usuario_id, titulo, descricao, inicio, fim, participantes, local,
                            google_event_id, meet_link, google_link)
@@ -173,7 +192,7 @@ export async function atualizarReuniao(db: Db, user: SessionUser, id: string, in
   if (g[0]?.google_event_id && atual.usuario_id) {
     // A alteração sai da agenda do organizador (é lá que o evento e o Meet existem)
     const token = await accessTokenAgenda(atual.usuario_id);
-    const atualizado = await atualizarEventoAgenda(token, g[0].google_event_id, dados);
+    const atualizado = await comGoogle(() => atualizarEventoAgenda(token, g[0].google_event_id!, dados));
     meet = atualizado.meetLink ?? meet;
     link = atualizado.htmlLink ?? link;
   }
@@ -200,7 +219,7 @@ export async function cancelarReuniao(db: Db, user: SessionUser, id: string): Pr
   const { rows } = await db.query<{ google_event_id: string | null }>('SELECT google_event_id FROM reunioes WHERE id = $1', [id]);
   if (rows[0]?.google_event_id && atual.usuario_id) {
     const token = await accessTokenAgenda(atual.usuario_id);
-    await excluirEventoAgenda(token, rows[0].google_event_id);
+    await comGoogle(() => excluirEventoAgenda(token, rows[0].google_event_id!));
   }
   await db.query(`UPDATE reunioes SET status = 'cancelada', updated_at = now() WHERE id = $1`, [id]);
   if (atual.evento_id) {

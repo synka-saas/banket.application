@@ -1,0 +1,76 @@
+---
+// Lista de compras para impressão (PDF): lista simples, sem identidade visual. Só com print token.
+import { withTenant } from '../../../lib/db';
+import { verifyPrintToken } from '../../../lib/printToken';
+import { formatarQuantidade, quantidadeCompra } from '../../../lib/calculo/orcamento';
+import { situacaoEstoque } from '../../../lib/calculo/estoque';
+import { listaComprasParaImpressao } from '../../../server/orcamento';
+import { dataHora } from '../../../lib/datas';
+
+const versaoId = Astro.params.versaoId!;
+const claims = await verifyPrintToken(Astro.url.searchParams.get('token'), 'compras', versaoId);
+if (!claims) return new Response('Não autorizado', { status: 401 });
+
+const { empresa, numero, conteudo, estoque } = await withTenant(claims.tenantId, (db) => listaComprasParaImpressao(db, versaoId));
+const c = conteudo.cabecalho;
+const estoqueTexto = (l: (typeof conteudo.lista_compras)[number]) => {
+  const s = situacaoEstoque(l, estoque);
+  if (!s) return '';
+  if (s.tipo === 'suficiente') return '✓ em estoque';
+  if (s.tipo === 'parcial') return `faltam ${formatarQuantidade(s.faltam, l.unidade ?? s.item.unidade)}`;
+  if (s.tipo === 'sem') return 'sem estoque';
+  return '';
+};
+const detalhes = [c.data_evento, `${conteudo.pagantes.convidados} convidados`, c.local, `versão ${String(numero).padStart(2, '0')}`].filter(Boolean);
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lista de compras · {c.evento}</title>
+    <style>
+      @page { size: A4; margin: 16mm 14mm; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #222; }
+      h1 { margin: 0 0 4px; font-size: 16pt; }
+      .sub { margin: 0 0 2px; color: #555; font-size: 10pt; }
+      table { width: 100%; margin-top: 14px; border-collapse: collapse; }
+      th { text-align: left; font-size: 9pt; color: #555; border-bottom: 1px solid #999; padding: 4px 6px; }
+      td { padding: 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+      tr { page-break-inside: avoid; }
+      .check { width: 22px; }
+      .check span { display: inline-block; width: 11px; height: 11px; border: 1px solid #555; }
+      .qtd { white-space: nowrap; text-align: right; width: 110px; }
+      .obs { color: #555; font-size: 10pt; }
+      .est { white-space: nowrap; font-size: 9.5pt; color: #555; width: 120px; }
+      .vazio { color: #999; }
+      .rodape { margin-top: 14px; color: #888; font-size: 8pt; }
+    </style>
+  </head>
+  <body>
+    <h1>Lista de compras</h1>
+    <p class="sub">{c.evento}{c.cliente && ` · ${c.cliente}`}</p>
+    <p class="sub">{detalhes.join(' · ')}</p>
+    <table>
+      <thead>
+        <tr><th class="check"></th><th>Item</th><th class="qtd">Quantidade</th><th class="est">Estoque</th><th>Observação</th></tr>
+      </thead>
+      <tbody>
+        {conteudo.lista_compras.length === 0 && (
+          <tr><td></td><td class="vazio" colspan="4">Nenhum item no orçamento.</td></tr>
+        )}
+        {conteudo.lista_compras.map((l) => (
+          <tr>
+            <td class="check"><span></span></td>
+            <td>{l.nome || '—'}</td>
+            <td class="qtd">{quantidadeCompra(l) === null ? <span class="vazio">—</span> : formatarQuantidade(quantidadeCompra(l), l.unidade)}</td>
+            <td class="est">{estoqueTexto(l)}</td>
+            <td class="obs">{l.observacao ?? ''}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <p class="rodape">{empresa} · gerado em {dataHora(new Date())}</p>
+  </body>
+</html>

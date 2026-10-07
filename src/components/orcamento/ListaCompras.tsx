@@ -13,7 +13,8 @@ import {
   type UnidadePorcao,
 } from '../../lib/calculo/orcamento';
 import { Icon } from '../ui/Icon';
-import { toast } from '../../lib/ui';
+import { situacaoEstoque, type EstoqueRef, type SituacaoEstoque } from '../../lib/calculo/estoque';
+import { baixarArquivo, toast } from '../../lib/ui';
 import { useRemoverComDesfazer } from './controles';
 import '../../styles/orcamento.css';
 
@@ -23,7 +24,10 @@ interface Props {
   congelada: boolean;
   conteudo: ConteudoOrcamento;
   refs: ReferenciasLocacao;
+  /** Saldos do estoque (itens ativos), para marcar o que já está coberto */
+  estoque: EstoqueRef[];
   exportarUrl: string;
+  pdfUrl: string;
 }
 
 type Estado = 'salvo' | 'pendente' | 'salvando' | 'erro';
@@ -38,7 +42,7 @@ function lerQuantidade(texto: string): number | null {
 }
 const textoQuantidade = (v: number | null) => (v === null ? '' : String(v).replace('.', ','));
 
-export default function ListaCompras({ eventoId, numero, congelada, conteudo: inicial, refs, exportarUrl }: Props) {
+export default function ListaCompras({ eventoId, numero, congelada, conteudo: inicial, refs, estoque, exportarUrl, pdfUrl }: Props) {
   const [conteudo, setConteudo] = useState(() => calcularOrcamento(inicial, congelada ? undefined : refs));
   const [estado, setEstado] = useState<Estado>('salvo');
   const timer = useRef<number | null>(null);
@@ -49,30 +53,58 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
   ultimoRef.current = linhas;
   const estadoRef = useRef(estado);
   estadoRef.current = estado;
+  // Última lista alterada (atualizada na hora, antes do próximo render), para o salvamento imediato do PDF
+  const paraSalvar = useRef(linhas);
+
+  async function enviar(novas: LinhaCompra[]) {
+    setEstado('salvando');
+    try {
+      const res = await fetch(`/api/orcamentos/${eventoId}/versoes/${numero}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lista_compras: novas }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar');
+      setEstado(timer.current ? 'pendente' : 'salvo');
+    } catch (err) {
+      setEstado('erro');
+      toast(err instanceof Error ? err.message : 'Erro ao salvar', 'error');
+    }
+  }
 
   function salvar(novas: LinhaCompra[]) {
     if (timer.current) clearTimeout(timer.current);
     setEstado('pendente');
-    timer.current = window.setTimeout(async () => {
-      setEstado('salvando');
-      try {
-        const res = await fetch(`/api/orcamentos/${eventoId}/versoes/${numero}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lista_compras: novas }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar');
-        setEstado('salvo');
-      } catch (err) {
-        setEstado('erro');
-        toast(err instanceof Error ? err.message : 'Erro ao salvar', 'error');
-      }
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      void enviar(novas);
     }, 700);
+  }
+
+  // PDF: salva o que estiver pendente antes, para o arquivo sair com a última edição
+  const [gerandoPdf, setGerandoPdf] = useState(false);
+  async function baixarPdf() {
+    setGerandoPdf(true);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    await new Promise((r) => setTimeout(r, 0));
+    try {
+      if (!congelada && (timer.current || estadoRef.current !== 'salvo')) {
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = null;
+        await enviar(paraSalvar.current);
+      }
+      await baixarArquivo(pdfUrl);
+    } catch {
+      toast('Não foi possível gerar o PDF. Tente novamente.', 'error');
+    } finally {
+      setGerandoPdf(false);
+    }
   }
 
   function alterar(novas: LinhaCompra[]) {
     if (congelada) return;
+    paraSalvar.current = novas;
     setConteudo(calcularOrcamento({ ...conteudo, lista_compras: novas }, congelada ? undefined : refs));
     salvar(novas);
   }
@@ -115,6 +147,8 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
 
   const semPorcao = linhas.filter((l) => l.origem !== 'manual' && l.quantidade_calc === null && l.quantidade_manual === null).length;
   const comprados = linhas.filter((l) => l.comprado).length;
+  const situacoes = new Map(linhas.map((l) => [l.key, situacaoEstoque(l, estoque)]));
+  const cobertos = [...situacoes.values()].filter((s) => s?.tipo === 'suficiente').length;
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
@@ -128,7 +162,7 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
         <div>
           <span class="rotulo">Itens</span>
           <strong>{pad(linhas.length)}</strong>
-          <span class="muted">{pad(comprados)} comprados</span>
+          <span class="muted">{pad(comprados)} comprados · {pad(cobertos)} em estoque</span>
         </div>
       </section>
 
@@ -156,6 +190,7 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
                 <th class="num">Calculado</th>
                 <th class="num">Quantidade</th>
                 <th>Unid.</th>
+                <th>Estoque</th>
                 <th>Observação</th>
                 {!congelada && <th />}
               </tr>
@@ -194,6 +229,7 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
                         <span class="muted">{l.unidade ?? '—'}</span>
                       )}
                     </td>
+                    <td class="compras-estoque"><CelulaEstoque situacao={situacoes.get(l.key) ?? null} unidade={l.unidade} /></td>
                     <td>
                       <input class="control compacto" value={l.observacao ?? ''} disabled={congelada} aria-label={`Observação de ${l.nome || 'item'}`} maxLength={500} placeholder="Marca, fornecedor…" onBlur={(e) => (e.currentTarget.value || null) !== l.observacao && atualizar(l.key, { observacao: e.currentTarget.value || null })} />
                     </td>
@@ -224,6 +260,9 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
         )}
         <div class="orc-barra-acoes">
           <a class="btn btn-outline btn-md" href={exportarUrl}><Icon name="download" size={18} /> Exportar CSV</a>
+          <button type="button" class="btn btn-outline btn-md" onClick={baixarPdf} disabled={gerandoPdf}>
+            <Icon name="file-text" size={18} /> {gerandoPdf ? 'Gerando PDF…' : 'Exportar PDF'}
+          </button>
           {!congelada && (
             <button type="button" class="btn btn-primary btn-md" onClick={adicionarManual}><Icon name="circle-plus" size={18} /> Adicionar linha avulsa</button>
           )}
@@ -231,6 +270,24 @@ export default function ListaCompras({ eventoId, numero, congelada, conteudo: in
       </div>
     </div>
   );
+}
+
+/** Situação no estoque: coberto (check), parcial (quanto falta), sem saldo ou não comparável. */
+function CelulaEstoque({ situacao: s, unidade }: { situacao: SituacaoEstoque; unidade: UnidadePorcao | null }) {
+  if (!s) return <span class="muted">—</span>;
+  const un = unidade ?? s.item.unidade;
+  if (s.tipo === 'suficiente') {
+    return (
+      <span class="estoque-ok" title={`Em estoque: ${formatarQuantidade(s.disponivel, un)}`}>
+        <Icon name="circle-check" size={16} /> Em estoque
+      </span>
+    );
+  }
+  if (s.tipo === 'parcial') {
+    return <span class="estoque-parcial" title={`Em estoque: ${formatarQuantidade(s.disponivel, un)}`}>Faltam {formatarQuantidade(s.faltam, un)}</span>;
+  }
+  if (s.tipo === 'sem') return <span class="estoque-sem">Sem estoque</span>;
+  return <span class="muted" title={`Saldo: ${formatarQuantidade(s.item.quantidade, s.item.unidade)} (unidade diferente da lista)`}>{formatarQuantidade(s.item.quantidade, s.item.unidade)} no estoque</span>;
 }
 
 /** Quantidade com ajuste manual: vazio = calculado (placeholder); aplicado ao sair do campo. */

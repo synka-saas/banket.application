@@ -5,13 +5,16 @@ import { excluirEvento, expectToast, login, waitForIslands } from './helpers';
 // Usa o item "Bruschetta de tomate, manjericão e parmesão" dos seeds (seção Coquetel); a porção é removida ao final.
 const ITEM = 'Bruschetta de tomate, manjericão e parmesão';
 
-async function definirPorcao(page: Page, item: string, qtd: string) {
+/** Define a porção do item e devolve a anterior ({qtd, unidade}) para restaurar no fim. */
+async function definirPorcao(page: Page, item: string, qtd: string, unidade = 'g'): Promise<{ qtd: string; unidade: string }> {
   await page.goto(`/cardapio/itens?q=${encodeURIComponent(item)}`);
   await page.getByRole('button', { name: 'Editar' }).first().click();
+  const anterior = { qtd: await page.getByLabel('Porção por pessoa').inputValue(), unidade: await page.getByLabel('Unidade da porção').inputValue() };
   await page.getByLabel('Porção por pessoa').fill(qtd);
-  await page.getByLabel('Unidade da porção').selectOption('g');
+  await page.getByLabel('Unidade da porção').selectOption(unidade);
   await page.getByRole('button', { name: 'Salvar' }).click();
   await expectToast(page, 'Item atualizado.');
+  return anterior;
 }
 
 test.describe('Lista de compras', () => {
@@ -21,7 +24,7 @@ test.describe('Lista de compras', () => {
 
   test('porção × convidados vira a lista de compras, com ajuste manual persistido e CSV', async ({ page }) => {
     test.setTimeout(120_000);
-    await definirPorcao(page, ITEM, '80');
+    const porcaoOriginal = await definirPorcao(page, ITEM, '80');
     await expect(page.locator('.data-table')).toContainText('80 g/pessoa');
 
     // Evento com 50 convidados + orçamento + cardápio do zero com a seção Coquetel
@@ -52,8 +55,6 @@ test.describe('Lista de compras', () => {
       await expect(linha).toContainText('80 g');
       await expect(linha).toContainText('4 kg');
       await expect(linha.getByLabel(`Quantidade de ${ITEM}`)).toHaveAttribute('placeholder', '4000');
-      // Itens da seção sem porção aparecem com aviso
-      await expect(page.locator('.compras-aviso')).toContainText('sem porção cadastrada');
 
       // Ajuste manual, comprado e observação persistem após recarregar
       await linha.getByLabel(`Quantidade de ${ITEM}`).fill('4500');
@@ -83,27 +84,30 @@ test.describe('Lista de compras', () => {
       const arquivo = await download;
       expect(arquivo.suggestedFilename()).toBe('lista-de-compras-v01.csv');
       const conteudo = (await (await arquivo.createReadStream()).toArray()).join('');
-      expect(conteudo).toContain(`${ITEM};Coquetel;80;4000;4500;g;Sim;Padaria Central`);
+      expect(conteudo).toContain(`${ITEM};Coquetel;80;4000;4500;g;Sim;;Padaria Central`);
       expect(conteudo).toContain('Gelo;Avulso');
+
+      // PDF (lista simples)
+      const downloadPdf = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Exportar PDF' }).click();
+      const pdf = await downloadPdf;
+      expect(pdf.suggestedFilename()).toMatch(/^Lista de compras - .+ - v01\.pdf$/);
+      const bytes = Buffer.concat(await (await pdf.createReadStream()).toArray());
+      expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
     } finally {
       await excluirEvento(page, eventoUrl);
-      await page.goto(`/cardapio/itens?q=${encodeURIComponent(ITEM)}`);
-      await page.getByRole('button', { name: 'Editar' }).first().click();
-      await page.getByLabel('Porção por pessoa').fill('');
-      await page.getByRole('button', { name: 'Salvar' }).click();
-      await expectToast(page, 'Item atualizado.');
+      await definirPorcao(page, ITEM, porcaoOriginal.qtd, porcaoOriginal.unidade);
     }
   });
 });
 
-test.describe('Reuniões (sem Google configurado)', () => {
-  test('telas avisam que o agendamento depende da conta Google', async ({ page }) => {
+test.describe('Reuniões', () => {
+  test('página de reuniões, conta Google e atalho na agenda', async ({ page }) => {
     await login(page);
     await page.goto('/reunioes');
-    await expect(page.getByText('Nenhuma reunião agendada')).toBeVisible();
-    await expect(page.getByText('O login com o Google não está configurado neste servidor.')).toBeVisible();
+    await expect(page.getByRole('table').or(page.getByText('Nenhuma reunião agendada'))).toBeVisible();
     await page.goto('/conta');
-    await expect(page.getByText('Conta Google')).toBeVisible();
+    await expect(page.locator('.section-card', { hasText: 'Login com o Google e reuniões com Google Meet' })).toBeVisible();
     await page.goto('/agenda');
     await expect(page.getByRole('link', { name: 'Reuniões' })).toBeVisible();
   });

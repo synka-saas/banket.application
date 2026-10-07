@@ -1,0 +1,275 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import MovimentoDrawer from '../../components/estoque/MovimentoDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { formatMoney, moneyInput } from '../../lib/money';
+import { ESTOQUE_SUBMENU } from '../../lib/nav';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { lerOrdenacao } from '../../lib/ordenacao';
+import { formatarQuantidade } from '../../lib/calculo/orcamento';
+import {
+  TIPOS_ESTOQUE,
+  UNIDADES_ESTOQUE,
+  categoriasEstoque,
+  estoqueItemSchema,
+  excluirEstoqueItem,
+  itensParaSelecao,
+  listarEstoque,
+  movimentar,
+  movimentoSchema,
+  resumoEstoque,
+  salvarEstoqueItem,
+  type TipoEstoque,
+} from '../../server/estoque';
+import { eventosParaReuniao } from '../../server/reunioes';
+import { espacosParaSelecao } from '../../server/espacos';
+
+// Estoque: itens consumíveis (ingredientes, produtos) e não consumíveis (louça, talheres…), saldo e movimentações.
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      const id = formId(data);
+      if (data._action === 'delete' && id) {
+        await excluirEstoqueItem(db, id);
+        return 'Item removido do estoque.';
+      }
+      if (data._action === 'movimentar') {
+        const r = await movimentar(db, user, movimentoSchema.parse(data));
+        return `Movimentação registrada. Saldo de ${r.nome}: ${formatarQuantidade(r.saldo, r.unidade)}.`;
+      }
+      await salvarEstoqueItem(db, user, id, estoqueItemSchema.parse(data));
+      return id ? 'Item atualizado.' : 'Item adicionado ao estoque.';
+    })
+  );
+}
+
+const p = Astro.url.searchParams;
+const page = pageParams(Astro.url);
+const tipo = p.get('tipo') && p.get('tipo')! in TIPOS_ESTOQUE ? (p.get('tipo') as TipoEstoque) : null;
+const situacao = (['abaixo', 'zerado', 'inativos'] as const).find((s) => s === p.get('situacao')) ?? null;
+const categoria = p.get('categoria') || null;
+
+const { lista, resumo, categorias, itensSelecao, eventos, espacos } = await withTenant(user.tenantId, async (db) => ({
+  lista: await listarEstoque(db, { busca: searchTerm(Astro.url), tipo, situacao, categoria }, page, lerOrdenacao(Astro.url)),
+  resumo: await resumoEstoque(db),
+  categorias: await categoriasEstoque(db),
+  itensSelecao: await itensParaSelecao(db),
+  eventos: await eventosParaReuniao(db),
+  espacos: await espacosParaSelecao(db, null),
+}));
+
+const fmt = (q: number | null, un: string) => (q === null ? '' : formatarQuantidade(Number(q), un as never));
+const nomeCelula = (i: (typeof lista.rows)[number]) =>
+  html`<span class="est-nome">${i.nome}${i.catalogo_item_id ? html` <span class="tag tag-sm tag-accent" title="${i.catalogo_item_nome ?? ''}">Cardápio</span>` : ''}${!i.ativo ? html` <span class="badge">Inativo</span>` : ''}</span>${i.local ? html`<span class="est-apoio">${i.local}</span>` : ''}`;
+const situacaoCelula = (i: (typeof lista.rows)[number]) =>
+  Number(i.quantidade) <= 0 ? html`<span class="badge badge-danger">Zerado</span>` : i.abaixo_minimo ? html`<span class="badge badge-warning">Abaixo do mínimo</span>` : html`<span class="badge badge-success">Ok</span>`;
+const valores = (i: (typeof lista.rows)[number]) =>
+  JSON.stringify({
+    id: i.id, nome: i.nome, tipo: i.tipo, categoria: i.categoria ?? '', unidade: i.unidade,
+    estoque_minimo: i.estoque_minimo === null ? '' : String(Number(i.estoque_minimo)).replace('.', ','),
+    custo_unitario: moneyInput(i.custo_unitario === null ? null : Number(i.custo_unitario)), local: i.local ?? '', observacoes: i.observacoes ?? '', ativo: i.ativo,
+    _titulo: i.nome,
+  });
+const acoes = (i: (typeof lista.rows)[number]) =>
+  html`<button type="button" class="row-action" data-drawer-open="drawer-movimento" data-values="${JSON.stringify({ estoque_item_id: i.id })}">Movimentar</button> <a class="row-action" href="/estoque/movimentos?item=${i.id}">Histórico</a> <button type="button" class="row-action" data-drawer-open="drawer-estoque" data-values="${valores(i)}">Editar</button>`;
+
+const tableData = lista.rows.map((i) => ({
+  nome: nomeCelula(i),
+  tipo: TIPOS_ESTOQUE[i.tipo],
+  categoria: i.categoria ?? '',
+  quantidade: html`<span class="tabular">${fmt(i.quantidade, i.unidade)}</span>`,
+  minimo: fmt(i.estoque_minimo, i.unidade),
+  custo: i.custo_unitario === null ? '' : `${formatMoney(Number(i.custo_unitario))}/${i.unidade}`,
+  situacao: situacaoCelula(i),
+  acoes: acoes(i),
+}));
+
+const filtrando = estaFiltrando(Astro.url);
+const pad = (n: number) => String(n).padStart(2, '0');
+const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
+---
+
+<AppLayout title="Estoque" heading="Estoque / Itens em estoque" submenu={ESTOQUE_SUBMENU} submenuActive="itens">
+  <section class="est-resumo">
+    <div><span class="eyebrow">Itens ativos</span><strong class="tabular">{pad(resumo.itens)}</strong></div>
+    <a href="/estoque?situacao=abaixo" class:list={{ alerta: resumo.abaixo_minimo > 0 }}><span class="eyebrow">Abaixo do mínimo</span><strong class="tabular">{pad(resumo.abaixo_minimo)}</strong></a>
+    <a href="/estoque?situacao=zerado"><span class="eyebrow">Zerados</span><strong class="tabular">{pad(resumo.zerados)}</strong></a>
+    <div><span class="eyebrow">Valor em estoque</span><strong class="tabular">{formatMoney(resumo.valor_total)}</strong></div>
+  </section>
+
+  <PageToolbar
+    filter={{ name: 'tipo', placeholder: 'Todos os tipos', options: Object.entries(TIPOS_ESTOQUE).map(([value, label]) => ({ value, label })) }}
+    filters={[
+      { name: 'categoria', placeholder: 'Todas as categorias', options: categorias.map((c) => ({ value: c, label: c })) },
+      { name: 'situacao', placeholder: 'Ativos', options: [{ value: 'abaixo', label: 'Abaixo do mínimo' }, { value: 'zerado', label: 'Zerados' }, { value: 'inativos', label: 'Inativos' }] },
+    ]}
+  >
+    <Button variant="secondary" icon="arrows-exchange" data-drawer-open="drawer-movimento" disabled={itensSelecao.length === 0}>Movimentar</Button>
+    <Button icon="circle-plus" data-drawer-open="drawer-estoque" data-values={novo}>Novo item</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'nome', label: 'Item', ordenar: 'nome' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'categoria', label: 'Categoria', ordenar: 'categoria' },
+      { key: 'quantidade', label: 'Saldo', align: 'right', ordenar: 'quantidade' },
+      { key: 'minimo', label: 'Mínimo', align: 'right' },
+      { key: 'custo', label: 'Custo' },
+      { key: 'situacao', label: 'Situação' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  >
+    {filtrando ? (
+      <EstadoVazio slot="empty" icon="search-off" titulo="Nenhum item para este filtro">
+        <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>
+      </EstadoVazio>
+    ) : (
+      <EstadoVazio slot="empty" icon="building-warehouse" titulo="Estoque vazio" texto="Cadastre ingredientes, produtos prontos, louças e utensílios. Itens do cardápio entram ao ligar “Gerenciado no estoque” em Cardápios › Itens.">
+        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-estoque" data-values={novo}>Novo item</button>
+      </EstadoVazio>
+    )}
+    <Pagination slot="footer" info={pageInfo(page, lista.total)} />
+  </Table>
+
+  <Drawer slot="overlays" id="drawer-estoque" formId="form-estoque" title="Novo item de estoque" editTitle="Editar item de estoque" width="md"
+    deleteConfirm="Excluir este item e todo o histórico de movimentações? Se ele vier do cardápio, deixa de ser gerenciado no estoque.">
+    <form id="form-estoque" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="es-nome">Nome<span class="obrigatorio">*</span></label>
+        <input id="es-nome" name="nome" required maxlength="200" placeholder="Ex.: Farinha de trigo, Prato raso, Croissant" />
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Tipo</span>
+        <div class="chip-group">
+          {Object.entries(TIPOS_ESTOQUE).map(([v, l]) => <label class="chip"><input type="radio" name="tipo" value={v} />{l}</label>)}
+        </div>
+        <span class="field-hint">Consumível: ingredientes e produtos que acabam com o uso. Não consumível: louças, talheres, equipamentos.</span>
+      </div>
+      <div class="field">
+        <label for="es-categoria">Categoria</label>
+        <input id="es-categoria" name="categoria" maxlength="80" list="es-categorias" placeholder="Ex.: Laticínios, Louças" />
+        <datalist id="es-categorias">{categorias.map((c) => <option value={c} />)}</datalist>
+      </div>
+      <div class="field">
+        <label for="es-unidade">Unidade</label>
+        <select id="es-unidade" name="unidade">
+          {Object.entries(UNIDADES_ESTOQUE).map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+      </div>
+      <div class="field" data-create-only>
+        <label for="es-qtd">Quantidade inicial</label>
+        <input id="es-qtd" name="quantidade_inicial" inputmode="decimal" placeholder="0" />
+        <span class="field-hint">Depois, o saldo muda pelas movimentações.</span>
+      </div>
+      <div class="field">
+        <label for="es-minimo">Estoque mínimo</label>
+        <input id="es-minimo" name="estoque_minimo" inputmode="decimal" placeholder="Opcional" />
+      </div>
+      <div class="field">
+        <label for="es-custo">Custo unitário (R$)</label>
+        <input id="es-custo" name="custo_unitario" inputmode="decimal" placeholder="Por unidade de estoque" data-mascara="dinheiro" />
+      </div>
+      <div class="field">
+        <label for="es-local">Local de armazenamento</label>
+        <input id="es-local" name="local" maxlength="120" placeholder="Ex.: Câmara fria, Depósito" />
+      </div>
+      <div class="field span-2">
+        <label for="es-obs">Observações</label>
+        <textarea id="es-obs" name="observacoes" maxlength="2000" rows="2"></textarea>
+      </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="ativo" />Item ativo</label>
+      </div>
+    </form>
+  </Drawer>
+
+  <MovimentoDrawer slot="overlays" itens={itensSelecao} eventos={eventos} espacos={espacos} />
+</AppLayout>
+
+<style>
+  /* Resumo do estoque (StatCard compacto) */
+  .est-resumo {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .est-resumo > * {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+    color: var(--text-body);
+    text-decoration: none;
+  }
+
+  .est-resumo a:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-md);
+  }
+
+  .est-resumo strong {
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-strong);
+  }
+
+  .est-resumo .alerta strong {
+    color: var(--warning);
+  }
+
+  :global(.est-nome) {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.est-apoio) {
+    display: block;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  :global(.data-table tbody td[data-key='minimo']),
+  :global(.data-table tbody td[data-key='custo']) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 768px) {
+    .est-resumo {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('drawer:open', (e) => {
+    const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+    const drawer = e.target as HTMLElement;
+    if (drawer.id === 'drawer-estoque' && values._titulo) {
+      drawer.querySelector('.drawer-title')!.textContent = `Editar item de estoque · ${values._titulo}`;
+    }
+  });
+</script>

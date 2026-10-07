@@ -8,6 +8,7 @@ import { withTenant } from '../../../lib/db';
 import { handleFormPost } from '../../../lib/actions';
 import { eventoExiste } from '../../../server/eventos';
 import { contextoOrcamento, criarNovaVersao } from '../../../server/orcamento';
+import { estoqueParaLista } from '../../../server/estoque';
 import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
 
 // Lista de compras da versão do orçamento (uso interno): porção por pessoa × convidados, com ajuste manual.
@@ -31,9 +32,10 @@ if (Astro.request.method === 'POST') {
   );
 }
 
-const { evento, orcamento, versao, refs } = await withTenant(user.tenantId, (db) =>
-  contextoOrcamento(db, id, Astro.url.searchParams.get('versao'))
-);
+const { evento, orcamento, versao, refs, estoque } = await withTenant(user.tenantId, async (db) => ({
+  ...(await contextoOrcamento(db, id, Astro.url.searchParams.get('versao'))),
+  estoque: await estoqueParaLista(db),
+}));
 ---
 
 <EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="compras">
@@ -45,6 +47,7 @@ const { evento, orcamento, versao, refs } = await withTenant(user.tenantId, (db)
           <p class="intro">
             Quantidades de cada item selecionado no orçamento, calculadas pela <strong>porção por pessoa</strong> do cadastro do
             item vezes os convidados. Ajuste à mão o que precisar, marque o que já foi comprado e acrescente linhas avulsas.
+            Itens controlados no <a class="link" href="/estoque">Estoque</a> mostram se o saldo atual cobre a quantidade.
             Esta lista é interna: não entra na proposta.
           </p>
           <ListaCompras
@@ -54,7 +57,9 @@ const { evento, orcamento, versao, refs } = await withTenant(user.tenantId, (db)
             congelada={versao.congelada}
             conteudo={versao.conteudo}
             refs={refs}
+            estoque={estoque}
             exportarUrl={`${base}/exportar?versao=${versao.numero}`}
+            pdfUrl={`${base}/pdf?versao=${versao.numero}`}
           />
         </>
       ) : (

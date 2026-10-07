@@ -86,6 +86,7 @@ src/
     tokens.ts          tokens aleatórios de uso único (só o SHA-256 vai ao banco)
     rateLimit.ts       limite por janela fixa em memória + IP real atrás do Nginx
     senha.ts           política de senha
+    estoqueRazoes.ts   motivos das movimentações de estoque e os campos que cada um exige (puro)
     cripto.ts          AES-256-GCM com chave derivada do JWT_SECRET (tokens OAuth do Google guardados cifrados)
     google.ts          OAuth do Google (state assinado + nonce), perfil, renovação de token e Calendar API (evento + Meet)
     storage.ts         arquivos em disco particionados por tenant
@@ -115,6 +116,7 @@ src/
     documentos.ts      modelos de documento (contratos), geração por evento com numeração, PDF, envio pelo Inbox
     googleConta.ts     conta Google do usuário (login, vínculo, agenda ativa, access token renovado); conexão de sistema
     reunioes.ts        reuniões agendadas na agenda Google do organizador (Meet + convites), por evento ou avulsas
+    estoque.ts         estoque: itens, saldo, movimentações por motivo (custo médio, CMV), itens do cardápio gerenciados
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
@@ -264,6 +266,13 @@ antigas sem `espaco_id` contam como do espaço padrão (`COALESCE` nas leituras)
 ### Cardápio
 
 **`catalogo_secoes`** — `nome`, `descricao`, `ordem`, `preco` (opcional), `unidade_cobranca` (`pessoa | unidade`).
+**`estoque_itens`** — estoque da empresa: `nome` (UNIQUE por empresa), `tipo` (`consumivel | nao_consumivel`), `categoria`
+(texto livre), `unidade` (`g | kg | ml | l | un`), `quantidade` (saldo; só muda por movimentação), `estoque_minimo`,
+`custo_unitario` (custo médio), `local`, `observacoes`, `ativo`, `catalogo_item_id` (UNIQUE, → `catalogo_itens` SET NULL:
+item do cardápio "gerenciado no estoque").
+**`estoque_movimentos`** — `estoque_item_id` (CASCADE), `tipo` (`entrada | saida | ajuste` = contagem física), `razao`
+(motivo, `lib/estoqueRazoes.ts`), `quantidade` (variação com sinal), `saldo_apos`, `custo_unitario` (pago na entrada; custo
+médio do momento na saída, base do CMV), `fornecedor`, `documento` (NF), `evento_id`, `espaco_id`, `observacao`, `usuario_id`.
 **`catalogo_itens`** — `secao_id` (NOT NULL, CASCADE), `nome` (UNIQUE por seção), `descricao`, `categoria_principal_id`,
 `categoria_secundaria_id`, `formato_servico_id`, `custo_unitario`, `preco`, `unidade_cobranca`, `composicao`,
 `restricoes TEXT[]` (`vegetariana, vegana, sem_gluten, sem_lactose, alergenicos`), `dados_operacionais TEXT[]`, `ativo`, `ordem`,
@@ -446,6 +455,7 @@ guardado: pode agendar reuniões).
 | `023_documentos_visual` | identidade visual própria dos modelos de documento (logo e posição, rodapé, fontes, três cores) e `documentos.visual` (snapshot); `template_id` sem uso |
 | `024_porcoes_lista_compras` | `catalogo_itens.porcao_qtd`/`porcao_unidade` (porção por pessoa; a lista de compras fica em `orcamento_versoes.conteudo.lista_compras`) |
 | `025_google_reunioes` | `usuario_google` (conta Google e tokens cifrados; só sistema) e `reunioes` (RLS) |
+| `026_estoque` | `estoque_itens` (saldo, mínimo, custo médio, ligação com o cardápio) e `estoque_movimentos` (motivo, NF, evento, espaço) |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -526,7 +536,7 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 
 ## Funcionalidades (módulos e rotas)
 
-Navegação lateral (`components/Sidebar.astro`): Dashboard, Funil de vendas, Inbox (com o contador de não lidas,
+Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban), Inbox (com o contador de não lidas,
 calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, Staff, Espaços, Templates, Documentos,
 Configurações (só admin), Suporte.
 
@@ -593,7 +603,9 @@ Locação do orçamento e no "Espaço padrão" de Configurações › Empresa. E
   interno, não entra na proposta): quantidade de cada item selecionado = **porção por pessoa** do cadastro do item
   (Cardápios › Itens, campo "Porção por pessoa" + unidade; também na importação CSV, colunas `porcao`/`porcao_unidade`)
   × convidados da versão. Ajuste manual por linha (vazio = calculado), "comprado", observação, linhas avulsas, aviso dos
-  itens sem porção e exportação CSV (`/eventos/:id/lista-compras/exportar?versao=n`). Salva como parte `lista_compras`
+  itens sem porção, exportação CSV (`/eventos/:id/lista-compras/exportar?versao=n`) e PDF em lista simples
+  (`…/lista-compras/pdf?versao=n`, página `/print/compras/:versaoId` com print token `alvo: 'compras'`; o botão salva o
+  que estiver pendente antes de baixar). Salva como parte `lista_compras`
   da versão pelo mesmo `PUT`; versão congelada é somente leitura. Quantidades em g/ml ≥ 1000 aparecem em kg/l.
 
 **Regras de cálculo (função pura, mesmo código no navegador e no servidor):**
@@ -647,6 +659,26 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
   sistema; o resto roda em `withTenant`.
 - Contador de não lidas no menu (`contarNaoLidas`, uma consulta por página no `AppLayout`); abrir a conversa zera.
   Sem `RESEND_INBOUND_DOMAIN`, as telas avisam que as respostas vão para o e-mail do usuário.
+
+### Estoque — `/estoque`, `/estoque/movimentos` (`server/estoque.ts`, `lib/estoqueRazoes.ts`, `lib/calculo/estoque.ts`)
+- Menu Estoque (todos os usuários): resumo (itens ativos, abaixo do mínimo, zerados, valor em estoque), lista com filtros
+  de tipo, categoria e situação, drawer do item (a quantidade inicial vira uma contagem "Saldo inicial"; depois o saldo
+  só muda por movimentação; trocar a unidade exige saldo zero) e histórico de movimentações com filtros por item, tipo e motivo.
+- **Movimentação** (`components/estoque/MovimentoDrawer.astro`, `movimentar` com o item travado `FOR UPDATE`): tipo
+  Entrada, Saída ou Contagem e o **motivo**. Entradas: compra/NF (fornecedor e documento obrigatórios; custo recalcula
+  o **custo médio ponderado**), devolução de evento (evento), ajuste de inventário/sobra (justificativa), produção interna
+  (custo opcional), transferência entre espaços (espaço), bonificação (entra sem mexer no custo). Saídas: consumo em
+  evento e degustação comercial (evento obrigatório), perda/vencimento e quebra/avaria (justificativa), consumo interno,
+  ajuste/falta (justificativa), transferência (espaço), devolução ao fornecedor (fornecedor e justificativa). Contagem
+  define o saldo e registra a diferença. O formulário mostra só os campos do motivo; `movimentoSchema` repete as regras
+  no servidor. Saída maior que o saldo é recusada. Cada saída grava o custo médio do momento (CMV por evento).
+- **Item do cardápio gerenciado no estoque**: switch no drawer de Cardápios › Itens (`estoque_gerenciado`;
+  `sincronizarItemCardapio`): ligar cria (ou reativa, ou liga um avulso de mesmo nome) o item de estoque com unidade
+  sugerida pela porção (g → kg, ml → l); desligar só desativa. Excluir o item de estoque desliga o switch.
+- **Lista de compras**: coluna Estoque (`situacaoEstoque`): "Em estoque" (check) quando o saldo cobre a quantidade da
+  linha (manual ?? calculada, com conversão g/kg e ml/l), "Faltam X" quando cobre parte, "Sem estoque" ou o saldo
+  quando a unidade não converte. A linha casa com o estoque pelo item do cardápio ligado ou, sem ligação, pelo mesmo
+  nome (avulsas, bebidas). Também no CSV e no PDF. O saldo é o atual da empresa (não reserva por evento).
 
 ### Reuniões — `/eventos/:id/reunioes`, `/reunioes` (`server/reunioes.ts`, `components/reunioes/ReuniaoDrawer.astro`)
 - Disponível só para quem tem a **agenda Google ativa** (login/vínculo com o Google, ver Autenticação); caso contrário as
@@ -761,7 +793,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Carregando**: `data-carregando="Salvando…"` no botão de envio de formulário comum.
 - **Máscaras** (`lib/mascaras.ts` + `components/ui/Mascaras.astro`): `data-mascara="telefone|cep|numero|cpf|cnpj|dinheiro"`;
   `data-mascara="documento" data-mascara-tipo="<id do select PF/PJ>"` (+ `data-rotulo-documento` no label).
-- **Glossário** (`lib/rotulos.ts`): Tipo, Ocasião, Formato de serviço, Estilo gastronômico, Etapa, Funil de vendas.
+- **Glossário** (`lib/rotulos.ts`): Tipo, Ocasião, Formato de serviço, Estilo gastronômico, Etapa, Propostas (menu) /
+  Painel de Propostas (título do quadro).
   A interface usa estes nomes; o banco continua com `tipos_evento`, `categorias_evento`, `status_orcamento`.
 - **Cores e foco**: só tokens do design system (ver [Design system](#design-system-interface)). Foco: `:focus-visible`
   global (`--focus-ring-forte`); campos usam borda `--border-focus` + `--focus-ring`; quem zera o `outline`/`box-shadow`

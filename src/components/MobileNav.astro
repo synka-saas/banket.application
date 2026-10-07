@@ -24,7 +24,7 @@ const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
   {naBarra.map((item) => (
     <a href={item.href} class:list={['mnav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
       <Icon name={item.icon} size={22} />
-      <span>{item.label === 'Funil de vendas' ? 'Funil' : item.label}</span>
+      <span>{item.label}</span>
     </a>
   ))}
   <button type="button" class:list={['mnav-item', { active: painelAtivo }]} data-mnav-mais aria-expanded="false" aria-controls="mnav-painel">

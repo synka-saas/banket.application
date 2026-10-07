@@ -1,0 +1,142 @@
+---
+// Drawer de movimentação do estoque: tipo (entrada, saída, contagem) → motivo → campos que o motivo exige
+// (fornecedor e nota na compra, evento no consumo/degustação, espaço nas transferências, justificativa em perdas).
+// Abrir com data-drawer-open="drawer-movimento" e data-values {estoque_item_id, tipo, razao, evento_id}.
+import Drawer from '../ui/Drawer.astro';
+import { RAZOES, TIPOS_MOVIMENTO } from '../../lib/estoqueRazoes';
+import type { UnidadePorcao } from '../../lib/calculo/orcamento';
+
+interface Props {
+  itens: { id: string; nome: string; unidade: UnidadePorcao; quantidade: number }[];
+  eventos: { id: string; rotulo: string }[];
+  espacos: { id: string; nome: string }[];
+}
+
+const { itens, eventos, espacos } = Astro.props;
+const saldo = (q: number) => Number(q).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+---
+
+<Drawer id="drawer-movimento" formId="form-movimento" title="Movimentar estoque" width="md" deletable={false} saveLabel="Registrar" saveAction="movimentar" saveLoadingLabel="Registrando…">
+  <form id="form-movimento" method="post" class="form-grid" data-form-movimento>
+    <div class="field span-2">
+      <label for="mv-item">Item<span class="obrigatorio">*</span></label>
+      <select id="mv-item" name="estoque_item_id" required>
+        <option value="">Selecione…</option>
+        {itens.map((i) => <option value={i.id} data-unidade={i.unidade} data-saldo={saldo(i.quantidade)}>{i.nome}</option>)}
+      </select>
+      <span class="field-hint" data-saldo-atual></span>
+    </div>
+    <div class="field span-2">
+      <span class="field-label">Tipo<span class="obrigatorio">*</span></span>
+      <div class="chip-group" role="radiogroup" aria-label="Tipo da movimentação">
+        {Object.entries(TIPOS_MOVIMENTO).map(([v, l]) => (
+          <label class="chip"><input type="radio" name="tipo" value={v} required />{l}</label>
+        ))}
+      </div>
+    </div>
+    <div class="field span-2" data-campo-razao>
+      <label for="mv-razao">Motivo<span class="obrigatorio">*</span></label>
+      <select id="mv-razao" name="razao">
+        <option value="">Selecione…</option>
+        {Object.entries(RAZOES).filter(([, r]) => r.tipo !== 'ajuste').map(([v, r]) => <option value={v} data-tipo={r.tipo}>{r.rotulo}</option>)}
+      </select>
+      <span class="field-hint" data-razao-descricao></span>
+    </div>
+    <div class="field">
+      <label for="mv-qtd"><span data-rotulo-qtd>Quantidade</span><span class="obrigatorio">*</span></label>
+      <input id="mv-qtd" name="quantidade" inputmode="decimal" required placeholder="0" />
+      <span class="field-hint" data-unidade-hint></span>
+    </div>
+    <div class="field" data-campo="custo" hidden>
+      <label for="mv-custo">Custo unitário (R$)</label>
+      <input id="mv-custo" name="custo_unitario" inputmode="decimal" placeholder="Por unidade de estoque" data-mascara="dinheiro" />
+      <span class="field-hint">Recalcula o custo médio do item.</span>
+    </div>
+    <div class="field" data-campo="fornecedor" hidden>
+      <label for="mv-fornecedor">Fornecedor<span class="obrigatorio" data-marca-obrigatorio>*</span></label>
+      <input id="mv-fornecedor" name="fornecedor" maxlength="200" />
+    </div>
+    <div class="field" data-campo="documento" hidden>
+      <label for="mv-documento">Nota fiscal / documento<span class="obrigatorio" data-marca-obrigatorio>*</span></label>
+      <input id="mv-documento" name="documento" maxlength="60" placeholder="Nº da NF ou fatura" />
+    </div>
+    <div class="field span-2" data-campo="evento" hidden>
+      <label for="mv-evento">Evento<span class="obrigatorio" data-marca-obrigatorio>*</span></label>
+      <select id="mv-evento" name="evento_id">
+        <option value="">Selecione…</option>
+        {eventos.map((e) => <option value={e.id}>{e.rotulo}</option>)}
+      </select>
+    </div>
+    <div class="field span-2" data-campo="espaco" hidden>
+      <label for="mv-espaco">Espaço (origem ou destino)<span class="obrigatorio" data-marca-obrigatorio>*</span></label>
+      <select id="mv-espaco" name="espaco_id">
+        <option value="">Selecione…</option>
+        {espacos.map((e) => <option value={e.id}>{e.nome}</option>)}
+      </select>
+    </div>
+    <div class="field span-2" data-campo="justificativa">
+      <label for="mv-obs"><span data-rotulo-obs>Observação</span><span class="obrigatorio" data-marca-obrigatorio>*</span></label>
+      <input id="mv-obs" name="observacao" maxlength="500" />
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  import { RAZOES } from '../../lib/estoqueRazoes';
+
+  type Exigencia = 'obrigatorio' | 'opcional' | null;
+  const form = document.querySelector<HTMLFormElement>('[data-form-movimento]');
+  if (form) {
+    const item = form.querySelector<HTMLSelectElement>('#mv-item')!;
+    const razao = form.querySelector<HTMLSelectElement>('#mv-razao')!;
+    const tipoAtual = () => form.querySelector<HTMLInputElement>('input[name=tipo]:checked')?.value ?? 'entrada';
+
+    // Campo visível só quando o motivo o usa; obrigatório conforme a regra (required + asterisco)
+    const campo = (nome: string, exigencia: Exigencia) => {
+      const el = form.querySelector<HTMLElement>(`[data-campo="${nome}"]`)!;
+      el.hidden = exigencia === null;
+      const input = el.querySelector<HTMLInputElement | HTMLSelectElement>('input, select');
+      if (input) input.required = exigencia === 'obrigatorio';
+      const marca = el.querySelector<HTMLElement>('[data-marca-obrigatorio]');
+      if (marca) marca.hidden = exigencia !== 'obrigatorio';
+    };
+
+    const atualizar = () => {
+      const tipo = tipoAtual();
+      const opcao = item.selectedOptions[0];
+      const unidade = opcao?.dataset.unidade ?? '';
+      form.querySelector('[data-saldo-atual]')!.textContent = opcao?.value ? `Saldo atual: ${opcao.dataset.saldo} ${unidade}` : '';
+      form.querySelector('[data-unidade-hint]')!.textContent = unidade ? `Em ${unidade}` : '';
+      form.querySelector('[data-rotulo-qtd]')!.textContent = tipo === 'ajuste' ? 'Quantidade contada' : 'Quantidade';
+
+      // Motivos do tipo escolhido
+      const comMotivo = tipo !== 'ajuste';
+      form.querySelector<HTMLElement>('[data-campo-razao]')!.hidden = !comMotivo;
+      razao.required = comMotivo;
+      for (const o of razao.options) if (o.value) o.hidden = o.dataset.tipo !== tipo;
+      if (razao.selectedOptions[0]?.hidden) razao.value = '';
+
+      const codigo = (tipo === 'ajuste' ? 'contagem' : razao.value) as keyof typeof RAZOES | '';
+      const regra = codigo ? RAZOES[codigo] : null;
+      form.querySelector('[data-razao-descricao]')!.textContent = regra && tipo !== 'ajuste' ? regra.descricao : '';
+      campo('custo', regra?.custo ? 'opcional' : null);
+      campo('fornecedor', regra?.fornecedor ?? null);
+      campo('documento', regra?.documento ?? null);
+      campo('evento', regra?.evento ?? null);
+      campo('espaco', regra?.espaco ?? null);
+      campo('justificativa', regra?.justificativa ?? 'opcional');
+      form.querySelector('[data-rotulo-obs]')!.textContent = regra?.justificativa === 'obrigatorio' ? 'Justificativa' : 'Observação';
+    };
+
+    form.addEventListener('change', atualizar);
+    document.addEventListener('drawer:open', (e) => {
+      if ((e.target as HTMLElement).id !== 'drawer-movimento') return;
+      const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+      if (!values.tipo) form.querySelector<HTMLInputElement>('input[name=tipo][value=entrada]')!.checked = true;
+      requestAnimationFrame(() => {
+        if (values.razao) razao.value = values.razao;
+        atualizar();
+      });
+    });
+  }
+</script>

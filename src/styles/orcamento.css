@@ -1478,6 +1478,29 @@ a.selo-acessar:hover {
   min-width: 140px;
 }
 
+/* Situação no estoque */
+.compras-estoque {
+  white-space: nowrap;
+  font-size: var(--fs-13);
+}
+
+.estoque-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--success);
+  font-weight: var(--fw-medium);
+}
+
+.estoque-parcial {
+  color: var(--warning);
+  font-weight: var(--fw-medium);
+}
+
+.estoque-sem {
+  color: var(--danger);
+}
+
 @media (max-width: 768px) {
   .compras-resumo {
     grid-template-columns: minmax(0, 1fr);

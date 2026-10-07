@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from 'jose';
 
 export interface PrintClaims {
   tenantId: string;
-  alvo: 'versao' | 'template' | 'documento';
+  alvo: 'versao' | 'template' | 'documento' | 'compras';
   id: string;
 }
 
