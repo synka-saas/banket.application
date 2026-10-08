@@ -1,0 +1,241 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { setFlash } from '../../lib/flash';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { pesquisasSubmenu } from '../../lib/nav';
+import {
+  TIPOS_PERGUNTA,
+  VARIAVEIS_PESQUISA,
+  carregarConfig,
+  configSchema,
+  excluirPergunta,
+  listarPerguntas,
+  perguntaSchema,
+  salvarConfig,
+  salvarPergunta,
+} from '../../server/pesquisas';
+
+// Questionário da pesquisa de satisfação (perguntas fechadas e abertas, ordem, obrigatoriedade) e os textos da página
+// pública e do e-mail. Só owner/admin.
+const user = Astro.locals.user;
+if (!isAdmin(user)) {
+  setFlash(Astro.cookies, 'error', 'Só administradores editam o questionário.');
+  return Astro.redirect('/pesquisas');
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'config') {
+        await salvarConfig(db, configSchema.parse(data));
+        return 'Textos da pesquisa salvos.';
+      }
+      const id = formId(data);
+      if (data._action === 'delete' && id) {
+        await excluirPergunta(db, id);
+        return 'Pergunta excluída. As respostas já recebidas continuam nas pesquisas respondidas.';
+      }
+      await salvarPergunta(db, user.tenantId, id, perguntaSchema.parse(data));
+      return id ? 'Pergunta atualizada.' : 'Pergunta adicionada.';
+    })
+  );
+}
+
+const { perguntas, config } = await withTenant(user.tenantId, async (db) => ({
+  perguntas: await listarPerguntas(db),
+  config: await carregarConfig(db),
+}));
+
+const tableData = perguntas.map((q) => ({
+  _id: q.id,
+  _nome: q.texto,
+  pergunta: html`<span class="cq-texto">${q.texto}</span>${q.tipo === 'escolha' || q.tipo === 'multipla' ? html`<span class="cq-apoio">${q.opcoes.join(' · ')}</span>` : q.ajuda ? html`<span class="cq-apoio">${q.ajuda}</span>` : ''}`,
+  tipo: html`<span class="tag tag-sm${q.tipo === 'nps' ? ' tag-accent' : ''}">${TIPOS_PERGUNTA[q.tipo]}</span>`,
+  situacao: html`${q.ativa ? (q.obrigatoria ? 'Obrigatória' : 'Opcional') : html`<span class="badge">Inativa</span>`}`,
+  respostas: q.respostas ? String(q.respostas).padStart(2, '0') : '',
+  acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-pergunta" data-values="${JSON.stringify({ id: q.id, tipo: q.tipo, texto: q.texto, ajuda: q.ajuda ?? '', opcoes: q.opcoes.join('\n'), obrigatoria: q.obrigatoria, ativa: q.ativa, _respostas: q.respostas })}">Editar</button>`,
+}));
+---
+
+<AppLayout title="Questionário da pesquisa" heading="Pesquisas / Questionário e e-mail" submenu={pesquisasSubmenu(true)} submenuActive="configurar">
+  <div class="cq-topo">
+    <p class="intro">
+      A pesquisa usa a metodologia <strong>NPS</strong> (recomendação de 0 a 10) como indicador principal, notas de
+      <strong>satisfação de 1 a 5</strong> por aspecto do serviço (CSAT) e perguntas de escolha e abertas para coletar
+      ideias de melhoria. Arraste para mudar a ordem. Use <code>{'{empresa}'}</code> e <code>{'{evento}'}</code> no texto das perguntas.
+    </p>
+    <Button icon="circle-plus" data-drawer-open="drawer-pergunta" data-values={JSON.stringify({ tipo: 'nota', ativa: true })}>Nova pergunta</Button>
+  </div>
+
+  <Table
+    columns={[
+      { key: 'pergunta', label: 'Pergunta' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'situacao', label: 'Situação' },
+      { key: 'respostas', label: 'Respostas', align: 'right' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+    reordenar="/api/pesquisas/perguntas/ordem"
+    emptyMessage="Nenhuma pergunta. Adicione a primeira."
+  />
+
+  <SectionCard title="Textos e e-mail" description="Página que o cliente abre pelo link e mensagem do e-mail de envio." icon="mail" class="cq-card">
+    <form method="post" class="form-grid" data-form-sujo>
+      <input type="hidden" name="_action" value="config" />
+      <div class="field span-2">
+        <label for="cq-titulo">Título da pesquisa<span class="obrigatorio">*</span></label>
+        <input id="cq-titulo" name="titulo" required maxlength="120" value={config.titulo} />
+      </div>
+      <div class="field">
+        <label for="cq-intro">Introdução (início da página)</label>
+        <textarea id="cq-intro" name="introducao" rows="3" maxlength="1000">{config.introducao ?? ''}</textarea>
+      </div>
+      <div class="field">
+        <label for="cq-agradecimento">Agradecimento (depois de responder)</label>
+        <textarea id="cq-agradecimento" name="agradecimento" rows="3" maxlength="1000">{config.agradecimento ?? ''}</textarea>
+      </div>
+      <div class="field span-2">
+        <label for="cq-assunto">Assunto do e-mail<span class="obrigatorio">*</span></label>
+        <input id="cq-assunto" name="email_assunto" required maxlength="255" value={config.email_assunto} />
+      </div>
+      <div class="field span-2">
+        <label for="cq-corpo">Mensagem do e-mail<span class="obrigatorio">*</span></label>
+        <textarea id="cq-corpo" name="email_corpo" rows="9" required maxlength="10000">{config.email_corpo}</textarea>
+        <span class="field-hint cq-variaveis">Variáveis: {VARIAVEIS_PESQUISA.map((v) => <code>{v}</code>)} · <code>{'{link_pesquisa}'}</code> vira o link de resposta.</span>
+      </div>
+      <div class="field">
+        <label for="cq-dias">Lembrete de envio</label>
+        <input id="cq-dias" name="lembrete_dias" type="number" min="0" max="90" required value={config.lembrete_dias} />
+        <span class="field-hint">Dias após o evento para ele aparecer em “Eventos realizados sem pesquisa”.</span>
+      </div>
+      <div class="span-2 cq-acoes">
+        <button type="submit" class="btn btn-primary btn-md" data-carregando="Salvando…">Salvar textos</button>
+      </div>
+    </form>
+  </SectionCard>
+
+  <Drawer slot="overlays" id="drawer-pergunta" formId="form-pergunta" title="Nova pergunta" editTitle="Editar pergunta" width="md"
+    deleteConfirm="Excluir esta pergunta? As respostas já recebidas continuam nas pesquisas respondidas.">
+    <form id="form-pergunta" method="post" class="form-grid" data-form-pergunta>
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="pq-tipo">Tipo<span class="obrigatorio">*</span></label>
+        <select id="pq-tipo" name="tipo" required>
+          {Object.entries(TIPOS_PERGUNTA).map(([v, l]) => <option value={v}>{l}</option>)}
+        </select>
+        <span class="field-hint" data-pq-dica></span>
+      </div>
+      <div class="field span-2">
+        <label for="pq-texto">Pergunta<span class="obrigatorio">*</span></label>
+        <textarea id="pq-texto" name="texto" required rows="2" maxlength="300" placeholder="Ex.: Como você avalia a decoração das mesas?"></textarea>
+      </div>
+      <div class="field span-2" data-pq-opcoes hidden>
+        <label for="pq-opcoes">Opções<span class="obrigatorio">*</span></label>
+        <textarea id="pq-opcoes" name="opcoes" rows="5" placeholder="Uma opção por linha"></textarea>
+      </div>
+      <div class="field span-2">
+        <label for="pq-ajuda">Texto de apoio</label>
+        <input id="pq-ajuda" name="ajuda" maxlength="300" placeholder="Opcional, aparece abaixo da pergunta" />
+      </div>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="obrigatoria" />Obrigatória</label>
+      </div>
+      <div class="field">
+        <label class="switch"><input type="checkbox" name="ativa" />Ativa</label>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<script>
+  const DICAS: Record<string, string> = {
+    nps: 'Escala de 0 a 10. Base do NPS: promotores (9–10) menos detratores (0–6). Só uma por questionário.',
+    nota: 'Escala de 1 (muito insatisfeito) a 5 (muito satisfeito). Mostra a média e o % de satisfeitos (CSAT).',
+    escolha: 'O cliente escolhe uma das opções.',
+    multipla: 'O cliente marca quantas opções quiser.',
+    texto: 'Resposta livre: sugestões, elogios e críticas.',
+  };
+  const form = document.querySelector<HTMLFormElement>('[data-form-pergunta]');
+  if (form) {
+    const tipo = form.querySelector<HTMLSelectElement>('[name="tipo"]')!;
+    let respondida = false;
+    const atualizar = () => {
+      const comOpcoes = tipo.value === 'escolha' || tipo.value === 'multipla';
+      form.querySelector<HTMLElement>('[data-pq-opcoes]')!.hidden = !comOpcoes;
+      form.querySelector<HTMLTextAreaElement>('[name="opcoes"]')!.required = comOpcoes;
+      form.querySelector('[data-pq-dica]')!.textContent = `${DICAS[tipo.value] ?? ''}${respondida ? ' Esta pergunta já tem respostas: o tipo não pode mudar.' : ''}`;
+    };
+    tipo.addEventListener('change', atualizar);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', (e) => {
+      const { values } = (e as CustomEvent<{ values: Record<string, unknown> }>).detail;
+      // Pergunta já respondida não troca de tipo (o servidor recusa: misturaria escalas nos indicadores)
+      respondida = Number(values._respostas ?? 0) > 0;
+      requestAnimationFrame(atualizar);
+    });
+  }
+</script>
+
+<style>
+  .cq-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-4);
+  }
+
+  .intro {
+    max-width: 720px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .intro strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  :global(.cq-card) {
+    margin-top: var(--space-6);
+  }
+
+  :global(.cq-texto) {
+    display: block;
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.cq-apoio) {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+  }
+
+  .cq-variaveis code + code {
+    margin-left: var(--space-1);
+  }
+
+  .cq-acoes {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 768px) {
+    .cq-topo {
+      flex-direction: column;
+    }
+  }
+</style>

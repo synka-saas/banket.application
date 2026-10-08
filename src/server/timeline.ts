@@ -18,6 +18,8 @@ export type TipoTimeline =
   | 'documento_gerado'
   | 'reuniao'
   | 'formulario'
+  | 'financeiro'
+  | 'pesquisa'
   | 'anotacao';
 
 export const ICONES_TIMELINE: Record<string, string> = {
@@ -33,6 +35,8 @@ export const ICONES_TIMELINE: Record<string, string> = {
   documento_gerado: 'signature',
   reuniao: 'video',
   formulario: 'stack-2',
+  financeiro: 'wallet',
+  pesquisa: 'message-star',
   anotacao: 'edit',
 };
 

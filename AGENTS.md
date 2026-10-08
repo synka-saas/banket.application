@@ -3,8 +3,9 @@
 SaaS multi-empresa (multi-tenant) para buffets e casas de eventos. Cobre a captação do pedido (formulário público ou
 cadastro manual), o quadro de vendas (Kanban), o orçamento versionado montado a partir do catálogo (cardápios,
 bebidas, staff, locação por espaço), a geração do PDF da proposta, o envio por e-mail com as respostas do cliente no
-Inbox, a lista de compras por evento, a agenda com reuniões no Google Meet, o dashboard, os espaços de eventos e a gestão
-da equipe.
+Inbox, a lista de compras por evento, a agenda com reuniões no Google Meet, o dashboard, os espaços de eventos, a gestão
+da equipe, a **gestão financeira** (contas a receber/pagar, plano de pagamento do evento) e a **pesquisa de satisfação**
+pós-evento (NPS + CSAT, link público por e-mail).
 
 - Produção: <https://app.banket.com.br> (VPS `synka-main`, código em `/var/www/banket`)
 - Repositório: `git@github.com:synka-saas/banket.application.git` (branch `main`)
@@ -87,6 +88,8 @@ src/
     rateLimit.ts       limite por janela fixa em memória + IP real atrás do Nginx
     senha.ts           política de senha
     estoqueRazoes.ts   motivos das movimentações de estoque e os campos que cada um exige (puro)
+    financeiro.ts      rótulos, situação da conta (vencida é calculada) e geração das parcelas do plano de pagamento (puro)
+    pesquisa.ts        tipos de pergunta, NPS/CSAT (classes, zonas) e validação das respostas da pesquisa (puro)
     cripto.ts          AES-256-GCM com chave derivada do JWT_SECRET (tokens OAuth do Google guardados cifrados)
     google.ts          OAuth do Google (state assinado + nonce), perfil, renovação de token e Calendar API (evento + Meet)
     storage.ts         arquivos em disco particionados por tenant
@@ -119,6 +122,8 @@ src/
     estoque.ts         estoque: itens, saldo, movimentações por motivo (custo médio, CMV), itens do cardápio gerenciados
     ia/                assistentes de IA por evento (OpenAI): negociacao.ts (Assistente de Negociação IA), cardapio.ts
                        (Assistente de Orçamentos IA: alertas de estoque, sugestões, aplicar troca), comum.ts (histórico, limite)
+    financeiro.ts      contas a receber/pagar, categorias, baixa, plano de pagamento do evento, contas do estoque, CSV
+    pesquisas.ts       pesquisa de satisfação: questionário, envio pelo Inbox, página pública (token), indicadores
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
@@ -126,10 +131,12 @@ src/
                        formularios/), reunioes/ReuniaoDrawer.astro (agendar/editar reunião),
                        proposta/Proposta.astro (layout impresso), eventos/, templates/, espacos/ (drawer),
                        inbox/Conversa.astro (thread de e-mails com resposta), documentos/ (ModeloForm: editor com barra
-                       de formatação e prévia; DocumentoImpresso: página de impressão do documento)
+                       de formatação e prévia; DocumentoImpresso: página de impressão do documento), financeiro/
+                       (ContasLista, ContaDrawer, BaixaDrawer, PlanoDrawer, linhas.ts), pesquisas/EnvioDrawer.astro
   layouts/             Layout, AppLayout (sidebar+topbar), AuthLayout, EventoLayout (abas do evento), FormularioLayout
   styles/              tokens.css (tokens do design system + @font-face), global.css (base e classes utilitárias),
-                       orcamento.css, editor.css, formularios.css (ilhas Preact), inbox.css (thread e lista do Inbox)
+                       orcamento.css, editor.css, formularios.css (ilhas Preact), inbox.css (thread e lista do Inbox),
+                       financeiro.css (indicadores, listas de contas e barras; usado também pelas Pesquisas)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
 scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs
@@ -217,6 +224,8 @@ cardapio_opcoes 1─N cardapio_opcao_secoes N─1 catalogo_secoes
 cardapio_opcao_secoes 1─N cardapio_opcao_itens N─1 catalogo_itens
 staff_servicos 1─N profissionais
 formularios 1─N formulario_respostas → eventos, clientes
+fin_categorias 1─N fin_contas N─1 eventos / clientes / estoque_movimentos   (contas a receber e a pagar)
+eventos 1─1 pesquisa_envios 1─N pesquisa_respostas N─1 pesquisa_perguntas  (pesquisa de satisfação)
 ```
 
 ### SaaS e acesso
@@ -250,9 +259,12 @@ ser escolhido no envio, na resposta do Inbox e na mensagem nova.
 `ordem`, `cor`. A variante dá a semântica usada pelo código: `novo` = entrada de pedidos; ao criar o orçamento o evento
 vai para o primeiro `negociacao`; dashboard usa `aprovado`/`recusado` para conversão.
 
-**`tipos_evento`** (`nome`, `descricao`) — ex.: Social, Corporativo.
-**`categorias_evento`** (`nome`, `descricao`) — ex.: Casamento, Aniversário; ligada a tipos via **`categoria_evento_tipos`**
-(`categoria_id`, `tipo_evento_id`, `tenant_id`).
+**`tipos_evento`** (`nome`, `descricao`, `slug`) — **fixos para o sistema inteiro** (migration 030): toda empresa tem
+exatamente **Corporativo** (`slug = 'corporativo'`) e **Social** (`'social'`). Não há cadastro: o trigger
+`tipos_evento_fixos` recusa outro nome e qualquer renomeação; o código identifica o tipo pelo `slug`.
+**`categorias_evento`** (`nome`, `descricao`) — **Ocasiões** (Casamento, Aniversário…); ligada aos tipos via
+**`categoria_evento_tipos`** (`categoria_id`, `tipo_evento_id`, `tenant_id`) — a matriz de toggles em Configurações ›
+Ocasiões, que define as opções de ocasião no formulário do evento e no formulário de captação.
 **`formatos_servico`** (`nome`, `descricao`, `ordem`) — Serviço volante, Buffet, Ilhas gastronômicas, Empratado, Coquetel.
 **`categorias_item`** (`nome`, `tipo` CHECK `principal | secundaria`, `ordem`) — principal = tipo do alimento
 (Salgado, Doce, **Bebida**); secundária = momento (Recepção, Entrada, Prato principal, Sobremesa). Seções cujos itens têm
@@ -312,7 +324,7 @@ casa), `local_nome` (espelho do nome do espaço, ou texto livre em "Outro local"
 
 **`evento_checklist`** — `item`, `status` (`pendente | agendado | enviado | concluido`), `prazo`, `ordem`.
 **`evento_timeline`** — histórico: `tipo` (`criado, editado, status, checklist, orcamento_criado, orcamento_versao,
-pdf_gerado, email_enviado, email_recebido, formulario, anotacao`), `descricao`, `dados JSONB`, `usuario_id` (null nos
+pdf_gerado, email_enviado, email_recebido, documento_gerado, reuniao, formulario, financeiro, pesquisa, anotacao`), `descricao`, `dados JSONB`, `usuario_id` (null nos
 registros do webhook). Sempre gravar via `registrarTimeline()` (`server/timeline.ts`).
 
 ### Orçamento e proposta
@@ -416,6 +428,31 @@ guardado: pode agendar reuniões).
 (organizador), `titulo`, `descricao`, `inicio`/`fim` TIMESTAMPTZ (interface em `America/Sao_Paulo`), `participantes TEXT[]`,
 `local`, `google_event_id`, `meet_link`, `google_link`, `status` (`agendada | cancelada`).
 
+### Financeiro
+
+**`fin_categorias`** — plano de contas simples: `tipo` (`receber | pagar`), `nome` (UNIQUE por empresa e tipo), `ativo`,
+`ordem`. Padrões em `aplicar_padroes_financeiro` (Venda de evento, Insumos e alimentos, Equipe e staff…).
+**`fin_contas`** — cada conta/parcela: `tipo` (`receber | pagar`), `descricao`, `categoria_id` (SET NULL), `evento_id`
+(SET NULL: excluir o evento não apaga o histórico financeiro), `cliente_id` (do evento), `fornecedor` (fornecedor ou
+pagador avulso), `valor` (> 0), `vencimento DATE`, `forma_pagamento` (`pix | boleto | cartao_credito | cartao_debito |
+transferencia | dinheiro | cheque | outro`), `documento`, `observacoes`, `origem` (`manual | plano | estoque`), `parcela`
+(0 = entrada) + `parcelas`, `estoque_movimento_id` (SET NULL), `status` (`aberta | paga | cancelada`; **vencida** é
+calculada: aberta com vencimento antes de hoje), `pago_em`, `valor_pago` (aceita juros/desconto; CHECK exige os dois
+quando paga), `usuario_id`, `baixa_usuario_id`.
+
+### Pesquisa de satisfação
+
+**`pesquisa_config`** — PK `tenant_id`: `titulo`, `introducao`, `agradecimento` (página pública), `email_assunto`,
+`email_corpo` (variáveis `{nome_cliente} {evento} {data_evento} {empresa} {link_pesquisa}`), `lembrete_dias` (0–90).
+**`pesquisa_perguntas`** — questionário da empresa: `tipo` (`nps` 0–10 · `nota` 1–5 · `escolha` · `multipla` · `texto`),
+`texto` (aceita `{empresa}`/`{evento}`), `ajuda`, `opcoes TEXT[]`, `obrigatoria`, `ativa`, `ordem`. Índice parcial: no
+máximo **uma pergunta NPS** por empresa. Padrões em `aplicar_padroes_pesquisa` (NPS, 5 notas de CSAT, expectativa,
+duas abertas, autorização de depoimento).
+**`pesquisa_envios`** — um link por evento (`evento_id` UNIQUE, CASCADE): `token` (UNIQUE, 32 caracteres base64url),
+`enviado_para TEXT[]`, `enviado_em`, `envios`, `enviado_por`, `respondida_em`, `nps` (cópia da nota para agregação), `ip`.
+**`pesquisa_respostas`** — `envio_id` (CASCADE), `pergunta_id` (SET NULL), `tipo` e `pergunta_texto` copiados na
+resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
+
 ### Funções SQL
 
 | Função | O que faz |
@@ -427,7 +464,9 @@ guardado: pode agendar reuniões).
 | `aplicar_padroes_formulario(id)` | formulário "Formulário de contato" com slug `contato-xxxxxx` |
 | `aplicar_padroes_email_modelos(id)` | modelo "Proposta padrão" a partir de `email_assunto`/`email_corpo` |
 | `aplicar_padroes_documentos(id)` | modelo "Contrato de prestação de serviços" (texto genérico de exemplo) |
-| `aplicar_padroes_tenant_completo(id)` | chama as cinco acima; usado no cadastro de empresa nova |
+| `aplicar_padroes_financeiro(id)` | categorias iniciais de contas a receber e a pagar |
+| `aplicar_padroes_pesquisa(id)` | `pesquisa_config` (textos e e-mail) + questionário inicial (NPS, CSAT, escolhas, abertas) |
+| `aplicar_padroes_tenant_completo(id)` | chama as sete acima; usado no cadastro de empresa nova |
 
 ### Histórico das migrations
 
@@ -461,6 +500,9 @@ guardado: pode agendar reuniões).
 | `025_google_reunioes` | `usuario_google` (conta Google e tokens cifrados; só sistema) e `reunioes` (RLS) |
 | `027_ia_analises` | `ia_analises` (análises de IA por evento: contexto .md + resultado JSON) e `estoque_itens.validade` |
 | `026_estoque` | `estoque_itens` (saldo, mínimo, custo médio, ligação com o cardápio) e `estoque_movimentos` (motivo, NF, evento, espaço) |
+| `028_financeiro` | `fin_categorias`, `fin_contas` (RLS), `aplicar_padroes_financeiro` (backfill em toda empresa), `aplicar_padroes_tenant_completo` com 6 chamadas |
+| `029_pesquisas` | `pesquisa_config`, `pesquisa_perguntas`, `pesquisa_envios`, `pesquisa_respostas` (RLS), `aplicar_padroes_pesquisa` (backfill), `aplicar_padroes_tenant_completo` com 7 chamadas |
+| `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
 ### Seeds (somente dev, `--seed`)
 
@@ -482,11 +524,12 @@ TechCorp" ligado ao evento corporativo. `_legacy_*` são ignorados.
 - Usuário com várias empresas troca a ativa por `POST /api/sessao/empresa` (reemite o JWT); lista em `empresasDoUsuario`.
 
 ### Middleware (`src/middleware.ts`)
-- Públicas: `/auth/*`, `/f/*`, `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
+- Públicas: `/auth/*`, `/f/*`, `/p/*` (pesquisa de satisfação pelo token), `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
   Svix do Resend conferida na rota), `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e estáticos
   de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
-- `/configuracoes*` e `/api/configuracoes*`: só `owner` e `admin` (403 / redirect para o dashboard).
+- `/configuracoes*`, `/api/configuracoes*`, `/financeiro*`, `/api/financeiro*` e a aba `/eventos/:id/financas`: só
+  `owner` e `admin` (403 / redirect para o dashboard).
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
   (exceto `/f/*`, que pode ser incorporado no site do buffet), HSTS em produção.
 - CSRF: `security.checkOrigin` do Astro; `allowedDomains` confia no `X-Forwarded-*` só para `app.banket.com.br` e localhost.
@@ -542,8 +585,8 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 ## Funcionalidades (módulos e rotas)
 
 Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban), Inbox (com o contador de não lidas,
-calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, Staff, Espaços, Templates, Documentos,
-Configurações (só admin), Suporte.
+calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, **Financeiro** (só admin), Estoque, Staff, Espaços,
+Templates, Documentos, **Pesquisas**, Configurações (só admin), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -578,7 +621,7 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
 - Evento (`/eventos/novo`, `/eventos/:id`, `/editar`): briefing completo, cliente existente ou novo no mesmo formulário.
   O local é um select de **Espaço** (nossos espaços, de terceiros ou "Outro local" com nome/endereço livres); o espaço
   padrão da empresa já vem selecionado. Abas do `EventoLayout`: resumo, **Orçamento** (sub-abas: itens, informações, condições, prévia, lista de compras, Assistente de Orçamentos IA), **Assistente de Negociação IA**, Informações complementares,
-  Condições gerais, **Mensagens** (Inbox do evento), **Documentos** (contratos gerados), Linha do tempo.
+  Condições gerais, **Mensagens** (Inbox do evento), **Documentos** (contratos gerados), **Finanças** (só admin), Linha do tempo.
 - Checklist operacional por evento (degustação, laudos, documentos) com status e prazo.
 - Mudanças relevantes (data, convidados, cliente, espaço, status) vão para a linha do tempo.
 
@@ -684,6 +727,56 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
   linha (manual ?? calculada, com conversão g/kg e ml/l), "Faltam X" quando cobre parte, "Sem estoque" ou o saldo
   quando a unidade não converte. A linha casa com o estoque pelo item do cardápio ligado ou, sem ligação, pelo mesmo
   nome (avulsas, bebidas). Também no CSV e no PDF. O saldo é o atual da empresa (não reserva por evento).
+- **Registro financeiro** (owner/admin): compra/NF (→ conta a pagar) e devolução ao fornecedor (→ conta a receber)
+  mostram "Lançar no financeiro" no drawer (`TIPO_CONTA_DO_MOTIVO`; valor sugerido = quantidade × custo, vencimento,
+  forma, categoria, "já foi pago"). `movimentarDoFormulario` registra a movimentação e chama `contaDoMovimento` (conta
+  com `origem = 'estoque'`, fornecedor, NF e evento da movimentação). O histórico marca "No financeiro".
+
+### Financeiro (owner/admin) — `/financeiro`, `/financeiro/receber`, `/financeiro/pagar`, `/financeiro/categorias`, `/eventos/:id/financas` (`server/financeiro.ts`, `lib/financeiro.ts`)
+- **Plano de pagamento** (condições do contrato): ao mover o evento para a etapa `aprovado`, o `EtapaDialogo` (owner/admin)
+  oferece "Cadastrar o plano de pagamento em seguida" e leva a `/eventos/:id/financas?plano=1`, que abre o `PlanoDrawer`;
+  também pela aba a qualquer momento. Valor (sugerido: total do orçamento − já recebido no plano), entrada/sinal com
+  vencimento, N parcelas do saldo (1 = à vista) a partir do 1º vencimento, intervalo mensal/bimestral/trimestral, forma
+  e categoria; prévia ao vivo com `gerarParcelas` (puro; centavos na última parcela). `salvarPlano` troca as parcelas
+  **em aberto** do plano anterior (as recebidas ficam) e cria uma conta a receber por parcela (`origem = 'plano'`,
+  descrição "Título – Parcela 2/3"), com timeline `financeiro`. Variável `{plano_pagamento}` nos documentos
+  (`textoPlanoPagamento`; sem plano, cai no `forma_pagamento` do briefing).
+- **Aba Finanças do evento**: orçamento, a receber (recebido/em aberto), custos do evento (pago; estoque consumido = CMV
+  das saídas de consumo/degustação), resultado previsto e margem; tabelas de contas a receber e a pagar do evento.
+- **Contas** (`ContaDrawer`): descrição, valor, vencimento, categoria (do tipo), forma, evento (o cliente vem do evento),
+  fornecedor/pagador, documento, observações; na criação, "já foi paga" com a data. Ações por linha (`linhas.ts`,
+  `acaoConta`): Receber/Pagar (`BaixaDrawer`: data, valor pago, forma), Editar, Cancelar (sai dos totais, fica no
+  histórico) e Reabrir (desfaz baixa/cancelamento); excluir no drawer. Baixa, cancelamento e reabertura de conta com
+  evento vão para a linha do tempo.
+- **Menu**: visão geral (a receber/a pagar em aberto e vencido, saldo previsto, realizado no mês, fluxo de caixa de 3
+  meses atrás a 5 à frente — realizado pela data do pagamento, previsto pelo vencimento —, vencidas e próximos 7 dias com
+  baixa direta); listas de contas a receber/pagar (`ContasLista`) com totais do recorte, filtros de situação (padrão: em
+  aberto e vencidas), vencimento (`PERIODOS`), categoria, evento (`?evento=`) e busca, ordenação e CSV
+  (`/financeiro/exportar?tipo=`); categorias por tipo (excluir deixa as contas sem categoria).
+
+### Pesquisa de satisfação — `/pesquisas`, `/pesquisas/respostas[/:id]`, `/pesquisas/perguntas`, `/pesquisas/configurar`, público `/p/:token` (`server/pesquisas.ts`, `lib/pesquisa.ts`)
+- **Metodologia**: NPS (0–10; promotores 9–10, neutros 7–8, detratores 0–6; NPS = % promotores − % detratores, com as
+  zonas crítica/aperfeiçoamento/qualidade/excelência) + CSAT (notas 1–5 por aspecto; % de satisfeitos = notas 4 e 5 e
+  média) + perguntas de escolha e abertas (insights).
+- **Questionário** (`/pesquisas/configurar`, só owner/admin): perguntas com tipo, texto (`{empresa}`), apoio, opções
+  (uma por linha), obrigatória, ativa; ordem por arrastar (`/api/pesquisas/perguntas/ordem`); uma só NPS; pergunta já
+  respondida não muda de tipo; excluir mantém as respostas (enunciado copiado). Textos da página e do e-mail e os dias do
+  lembrete no mesmo lugar.
+- **Envio** (`EnvioDrawer`, todos os usuários): eventos na etapa `aprovado` com data já passada e sem resposta; o drawer
+  monta assunto/mensagem no navegador a partir do modelo (`{link_pesquisa}` vira o link; sem ela, o link entra no fim).
+  `enviarPesquisa` cria (ou reaproveita) o link do evento e envia **na conversa do evento** (`obterOuCriarConversa` +
+  `enviarNaConversa`: respostas por e-mail caem no Inbox), com timeline `pesquisa`. Reenvio usa o mesmo link; "Copiar
+  link" para mandar por WhatsApp.
+- **Lembrete** (manual, sem envio automático): a visão geral lista eventos aprovados realizados há `lembrete_dias` ou
+  mais (até 90) sem pesquisa enviada, com botão Enviar.
+- **Página pública** `/p/:token` (`FormularioLayout`, funciona sem JS): `pesquisaPublica` acha o tenant pelo token
+  (conexão de sistema) e carrega o questionário ativo em `withTenant`; `responderPesquisa` valida (`validarRespostas`),
+  grava uma vez por link (`FOR UPDATE`), copia a nota NPS no envio e registra na timeline ("respondida — NPS 9
+  (promotor)"). Honeypot `_website` e 10 envios / 10 min por IP.
+- **Indicadores**: visão geral com filtros de período e tipo de evento (NPS e zona, respostas, taxa de resposta,
+  promotores/detratores, distribuição 0–10, CSAT por aspecto, escolhas, comentários recentes); Respostas (status,
+  classe NPS, período, busca no texto) com detalhe por pesquisa; **Por pergunta**: distribuição da pergunta (clicar numa
+  linha filtra a nota/opção) e a lista de respostas com filtros de classe NPS, período e texto — é onde se leem as abertas.
 
 ### Assistentes de IA (OpenAI, `lib/openai.ts` → `openAiJson` com JSON Schema strict; `OPENAI_TOKEN`/`OPENAI_MODEL`)
 - **Assistente de Negociação IA** — aba do evento `/eventos/:id/negociacao` (`server/ia/negociacao.ts`). "Analisar
@@ -754,9 +847,15 @@ reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
   experiência, detalhes finais; fluxos `todos | B2B | B2C`; perguntas condicionais `mostrarSe`; perguntas "travadas").
   No banco só ficam os ajustes (`config`): seções/perguntas ativas, obrigatoriedade, ordem e perguntas personalizadas.
 - Editor Preact (`FormularioEditor`) via `/api/formularios/:id` (GET, PUT, DELETE, POST duplica — a cópia nasce inativa).
+- **Ocasião** (`b2b_ocasiao`, `b2c_ocasiao`, `origemOpcoes: 'ocasioes'`): as opções vêm do banco
+  (`ocasioesPorFluxo` em `server/formularios.ts`): ocasiões ligadas a Corporativo no fluxo B2B e a Social no B2C, pela
+  matriz de Configurações › Ocasiões. O valor é o id da ocasião. Sem nenhuma ocasião ligada ao tipo, a pergunta não
+  aparece nem é exigida (`perguntaExibida`). `montarFormulario(config, ocasioes)` recebe as opções; sem elas a
+  pergunta fica vazia.
 - Envio público (`POST /api/public/formularios/:slug`): resolve o tenant pelo slug (sistema), valida contra a
   configuração atual e, dentro de `withTenant`: reaproveita o cliente pelo e-mail (ou cria, PJ se B2B), converte as
-  respostas no briefing (tipo, categoria, formato por nome), cria o evento com `origem = 'formulario'` no status de
+  respostas no briefing (tipo pelo `slug` da natureza, ocasião pelo id — chaves antigas `casamento|debutante|aniversario`
+  ainda caem no nome —, formato por nome), cria o evento com `origem = 'formulario'` no status de
   entrada e grava o snapshot em `formulario_respostas`.
 
 ### Staff — `/staff/profissionais`, `/staff/servicos` (`server/staff.ts`)
@@ -777,7 +876,8 @@ galeria os usam (`arquivoEmUso`). Gerações presas há mais de 6 min viram erro
 próprio: liga/desliga e posição do logotipo principal. Blocos de informação por página da proposta, com marcação simples.
 
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
-Usuários e convites · Tipos de evento · Categorias (com toggles de tipo via `/api/configuracoes/categorias/tipos`) ·
+Usuários e convites · Ocasiões (matriz de toggles Corporativo/Social via `/api/configuracoes/categorias/tipos`;
+`/configuracoes/tipos-evento` só redireciona para cá, os tipos são fixos) ·
 Status de orçamento (colunas do Kanban: nome, variante, cor, ordem, intervalo do Kanban) · Formatos de serviço ·
 Modelos de e-mail (`/configuracoes/modelos-email`, `server/emailModelos.ts`: nome, assunto, corpo com chips de
 variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ativo assume) · Empresa (dados cadastrais, logo,
@@ -986,8 +1086,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - Funções puras que rodam no navegador (cálculo, modelo de formulário, money) não podem importar `db` nem Node.
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
-  (agenda-dashboard, autoatendimento, cardápio, conta, drawer, eventos, formulários, listas, mobile, orçamento,
-  segurança, staff, templates).
+  (agenda-dashboard, autoatendimento, cardápio, conta, drawer, estoque, eventos, financeiro, formulários, listas, mobile,
+  orçamento, pesquisas, segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
@@ -1080,4 +1180,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   precisa vincular de novo). `usuario_google` só é lida pela conexão de sistema (`server/googleConta.ts`); o resto das
   reuniões roda em `withTenant`. O Google só manda `refresh_token` no primeiro consentimento (ou com `prompt=consent`):
   por isso "Ativar agenda" usa `?agenda=1`.
+- Contas do financeiro sobrevivem à exclusão do evento (`evento_id` SET NULL); os e2e as apagam explicitamente
+  (`removerEventoBanco` em `tests/e2e/helpers.ts`).
+- O link da pesquisa (`/p/<token>`) é a credencial do cliente: não exponha o token fora das telas da empresa.
 - A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

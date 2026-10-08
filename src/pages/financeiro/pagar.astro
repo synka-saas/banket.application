@@ -1,0 +1,28 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import ContasLista from '../../components/financeiro/ContasLista.astro';
+import ContaDrawer from '../../components/financeiro/ContaDrawer.astro';
+import BaixaDrawer from '../../components/financeiro/BaixaDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { FINANCEIRO_SUBMENU } from '../../lib/nav';
+import { acaoConta, eventosParaFinanceiro, listarCategorias } from '../../server/financeiro';
+
+// Contas a pagar da empresa (owner/admin): de todos os eventos e as avulsas.
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => withTenant(user.tenantId, (db) => acaoConta(db, user, data)));
+}
+
+const { categorias, eventos } = await withTenant(user.tenantId, async (db) => ({
+  categorias: await listarCategorias(db),
+  eventos: await eventosParaFinanceiro(db),
+}));
+---
+
+<AppLayout title="Contas a pagar" heading="Financeiro / Contas a pagar" submenu={FINANCEIRO_SUBMENU} submenuActive="pagar">
+  <ContasLista tipo="pagar" categorias={categorias} eventos={eventos} />
+  <ContaDrawer slot="overlays" tipo="pagar" categorias={categorias} eventos={eventos} />
+  <BaixaDrawer slot="overlays" />
+</AppLayout>

@@ -1,0 +1,130 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import EnvioDrawer from '../../components/pesquisas/EnvioDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { dataCurta, dataHora } from '../../lib/datas';
+import { pesquisasSubmenu } from '../../lib/nav';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { carregarEmpresa } from '../../server/empresa';
+import {
+  CLASSES_NPS,
+  CLASSES_NPS_PLURAL,
+  PERIODOS_PESQUISA,
+  STATUS_ENVIO,
+  acaoPesquisa,
+  carregarConfig,
+  classeNps,
+  eventosParaEnvio,
+  filtrosPesquisaDaUrl,
+  linkPesquisa,
+  listarEnvios,
+  type ClasseNps,
+} from '../../server/pesquisas';
+
+// Pesquisas enviadas: quem respondeu (com a nota NPS), quem ainda não respondeu (reenviar, copiar o link).
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => withTenant(user.tenantId, (db) => acaoPesquisa(db, user, data)));
+}
+
+const p = Astro.url.searchParams;
+const page = pageParams(Astro.url);
+const status = (p.get('status') && p.get('status')! in STATUS_ENVIO ? p.get('status') : null) as keyof typeof STATUS_ENVIO | null;
+const classe = (p.get('classe') && p.get('classe')! in CLASSES_NPS ? p.get('classe') : null) as ClasseNps | null;
+
+const { lista, eventos, config, empresa } = await withTenant(user.tenantId, async (db) => ({
+  lista: await listarEnvios(db, { ...filtrosPesquisaDaUrl(Astro.url), status, classe, busca: searchTerm(Astro.url) }, page),
+  eventos: await eventosParaEnvio(db),
+  config: await carregarConfig(db),
+  empresa: await carregarEmpresa(db),
+}));
+
+const TAG: Record<ClasseNps, string> = { promotor: 'tag-sage', neutro: 'tag-ochre', detrator: 'tag-wine' };
+const tableData = lista.rows.map((e) => ({
+  evento: html`<a class="link ps-evento" href="/eventos/${e.evento_id}">${e.evento_titulo ?? 'Evento'}</a><span class="ps-apoio">${[e.cliente_nome, e.data_evento ? dataCurta(e.data_evento) : null].filter(Boolean).join(' · ')}</span>`,
+  enviada: e.enviado_em
+    ? html`<span class="tabular">${dataHora(e.enviado_em)}</span><span class="ps-apoio">${e.enviado_para.join(', ')}${e.envios > 1 ? ` · ${e.envios} envios` : ''}</span>`
+    : html`<span class="ps-apoio">Link criado, sem e-mail</span>`,
+  resposta: e.respondida_em ? html`<span class="badge badge-success">Respondida</span><span class="ps-apoio">${dataHora(e.respondida_em)}</span>` : html`<span class="badge">Aguardando</span>`,
+  nps: e.nps === null ? '' : html`<span class="tag ${TAG[classeNps(e.nps)]}">${e.nps} · ${CLASSES_NPS[classeNps(e.nps)]}</span>`,
+  acoes: e.respondida_em
+    ? html`<a class="row-action" href="/pesquisas/respostas/${e.id}">Ver respostas</a>`
+    : html`<button type="button" class="row-action" data-copiar="${linkPesquisa(e.token)}">Copiar link</button> <button type="button" class="row-action" data-drawer-open="drawer-pesquisa" data-values="${JSON.stringify({ evento_id: e.evento_id })}">Reenviar</button>`,
+}));
+---
+
+<AppLayout title="Respostas das pesquisas" heading="Pesquisas / Respostas" submenu={pesquisasSubmenu(isAdmin(user))} submenuActive="respostas">
+  <PageToolbar
+    searchPlaceholder="Evento, cliente ou comentário"
+    filter={{ name: 'status', placeholder: 'Todas', options: Object.entries(STATUS_ENVIO).map(([value, label]) => ({ value, label })) }}
+    filters={[
+      { name: 'classe', placeholder: 'Qualquer nota', options: Object.entries(CLASSES_NPS_PLURAL).map(([value, label]) => ({ value, label })) },
+      { name: 'periodo', placeholder: 'Todo o período', options: Object.entries(PERIODOS_PESQUISA).map(([value, label]) => ({ value, label })) },
+    ]}
+  >
+    <Button icon="send" data-drawer-open="drawer-pesquisa" disabled={eventos.length === 0}>Enviar pesquisa</Button>
+  </PageToolbar>
+
+  <Table
+    columns={[
+      { key: 'evento', label: 'Evento' },
+      { key: 'enviada', label: 'Enviada' },
+      { key: 'resposta', label: 'Resposta' },
+      { key: 'nps', label: 'NPS' },
+      { key: 'acoes', label: 'Ações', align: 'right' },
+    ]}
+    data={tableData}
+  >
+    {estaFiltrando(Astro.url) ? (
+      <EstadoVazio slot="empty" icon="search-off" titulo="Nenhuma pesquisa para este filtro">
+        <a class="btn btn-secondary btn-md" href={Astro.url.pathname}>Limpar filtros</a>
+      </EstadoVazio>
+    ) : (
+      <EstadoVazio slot="empty" icon="message-star" titulo="Nenhuma pesquisa enviada" texto="Envie a pesquisa depois do evento; as respostas aparecem aqui.">
+        <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-pesquisa" disabled={eventos.length === 0}>Enviar pesquisa</button>
+      </EstadoVazio>
+    )}
+    <Pagination slot="footer" info={pageInfo(page, lista.total)} />
+  </Table>
+
+  <EnvioDrawer slot="overlays" eventos={eventos} modelo={{ assunto: config.email_assunto, corpo: config.email_corpo }} empresa={empresa.nome} />
+</AppLayout>
+
+<script>
+  import { toast } from '../../lib/ui';
+
+  // Copiar o link para mandar por outro canal (WhatsApp)
+  document.addEventListener('click', (e) => {
+    const botao = (e.target as HTMLElement).closest<HTMLElement>('[data-copiar]');
+    if (!botao) return;
+    navigator.clipboard
+      .writeText(botao.dataset.copiar!)
+      .then(() => toast('Link da pesquisa copiado.', 'success'))
+      .catch(() => toast('Não foi possível copiar o link.', 'error'));
+  });
+</script>
+
+<style>
+  :global(.ps-evento) {
+    font-weight: var(--fw-medium);
+  }
+
+  :global(.ps-apoio) {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  :global(.data-table tbody td[data-key='acoes']) {
+    white-space: nowrap;
+  }
+</style>

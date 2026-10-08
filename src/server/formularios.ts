@@ -11,6 +11,7 @@ import {
   resumirRespostas,
   rotuloOpcao,
   validarRespostas,
+  type OcasioesPorFluxo,
   type RespostaResumo,
   type Respostas,
   type SecaoResolvida,
@@ -19,6 +20,25 @@ import { clienteSchema, salvarCliente } from './clientes';
 import { criarEvento, eventoSchema } from './eventos';
 import { espacoPadraoId } from './espacos';
 import { emailLayout } from './emails';
+
+// ---------------------------------------------------------------------------
+// Ocasiões por fluxo: as perguntas "Ocasião" de cada fluxo listam as ocasiões ligadas ao tipo
+// (B2B = Corporativo, B2C = Social) na matriz de Configurações › Ocasiões. O valor da resposta é o id da ocasião.
+// ---------------------------------------------------------------------------
+const FLUXO_POR_TIPO = { corporativo: 'B2B', social: 'B2C' } as const;
+
+export async function ocasioesPorFluxo(db: Db): Promise<OcasioesPorFluxo> {
+  const { rows } = await db.query<{ id: string; nome: string; slug: keyof typeof FLUXO_POR_TIPO }>(
+    `SELECT c.id, c.nome, t.slug
+       FROM categoria_evento_tipos cet
+       JOIN categorias_evento c ON c.id = cet.categoria_id
+       JOIN tipos_evento t ON t.id = cet.tipo_evento_id
+      ORDER BY lower(c.nome)`
+  );
+  const resultado: OcasioesPorFluxo = { B2B: [], B2C: [] };
+  for (const r of rows) resultado[FLUXO_POR_TIPO[r.slug]]?.push({ valor: r.id, rotulo: r.nome });
+  return resultado;
+}
 
 // ---------------------------------------------------------------------------
 // Administração
@@ -102,7 +122,7 @@ export async function carregarFormulario(db: Db, id: string): Promise<Formulario
   );
   if (!rows[0]) return null;
   const { config, ...f } = rows[0];
-  return { ...f, secoes: montarFormulario(config) };
+  return { ...f, secoes: montarFormulario(config, await ocasioesPorFluxo(db)) };
 }
 
 async function slugDisponivel(base: string): Promise<string> {
@@ -265,7 +285,7 @@ export async function formularioPublico(slug: string, incluirInativos = false): 
       tenantId: alvo.tenant_id,
       nome: f.nome,
       mensagem_sucesso: f.mensagem_sucesso,
-      secoes: montarFormulario(f.config),
+      secoes: montarFormulario(f.config, await ocasioesPorFluxo(db)),
       empresa: { nome: f.empresa_nome, logo_path: f.logo_path },
     };
   });
@@ -276,6 +296,24 @@ const texto = (v: unknown) => (typeof v === 'string' && v ? v : null);
 async function idPorNome(db: Db, tabela: string, padrao: string | null): Promise<string | null> {
   if (!padrao) return null;
   const { rows } = await db.query<{ id: string }>(`SELECT id FROM ${tabela} WHERE nome ILIKE $1 ORDER BY nome LIMIT 1`, [padrao]);
+  return rows[0]?.id ?? null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Ocasião respondida: id da ocasião (atual) ou chave antiga do B2C (casamento, debutante, aniversario). */
+async function ocasiaoDoPedido(db: Db, valor: string | null): Promise<string | null> {
+  if (!valor) return null;
+  if (UUID.test(valor)) {
+    const { rows } = await db.query<{ id: string }>('SELECT id FROM categorias_evento WHERE id = $1', [valor]);
+    return rows[0]?.id ?? null;
+  }
+  return idPorNome(db, 'categorias_evento', CATEGORIA_POR_OCASIAO[valor] ?? null);
+}
+
+async function tipoPorSlug(db: Db, slug: 'corporativo' | 'social' | null): Promise<string | null> {
+  if (!slug) return null;
+  const { rows } = await db.query<{ id: string }>('SELECT id FROM tipos_evento WHERE slug = $1', [slug]);
   return rows[0]?.id ?? null;
 }
 
@@ -326,8 +364,8 @@ async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
     cliente_id: clienteId,
     cliente_novo: '0',
     titulo: b2b && texto(r.b2b_empresa) ? `Corporativo – ${r.b2b_empresa}` : '',
-    tipo_evento_id: await idPorNome(db, 'tipos_evento', b2b ? 'corporativo' : r.natureza === 'B2C' ? 'social' : null),
-    categoria_evento_id: b2b ? null : await idPorNome(db, 'categorias_evento', CATEGORIA_POR_OCASIAO[texto(r.b2c_ocasiao) ?? ''] ?? null),
+    tipo_evento_id: await tipoPorSlug(db, b2b ? 'corporativo' : r.natureza === 'B2C' ? 'social' : null),
+    categoria_evento_id: await ocasiaoDoPedido(db, texto(b2b ? r.b2b_ocasiao : r.b2c_ocasiao)),
     formato_servico_id: await idPorNome(db, 'formatos_servico', FORMATO_POR_OPCAO[texto(r.formato_servico) ?? ''] ?? null),
     data_evento: texto(b2b ? r.b2b_data : r.b2c_data) ?? '',
     numero_convidados: convidados > 0 ? String(convidados) : '',

@@ -1,0 +1,427 @@
+---
+// Página pública da pesquisa de satisfação (sem login): o cliente abre pelo link do e-mail e responde uma vez.
+// Funciona sem JavaScript (POST na própria página); o script só melhora a experiência (destaque da nota escolhida).
+import Icon from '../../components/ui/Icon.astro';
+import FormularioLayout from '../../layouts/FormularioLayout.astro';
+import { contentTypeFor, readFile } from '../../lib/storage';
+import { formToObject, userMessage } from '../../lib/forms';
+import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
+import { ROTULOS_NOTA, campoPergunta, pesquisaPublica, responderPesquisa } from '../../server/pesquisas';
+
+const token = Astro.params.token ?? '';
+const pesquisa = await pesquisaPublica(token).catch((err) => {
+  console.error('[pesquisa] falha ao carregar', err);
+  return null;
+});
+
+let erro: string | null = null;
+let respondida = pesquisa?.respondida ?? false;
+let enviado: Record<string, unknown> = {};
+
+if (pesquisa && !respondida && Astro.request.method === 'POST') {
+  const ip = ipDaRequisicao(Astro.request, Astro.clientAddress);
+  if (!permitir(`pesquisa:${ip}`, 10, 10 * 60 * 1000)) {
+    erro = 'Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.';
+  } else {
+    const multiplas = pesquisa.perguntas.filter((p) => p.tipo === 'multipla').map((p) => campoPergunta(p.id));
+    enviado = formToObject(await Astro.request.formData(), multiplas);
+    try {
+      // Honeypot: campo invisível que só robôs preenchem
+      if (!(typeof enviado._website === 'string' && enviado._website.trim())) await responderPesquisa(pesquisa, enviado, ip);
+      respondida = true;
+    } catch (err) {
+      erro = userMessage(err, 'Não foi possível enviar suas respostas. Tente novamente.');
+      if (/já foi respondida/.test(erro)) respondida = true;
+    }
+  }
+}
+
+let logo: string | null = null;
+if (pesquisa?.empresa.logo_path) {
+  const arquivo = await readFile(pesquisa.tenantId, pesquisa.empresa.logo_path).catch(() => null);
+  // A rota /uploads exige login; o logo vai embutido na página
+  if (arquivo && arquivo.length < 400_000) logo = `data:${contentTypeFor(pesquisa.empresa.logo_path)};base64,${arquivo.toString('base64')}`;
+}
+
+if (!pesquisa) Astro.response.status = 404;
+
+const marcado = (id: string, valor: string | number) => {
+  const v = enviado[campoPergunta(id)];
+  return Array.isArray(v) ? v.includes(String(valor)) : v === String(valor);
+};
+const textoEnviado = (id: string) => (typeof enviado[campoPergunta(id)] === 'string' ? (enviado[campoPergunta(id)] as string) : '');
+---
+
+{!pesquisa ? (
+  <FormularioLayout title="Pesquisa indisponível" empresa="Banket">
+    <div class="ps-centro">
+      <div class="ps-quadro-icone"><Icon name="message-star" size={26} /></div>
+      <h2>Pesquisa indisponível</h2>
+      <p>Este link não existe ou não está mais disponível.</p>
+    </div>
+  </FormularioLayout>
+) : respondida ? (
+  <FormularioLayout title={pesquisa.titulo} empresa={pesquisa.empresa.nome} logo={logo} subtitulo={pesquisa.titulo}>
+    <div class="ps-centro">
+      <div class="ps-quadro-icone"><Icon name="heart" size={26} /></div>
+      <h2>Obrigado!</h2>
+      <p>{pesquisa.agradecimento}</p>
+    </div>
+  </FormularioLayout>
+) : (
+  <FormularioLayout title={pesquisa.titulo} empresa={pesquisa.empresa.nome} logo={logo} subtitulo={pesquisa.titulo}>
+    <form method="post" class="ps-form" data-pesquisa>
+      <div class="ps-conteudo">
+        <div class="ps-intro">
+          <p class="ps-evento">Sobre: <strong>{pesquisa.evento}</strong></p>
+          {pesquisa.introducao && <p>{pesquisa.introducao}</p>}
+        </div>
+
+        {erro && <p class="ps-erro" role="alert"><Icon name="alert-circle" size={16} />{erro}</p>}
+
+        <input type="text" name="_website" class="ps-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        {pesquisa.perguntas.map((p, i) => (
+          <fieldset class="ps-pergunta" data-tipo={p.tipo}>
+            <legend>
+              <span class="ps-numero">{i + 1}.</span> {p.texto}{p.obrigatoria && <span class="ps-req" aria-label="obrigatória"> *</span>}
+            </legend>
+            {p.ajuda && <p class="ps-ajuda">{p.ajuda}</p>}
+
+            {p.tipo === 'nps' && (
+              <div class="ps-escala">
+                <div class="ps-notas ps-notas-11">
+                  {Array.from({ length: 11 }, (_, n) => (
+                    <label class="ps-nota"><input type="radio" name={campoPergunta(p.id)} value={n} required={p.obrigatoria} checked={marcado(p.id, n)} /><span>{n}</span></label>
+                  ))}
+                </div>
+                <div class="ps-extremos"><span>Nada provável</span><span>Extremamente provável</span></div>
+              </div>
+            )}
+            {p.tipo === 'nota' && (
+              <div class="ps-escala">
+                <div class="ps-notas ps-notas-5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <label class="ps-nota" title={ROTULOS_NOTA[n - 1]}><input type="radio" name={campoPergunta(p.id)} value={n} required={p.obrigatoria} checked={marcado(p.id, n)} /><span>{n}</span></label>
+                  ))}
+                </div>
+                <div class="ps-extremos"><span>{ROTULOS_NOTA[0]}</span><span>{ROTULOS_NOTA[4]}</span></div>
+              </div>
+            )}
+            {(p.tipo === 'escolha' || p.tipo === 'multipla') && (
+              <div class="ps-opcoes">
+                {p.opcoes.map((o) => (
+                  <label class="ps-opcao">
+                    <input type={p.tipo === 'escolha' ? 'radio' : 'checkbox'} name={campoPergunta(p.id)} value={o} required={p.tipo === 'escolha' && p.obrigatoria} checked={marcado(p.id, o)} />
+                    <span>{o}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {p.tipo === 'texto' && (
+              <textarea name={campoPergunta(p.id)} rows="4" maxlength="5000" class="ps-texto" required={p.obrigatoria} placeholder="Escreva aqui…">{textoEnviado(p.id)}</textarea>
+            )}
+          </fieldset>
+        ))}
+      </div>
+      <footer class="ps-rodape">
+        <button type="submit" class="ps-enviar">Enviar respostas</button>
+      </footer>
+    </form>
+  </FormularioLayout>
+)}
+
+<script>
+  // Evita duplo envio
+  const form = document.querySelector<HTMLFormElement>('[data-pesquisa]');
+  form?.addEventListener('submit', () => {
+    const botao = form.querySelector<HTMLButtonElement>('.ps-enviar');
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent = 'Enviando…';
+    }
+  });
+</script>
+
+<style>
+  .ps-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .ps-conteudo {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .ps-intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .ps-evento strong {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  .ps-erro {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+  }
+
+  .ps-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .ps-pergunta {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .ps-pergunta legend {
+    padding: 0;
+    margin-bottom: var(--space-3);
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+    line-height: 1.4;
+    color: var(--text-strong);
+  }
+
+  .ps-numero {
+    color: var(--text-muted);
+  }
+
+  .ps-req {
+    color: var(--action-primary);
+  }
+
+  .ps-ajuda {
+    margin-top: calc(var(--space-2) * -1);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .ps-escala {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .ps-notas {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .ps-notas-11 {
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+  }
+
+  .ps-notas-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .ps-nota input,
+  .ps-opcao input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ps-nota span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--control-h-lg);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-body);
+    font-weight: var(--fw-medium);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .ps-nota:hover span {
+    background: var(--clay-25);
+  }
+
+  .ps-nota input:checked + span {
+    background: var(--action-primary);
+    border-color: var(--action-primary);
+    color: var(--text-on-accent);
+  }
+
+  .ps-nota input:focus-visible + span,
+  .ps-opcao input:focus-visible + span {
+    box-shadow: var(--focus-ring);
+    border-color: var(--border-focus);
+  }
+
+  .ps-extremos {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .ps-opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .ps-opcao span {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-body);
+  }
+
+  .ps-opcao span::before {
+    content: '';
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    background: var(--bg-surface);
+  }
+
+  .ps-opcao input[type='checkbox'] + span::before {
+    border-radius: var(--radius-xs);
+  }
+
+  .ps-opcao input:checked + span {
+    border-color: var(--action-primary);
+    background: var(--bg-accent-subtle);
+    color: var(--text-strong);
+  }
+
+  .ps-opcao input:checked + span::before {
+    border-color: var(--action-primary);
+    background: var(--action-primary);
+    box-shadow: inset 0 0 0 3px var(--bg-surface);
+  }
+
+  .ps-texto {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font: inherit;
+    resize: vertical;
+  }
+
+  .ps-texto:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: var(--focus-ring);
+  }
+
+  .ps-rodape {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-4) var(--space-8);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+  }
+
+  .ps-enviar {
+    height: var(--control-h-lg);
+    padding: 0 var(--space-6);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--action-primary);
+    color: var(--text-on-accent);
+    font: inherit;
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+  }
+
+  .ps-enviar:hover {
+    background: var(--action-primary-hover);
+  }
+
+  .ps-enviar:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .ps-centro {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-10) var(--space-8);
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .ps-centro h2 {
+    font-size: var(--fs-20);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .ps-quadro-icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
+  }
+
+  @media (max-width: 600px) {
+    .ps-conteudo {
+      padding: var(--space-5) var(--space-4);
+    }
+
+    .ps-rodape {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .ps-enviar {
+      width: 100%;
+    }
+
+    .ps-notas-11 {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+</style>

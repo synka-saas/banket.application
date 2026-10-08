@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon.astro';
 import FormularioLayout from '../../layouts/FormularioLayout.astro';
 import { contentTypeFor, readFile } from '../../lib/storage';
 import { formularioPublico } from '../../server/formularios';
+import { perguntaExibida } from '../../lib/formularios/modelo';
 import { SESSION_COOKIE, verifySession } from '../../lib/auth';
 
 // Prévia para o dono (UX-076): com sessão da mesma empresa, mostra também formulário inativo, sem aceitar envio.
@@ -64,7 +65,7 @@ const mensagemSucesso =
           <p class="fp-etapa-descricao">{s.descricao}</p>
 
           <div class="fp-perguntas">
-            {s.perguntas.filter((p) => p.ativa).map((p) => (
+            {s.perguntas.filter(perguntaExibida).map((p) => (
               <div
                 class:list={['fp-pergunta', { 'fp-condicional': p.mostrarSe }]}
                 data-pergunta={p.id}

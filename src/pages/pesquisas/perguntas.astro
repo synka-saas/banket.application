@@ -1,0 +1,221 @@
+---
+import '../../styles/financeiro.css';
+import AppLayout from '../../layouts/AppLayout.astro';
+import Table from '../../components/ui/Table.astro';
+import Pagination from '../../components/ui/Pagination.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { html } from '../../lib/html';
+import { dataHora } from '../../lib/datas';
+import { pesquisasSubmenu } from '../../lib/nav';
+import { pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
+import { carregarEmpresa } from '../../server/empresa';
+import {
+  CLASSES_NPS,
+  CLASSES_NPS_PLURAL,
+  PERIODOS_PESQUISA,
+  ROTULOS_NOTA,
+  TIPOS_PERGUNTA,
+  classeNps,
+  filtrosPesquisaDaUrl,
+  listarPerguntas,
+  respostasDaPergunta,
+  textoParaExibir,
+  type ClasseNps,
+} from '../../server/pesquisas';
+
+// Respostas de uma pergunta: distribuição (notas ou opções) e a lista filtrável (classe NPS de quem respondeu,
+// nota/opção, período, texto). Para perguntas abertas, é aqui que se leem os comentários.
+const user = Astro.locals.user;
+const p = Astro.url.searchParams;
+const page = pageParams(Astro.url);
+
+const perguntas = await withTenant(user.tenantId, async (db) => {
+  const empresa = (await carregarEmpresa(db)).nome;
+  return (await listarPerguntas(db)).map((q) => ({ ...q, texto: textoParaExibir(q.texto, empresa) }));
+});
+const pergunta = perguntas.find((q) => q.id === p.get('pergunta')) ?? perguntas.find((q) => q.respostas > 0) ?? perguntas[0] ?? null;
+const classe = (p.get('classe') && p.get('classe')! in CLASSES_NPS ? p.get('classe') : null) as ClasseNps | null;
+const valor = p.get('valor') || null;
+
+const dados = pergunta
+  ? await withTenant(user.tenantId, (db) =>
+      respostasDaPergunta(db, pergunta.id, { ...filtrosPesquisaDaUrl(Astro.url), classe, valor, busca: searchTerm(Astro.url) }, page)
+    )
+  : null;
+
+// Valores possíveis na ordem natural (escala ou opções do cadastro + as que saíram do cadastro mas têm respostas)
+const valores: { valor: string; rotulo: string }[] = !pergunta
+  ? []
+  : pergunta.tipo === 'nps'
+    ? Array.from({ length: 11 }, (_, n) => ({ valor: String(n), rotulo: String(n) }))
+    : pergunta.tipo === 'nota'
+      ? [1, 2, 3, 4, 5].map((n) => ({ valor: String(n), rotulo: `${n} · ${ROTULOS_NOTA[n - 1]}` }))
+      : [...pergunta.opcoes, ...(dados?.distribuicao ?? []).map((d) => d.valor).filter((v) => !pergunta.opcoes.includes(v))].map((o) => ({ valor: o, rotulo: o }));
+const contagem = (v: string) => Number(dados?.distribuicao.find((d) => d.valor === v)?.total ?? 0);
+const totalDist = valores.reduce((s, v) => s + contagem(v.valor), 0);
+const maximo = Math.max(1, ...valores.map((v) => contagem(v.valor)));
+const pct = (v: number) => (totalDist ? Math.round((v / totalDist) * 100) : 0);
+const media = pergunta && (pergunta.tipo === 'nps' || pergunta.tipo === 'nota') && totalDist
+  ? (valores.reduce((s, v) => s + Number(v.valor) * contagem(v.valor), 0) / totalDist).toFixed(1).replace('.', ',')
+  : null;
+
+const TAG: Record<ClasseNps, string> = { promotor: 'tag-sage', neutro: 'tag-ochre', detrator: 'tag-wine' };
+const resposta = (r: NonNullable<typeof dados>['rows'][number]) =>
+  r.texto
+    ? html`<span class="pq-texto">${r.texto}</span>`
+    : r.opcoes
+      ? html`${r.opcoes.map((o) => html`<span class="tag">${o}</span> `)}`
+      : html`<span class="pq-nota tabular">${r.nota}</span>`;
+const tableData = (dados?.rows ?? []).map((r) => ({
+  resposta: resposta(r),
+  evento: html`<a class="link" href="/pesquisas/respostas/${r.envio_id}">${r.evento_titulo ?? 'Evento'}</a><span class="fin-apoio">${r.cliente_nome ?? ''}</span>`,
+  quando: dataHora(r.respondida_em),
+  nps: r.nps === null ? '' : html`<span class="tag tag-sm ${TAG[classeNps(r.nps)]}">${r.nps}</span>`,
+}));
+const filtrando = Boolean(classe || valor || p.get('q') || p.get('periodo'));
+---
+
+<AppLayout title="Respostas por pergunta" heading="Pesquisas / Por pergunta" submenu={pesquisasSubmenu(isAdmin(user))} submenuActive="perguntas">
+  {!pergunta ? (
+    <EstadoVazio icon="message-star" titulo="Nenhuma pergunta cadastrada" texto="Monte o questionário em Questionário e e-mail." />
+  ) : (
+    <>
+      <PageToolbar
+        searchPlaceholder="Buscar no texto, evento ou cliente"
+        filter={{ name: 'pergunta', placeholder: 'Pergunta', options: perguntas.map((q) => ({ value: q.id, label: `${q.texto.slice(0, 70)}${q.texto.length > 70 ? '…' : ''}${q.ativa ? '' : ' (inativa)'}` })) }}
+        filters={[
+          ...(valores.length ? [{ name: 'valor', placeholder: pergunta.tipo === 'escolha' || pergunta.tipo === 'multipla' ? 'Qualquer opção' : 'Qualquer nota', options: valores.map((v) => ({ value: v.valor, label: v.rotulo })) }] : []),
+          { name: 'classe', placeholder: 'Qualquer NPS', options: Object.entries(CLASSES_NPS_PLURAL).map(([value, label]) => ({ value, label })) },
+          { name: 'periodo', placeholder: 'Todo o período', options: Object.entries(PERIODOS_PESQUISA).map(([value, label]) => ({ value, label })) },
+        ]}
+      />
+
+      {pergunta.tipo !== 'texto' && (
+        <SectionCard title={pergunta.texto} description={`${TIPOS_PERGUNTA[pergunta.tipo]} · ${String(totalDist).padStart(2, '0')} respostas${media ? ` · média ${media}` : ''}`} icon="chart-bar" class="pq-card">
+          <div class="barras">
+            {valores.map((v) => (
+              <a class:list={['barra-linha', 'pq-linha', { ativo: valor === v.valor }]} href={withQuery(Astro.url, { valor: valor === v.valor ? null : v.valor, page: null })}>
+                <span class="barra-rotulo">{v.rotulo}</span>
+                <div class="barra-trilho trilho" aria-hidden="true">
+                  <span class:list={['barra', pergunta.tipo === 'nps' ? `nps-${classeNps(Number(v.valor))}` : 'receber']} style={`width: ${(contagem(v.valor) / maximo) * 100}%`}></span>
+                </div>
+                <span class="barra-valor">{pct(contagem(v.valor))}%<small>{String(contagem(v.valor)).padStart(2, '0')}</small></span>
+              </a>
+            ))}
+          </div>
+          <p class="pq-dica">Clique numa linha para ver só essas respostas.</p>
+        </SectionCard>
+      )}
+
+      <Table
+        columns={[
+          { key: 'resposta', label: pergunta.tipo === 'texto' ? 'Comentário' : 'Resposta' },
+          { key: 'evento', label: 'Evento' },
+          { key: 'quando', label: 'Respondida em' },
+          { key: 'nps', label: 'NPS' },
+        ]}
+        data={tableData}
+      >
+        <EstadoVazio slot="empty" icon={filtrando ? 'search-off' : 'message-star'} titulo={filtrando ? 'Nenhuma resposta para este filtro' : 'Esta pergunta ainda não tem respostas'}>
+          {filtrando && <a class="btn btn-secondary btn-md" href={`${Astro.url.pathname}?pergunta=${pergunta.id}`}>Limpar filtros</a>}
+        </EstadoVazio>
+        <Pagination slot="footer" info={pageInfo(page, dados?.total ?? 0)} />
+      </Table>
+    </>
+  )}
+</AppLayout>
+
+<script>
+  // Trocar de pergunta limpa o filtro de nota/opção (os valores são da pergunta anterior)
+  // (captura no document: roda antes do envio automático da barra de filtros)
+  document.addEventListener(
+    'change',
+    (e) => {
+      const alvo = e.target as HTMLSelectElement;
+      if (alvo.name !== 'pergunta' || !alvo.closest('[data-toolbar]')) return;
+      const valor = alvo.form?.querySelector<HTMLSelectElement>('select[name="valor"]');
+      if (valor) valor.value = '';
+    },
+    true
+  );
+</script>
+
+<style>
+  :global(.pq-card) {
+    margin-bottom: var(--space-5);
+  }
+
+  .pq-linha {
+    grid-template-columns: minmax(120px, 0.6fr) minmax(0, 1.4fr) auto;
+    padding: var(--space-1) var(--space-2);
+    margin: 0 calc(var(--space-2) * -1);
+    border-radius: var(--radius-sm);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .pq-linha:hover {
+    background: var(--clay-25);
+  }
+
+  .pq-linha.ativo {
+    background: var(--bg-accent-subtle);
+  }
+
+  .pq-linha .barra-rotulo {
+    color: var(--text-body);
+    overflow-wrap: anywhere;
+  }
+
+  .barra.nps-promotor {
+    background: var(--sage-500);
+  }
+
+  .barra.nps-neutro {
+    background: var(--ochre-300);
+  }
+
+  .barra.nps-detrator {
+    background: var(--wine-500);
+  }
+
+  .pq-dica {
+    margin-top: var(--space-3);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  :global(.pq-texto) {
+    display: block;
+    max-width: 640px;
+    white-space: pre-line;
+    line-height: 1.5;
+    color: var(--text-strong);
+  }
+
+  :global(.pq-nota) {
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  :global(.data-table tbody td[data-key='quando']) {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 768px) {
+    .pq-linha {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .pq-linha .barra-trilho {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+</style>

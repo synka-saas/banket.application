@@ -2,6 +2,12 @@
 // Complemento pedido ao mover um evento para uma etapa "aprovado" (data de fechamento) ou
 // "recusado" (motivo da perda). Uso: window.banketEtapaExtras(variante) → Promise com
 // { fechado_em } / { motivo_perda }, {} quando a etapa não pede nada, ou null se o usuário cancelar.
+// Com `planoPagamento` (owner/admin), o fechamento oferece cadastrar o plano de pagamento em seguida ({ _plano: '1' }).
+interface Props {
+  planoPagamento?: boolean;
+}
+
+const { planoPagamento = false } = Astro.props;
 ---
 
 <dialog class="dialogo-form etapa-dialogo" data-etapa-dialogo aria-labelledby="etapa-dialogo-titulo">
@@ -28,6 +34,12 @@
       <label for="etapa-fechado">Data de fechamento</label>
       <input id="etapa-fechado" class="control" type="date" />
     </div>
+    {planoPagamento && (
+      <div class="field" data-so="aprovado">
+        <label class="switch switch-sm"><input id="etapa-plano" type="checkbox" checked />Cadastrar o plano de pagamento em seguida</label>
+        <span class="field-hint">Valores, entrada e parcelas acertados no contrato viram contas a receber.</span>
+      </div>
+    )}
 
     <div class="dialogo-acoes etapa-acoes">
       <button type="submit" value="cancelar" class="btn btn-secondary btn-md">Voltar</button>
@@ -74,6 +86,7 @@
         r = { motivo_perda: `${motivo.value}${detalhe.value.trim() ? ` — ${detalhe.value.trim()}` : ''}` };
       } else {
         r = fechado.value ? { fechado_em: fechado.value } : {};
+        if (dialogo.querySelector<HTMLInputElement>('#etapa-plano')?.checked) r._plano = '1';
       }
     }
     pendente?.(r);

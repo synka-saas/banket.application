@@ -138,6 +138,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       travada: false,
       ativa: true,
       mostrarSe: null,
+      origemOpcoes: null,
     };
     alterarSecao(rascunho.secao, (s) => ({
       ...s,
@@ -325,7 +326,11 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                   <span class="fe-rotulo">{p.rotulo}{p.obrigatoria && <span class="fe-req"> *</span>}</span>
                   <span class="fe-meta">
                     {TIPOS_PERGUNTA[p.tipo]}
-                    {p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
+                    {p.origemOpcoes === 'ocasioes'
+                      ? p.opcoes.length > 0
+                        ? ` · ${p.opcoes.length} ${p.opcoes.length === 1 ? 'ocasião' : 'ocasiões'} (Configurações › Ocasiões)`
+                        : ' · Nenhuma ocasião marcada para este tipo em Configurações › Ocasiões: não aparece no formulário'
+                      : p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
                     {!p.padrao && ' · Personalizada'}
                     {rotuloCondicao(s, p) && ` · ${rotuloCondicao(s, p)}`}
                   </span>

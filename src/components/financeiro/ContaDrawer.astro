@@ -1,0 +1,101 @@
+---
+// Drawer de conta a receber ou a pagar (criar/editar). Abrir com data-drawer-open="drawer-conta-<tipo>" e
+// data-values {id, descricao, valor…}. Com `eventoId`, a conta fica presa ao evento (aba Finanças).
+import Drawer from '../ui/Drawer.astro';
+import { FORMAS_PAGAMENTO, type TipoConta } from '../../lib/financeiro';
+import { hojeSaoPaulo } from '../../lib/datas';
+
+interface Props {
+  tipo: TipoConta;
+  categorias: { id: string; nome: string; tipo: string; ativo: boolean }[];
+  eventos?: { id: string; rotulo: string }[];
+  eventoId?: string;
+}
+
+const { tipo, categorias, eventos = [], eventoId } = Astro.props;
+const receber = tipo === 'receber';
+const p = `cf-${tipo}`;
+const doTipo = categorias.filter((c) => c.tipo === tipo);
+---
+
+<Drawer
+  id={`drawer-conta-${tipo}`}
+  formId={`form-conta-${tipo}`}
+  title={receber ? 'Nova conta a receber' : 'Nova conta a pagar'}
+  editTitle={receber ? 'Editar conta a receber' : 'Editar conta a pagar'}
+  width="md"
+  deleteConfirm="Excluir esta conta? Para manter o histórico, prefira cancelar."
+>
+  <form id={`form-conta-${tipo}`} method="post" class="form-grid" data-form-conta>
+    <input type="hidden" name="id" />
+    <input type="hidden" name="tipo" value={tipo} />
+    <div class="field span-2">
+      <label for={`${p}-desc`}>Descrição<span class="obrigatorio">*</span></label>
+      <input id={`${p}-desc`} name="descricao" required maxlength="255" placeholder={receber ? 'Ex.: Hora adicional do evento' : 'Ex.: Compra de bebidas, Equipe de garçons'} />
+    </div>
+    <div class="field">
+      <label for={`${p}-valor`}>Valor (R$)<span class="obrigatorio">*</span></label>
+      <input id={`${p}-valor`} name="valor" required inputmode="decimal" data-mascara="dinheiro" />
+    </div>
+    <div class="field">
+      <label for={`${p}-venc`}>Vencimento<span class="obrigatorio">*</span></label>
+      <input id={`${p}-venc`} name="vencimento" type="date" required />
+    </div>
+    <div class="field">
+      <label for={`${p}-cat`}>Categoria</label>
+      <select id={`${p}-cat`} name="categoria_id">
+        <option value="">Sem categoria</option>
+        {doTipo.map((c) => <option value={c.id} hidden={!c.ativo}>{c.nome}</option>)}
+      </select>
+    </div>
+    <div class="field">
+      <label for={`${p}-forma`}>Forma de pagamento</label>
+      <select id={`${p}-forma`} name="forma_pagamento">
+        <option value="">—</option>
+        {Object.entries(FORMAS_PAGAMENTO).map(([v, l]) => <option value={v}>{l}</option>)}
+      </select>
+    </div>
+    {eventoId ? (
+      <input type="hidden" name="evento_id" value={eventoId} />
+    ) : (
+      <div class="field span-2">
+        <label for={`${p}-evento`}>Evento</label>
+        <select id={`${p}-evento`} name="evento_id">
+          <option value="">Nenhum (conta da empresa)</option>
+          {eventos.map((e) => <option value={e.id}>{e.rotulo}</option>)}
+        </select>
+        {receber && <span class="field-hint">Com evento, a conta fica no nome do cliente do evento.</span>}
+      </div>
+    )}
+    <div class="field">
+      <label for={`${p}-forn`}>{receber ? 'Pagador' : 'Fornecedor'}</label>
+      <input id={`${p}-forn`} name="fornecedor" maxlength="200" placeholder={receber ? 'Se não for o cliente do evento' : 'Nome do fornecedor ou profissional'} />
+    </div>
+    <div class="field">
+      <label for={`${p}-doc`}>Documento</label>
+      <input id={`${p}-doc`} name="documento" maxlength="60" placeholder="NF, boleto, recibo" />
+    </div>
+    <div class="field span-2">
+      <label for={`${p}-obs`}>Observações</label>
+      <textarea id={`${p}-obs`} name="observacoes" rows="2" maxlength="1000"></textarea>
+    </div>
+    <div class="field span-2" data-create-only>
+      <label class="switch switch-sm"><input type="checkbox" name="ja_paga" data-ja-paga />{receber ? 'Já foi recebida' : 'Já foi paga'}</label>
+    </div>
+    <div class="field" data-create-only data-pago-em hidden>
+      <label for={`${p}-pago`}>{receber ? 'Recebida em' : 'Paga em'}<span class="obrigatorio">*</span></label>
+      <input id={`${p}-pago`} name="pago_em" type="date" value={hojeSaoPaulo()} />
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  // "Já foi paga" mostra a data do pagamento (só na criação)
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-form-conta]')) {
+    const chave = form.querySelector<HTMLInputElement>('[data-ja-paga]')!;
+    const data = form.querySelector<HTMLElement>('[data-pago-em]')!;
+    const sync = () => (data.hidden = !chave.checked);
+    chave.addEventListener('change', sync);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', () => requestAnimationFrame(sync));
+  }
+</script>

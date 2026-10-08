@@ -1,0 +1,129 @@
+---
+// Plano de pagamento do evento (condições acertadas no fechamento/contrato): entrada + saldo em parcelas.
+// Cada parcela vira uma conta a receber. Refazer substitui as parcelas em aberto do plano anterior.
+// Abrir com data-drawer-open="drawer-plano" (data-values com valor_total sugerido).
+import Drawer from '../ui/Drawer.astro';
+import { FORMAS_PAGAMENTO } from '../../lib/financeiro';
+
+interface Props {
+  categorias: { id: string; nome: string; tipo: string; ativo: boolean }[];
+  /** Já existe plano (o botão vira "Refazer") */
+  existente: boolean;
+}
+
+const { categorias, existente } = Astro.props;
+---
+
+<Drawer id="drawer-plano" formId="form-plano" title={existente ? 'Refazer plano de pagamento' : 'Plano de pagamento'} width="md" deletable={false} saveLabel="Gerar contas a receber" saveAction="plano" saveLoadingLabel="Gerando…">
+  <form id="form-plano" method="post" class="form-grid" data-form-plano>
+    <p class="span-2 field-hint plano-intro">
+      Cadastre as condições acertadas com o cliente. Cada parcela vira uma conta a receber com o seu vencimento.
+      {existente && ' As parcelas ainda em aberto do plano atual serão substituídas; as já recebidas ficam.'}
+    </p>
+    <div class="field span-2">
+      <label for="pl-total">Valor a receber neste plano (R$)<span class="obrigatorio">*</span></label>
+      <input id="pl-total" name="valor_total" required inputmode="decimal" data-mascara="dinheiro" />
+      <span class="field-hint" data-plano-dica></span>
+    </div>
+    <div class="field">
+      <label for="pl-entrada">Entrada / sinal (R$)</label>
+      <input id="pl-entrada" name="entrada_valor" inputmode="decimal" data-mascara="dinheiro" placeholder="Opcional" />
+    </div>
+    <div class="field">
+      <label for="pl-entrada-venc">Vencimento da entrada</label>
+      <input id="pl-entrada-venc" name="entrada_vencimento" type="date" />
+    </div>
+    <div class="field">
+      <label for="pl-parcelas">Parcelas do saldo</label>
+      <input id="pl-parcelas" name="parcelas" type="number" min="0" max="60" step="1" value="1" />
+      <span class="field-hint">1 = pagamento único (à vista).</span>
+    </div>
+    <div class="field">
+      <label for="pl-primeiro">Vencimento da 1ª parcela</label>
+      <input id="pl-primeiro" name="primeiro_vencimento" type="date" />
+    </div>
+    <div class="field">
+      <label for="pl-intervalo">Intervalo entre parcelas</label>
+      <select id="pl-intervalo" name="intervalo_meses">
+        <option value="1">Mensal</option>
+        <option value="2">Bimestral</option>
+        <option value="3">Trimestral</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="pl-forma">Forma de pagamento</label>
+      <select id="pl-forma" name="forma_pagamento">
+        <option value="">—</option>
+        {Object.entries(FORMAS_PAGAMENTO).map(([v, l]) => <option value={v}>{l}</option>)}
+      </select>
+    </div>
+    <div class="field span-2">
+      <label for="pl-cat">Categoria</label>
+      <select id="pl-cat" name="categoria_id">
+        <option value="">Padrão (Venda de evento)</option>
+        {categorias.filter((c) => c.tipo === 'receber' && c.ativo).map((c) => <option value={c.id}>{c.nome}</option>)}
+      </select>
+    </div>
+    <div class="span-2">
+      <span class="field-label">Parcelas geradas</span>
+      <div class="plano-previa" data-plano-previa aria-live="polite"></div>
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  import { gerarParcelas, rotuloParcela } from '../../lib/financeiro';
+  import { formatMoney, parseMoney } from '../../lib/money';
+  import { dataCurta } from '../../lib/datas';
+
+  const form = document.querySelector<HTMLFormElement>('[data-form-plano]');
+  if (form) {
+    const previa = form.querySelector<HTMLElement>('[data-plano-previa]')!;
+    const campo = (nome: string) => form.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${nome}"]`)!.value;
+    const atualizar = () => {
+      previa.replaceChildren();
+      const total = parseMoney(campo('valor_total'));
+      if (!total) {
+        previa.textContent = 'Informe o valor para ver as parcelas.';
+        return;
+      }
+      try {
+        const parcelas = gerarParcelas({
+          valor_total: total,
+          entrada_valor: parseMoney(campo('entrada_valor')),
+          entrada_vencimento: campo('entrada_vencimento') || null,
+          parcelas: Number.parseInt(campo('parcelas') || '0', 10),
+          primeiro_vencimento: campo('primeiro_vencimento') || null,
+          intervalo_meses: Number(campo('intervalo_meses')),
+        });
+        for (const p of parcelas) {
+          const linha = document.createElement('div');
+          const rotulo = document.createElement('span');
+          rotulo.textContent = `${rotuloParcela(p.parcela, p.parcelas)} · ${dataCurta(p.vencimento)}`;
+          const valor = document.createElement('strong');
+          valor.textContent = formatMoney(p.valor);
+          linha.append(rotulo, valor);
+          previa.append(linha);
+        }
+      } catch (err) {
+        const erro = document.createElement('span');
+        erro.className = 'erro';
+        erro.textContent = (err as Error).message;
+        previa.append(erro);
+      }
+    };
+    form.addEventListener('input', atualizar);
+    form.addEventListener('change', atualizar);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', (e) => {
+      const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+      form.querySelector('[data-plano-dica]')!.textContent = values._dica ?? '';
+      requestAnimationFrame(atualizar);
+    });
+  }
+</script>
+
+<style>
+  .plano-intro {
+    line-height: 1.5;
+  }
+</style>

@@ -43,3 +43,20 @@ export async function excluirEvento(page: Page, eventoUrl: string) {
   await confirmarModal(page);
   await expectToast(page, 'Evento excluído.');
 }
+
+/** Cria um evento simples pela tela (cliente do seed); devolve a URL do resumo. */
+export async function criarEventoE2E(page: Page, titulo: string, data?: string): Promise<string> {
+  await page.goto('/eventos/novo');
+  await page.getByLabel('Cliente*').selectOption({ label: 'Maria Eduarda Silva' });
+  await page.getByLabel('Título do evento').fill(titulo);
+  if (data) await page.locator('#ev-data').fill(data);
+  await page.getByRole('button', { name: 'Criar evento' }).first().click();
+  await expectToast(page, 'Evento criado.');
+  return page.url();
+}
+
+/** Remove direto no banco um evento criado pelo teste, com o orçamento e as contas do financeiro (que só seriam desvinculadas). */
+export function removerEventoBanco(eventoUrl: string) {
+  const id = new URL(eventoUrl, 'http://localhost').pathname.split('/')[2];
+  psql(`DELETE FROM fin_contas WHERE evento_id = '${id}'; DELETE FROM orcamentos WHERE evento_id = '${id}'; DELETE FROM eventos WHERE id = '${id}'`);
+}

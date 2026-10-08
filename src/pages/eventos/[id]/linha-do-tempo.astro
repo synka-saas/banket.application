@@ -73,7 +73,7 @@ const { evento, registros } = await withTenant(user.tenantId, async (db) => ({
               <p class="tl-descricao">{r.descricao}</p>
               <p class="tl-meta">
                 {dataHora(r.created_at)}
-                {r.usuario_nome ? ` · ${r.usuario_nome}` : r.tipo === 'formulario' ? ' · Formulário público' : ''}
+                {r.usuario_nome ? ` · ${r.usuario_nome}` : r.tipo === 'formulario' ? ' · Formulário público' : r.tipo === 'pesquisa' ? ' · Cliente' : ''}
                 {r.retorno_em && (
                   <span class:list={['tl-retorno', { vencido: r.retorno_em < hoje }]}>
                     Retorno: {dataCurta(r.retorno_em)}

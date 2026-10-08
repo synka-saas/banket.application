@@ -1,4 +1,4 @@
-// Cadastros de Configurações: tipos e categorias de evento, categorias de item,
+// Cadastros de Configurações: ocasiões (categorias de evento), categorias de item,
 // formatos de serviço e status do orçamento (colunas do Kanban).
 import { z } from 'zod';
 import type { Db } from '../lib/db';
@@ -14,39 +14,15 @@ async function contar(db: Db, sql: string, params: unknown[]): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
-// Tipos de evento (natureza: Social, Corporativo…)
+// Tipos de evento: fixos para o sistema inteiro (Corporativo e Social, migration 030), sem cadastro
 // ---------------------------------------------------------------------------
-export const tipoEventoSchema = z.object({
-  nome: requiredText('Informe o nome do tipo de evento.', 50),
-  descricao: optionalText(500),
-});
+export type SlugTipoEvento = 'corporativo' | 'social';
 
-export async function listarTiposEvento(db: Db, busca: string | null) {
-  const { rows } = await db.query<{ id: string; nome: string; descricao: string | null; eventos: number }>(
-    `SELECT t.id, t.nome, t.descricao, (SELECT count(*) FROM eventos e WHERE e.tipo_evento_id = t.id) AS eventos
-       FROM tipos_evento t
-      WHERE $1::text IS NULL OR t.nome ILIKE $1 OR t.descricao ILIKE $1
-      ORDER BY lower(t.nome)`,
-    [busca]
+export async function listarTiposEvento(db: Db) {
+  const { rows } = await db.query<{ id: string; nome: string; slug: SlugTipoEvento }>(
+    `SELECT id, nome, slug FROM tipos_evento ORDER BY slug`
   );
   return rows;
-}
-
-export async function salvarTipoEvento(db: Db, tenantId: string, id: string | null, input: z.infer<typeof tipoEventoSchema>) {
-  if (id) {
-    await exigirAfetado(
-      await db.query('UPDATE tipos_evento SET nome = $1, descricao = $2 WHERE id = $3', [input.nome, input.descricao, id]),
-      'Tipo de evento'
-    );
-  } else {
-    await db.query('INSERT INTO tipos_evento (tenant_id, nome, descricao) VALUES ($1, $2, $3)', [tenantId, input.nome, input.descricao]);
-  }
-}
-
-export async function excluirTipoEvento(db: Db, id: string) {
-  const n = await contar(db, 'SELECT count(*) AS n FROM eventos WHERE tipo_evento_id = $1', [id]);
-  if (n) throw new UserError(`Este tipo está em uso em ${n} evento(s) e não pode ser excluído.`);
-  await exigirAfetado(await db.query('DELETE FROM tipos_evento WHERE id = $1', [id]), 'Tipo de evento');
 }
 
 // ---------------------------------------------------------------------------

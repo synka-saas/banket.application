@@ -8,11 +8,13 @@ import { getMembership } from './lib/membership';
 // /print/* é acessado pelo Chromium interno e exige um token de impressão (lib/printToken)
 // /api/hwesta/* é chamado pelo Manager Hwesta (HCP): a autenticação é por Bearer nas próprias rotas (lib/hwesta)
 // /api/webhooks/* recebe os webhooks do Resend (assinatura Svix conferida na própria rota)
-const PUBLIC_PREFIXES = ['/auth/', '/f/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image'];
+// /p/* é a pesquisa de satisfação respondida pelo cliente (link com token)
+const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
-// Rotas restritas a owner/admin
-const ADMIN_PREFIXES = ['/configuracoes', '/api/configuracoes'];
+// Rotas restritas a owner/admin (inclui a aba Finanças do evento)
+const ADMIN_PREFIXES = ['/configuracoes', '/api/configuracoes', '/financeiro', '/api/financeiro'];
+const ADMIN_PADROES = [/^\/eventos\/[^/]+\/financas(\/|$)/];
 
 // Empresa suspensa pelo Manager (kill-switch): só o aviso e a troca de empresa continuam acessíveis
 const PAGINA_SUSPENSA = '/conta-suspensa';
@@ -81,7 +83,8 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
   }
   if (!suspensa && pathname === PAGINA_SUSPENSA) return context.redirect('/dashboard');
 
-  if (ADMIN_PREFIXES.some((p) => pathname.startsWith(p)) && !isAdmin(user)) {
+  const restrita = ADMIN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) || ADMIN_PADROES.some((re) => re.test(pathname));
+  if (restrita && !isAdmin(user)) {
     if (pathname.startsWith('/api/')) {
       return Response.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
     }

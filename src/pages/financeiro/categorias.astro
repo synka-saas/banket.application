@@ -1,0 +1,126 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import Table from '../../components/ui/Table.astro';
+import Drawer from '../../components/ui/Drawer.astro';
+import { withTenant } from '../../lib/db';
+import { formId, handleFormPost } from '../../lib/actions';
+import { html } from '../../lib/html';
+import { FINANCEIRO_SUBMENU } from '../../lib/nav';
+import { TIPOS_CONTA, categoriaSchema, excluirCategoria, listarCategorias, salvarCategoria } from '../../server/financeiro';
+
+// Categorias do financeiro (plano de contas simples), separadas em a receber e a pagar.
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      const id = formId(data);
+      if (data._action === 'delete' && id) {
+        await excluirCategoria(db, id);
+        return 'Categoria removida.';
+      }
+      await salvarCategoria(db, user.tenantId, id, categoriaSchema.parse(data));
+      return id ? 'Categoria atualizada.' : 'Categoria criada.';
+    })
+  );
+}
+
+const categorias = await withTenant(user.tenantId, (db) => listarCategorias(db));
+
+const linhas = (tipo: 'receber' | 'pagar') =>
+  categorias
+    .filter((c) => c.tipo === tipo)
+    .map((c) => ({
+      nome: html`${c.nome}${!c.ativo ? html` <span class="badge">Inativa</span>` : ''}`,
+      contas: c.contas ? String(c.contas).padStart(2, '0') : '',
+      acoes: html`<button type="button" class="row-action" data-drawer-open="drawer-categoria" data-values="${JSON.stringify({ id: c.id, nome: c.nome, tipo: c.tipo, ativo: c.ativo })}">Editar</button>`,
+    }));
+const colunas = [
+  { key: 'nome', label: 'Categoria' },
+  { key: 'contas', label: 'Contas', align: 'right' as const },
+  { key: 'acoes', label: 'Ações', align: 'right' as const },
+];
+---
+
+<AppLayout title="Categorias do financeiro" heading="Financeiro / Categorias" submenu={FINANCEIRO_SUBMENU} submenuActive="categorias">
+  <div class="cat-topo">
+    <p class="intro">Agrupam as contas nos relatórios e na exportação. Excluir uma categoria não apaga as contas: elas ficam sem categoria.</p>
+    <Button icon="circle-plus" data-drawer-open="drawer-categoria" data-values={JSON.stringify({ tipo: 'pagar', ativo: true })}>Nova categoria</Button>
+  </div>
+
+  <div class="cat-grade">
+    <section>
+      <h2 class="bloco-titulo">Contas a receber</h2>
+      <Table columns={colunas} data={linhas('receber')} emptyMessage="Nenhuma categoria de receita." />
+    </section>
+    <section>
+      <h2 class="bloco-titulo">Contas a pagar</h2>
+      <Table columns={colunas} data={linhas('pagar')} emptyMessage="Nenhuma categoria de despesa." />
+    </section>
+  </div>
+
+  <Drawer slot="overlays" id="drawer-categoria" formId="form-categoria" title="Nova categoria" editTitle="Editar categoria" width="md"
+    deleteConfirm="Excluir esta categoria? As contas dela ficam sem categoria.">
+    <form id="form-categoria" method="post" class="form-grid">
+      <input type="hidden" name="id" />
+      <div class="field span-2">
+        <label for="cat-nome">Nome<span class="obrigatorio">*</span></label>
+        <input id="cat-nome" name="nome" required maxlength="80" placeholder="Ex.: Equipe e staff" />
+      </div>
+      <div class="field span-2">
+        <span class="field-label">Tipo</span>
+        <div class="chip-group">
+          {Object.entries(TIPOS_CONTA).map(([v, l]) => <label class="chip"><input type="radio" name="tipo" value={v} />{l}</label>)}
+        </div>
+      </div>
+      <div class="field span-2">
+        <label class="switch"><input type="checkbox" name="ativo" />Categoria ativa</label>
+      </div>
+    </form>
+  </Drawer>
+</AppLayout>
+
+<style>
+  .cat-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4) var(--space-6);
+    margin-bottom: var(--space-5);
+  }
+
+  .intro {
+    max-width: 640px;
+    color: var(--text-secondary);
+  }
+
+  .cat-grade {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .cat-grade h2 {
+    margin-bottom: var(--space-3);
+  }
+
+  :global(.data-table tbody td[data-key='nome']) {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  @media (max-width: 1024px) {
+    .cat-grade {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .cat-topo {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>

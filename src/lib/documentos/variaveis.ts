@@ -55,6 +55,7 @@ export const VARIAVEIS_DOCUMENTO: VariavelDocumento[] = [
   { nome: 'valor_total_extenso', rotulo: 'Valor total por extenso', grupo: 'orcamento', exemplo: 'vinte e cinco mil e quatrocentos reais' },
   { nome: 'versao_orcamento', rotulo: 'Versão do orçamento', grupo: 'orcamento', exemplo: '02' },
   { nome: 'forma_pagamento', rotulo: 'Forma de pagamento (briefing)', grupo: 'orcamento', exemplo: '50% de sinal e saldo em 30 dias' },
+  { nome: 'plano_pagamento', rotulo: 'Plano de pagamento (parcelas do financeiro)', grupo: 'orcamento', exemplo: 'entrada de R$ 7.620,00 em 10/10/2026; parcela 1/2 de R$ 8.890,00 em 10/11/2026; parcela 2/2 de R$ 8.890,00 em 10/12/2026 (Pix)' },
 
   { nome: 'numero_documento', rotulo: 'Número do documento', grupo: 'documento', exemplo: '2026/0007' },
   { nome: 'data_hoje', rotulo: 'Data de hoje', grupo: 'documento', exemplo: '06/10/2026' },

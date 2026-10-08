@@ -2,11 +2,12 @@
 // Casca das páginas de um evento: "Propostas / título do evento" (com link de volta) e as abas do evento.
 import AppLayout from './AppLayout.astro';
 import { ROTULOS } from '../lib/rotulos';
+import { isAdmin } from '../lib/auth';
 
 interface Props {
   eventoId: string;
   titulo: string;
-  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'compras' | 'margem' | 'negociacao' | 'mensagens' | 'reunioes' | 'documentos' | 'timeline';
+  aba: 'resumo' | 'orcamento' | 'informacoes' | 'condicoes' | 'compras' | 'margem' | 'negociacao' | 'mensagens' | 'reunioes' | 'documentos' | 'financas' | 'timeline';
 }
 
 const { eventoId, titulo, aba } = Astro.props;
@@ -20,6 +21,8 @@ const abas = [
   { id: 'mensagens', label: 'Mensagens', href: `${base}/mensagens` },
   { id: 'reunioes', label: 'Reuniões', href: `${base}/reunioes` },
   { id: 'documentos', label: 'Documentos', href: `${base}/documentos` },
+  // Finanças: só owner/admin (o middleware também bloqueia a rota)
+  ...(isAdmin(Astro.locals.user) ? [{ id: 'financas', label: 'Finanças', href: `${base}/financas` }] : []),
   { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
 ];
 const abaAtiva = aba === 'informacoes' || aba === 'condicoes' || aba === 'compras' || aba === 'margem' ? 'orcamento' : aba;

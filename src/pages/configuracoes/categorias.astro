@@ -43,7 +43,7 @@ const busca = searchTerm(Astro.url);
 const filtro = Astro.url.searchParams.get('filtro') || null;
 
 const { tipos, categoriasEvento } = await withTenant(tenantId, async (db) => ({
-  tipos: await listarTiposEvento(db, null),
+  tipos: await listarTiposEvento(db),
   categoriasEvento: await listarCategoriasEvento(db, busca, filtro),
 }));
 
@@ -109,6 +109,7 @@ const eventoData = categoriasEvento.map((c) => ({
               <label class="chip"><input type="checkbox" name="tipos" value={t.id} />{t.nome}</label>
             ))}
           </div>
+          <p class="field-hint">A ocasião aparece no formulário de captação dos tipos marcados.</p>
         </div>
         <div class="field span-2">
           <label for="cat-desc">Descrição</label>

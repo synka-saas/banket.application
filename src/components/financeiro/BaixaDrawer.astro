@@ -1,0 +1,53 @@
+---
+// Drawer de baixa: registra o recebimento/pagamento de uma conta (data, valor pago e forma).
+// Abrir com data-drawer-open="drawer-baixa" e data-values {conta_id, valor_pago, forma_pagamento, _titulo, _tipo}.
+import Drawer from '../ui/Drawer.astro';
+import { FORMAS_PAGAMENTO } from '../../lib/financeiro';
+import { hojeSaoPaulo } from '../../lib/datas';
+---
+
+<Drawer id="drawer-baixa" formId="form-baixa" title="Registrar pagamento" width="md" deletable={false} saveLabel="Registrar" saveAction="baixar" saveLoadingLabel="Registrando…">
+  <form id="form-baixa" method="post" class="form-grid" data-form-baixa>
+    <input type="hidden" name="conta_id" />
+    <p class="span-2 baixa-conta" data-baixa-conta></p>
+    <div class="field">
+      <label for="bx-data"><span data-baixa-rotulo-data>Pago em</span><span class="obrigatorio">*</span></label>
+      <input id="bx-data" name="pago_em" type="date" required value={hojeSaoPaulo()} />
+    </div>
+    <div class="field">
+      <label for="bx-valor">Valor pago (R$)<span class="obrigatorio">*</span></label>
+      <input id="bx-valor" name="valor_pago" required inputmode="decimal" data-mascara="dinheiro" />
+      <span class="field-hint">Com juros, multa ou desconto, informe o valor efetivo.</span>
+    </div>
+    <div class="field span-2">
+      <label for="bx-forma">Forma de pagamento</label>
+      <select id="bx-forma" name="forma_pagamento">
+        <option value="">—</option>
+        {Object.entries(FORMAS_PAGAMENTO).map(([v, l]) => <option value={v}>{l}</option>)}
+      </select>
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  import { hojeSaoPaulo } from '../../lib/datas';
+
+  document.addEventListener('drawer:open', (e) => {
+    const drawer = e.target as HTMLElement;
+    if (drawer.id !== 'drawer-baixa') return;
+    const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
+    const receber = values._tipo === 'receber';
+    drawer.querySelector('.drawer-title')!.textContent = receber ? 'Registrar recebimento' : 'Registrar pagamento';
+    drawer.querySelector('[data-baixa-conta]')!.textContent = values._titulo ?? '';
+    drawer.querySelector('[data-baixa-rotulo-data]')!.textContent = receber ? 'Recebido em' : 'Pago em';
+    const data = drawer.querySelector<HTMLInputElement>('[name="pago_em"]')!;
+    if (!data.value) data.value = hojeSaoPaulo();
+  });
+</script>
+
+<style>
+  .baixa-conta {
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+  }
+</style>

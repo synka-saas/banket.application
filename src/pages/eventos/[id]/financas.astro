@@ -1,0 +1,133 @@
+---
+import '../../../styles/financeiro.css';
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Button from '../../../components/ui/Button.astro';
+import Table from '../../../components/ui/Table.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import ContaDrawer from '../../../components/financeiro/ContaDrawer.astro';
+import BaixaDrawer from '../../../components/financeiro/BaixaDrawer.astro';
+import PlanoDrawer from '../../../components/financeiro/PlanoDrawer.astro';
+import { COLUNAS_CONTAS, linhaConta } from '../../../components/financeiro/linhas';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { formatMoney, moneyInput } from '../../../lib/money';
+import { hojeSaoPaulo, somarMeses } from '../../../lib/datas';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { acaoConta, financasDoEvento, listarCategorias, planoSchema, salvarPlano } from '../../../server/financeiro';
+
+// Finanças do evento (owner/admin; o middleware bloqueia os demais): contas a receber (plano de pagamento acertado
+// no fechamento + avulsas) e a pagar (custos do evento, compras do estoque ligadas a ele), com o resultado previsto.
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) =>
+    withTenant(user.tenantId, async (db) => {
+      if (data._action === 'plano') {
+        const n = await salvarPlano(db, user, id, planoSchema.parse(data));
+        return { message: `Plano de pagamento cadastrado: ${n === 1 ? '1 conta a receber' : `${n} contas a receber`}.`, redirect: Astro.url.pathname };
+      }
+      return acaoConta(db, user, data);
+    })
+  );
+}
+
+const { evento, fin, categorias } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  fin: await financasDoEvento(db, id),
+  categorias: await listarCategorias(db),
+}));
+
+const receber = fin.contas.filter((c) => c.tipo === 'receber');
+const pagar = fin.contas.filter((c) => c.tipo === 'pagar');
+const resultado = Math.round((fin.receber_previsto - fin.pagar_previsto) * 100) / 100;
+const hoje = hojeSaoPaulo();
+const sugerido = fin.valor_orcamento !== null ? Math.max(0, Number(fin.valor_orcamento) - fin.recebido_plano) : null;
+const valoresPlano = JSON.stringify({
+  valor_total: sugerido ? moneyInput(sugerido) : '',
+  entrada_vencimento: hoje,
+  primeiro_vencimento: somarMeses(hoje, 1),
+  parcelas: '1',
+  intervalo_meses: '1',
+  _dica: fin.valor_orcamento !== null
+    ? `Orçamento atual: ${formatMoney(Number(fin.valor_orcamento))}${fin.recebido_plano ? ` · já recebido no plano: ${formatMoney(fin.recebido_plano)}` : ''}`
+    : 'Este evento ainda não tem orçamento.',
+});
+const novaConta = (tipo: 'receber' | 'pagar') => JSON.stringify({ vencimento: hoje, ...(tipo === 'pagar' && evento.data_evento ? { vencimento: evento.data_evento } : {}) });
+const abrirPlano = Astro.url.searchParams.get('plano') === '1';
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="financas">
+  <section class="fin-resumo">
+    <div>
+      <span class="eyebrow">Orçamento</span>
+      <strong>{fin.valor_orcamento !== null ? formatMoney(Number(fin.valor_orcamento)) : '—'}</strong>
+      <small>{evento.status_nome}</small>
+    </div>
+    <div>
+      <span class="eyebrow">A receber</span>
+      <strong>{formatMoney(fin.receber_previsto)}</strong>
+      <small>Recebido {formatMoney(fin.recebido)} · em aberto {formatMoney(fin.receber_aberto)}</small>
+    </div>
+    <div>
+      <span class="eyebrow">Custos do evento</span>
+      <strong>{formatMoney(fin.pagar_previsto)}</strong>
+      <small>Pago {formatMoney(fin.pago)}{fin.cmv_estoque > 0 ? ` · estoque consumido ${formatMoney(fin.cmv_estoque)}` : ''}</small>
+    </div>
+    <div class:list={{ positivo: resultado > 0, negativo: resultado < 0 }}>
+      <span class="eyebrow">Resultado previsto</span>
+      <strong>{formatMoney(resultado)}</strong>
+      <small>{fin.receber_previsto > 0 ? `Margem de ${Math.round((resultado / fin.receber_previsto) * 100)}%` : 'A receber − custos lançados'}</small>
+    </div>
+  </section>
+
+  <div class="fin-secao">
+    <div>
+      <h2><Icon name="arrow-down-left" size={18} />Contas a receber</h2>
+      <p>{fin.tem_plano ? 'Parcelas do plano de pagamento e recebimentos avulsos do evento.' : 'Cadastre o plano de pagamento acertado com o cliente: entrada, parcelas e vencimentos.'}</p>
+    </div>
+    <div class="fin-acoes">
+      <Button variant={fin.tem_plano ? 'secondary' : 'primary'} icon="calendar-event" data-drawer-open="drawer-plano" data-values={valoresPlano} data-abrir-plano={abrirPlano ? '1' : undefined}>
+        {fin.tem_plano ? 'Refazer plano' : 'Plano de pagamento'}
+      </Button>
+      <Button variant="secondary" icon="circle-plus" data-drawer-open="drawer-conta-receber" data-values={novaConta('receber')}>Nova conta a receber</Button>
+    </div>
+  </div>
+  <Table columns={COLUNAS_CONTAS.map((c) => ({ ...c, ordenar: undefined }))} data={receber.map((c) => linhaConta(c, { mostrarEvento: false }))}>
+    <EstadoVazio slot="empty" icon="wallet" titulo="Nenhuma conta a receber" texto="Ao fechar o evento, cadastre o plano de pagamento: cada parcela vira uma conta a receber.">
+      <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-plano" data-values={valoresPlano}>Plano de pagamento</button>
+    </EstadoVazio>
+  </Table>
+
+  <div class="fin-secao">
+    <div>
+      <h2><Icon name="arrow-up-right" size={18} />Contas a pagar</h2>
+      <p>Custos do evento: equipe, fornecedores, locação, compras do estoque ligadas a ele.</p>
+    </div>
+    <div class="fin-acoes">
+      <Button variant="secondary" icon="circle-plus" data-drawer-open="drawer-conta-pagar" data-values={novaConta('pagar')}>Nova conta a pagar</Button>
+    </div>
+  </div>
+  <Table columns={COLUNAS_CONTAS.map((c) => ({ ...c, ordenar: undefined }))} data={pagar.map((c) => linhaConta(c, { mostrarEvento: false }))}>
+    <EstadoVazio slot="empty" icon="receipt" titulo="Nenhuma conta a pagar" texto="Lance os custos do evento para acompanhar o resultado previsto." />
+  </Table>
+
+  <ContaDrawer slot="overlays" tipo="receber" categorias={categorias} eventoId={id} />
+  <ContaDrawer slot="overlays" tipo="pagar" categorias={categorias} eventoId={id} />
+  <BaixaDrawer slot="overlays" />
+  <PlanoDrawer slot="overlays" categorias={categorias} existente={fin.tem_plano} />
+</EventoLayout>
+
+<script>
+  // Vindo da mudança de etapa para "aprovado" (?plano=1): abre o plano de pagamento
+  const botao = document.querySelector<HTMLElement>('[data-abrir-plano]');
+  if (botao) {
+    history.replaceState(null, '', location.pathname);
+    requestAnimationFrame(() => botao.click());
+  }
+</script>

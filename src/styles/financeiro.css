@@ -1,0 +1,307 @@
+/* Financeiro (menu e aba do evento) e Pesquisas: faixa de indicadores, células das listas e gráficos simples. */
+
+/* Indicadores (StatCard compacto) */
+.fin-resumo {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.fin-resumo > * {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  color: var(--text-body);
+  text-decoration: none;
+}
+
+.fin-resumo a:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.fin-resumo strong {
+  font-size: var(--fs-24);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-tight);
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fin-resumo small {
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.fin-resumo .positivo strong {
+  color: var(--success);
+}
+
+.fin-resumo .negativo strong,
+.fin-resumo .alerta strong {
+  color: var(--danger);
+}
+
+/* Células das listas de contas */
+.fin-desc {
+  display: block;
+  color: var(--text-strong);
+  font-weight: var(--fw-medium);
+}
+
+.fin-apoio {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.fin-apoio a {
+  color: inherit;
+}
+
+.fin-valor {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-valor small {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.data-table tbody td[data-key='vencimento'],
+.data-table tbody td[data-key='acoes'] {
+  white-space: nowrap;
+}
+
+.data-table tbody td[data-key='acoes'] .inline-form {
+  display: inline;
+}
+
+.data-table tbody td[data-key='acoes'] .row-action + .row-action,
+.data-table tbody td[data-key='acoes'] .row-action + .inline-form,
+.data-table tbody td[data-key='acoes'] .inline-form + .row-action,
+.data-table tbody td[data-key='acoes'] .inline-form + .inline-form {
+  margin-left: var(--space-3);
+}
+
+.row-action.perigo {
+  color: var(--danger);
+}
+
+/* Cabeçalho de seção com ação à direita */
+.fin-secao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+.fin-secao:first-child {
+  margin-top: 0;
+}
+
+.fin-secao h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.fin-secao p {
+  color: var(--text-secondary);
+  font-size: var(--fs-13);
+}
+
+.fin-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Barras horizontais (fluxo de caixa, distribuição de notas) */
+.barras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.barra-linha {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--fs-13);
+}
+
+.barra-rotulo {
+  color: var(--text-secondary);
+}
+
+.barra-trilho {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.barra {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--clay-200);
+}
+
+/* Trilho de fundo para barras únicas (percentuais): o zero aparece como trilho vazio */
+.barra-trilho.trilho {
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--clay-100);
+  overflow: hidden;
+}
+
+.barra-trilho.trilho .barra {
+  display: block;
+}
+
+.barra.receber {
+  background: var(--sage-500);
+}
+
+.barra.pagar {
+  background: var(--terracotta-400);
+}
+
+.barra.realizado {
+  opacity: 0.45;
+}
+
+.barra-valor {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+.barra-valor small {
+  display: block;
+  font-size: var(--fs-11);
+  color: var(--text-muted);
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
+.legenda span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legenda i {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--clay-200);
+}
+
+/* Duas colunas de cards */
+.fin-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* Na grade, o espaço entre cards vem do gap (anula o margin entre SectionCards vizinhos) */
+.fin-grade > * {
+  margin: 0 !important;
+}
+
+.fin-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.fin-lista-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-13);
+}
+
+.fin-lista-item:last-child {
+  border-bottom: 0;
+}
+
+.fin-lista-vazia {
+  color: var(--text-muted);
+  font-size: var(--fs-13);
+}
+
+/* Prévia das parcelas no drawer do plano */
+.plano-previa {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-4);
+  background: var(--clay-25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-13);
+}
+
+.plano-previa div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.plano-previa .erro {
+  color: var(--danger);
+}
+
+@media (max-width: 1024px) {
+  .fin-grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .fin-resumo {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fin-resumo strong {
+    font-size: var(--fs-20);
+  }
+
+  .fin-secao {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .barra-linha {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+  }
+}

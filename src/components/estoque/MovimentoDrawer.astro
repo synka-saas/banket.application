@@ -2,17 +2,22 @@
 // Drawer de movimentação do estoque: tipo (entrada, saída, contagem) → motivo → campos que o motivo exige
 // (fornecedor e nota na compra, evento no consumo/degustação, espaço nas transferências, justificativa em perdas).
 // Abrir com data-drawer-open="drawer-movimento" e data-values {estoque_item_id, tipo, razao, evento_id}.
+// Com `categoriasFinanceiras` (owner/admin), compra e devolução ao fornecedor podem lançar a conta a pagar/receber.
 import Drawer from '../ui/Drawer.astro';
 import { RAZOES, TIPOS_MOVIMENTO } from '../../lib/estoqueRazoes';
 import type { UnidadePorcao } from '../../lib/calculo/orcamento';
+import { FORMAS_PAGAMENTO } from '../../lib/financeiro';
+import { hojeSaoPaulo } from '../../lib/datas';
 
 interface Props {
   itens: { id: string; nome: string; unidade: UnidadePorcao; quantidade: number }[];
   eventos: { id: string; rotulo: string }[];
   espacos: { id: string; nome: string }[];
+  /** Categorias do financeiro (null = usuário sem acesso ao financeiro) */
+  categoriasFinanceiras?: { id: string; nome: string; tipo: string }[] | null;
 }
 
-const { itens, eventos, espacos } = Astro.props;
+const { itens, eventos, espacos, categoriasFinanceiras = null } = Astro.props;
 const saldo = (q: number) => Number(q).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
 ---
 
@@ -78,11 +83,46 @@ const saldo = (q: number) => Number(q).toLocaleString('pt-BR', { maximumFraction
       <label for="mv-obs"><span data-rotulo-obs>Observação</span><span class="obrigatorio" data-marca-obrigatorio>*</span></label>
       <input id="mv-obs" name="observacao" maxlength="500" />
     </div>
+    {categoriasFinanceiras && (
+      <div class="span-2 mv-fin" data-campo-financeiro hidden>
+        <label class="switch"><input type="checkbox" name="fin_lancar" data-fin-lancar /><span data-fin-rotulo>Lançar conta a pagar no financeiro</span></label>
+        <div class="form-grid mv-fin-campos" data-fin-campos hidden>
+          <div class="field">
+            <label for="mv-fin-valor">Valor da conta (R$)<span class="obrigatorio">*</span></label>
+            <input id="mv-fin-valor" name="fin_valor" inputmode="decimal" data-mascara="dinheiro" />
+            <span class="field-hint" data-fin-valor-dica></span>
+          </div>
+          <div class="field">
+            <label for="mv-fin-venc"><span data-fin-rotulo-data>Vencimento</span><span class="obrigatorio">*</span></label>
+            <input id="mv-fin-venc" name="fin_vencimento" type="date" value={hojeSaoPaulo()} />
+          </div>
+          <div class="field">
+            <label for="mv-fin-forma">Forma de pagamento</label>
+            <select id="mv-fin-forma" name="fin_forma">
+              <option value="">—</option>
+              {Object.entries(FORMAS_PAGAMENTO).map(([v, l]) => <option value={v}>{l}</option>)}
+            </select>
+          </div>
+          <div class="field">
+            <label for="mv-fin-cat">Categoria</label>
+            <select id="mv-fin-cat" name="fin_categoria_id">
+              <option value="">Sem categoria</option>
+              {categoriasFinanceiras.map((c) => <option value={c.id} data-tipo={c.tipo}>{c.nome}</option>)}
+            </select>
+          </div>
+          <div class="field span-2">
+            <label class="switch switch-sm"><input type="checkbox" name="fin_pago" data-fin-pago /><span data-fin-rotulo-pago>Já foi pago</span></label>
+          </div>
+        </div>
+      </div>
+    )}
   </form>
 </Drawer>
 
 <script>
   import { RAZOES } from '../../lib/estoqueRazoes';
+  import { TIPO_CONTA_DO_MOTIVO } from '../../lib/financeiro';
+  import { moneyInput, parseMoney } from '../../lib/money';
 
   type Exigencia = 'obrigatorio' | 'opcional' | null;
   const form = document.querySelector<HTMLFormElement>('[data-form-movimento]');
@@ -126,13 +166,48 @@ const saldo = (q: number) => Number(q).toLocaleString('pt-BR', { maximumFraction
       campo('espaco', regra?.espaco ?? null);
       campo('justificativa', regra?.justificativa ?? 'opcional');
       form.querySelector('[data-rotulo-obs]')!.textContent = regra?.justificativa === 'obrigatorio' ? 'Justificativa' : 'Observação';
+      atualizarFinanceiro(codigo);
+    };
+
+    // Registro financeiro da movimentação (compra → a pagar; devolução ao fornecedor → a receber)
+    const fin = form.querySelector<HTMLElement>('[data-campo-financeiro]');
+    const finValor = form.querySelector<HTMLInputElement>('[name="fin_valor"]');
+    let valorEditado = false;
+    finValor?.addEventListener('input', () => (valorEditado = true));
+    const atualizarFinanceiro = (codigo: string) => {
+      if (!fin || !finValor) return;
+      const tipoConta = TIPO_CONTA_DO_MOTIVO[codigo];
+      fin.hidden = !tipoConta;
+      const lancar = fin.querySelector<HTMLInputElement>('[data-fin-lancar]')!;
+      if (!tipoConta) lancar.checked = false;
+      const pagar = tipoConta !== 'receber';
+      fin.querySelector('[data-fin-rotulo]')!.textContent = pagar ? 'Lançar conta a pagar no financeiro' : 'Lançar conta a receber no financeiro';
+      fin.querySelector('[data-fin-rotulo-pago]')!.textContent = pagar ? 'Já foi pago' : 'Já foi recebido';
+      const pago = fin.querySelector<HTMLInputElement>('[data-fin-pago]')!.checked;
+      fin.querySelector('[data-fin-rotulo-data]')!.textContent = pago ? (pagar ? 'Data do pagamento' : 'Data do recebimento') : 'Vencimento';
+      const campos = fin.querySelector<HTMLElement>('[data-fin-campos]')!;
+      campos.hidden = !lancar.checked;
+      finValor.required = lancar.checked;
+      for (const o of fin.querySelectorAll<HTMLOptionElement>('[name="fin_categoria_id"] option[data-tipo]')) o.hidden = o.dataset.tipo !== (pagar ? 'pagar' : 'receber');
+      const cat = fin.querySelector<HTMLSelectElement>('[name="fin_categoria_id"]')!;
+      if (cat.selectedOptions[0]?.hidden) cat.value = '';
+      // Valor sugerido: quantidade × custo unitário (até o usuário digitar outro)
+      const qtd = parseMoney(form.querySelector<HTMLInputElement>('[name="quantidade"]')!.value);
+      const custo = parseMoney(form.querySelector<HTMLInputElement>('[name="custo_unitario"]')!.value);
+      const sugerido = qtd && custo && Number.isFinite(qtd * custo) ? Math.round(qtd * custo * 100) / 100 : null;
+      if (!valorEditado && sugerido !== null) finValor.value = moneyInput(sugerido);
+      fin.querySelector('[data-fin-valor-dica]')!.textContent = sugerido !== null ? 'Sugerido: quantidade × custo unitário.' : '';
     };
 
     form.addEventListener('change', atualizar);
+    form.addEventListener('input', (e) => {
+      if ((e.target as HTMLElement).matches('[name="quantidade"], [name="custo_unitario"]')) atualizar();
+    });
     document.addEventListener('drawer:open', (e) => {
       if ((e.target as HTMLElement).id !== 'drawer-movimento') return;
       const { values } = (e as CustomEvent<{ values: Record<string, string> }>).detail;
       if (!values.tipo) form.querySelector<HTMLInputElement>('input[name=tipo][value=entrada]')!.checked = true;
+      valorEditado = false;
       requestAnimationFrame(() => {
         if (values.razao) razao.value = values.razao;
         atualizar();
@@ -140,3 +215,15 @@ const saldo = (q: number) => Number(q).toLocaleString('pt-BR', { maximumFraction
     });
   }
 </script>
+
+<style>
+  .mv-fin {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+</style>

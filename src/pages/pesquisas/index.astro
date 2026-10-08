@@ -1,0 +1,353 @@
+---
+import '../../styles/financeiro.css';
+import AppLayout from '../../layouts/AppLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import PageToolbar from '../../components/ui/PageToolbar.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import EnvioDrawer from '../../components/pesquisas/EnvioDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { isAdmin } from '../../lib/auth';
+import { handleFormPost } from '../../lib/actions';
+import { dataCurta, dataHora } from '../../lib/datas';
+import { pesquisasSubmenu } from '../../lib/nav';
+import { carregarEmpresa } from '../../server/empresa';
+import {
+  CLASSES_NPS_PLURAL,
+  PERIODOS_PESQUISA,
+  acaoPesquisa,
+  carregarConfig,
+  classeNps,
+  eventosParaEnvio,
+  eventosSemPesquisa,
+  filtrosPesquisaDaUrl,
+  resumoPesquisas,
+  tiposParaFiltro,
+  zonaNps,
+} from '../../server/pesquisas';
+
+// Pesquisa de satisfação: indicadores de todas as pesquisas (NPS, CSAT por aspecto, escolhas e comentários) e o
+// lembrete dos eventos já realizados que ainda não receberam a pesquisa.
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => withTenant(user.tenantId, (db) => acaoPesquisa(db, user, data)));
+}
+
+const filtros = filtrosPesquisaDaUrl(Astro.url);
+const { r, config, pendentes, eventos, empresa, tipos } = await withTenant(user.tenantId, async (db) => {
+  const config = await carregarConfig(db);
+  return {
+    config,
+    r: await resumoPesquisas(db, filtros),
+    pendentes: await eventosSemPesquisa(db, config.lembrete_dias),
+    eventos: await eventosParaEnvio(db),
+    empresa: await carregarEmpresa(db),
+    tipos: await tiposParaFiltro(db),
+  };
+});
+
+const n = (v: number) => Number(v);
+const respondidas = n(r.respondidas);
+const avaliacoesNps = n(r.promotores) + n(r.neutros) + n(r.detratores);
+const pct = (v: number, total: number) => (total ? Math.round((v / total) * 100) : 0);
+const zona = r.nps !== null ? zonaNps(r.nps) : null;
+const maxDist = Math.max(1, ...r.distribuicao);
+const pad = (v: number) => String(v).padStart(2, '0');
+const virgula = (v: number | null) => (v === null ? '—' : String(v).replace('.', ','));
+const temDados = n(r.enviadas) > 0 || respondidas > 0;
+---
+
+<AppLayout title="Pesquisas de satisfação" heading="Pesquisas / Visão geral" submenu={pesquisasSubmenu(isAdmin(user))} submenuActive="geral">
+  <PageToolbar
+    showSearch={false}
+    filter={{ name: 'periodo', placeholder: 'Todo o período', options: Object.entries(PERIODOS_PESQUISA).map(([value, label]) => ({ value, label })) }}
+    filters={[{ name: 'tipo', placeholder: 'Todos os tipos', options: tipos.map((t) => ({ value: t.id, label: t.nome })) }]}
+  >
+    <Button icon="send" data-drawer-open="drawer-pesquisa" disabled={eventos.length === 0}>Enviar pesquisa</Button>
+  </PageToolbar>
+
+  {pendentes.length > 0 && (
+    <SectionCard title="Eventos realizados sem pesquisa" description={`Eventos fechados que aconteceram há ${config.lembrete_dias === 1 ? '1 dia' : `${config.lembrete_dias} dias`} ou mais (até 90) e ainda não receberam a pesquisa.`} icon="bell" class="ps-lembrete">
+      <div class="fin-lista">
+        {pendentes.map((e) => (
+          <div class="fin-lista-item">
+            <span>
+              <a class="fin-desc link" href={`/eventos/${e.id}`}>{e.titulo ?? 'Evento'}</a>
+              <span class="fin-apoio">{[e.cliente_nome, e.data_evento ? dataCurta(e.data_evento) : null, e.email ?? 'sem e-mail cadastrado'].filter(Boolean).join(' · ')}</span>
+            </span>
+            <button type="button" class="row-action" data-drawer-open="drawer-pesquisa" data-values={JSON.stringify({ evento_id: e.id })}>Enviar</button>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  )}
+
+  {!temDados ? (
+    <EstadoVazio icon="message-star" titulo="Nenhuma pesquisa enviada ainda" texto={`Depois do evento, envie a pesquisa ao cliente: ele responde pelo link do e-mail e os resultados aparecem aqui (NPS, satisfação por aspecto e comentários).${eventos.length ? '' : ' A pesquisa fica disponível para eventos na etapa “Aprovado” cuja data já passou.'}`}>
+      <button type="button" class="btn btn-primary btn-md" data-drawer-open="drawer-pesquisa" disabled={eventos.length === 0}>Enviar pesquisa</button>
+    </EstadoVazio>
+  ) : (
+    <>
+      <section class="fin-resumo">
+        <div>
+          <span class="eyebrow">NPS</span>
+          <strong>{r.nps === null ? '—' : r.nps > 0 ? `+${r.nps}` : r.nps}</strong>
+          <small>{zona ? <span class={`badge badge-${zona.tom}`}>{zona.rotulo}</span> : 'Sem notas de recomendação'}</small>
+        </div>
+        <a href="/pesquisas/respostas?status=respondida">
+          <span class="eyebrow">Respostas</span>
+          <strong>{pad(respondidas)}</strong>
+          <small>de {pad(n(r.enviadas))} pesquisas enviadas</small>
+        </a>
+        <div>
+          <span class="eyebrow">Taxa de resposta</span>
+          <strong>{pct(respondidas, n(r.enviadas))}%</strong>
+          <small><a class="link" href="/pesquisas/respostas?status=aguardando">{pad(Math.max(0, n(r.enviadas) - respondidas))} aguardando</a></small>
+        </div>
+        <div>
+          <span class="eyebrow">Promotores · detratores</span>
+          <strong>{pct(n(r.promotores), avaliacoesNps)}% · {pct(n(r.detratores), avaliacoesNps)}%</strong>
+          <small>{pad(n(r.promotores))} promotores · {pad(n(r.neutros))} neutros · {pad(n(r.detratores))} detratores</small>
+        </div>
+      </section>
+
+      <div class="fin-grade">
+        <SectionCard title="Recomendação (NPS)" description="Notas de 0 a 10 · promotores 9–10, neutros 7–8, detratores 0–6. NPS = % promotores − % detratores." icon="thumb-up">
+          {avaliacoesNps > 0 ? (
+            <>
+              <div class="nps-faixa" aria-label="Distribuição entre promotores, neutros e detratores">
+                <span class="detrator" style={`flex: ${n(r.detratores)}`}></span>
+                <span class="neutro" style={`flex: ${n(r.neutros)}`}></span>
+                <span class="promotor" style={`flex: ${n(r.promotores)}`}></span>
+              </div>
+              <div class="nps-colunas">
+                {r.distribuicao.map((total, nota) => (
+                  <a class="nps-coluna" href={`/pesquisas/respostas?status=respondida&classe=${classeNps(nota)}`} title={`Nota ${nota}: ${total}`}>
+                    <span class="nps-total tabular">{total || ''}</span>
+                    <span class={`nps-barra ${total ? classeNps(nota) : ''}`} style={`height: ${Math.max(total ? 6 : 2, (total / maxDist) * 100)}%`}></span>
+                    <span class="nps-nota tabular">{nota}</span>
+                  </a>
+                ))}
+              </div>
+              <div class="legenda">
+                {(['detrator', 'neutro', 'promotor'] as const).map((c) => <span><i class={`nps-barra ${c}`}></i>{CLASSES_NPS_PLURAL[c]}</span>)}
+              </div>
+            </>
+          ) : (
+            <p class="fin-lista-vazia">Nenhuma nota de recomendação no período.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Satisfação por aspecto (CSAT)" description="Média das notas de 1 a 5 e % de satisfeitos (notas 4 e 5)." icon="star">
+          {r.notas.length ? (
+            <div class="barras">
+              {r.notas.map((q) => (
+                <a class="barra-linha csat-linha" href={`/pesquisas/perguntas?pergunta=${q.pergunta_id}`}>
+                  <span class="csat-texto">{q.texto}</span>
+                  <div class="barra-trilho trilho" aria-hidden="true"><span class="barra receber" style={`width: ${pct(n(q.satisfeitos), n(q.respostas))}%`}></span></div>
+                  <span class="barra-valor">
+                    {n(q.respostas) ? `${pct(n(q.satisfeitos), n(q.respostas))}%` : '—'}
+                    <small>média {virgula(q.media)} · {pad(n(q.respostas))} resp.</small>
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p class="fin-lista-vazia">O questionário não tem perguntas de nota de 1 a 5.</p>
+          )}
+        </SectionCard>
+      </div>
+
+      <div class="fin-grade ps-segunda">
+        <SectionCard title="Perguntas de escolha" description="Quantas vezes cada opção foi escolhida." icon="list-check">
+          {r.escolhas.length ? (
+            r.escolhas.map((q) => (
+              <div class="ps-escolha">
+                <a class="ps-escolha-titulo link" href={`/pesquisas/perguntas?pergunta=${q.pergunta_id}`}>{q.texto}</a>
+                <div class="barras">
+                  {q.opcoes.map((o) => (
+                    <div class="barra-linha csat-linha">
+                      <span class="csat-texto">{o.opcao}</span>
+                      <div class="barra-trilho trilho" aria-hidden="true"><span class="barra" style={`width: ${pct(o.total, n(q.respostas))}%`}></span></div>
+                      <span class="barra-valor">{pct(o.total, n(q.respostas))}%<small>{pad(o.total)}</small></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p class="fin-lista-vazia">Sem perguntas de escolha.</p>
+          )}
+        </SectionCard>
+
+        <SectionCard title="Comentários recentes" description="Respostas abertas: os insights de melhoria." icon="messages">
+          {r.comentarios.length ? (
+            <div class="fin-lista">
+              {r.comentarios.map((c) => (
+                <a class="ps-comentario" href={`/pesquisas/respostas/${c.envio_id}`}>
+                  <span class="ps-comentario-texto">“{c.texto}”</span>
+                  <span class="fin-apoio">
+                    {c.pergunta} · {c.evento_titulo ?? 'Evento'} · {dataHora(c.respondida_em)}
+                    {c.nps !== null && <span class={`tag tag-sm ${classeNps(c.nps) === 'promotor' ? 'tag-sage' : classeNps(c.nps) === 'neutro' ? 'tag-ochre' : 'tag-wine'}`}>NPS {c.nps}</span>}
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p class="fin-lista-vazia">Nenhum comentário no período.</p>
+          )}
+        </SectionCard>
+      </div>
+    </>
+  )}
+
+  <EnvioDrawer slot="overlays" eventos={eventos} modelo={{ assunto: config.email_assunto, corpo: config.email_corpo }} empresa={empresa.nome} />
+</AppLayout>
+
+<style>
+  :global(.ps-lembrete) {
+    margin-bottom: var(--space-5);
+  }
+
+  .ps-segunda {
+    margin-top: var(--space-5);
+  }
+
+  .nps-faixa {
+    display: flex;
+    height: 10px;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    background: var(--clay-100);
+    margin-bottom: var(--space-5);
+  }
+
+  .nps-colunas {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    gap: var(--space-2);
+    height: 160px;
+  }
+
+  .nps-coluna {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-1);
+    text-decoration: none;
+    min-height: 0;
+  }
+
+  .nps-barra {
+    width: 100%;
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    background: var(--clay-200);
+  }
+
+  .legenda .nps-barra {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+  }
+
+  .nps-faixa .promotor,
+  .nps-barra.promotor {
+    background: var(--sage-500);
+  }
+
+  .nps-faixa .neutro,
+  .nps-barra.neutro {
+    background: var(--ochre-300);
+  }
+
+  .nps-faixa .detrator,
+  .nps-barra.detrator {
+    background: var(--wine-500);
+  }
+
+  .nps-coluna:hover .nps-barra {
+    opacity: 0.8;
+  }
+
+  .nps-total {
+    font-size: var(--fs-11);
+    color: var(--text-secondary);
+  }
+
+  .nps-nota {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .csat-linha {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.csat-linha:hover .csat-texto {
+    color: var(--text-link);
+  }
+
+  .csat-texto {
+    color: var(--text-body);
+    overflow-wrap: anywhere;
+  }
+
+  .ps-escolha + .ps-escolha {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .ps-escolha-titulo {
+    display: block;
+    margin-bottom: var(--space-3);
+    font-weight: var(--fw-medium);
+  }
+
+  .ps-comentario {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .ps-comentario:last-child {
+    border-bottom: 0;
+  }
+
+  .ps-comentario:hover .ps-comentario-texto {
+    color: var(--text-link);
+  }
+
+  .ps-comentario-texto {
+    color: var(--text-strong);
+    line-height: 1.5;
+  }
+
+  .ps-comentario .tag {
+    margin-left: var(--space-2);
+  }
+
+  @media (max-width: 768px) {
+    .nps-colunas {
+      height: 120px;
+      gap: var(--space-1);
+    }
+
+    .csat-linha {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .csat-linha .barra-trilho {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+</style>

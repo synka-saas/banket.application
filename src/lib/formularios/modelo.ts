@@ -53,6 +53,8 @@ interface PerguntaModelo {
   travada?: boolean;
   /** Só aparece quando outra pergunta tem o valor informado. */
   mostrarSe?: { chave: string; valor: string };
+  /** As opções vêm do banco: ocasiões ligadas ao tipo do fluxo (Configurações › Ocasiões). */
+  origemOpcoes?: 'ocasioes';
 }
 
 interface SecaoModelo {
@@ -127,6 +129,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     icone: 'building',
     fluxo: 'B2B',
     perguntas: [
+      { chave: 'b2b_ocasiao', rotulo: 'Ocasião', tipo: 'selecao', obrigatoria: true, origemOpcoes: 'ocasioes' },
       { chave: 'b2b_empresa', rotulo: 'Razão social / Empresa', tipo: 'texto', placeholder: 'Sua Empresa LTDA', obrigatoria: true },
       { chave: 'b2b_data', rotulo: 'Data prevista', tipo: 'data', obrigatoria: true },
       { chave: 'b2b_participantes', rotulo: 'Quantidade de participantes', tipo: 'numero', placeholder: 'Ex.: 150', obrigatoria: true },
@@ -181,13 +184,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
     icone: 'users',
     fluxo: 'B2C',
     perguntas: [
-      {
-        chave: 'b2c_ocasiao',
-        rotulo: 'Ocasião',
-        tipo: 'selecao',
-        opcoes: [op('casamento', 'Casamento'), op('debutante', '15 anos'), op('aniversario', 'Aniversário / Bodas')],
-        obrigatoria: true,
-      },
+      { chave: 'b2c_ocasiao', rotulo: 'Ocasião', tipo: 'selecao', obrigatoria: true, origemOpcoes: 'ocasioes' },
       { chave: 'b2c_data', rotulo: 'Data do evento', tipo: 'data', obrigatoria: true },
       { chave: 'b2c_adultos', rotulo: 'Convidados adultos (acima de 12 anos)', tipo: 'numero', placeholder: '0', obrigatoria: false },
       { chave: 'b2c_criancas', rotulo: 'Crianças (6 a 11 anos)', tipo: 'numero', placeholder: '0', obrigatoria: false },
@@ -342,7 +339,12 @@ export interface PerguntaResolvida {
   travada: boolean;
   ativa: boolean;
   mostrarSe: { chave: string; valor: string } | null;
+  /** 'ocasioes': opções preenchidas pelas ocasiões ativas no tipo do fluxo (não editáveis no formulário). */
+  origemOpcoes: 'ocasioes' | null;
 }
+
+/** Ocasiões (categorias_evento) disponíveis em cada fluxo, conforme a matriz de tipos em Configurações › Ocasiões. */
+export type OcasioesPorFluxo = Partial<Record<Exclude<Fluxo, 'todos'>, Opcao[]>>;
 
 export interface SecaoResolvida {
   chave: string;
@@ -355,20 +357,21 @@ export interface SecaoResolvida {
   perguntas: PerguntaResolvida[];
 }
 
-function resolverPadrao(p: PerguntaModelo, cfg?: { ativa: boolean; obrigatoria?: boolean }): PerguntaResolvida {
+function resolverPadrao(p: PerguntaModelo, cfg?: { ativa: boolean; obrigatoria?: boolean }, dinamicas: Opcao[] = []): PerguntaResolvida {
   const travada = Boolean(p.travada);
   return {
     id: p.chave,
     padrao: true,
     rotulo: p.rotulo,
     tipo: p.tipo,
-    opcoes: p.opcoes ?? (p.tipo === 'sim_nao' ? OPCOES_SIM_NAO : []),
+    opcoes: p.origemOpcoes ? dinamicas : (p.opcoes ?? (p.tipo === 'sim_nao' ? OPCOES_SIM_NAO : [])),
     placeholder: p.placeholder ?? null,
     ajuda: p.ajuda ?? null,
     obrigatoria: travada ? p.obrigatoria : (cfg?.obrigatoria ?? p.obrigatoria),
     travada,
     ativa: travada ? true : (cfg?.ativa ?? true),
     mostrarSe: p.mostrarSe ?? null,
+    origemOpcoes: p.origemOpcoes ?? null,
   };
 }
 
@@ -387,6 +390,7 @@ function resolverCustom(p: Extract<PerguntaConfig, { custom: true }>): PerguntaR
     travada: false,
     ativa: p.ativa,
     mostrarSe: null,
+    origemOpcoes: null,
   };
 }
 
@@ -399,11 +403,13 @@ export function lerConfig(raw: unknown): FormularioConfig {
 /**
  * Junta o modelo com a configuração: as seções seguem a ordem do modelo; as perguntas seguem a ordem salva.
  * Perguntas padrão que ainda não estão na configuração entram no fim da seção; chaves desconhecidas são ignoradas.
+ * `ocasioes` preenche as perguntas de ocasião de cada fluxo (sem ela, ficam sem opções e não aparecem).
  */
-export function montarFormulario(raw: unknown): SecaoResolvida[] {
+export function montarFormulario(raw: unknown, ocasioes: OcasioesPorFluxo = {}): SecaoResolvida[] {
   const config = lerConfig(raw);
   return MODELO_SECOES.map((secao) => {
     const cfg = config.secoes.find((s) => s.chave === secao.chave);
+    const dinamicas = secao.fluxo === 'todos' ? [] : (ocasioes[secao.fluxo] ?? []);
     const modelo = new Map(secao.perguntas.map((p) => [p.chave, p]));
     const vistas = new Set<string>();
     const perguntas: PerguntaResolvida[] = [];
@@ -417,10 +423,10 @@ export function montarFormulario(raw: unknown): SecaoResolvida[] {
         const base = modelo.get(p.chave);
         if (!base || vistas.has(p.chave)) continue;
         vistas.add(p.chave);
-        perguntas.push(resolverPadrao(base, p));
+        perguntas.push(resolverPadrao(base, p, dinamicas));
       }
     }
-    for (const p of secao.perguntas) if (!vistas.has(p.chave)) perguntas.push(resolverPadrao(p));
+    for (const p of secao.perguntas) if (!vistas.has(p.chave)) perguntas.push(resolverPadrao(p, undefined, dinamicas));
 
     return {
       chave: secao.chave,
@@ -471,12 +477,18 @@ export function secoesVisiveis(secoes: SecaoResolvida[], natureza: string | null
   return secoes.filter((s) => s.ativa && (s.fluxo === 'todos' || s.fluxo === natureza));
 }
 
+/**
+ * Pergunta exibida no formulário público: ativa e, se for de escolha, com opções
+ * (a de ocasião some quando nenhuma ocasião está marcada para o tipo do fluxo).
+ */
+export const perguntaExibida = (p: PerguntaResolvida) => p.ativa && (!TIPOS_COM_OPCOES.includes(p.tipo) || p.opcoes.length > 0);
+
 /** Perguntas que o respondente viu, considerando fluxo, perguntas ativas e condições. */
 export function perguntasVisiveis(secoes: SecaoResolvida[], respostas: Record<string, unknown>) {
   const natureza = typeof respostas.natureza === 'string' ? respostas.natureza : null;
   return secoesVisiveis(secoes, natureza).flatMap((s) =>
     s.perguntas
-      .filter((p) => p.ativa && (!p.mostrarSe || respostas[p.mostrarSe.chave] === p.mostrarSe.valor))
+      .filter((p) => perguntaExibida(p) && (!p.mostrarSe || respostas[p.mostrarSe.chave] === p.mostrarSe.valor))
       .map((p) => ({ secao: s, pergunta: p }))
   );
 }

@@ -1,0 +1,67 @@
+---
+// Drawer de envio da pesquisa de satisfação por e-mail (dentro da conversa do evento, no Inbox).
+// Abrir com data-drawer-open="drawer-pesquisa" (data-values {evento_id} pré-seleciona o evento).
+// Assunto e mensagem partem do modelo da pesquisa (Questionário e e-mail) com as variáveis do evento escolhido.
+import Drawer from '../ui/Drawer.astro';
+import type { EventoEnvio } from '../../server/pesquisas';
+
+interface Props {
+  eventos: EventoEnvio[];
+  modelo: { assunto: string; corpo: string };
+  empresa: string;
+}
+
+const { eventos, modelo, empresa } = Astro.props;
+---
+
+<Drawer id="drawer-pesquisa" formId="form-pesquisa" title="Enviar pesquisa de satisfação" width="md" deletable={false} saveLabel="Enviar" saveAction="enviar" saveLoadingLabel="Enviando…">
+  <form id="form-pesquisa" method="post" class="form-grid" data-form-pesquisa data-eventos={JSON.stringify(eventos)} data-modelo={JSON.stringify({ ...modelo, empresa })}>
+    <div class="field span-2">
+      <label for="ps-evento">Evento<span class="obrigatorio">*</span></label>
+      <select id="ps-evento" name="evento_id" required>
+        <option value="">Selecione…</option>
+        {eventos.map((e) => <option value={e.id}>{e.rotulo}{e.enviada ? ' · já enviada' : ''}</option>)}
+      </select>
+      <span class="field-hint" data-ps-dica>Eventos fechados e já realizados, ainda sem resposta.</span>
+    </div>
+    <div class="field span-2">
+      <label for="ps-para">Para<span class="obrigatorio">*</span></label>
+      <input id="ps-para" name="para" required placeholder="email@cliente.com.br" />
+      <span class="field-hint">Até 5 e-mails separados por vírgula. O envio fica na conversa do evento, no Inbox.</span>
+    </div>
+    <div class="field span-2">
+      <label for="ps-assunto">Assunto<span class="obrigatorio">*</span></label>
+      <input id="ps-assunto" name="assunto" required maxlength="255" />
+    </div>
+    <div class="field span-2">
+      <label for="ps-msg">Mensagem<span class="obrigatorio">*</span></label>
+      <textarea id="ps-msg" name="mensagem" rows="10" required maxlength="10000"></textarea>
+      <span class="field-hint"><code>{'{link_pesquisa}'}</code> vira o link da pesquisa; sem ele, o link entra no fim da mensagem.</span>
+    </div>
+  </form>
+</Drawer>
+
+<script>
+  import { aplicarVariaveis } from '../../lib/documentos/variaveis';
+
+  const form = document.querySelector<HTMLFormElement>('[data-form-pesquisa]');
+  if (form) {
+    const eventos = JSON.parse(form.dataset.eventos ?? '[]') as { id: string; nome_cliente: string; evento: string; data_evento: string; email: string; enviada: boolean }[];
+    const modelo = JSON.parse(form.dataset.modelo ?? '{}') as { assunto: string; corpo: string; empresa: string };
+    const select = form.querySelector<HTMLSelectElement>('[name="evento_id"]')!;
+    const campo = (nome: string) => form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${nome}"]`)!;
+    const preencher = () => {
+      const e = eventos.find((x) => x.id === select.value);
+      form.querySelector('[data-ps-dica]')!.textContent = e?.enviada
+        ? 'A pesquisa deste evento já foi enviada: o reenvio usa o mesmo link.'
+        : 'Eventos fechados e já realizados, ainda sem resposta.';
+      if (!e) return;
+      const valores = { nome_cliente: e.nome_cliente, evento: e.evento, data_evento: e.data_evento, empresa: modelo.empresa };
+      campo('para').value = e.email;
+      campo('assunto').value = aplicarVariaveis(modelo.assunto, valores);
+      campo('mensagem').value = aplicarVariaveis(modelo.corpo, valores);
+    };
+    select.addEventListener('change', preencher);
+    form.closest('[data-drawer]')?.addEventListener('drawer:open', () => requestAnimationFrame(preencher));
+  }
+</script>

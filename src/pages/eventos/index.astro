@@ -39,7 +39,7 @@ const filtros = filtrosDaUrl(url, searchTerm(url));
 const page = pageParams(url);
 
 const dados = await withTenant(tenantId, async (db) => {
-  const [status, tipos, formatos] = [await listarStatus(db), await listarTiposEvento(db, null), await listarFormatosServico(db)];
+  const [status, tipos, formatos] = [await listarStatus(db), await listarTiposEvento(db), await listarFormatosServico(db)];
   if (visao === 'kanban') {
     const intervaloMeses = await carregarIntervaloKanban(db);
     const cards = await listarEventosKanban(db, { ...filtros, intervaloMeses });
@@ -310,7 +310,7 @@ const filtrando = estaFiltrando(Astro.url);
       {dados.lista && <Pagination slot="footer" info={pageInfo(page, dados.lista.total)} />}
     </Table>
   )}
-  <EtapaDialogo slot="overlays" />
+  <EtapaDialogo slot="overlays" planoPagamento={isAdmin(Astro.locals.user)} />
 </AppLayout>
 
 <script>
@@ -371,6 +371,11 @@ const filtrando = estaFiltrando(Astro.url);
           body: JSON.stringify({ status_id: coluna.dataset.coluna, ...extras }),
         });
         if (!res.ok) throw new Error((await res.json()).error ?? 'Erro ao mover');
+        // Fechamento com "cadastrar o plano de pagamento em seguida" (owner/admin)
+        if (extras?._plano) {
+          window.location.href = `/eventos/${card.dataset.evento}/financas?plano=1`;
+          return;
+        }
         toast(`Evento movido para "${coluna.dataset.statusNome}".`, 'success');
       } catch (err) {
         inserirNaOrdem(deOrigem, card);

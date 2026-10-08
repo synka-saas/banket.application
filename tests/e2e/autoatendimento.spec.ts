@@ -166,7 +166,7 @@ test.describe.serial('Cadastro self-service', () => {
     const telas = [
       '/dashboard', '/eventos', '/eventos?view=lista', '/eventos/novo', '/agenda', '/clientes',
       '/cardapio/itens', '/cardapio/secoes', '/cardapio/opcoes', '/staff/profissionais', '/staff/servicos',
-      '/templates', '/templates/blocos', '/documentos', '/documentos/novo', '/formularios', '/espacos', '/inbox', '/configuracoes/usuarios', '/configuracoes/tipos-evento',
+      '/templates', '/templates/blocos', '/documentos', '/documentos/novo', '/formularios', '/espacos', '/inbox', '/configuracoes/usuarios',
       '/configuracoes/categorias', '/configuracoes/status-orcamento', '/configuracoes/formatos-servico',
       '/configuracoes/modelos-email', '/configuracoes/empresa',
     ];

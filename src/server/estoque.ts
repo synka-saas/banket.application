@@ -10,6 +10,9 @@ import { orderBy, type Ordenacao } from '../lib/ordenacao';
 import { UNIDADES_PORCAO, type UnidadePorcao } from '../lib/calculo/orcamento';
 import type { EstoqueRef } from '../lib/calculo/estoque';
 import { RAZOES, TIPOS_MOVIMENTO, ehRazao, type CodigoRazao, type TipoMovimento } from '../lib/estoqueRazoes';
+import { isAdmin } from '../lib/auth';
+import { formatarQuantidade } from '../lib/calculo/orcamento';
+import { contaDoMovimento, financeiroMovimentoSchema } from './financeiro';
 
 export { RAZOES, TIPOS_MOVIMENTO, type TipoMovimento };
 
@@ -194,14 +197,15 @@ interface DadosMovimento {
   observacao?: string | null;
 }
 
-async function registrarMovimento(db: Db, user: SessionUser, itemId: string, d: DadosMovimento) {
-  await db.query(
+async function registrarMovimento(db: Db, user: SessionUser, itemId: string, d: DadosMovimento): Promise<string> {
+  const { rows } = await db.query<{ id: string }>(
     `INSERT INTO estoque_movimentos (tenant_id, estoque_item_id, tipo, razao, quantidade, saldo_apos, custo_unitario, fornecedor, documento,
                                      evento_id, espaco_id, observacao, usuario_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
     [user.tenantId, itemId, d.tipo, d.razao, d.delta, d.saldo, d.custo, d.fornecedor ?? null, d.documento ?? null, d.eventoId ?? null,
      d.espacoId ?? null, d.observacao ?? null, user.id]
   );
+  return rows[0].id;
 }
 
 /** Cria ou edita o item. O saldo só muda por movimentação; na criação, a quantidade inicial vira uma entrada. */
@@ -244,7 +248,11 @@ export async function excluirEstoqueItem(db: Db, id: string) {
  * define o saldo. Compra e produção com custo recalculam o custo médio ponderado; bonificação entra sem mexer no custo;
  * saídas gravam o custo médio do momento (CMV). Evento e espaço vindos do formulário são conferidos no tenant.
  */
-export async function movimentar(db: Db, user: SessionUser, input: MovimentoInput): Promise<{ nome: string; saldo: number; unidade: UnidadePorcao }> {
+export async function movimentar(
+  db: Db,
+  user: SessionUser,
+  input: MovimentoInput
+): Promise<{ id: string; nome: string; saldo: number; unidade: UnidadePorcao }> {
   const { rows } = await db.query<{ nome: string; quantidade: number; unidade: UnidadePorcao; custo_unitario: number | null }>(
     'SELECT nome, quantidade, unidade, custo_unitario FROM estoque_itens WHERE id = $1 FOR UPDATE',
     [input.estoque_item_id]
@@ -288,13 +296,26 @@ export async function movimentar(db: Db, user: SessionUser, input: MovimentoInpu
   const delta = Math.round((saldo - atual) * 1000) / 1000;
   if (input.tipo === 'ajuste' && delta === 0) throw new UserError('A quantidade contada é igual ao saldo atual: nada a ajustar.', 'quantidade');
   await db.query('UPDATE estoque_itens SET quantidade = $2, custo_unitario = $3, updated_at = now() WHERE id = $1', [input.estoque_item_id, saldo, custoItem]);
-  await registrarMovimento(db, user, input.estoque_item_id, {
+  const id = await registrarMovimento(db, user, input.estoque_item_id, {
     tipo: input.tipo, razao, delta, saldo, custo: custoMov,
     fornecedor: regra.fornecedor ? (input.fornecedor ?? null) : null,
     documento: regra.documento ? (input.documento ?? null) : null,
     eventoId, espacoId, observacao: input.observacao ?? null,
   });
-  return { nome: item.nome, saldo, unidade: item.unidade };
+  return { id, nome: item.nome, saldo, unidade: item.unidade };
+}
+
+/**
+ * Movimentação vinda do formulário (drawer): registra no estoque e, se pedido (owner/admin), lança a conta a pagar
+ * ou a receber ligada à movimentação. Devolve a mensagem para o usuário.
+ */
+export async function movimentarDoFormulario(db: Db, user: SessionUser, data: Record<string, unknown>): Promise<string> {
+  const input = movimentoSchema.parse(data);
+  const fin = isAdmin(user) ? financeiroMovimentoSchema.parse(data) : null;
+  const r = await movimentar(db, user, input);
+  const conta = fin ? await contaDoMovimento(db, user, r.id, fin) : null;
+  const saldo = `Saldo de ${r.nome}: ${formatarQuantidade(r.saldo, r.unidade)}.`;
+  return conta ? `Movimentação registrada e conta ${conta.tipo === 'pagar' ? 'a pagar' : 'a receber'} lançada. ${saldo}` : `Movimentação registrada. ${saldo}`;
 }
 
 export interface Movimento {
@@ -314,6 +335,8 @@ export interface Movimento {
   evento_titulo: string | null;
   espaco_nome: string | null;
   usuario_nome: string | null;
+  /** Gerou conta a pagar/receber no financeiro */
+  financeiro: boolean;
   created_at: Date;
 }
 
@@ -329,7 +352,7 @@ export async function listarMovimentos(
   const { rows } = await db.query<Movimento>(
     `SELECT m.id, m.estoque_item_id, e.nome AS item_nome, e.unidade, m.tipo, m.razao, m.quantidade, m.saldo_apos, m.custo_unitario,
             m.fornecedor, m.documento, m.observacao, m.evento_id, ev.titulo AS evento_titulo, es.nome AS espaco_nome,
-            u.nome AS usuario_nome, m.created_at
+            u.nome AS usuario_nome, EXISTS (SELECT 1 FROM fin_contas f WHERE f.estoque_movimento_id = m.id) AS financeiro, m.created_at
        FROM estoque_movimentos m
        JOIN estoque_itens e ON e.id = m.estoque_item_id
        LEFT JOIN eventos ev ON ev.id = m.evento_id

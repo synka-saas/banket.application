@@ -1,0 +1,155 @@
+---
+import '../../styles/financeiro.css';
+import AppLayout from '../../layouts/AppLayout.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import BaixaDrawer from '../../components/financeiro/BaixaDrawer.astro';
+import { withTenant } from '../../lib/db';
+import { handleFormPost } from '../../lib/actions';
+import { formatMoney, moneyInput } from '../../lib/money';
+import { dataCurta } from '../../lib/datas';
+import { FINANCEIRO_SUBMENU } from '../../lib/nav';
+import { TIPOS_CONTA, acaoConta, resumoFinanceiro, type Conta } from '../../server/financeiro';
+
+// Visão geral do financeiro (owner/admin): saldos em aberto, realizado no mês, fluxo de caixa e vencimentos.
+const user = Astro.locals.user;
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => withTenant(user.tenantId, (db) => acaoConta(db, user, data)));
+}
+
+const r = await withTenant(user.tenantId, (db) => resumoFinanceiro(db));
+const n = (v: number) => Number(v);
+const saldoPrevisto = n(r.receber_aberto) - n(r.pagar_aberto);
+const realizado = n(r.recebido_mes) - n(r.pago_mes);
+const mesAtual = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }).slice(0, 7);
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const rotuloMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} ${m.slice(2, 4)}`;
+// Entradas = recebido + a receber em aberto do mês; saídas = pago + a pagar em aberto
+const fluxo = r.fluxo.map((f) => ({
+  ...f,
+  entradas: n(f.recebido) + n(f.receber),
+  saidas: n(f.pago) + n(f.pagar),
+}));
+const maximo = Math.max(1, ...fluxo.flatMap((f) => [f.entradas, f.saidas]));
+const largura = (v: number) => `${Math.max(0, (v / maximo) * 100)}%`;
+const baixa = (c: Conta) =>
+  JSON.stringify({ conta_id: c.id, valor_pago: moneyInput(n(c.valor)), forma_pagamento: c.forma_pagamento ?? '', _tipo: c.tipo, _titulo: `${c.descricao} · ${formatMoney(n(c.valor))} · vence ${dataCurta(c.vencimento)}` });
+---
+
+<AppLayout title="Financeiro" heading="Financeiro / Visão geral" submenu={FINANCEIRO_SUBMENU} submenuActive="geral">
+  <section class="fin-resumo">
+    <a href="/financeiro/receber">
+      <span class="eyebrow">A receber em aberto</span>
+      <strong>{formatMoney(n(r.receber_aberto))}</strong>
+      <small class:list={{ 'texto-perigo': n(r.receber_vencido) > 0 }}>{n(r.receber_vencido) > 0 ? `${formatMoney(n(r.receber_vencido))} vencido` : 'Nada vencido'}</small>
+    </a>
+    <a href="/financeiro/pagar">
+      <span class="eyebrow">A pagar em aberto</span>
+      <strong>{formatMoney(n(r.pagar_aberto))}</strong>
+      <small class:list={{ 'texto-perigo': n(r.pagar_vencido) > 0 }}>{n(r.pagar_vencido) > 0 ? `${formatMoney(n(r.pagar_vencido))} vencido` : 'Nada vencido'}</small>
+    </a>
+    <div class:list={{ positivo: saldoPrevisto > 0, negativo: saldoPrevisto < 0 }}>
+      <span class="eyebrow">Saldo previsto</span>
+      <strong>{formatMoney(saldoPrevisto)}</strong>
+      <small>A receber − a pagar em aberto</small>
+    </div>
+    <div class:list={{ positivo: realizado > 0, negativo: realizado < 0 }}>
+      <span class="eyebrow">Realizado no mês</span>
+      <strong>{formatMoney(realizado)}</strong>
+      <small>Recebido {formatMoney(n(r.recebido_mes))} · pago {formatMoney(n(r.pago_mes))}</small>
+    </div>
+  </section>
+
+  <SectionCard title="Fluxo de caixa" description="Entradas e saídas por mês: realizado pela data do pagamento, previsto pelo vencimento das contas em aberto." icon="chart-bar">
+    <div class="barras">
+      {fluxo.map((f) => (
+        <div class="barra-linha">
+          <span class:list={['barra-rotulo', { 'mes-atual': f.mes === mesAtual }]}>{rotuloMes(f.mes)}{f.mes === mesAtual ? ' · atual' : ''}</span>
+          <div class="barra-trilho" aria-hidden="true">
+            <span class="barra receber" style={`width: ${largura(f.entradas)}`}></span>
+            <span class="barra pagar" style={`width: ${largura(f.saidas)}`}></span>
+          </div>
+          {f.entradas || f.saidas ? (
+            <span class="barra-valor">
+              {formatMoney(f.entradas - f.saidas)}
+              <small>+{formatMoney(f.entradas)} · −{formatMoney(f.saidas)}</small>
+            </span>
+          ) : (
+            <span class="barra-valor vazio">—</span>
+          )}
+        </div>
+      ))}
+    </div>
+    <div class="legenda">
+      <span><i class="barra receber"></i>Entradas (recebido + a receber)</span>
+      <span><i class="barra pagar"></i>Saídas (pago + a pagar)</span>
+    </div>
+  </SectionCard>
+
+  <div class="fin-grade fin-listas">
+    <SectionCard title="Vencidas" description="Contas em aberto com vencimento passado." icon="alert-circle">
+      {r.vencidas.length ? (
+        <div class="fin-lista">
+          {r.vencidas.map((c) => (
+            <div class="fin-lista-item">
+              <span>
+                <span class="fin-desc">{c.descricao}</span>
+                <span class="fin-apoio">{TIPOS_CONTA[c.tipo]} · venceu {dataCurta(c.vencimento)}{c.evento_titulo ? ` · ${c.evento_titulo}` : ''}</span>
+              </span>
+              <span class="fin-valor">
+                {formatMoney(n(c.valor))}
+                <button type="button" class="row-action" data-drawer-open="drawer-baixa" data-values={baixa(c)}>{c.tipo === 'receber' ? 'Receber' : 'Pagar'}</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="fin-lista-vazia">Nenhuma conta vencida.</p>
+      )}
+    </SectionCard>
+    <SectionCard title="Próximos 7 dias" description="O que vence nesta semana." icon="calendar-event">
+      {r.proximas.length ? (
+        <div class="fin-lista">
+          {r.proximas.map((c) => (
+            <div class="fin-lista-item">
+              <span>
+                <span class="fin-desc">{c.descricao}</span>
+                <span class="fin-apoio">{TIPOS_CONTA[c.tipo]} · vence {dataCurta(c.vencimento)}{c.evento_titulo ? ` · ${c.evento_titulo}` : ''}</span>
+              </span>
+              <span class="fin-valor">
+                {formatMoney(n(c.valor))}
+                <button type="button" class="row-action" data-drawer-open="drawer-baixa" data-values={baixa(c)}>{c.tipo === 'receber' ? 'Receber' : 'Pagar'}</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p class="fin-lista-vazia">Nada vence nos próximos 7 dias.</p>
+      )}
+    </SectionCard>
+  </div>
+
+  <BaixaDrawer slot="overlays" />
+</AppLayout>
+
+<style>
+  .fin-listas {
+    margin-top: var(--space-5);
+  }
+
+  .texto-perigo {
+    color: var(--danger) !important;
+  }
+
+  .mes-atual {
+    color: var(--text-strong);
+    font-weight: var(--fw-medium);
+  }
+
+  .fin-lista-item .fin-valor {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+  }
+</style>

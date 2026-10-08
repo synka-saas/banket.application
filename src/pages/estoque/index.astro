@@ -23,14 +23,15 @@ import {
   excluirEstoqueItem,
   itensParaSelecao,
   listarEstoque,
-  movimentar,
-  movimentoSchema,
+  movimentarDoFormulario,
   resumoEstoque,
   salvarEstoqueItem,
   type TipoEstoque,
 } from '../../server/estoque';
 import { eventosParaReuniao } from '../../server/reunioes';
 import { espacosParaSelecao } from '../../server/espacos';
+import { listarCategorias } from '../../server/financeiro';
+import { isAdmin } from '../../lib/auth';
 
 // Estoque: itens consumíveis (ingredientes, produtos) e não consumíveis (louça, talheres…), saldo e movimentações.
 const user = Astro.locals.user;
@@ -44,8 +45,7 @@ if (Astro.request.method === 'POST') {
         return 'Item removido do estoque.';
       }
       if (data._action === 'movimentar') {
-        const r = await movimentar(db, user, movimentoSchema.parse(data));
-        return `Movimentação registrada. Saldo de ${r.nome}: ${formatarQuantidade(r.saldo, r.unidade)}.`;
+        return movimentarDoFormulario(db, user, data);
       }
       await salvarEstoqueItem(db, user, id, estoqueItemSchema.parse(data));
       return id ? 'Item atualizado.' : 'Item adicionado ao estoque.';
@@ -59,13 +59,14 @@ const tipo = p.get('tipo') && p.get('tipo')! in TIPOS_ESTOQUE ? (p.get('tipo') a
 const situacao = (['abaixo', 'zerado', 'inativos', 'vencendo'] as const).find((s) => s === p.get('situacao')) ?? null;
 const categoria = p.get('categoria') || null;
 
-const { lista, resumo, categorias, itensSelecao, eventos, espacos } = await withTenant(user.tenantId, async (db) => ({
+const { lista, resumo, categorias, itensSelecao, eventos, espacos, categoriasFin } = await withTenant(user.tenantId, async (db) => ({
   lista: await listarEstoque(db, { busca: searchTerm(Astro.url), tipo, situacao, categoria }, page, lerOrdenacao(Astro.url)),
   resumo: await resumoEstoque(db),
   categorias: await categoriasEstoque(db),
   itensSelecao: await itensParaSelecao(db),
   eventos: await eventosParaReuniao(db),
   espacos: await espacosParaSelecao(db, null),
+  categoriasFin: isAdmin(user) ? await listarCategorias(db, { somenteAtivas: true }) : null,
 }));
 
 const fmt = (q: number | null, un: string) => (q === null ? '' : formatarQuantidade(Number(q), un as never));
@@ -203,7 +204,7 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
     </form>
   </Drawer>
 
-  <MovimentoDrawer slot="overlays" itens={itensSelecao} eventos={eventos} espacos={espacos} />
+  <MovimentoDrawer slot="overlays" itens={itensSelecao} eventos={eventos} espacos={espacos} categoriasFinanceiras={categoriasFin} />
 </AppLayout>
 
 <style>

@@ -1,0 +1,133 @@
+---
+import AppLayout from '../../../layouts/AppLayout.astro';
+import SectionCard from '../../../components/ui/SectionCard.astro';
+import { withTenant } from '../../../lib/db';
+import { isAdmin } from '../../../lib/auth';
+import { dataCurta, dataHora } from '../../../lib/datas';
+import { pesquisasSubmenu } from '../../../lib/nav';
+import { CLASSES_NPS, ROTULOS_NOTA, carregarResposta, classeNps } from '../../../server/pesquisas';
+
+// Respostas de uma pesquisa (um evento), na ordem do questionário respondido.
+const user = Astro.locals.user;
+const id = Astro.params.id ?? '';
+if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response(null, { status: 404 });
+
+const detalhe = await withTenant(user.tenantId, (db) => carregarResposta(db, id)).catch(() => null);
+if (!detalhe) return new Response(null, { status: 404 });
+const { envio, respostas } = detalhe;
+const classe = envio.nps !== null ? classeNps(envio.nps) : null;
+const TAG = { promotor: 'tag-sage', neutro: 'tag-ochre', detrator: 'tag-wine' } as const;
+---
+
+<AppLayout title="Resposta da pesquisa" heading={envio.evento_titulo ?? 'Pesquisa'} voltar={{ href: '/pesquisas/respostas', label: 'Respostas' }} submenu={pesquisasSubmenu(isAdmin(user))} submenuActive="respostas">
+  <div class="rp-cabecalho">
+    <div>
+      <a class="link rp-evento" href={`/eventos/${envio.evento_id}`}>{envio.evento_titulo ?? 'Evento'}</a>
+      <p class="rp-apoio">
+        {[envio.cliente_nome, envio.data_evento ? `evento em ${dataCurta(envio.data_evento)}` : null, envio.respondida_em ? `respondida em ${dataHora(envio.respondida_em)}` : 'aguardando resposta'].filter(Boolean).join(' · ')}
+      </p>
+    </div>
+    {classe && <span class={`tag ${TAG[classe]} rp-nps`}>NPS {envio.nps} · {CLASSES_NPS[classe]}</span>}
+  </div>
+
+  <SectionCard title="Respostas" icon="message-star">
+    {respostas.length ? (
+      <dl class="rp-lista">
+        {respostas.map((r) => (
+          <div class="rp-item">
+            <dt>{r.pergunta_texto}</dt>
+            <dd>
+              {r.tipo === 'nps' && r.nota !== null && <span class="rp-nota tabular">{r.nota}<small>/10</small></span>}
+              {r.tipo === 'nota' && r.nota !== null && <span class="rp-nota tabular">{r.nota}<small>/5 · {ROTULOS_NOTA[r.nota - 1]}</small></span>}
+              {r.opcoes && <span class="rp-opcoes">{r.opcoes.map((o) => <span class="tag">{o}</span>)}</span>}
+              {r.texto && <p class="rp-texto">{r.texto}</p>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    ) : (
+      <p class="rp-apoio">O cliente ainda não respondeu.</p>
+    )}
+  </SectionCard>
+</AppLayout>
+
+<style>
+  .rp-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+
+  .rp-evento {
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+  }
+
+  .rp-apoio {
+    margin-top: var(--space-1);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .rp-lista {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rp-item {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-2) var(--space-6);
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .rp-item:last-child {
+    border-bottom: 0;
+  }
+
+  .rp-item dt {
+    color: var(--text-secondary);
+    font-size: var(--fs-13);
+  }
+
+  .rp-item dd {
+    margin: 0;
+    color: var(--text-strong);
+  }
+
+  .rp-nota {
+    font-size: var(--fs-20);
+    font-weight: var(--fw-medium);
+  }
+
+  .rp-nota small {
+    margin-left: var(--space-1);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-regular);
+    color: var(--text-secondary);
+  }
+
+  .rp-opcoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .rp-texto {
+    white-space: pre-line;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .rp-cabecalho {
+      flex-direction: column;
+    }
+
+    .rp-item {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

@@ -17,7 +17,7 @@ const baseB2C = {
   whatsapp: '(11) 99999-0000',
   natureza: 'B2C',
   local_tipo: 'espaco_proprio',
-  b2c_ocasiao: 'casamento',
+  b2c_ocasiao: 'oc-casamento',
   b2c_data: '2027-05-10',
   b2c_budget: 'ate_10k',
   formato_servico: 'ilhas',
@@ -69,14 +69,17 @@ describe('montarFormulario', () => {
   });
 });
 
+const ocasioes = {
+  B2B: [{ valor: 'oc-confra', rotulo: 'Confraternização' }],
+  B2C: [{ valor: 'oc-casamento', rotulo: 'Casamento' }],
+};
+
 describe('validarRespostas', () => {
-  const form = montarFormulario({
-    secoes: [{ chave: 'gastronomia', ativa: true, perguntas: [custom] }],
-  });
+  const form = montarFormulario({ secoes: [{ chave: 'gastronomia', ativa: true, perguntas: [custom] }] }, ocasioes);
 
   it('valida só as perguntas do fluxo escolhido e descarta as ocultas', () => {
     const r = validarRespostas(form, { ...baseB2C, c_tema01: 'Anos 80', b2b_empresa: 'ignorada', infraestrutura: 'equipada' });
-    expect(r.b2c_ocasiao).toBe('casamento');
+    expect(r.b2c_ocasiao).toBe('oc-casamento');
     expect(r).not.toHaveProperty('b2b_empresa');
     // infraestrutura só aparece para local externo
     expect(r).not.toHaveProperty('infraestrutura');
@@ -100,10 +103,27 @@ describe('validarRespostas', () => {
     expect(b2c_budget).toBeTruthy();
   });
 
+  it('ocasião: opções vêm da matriz de cada fluxo e são exigidas', () => {
+    const b2b = form.find((s) => s.chave === 'dimensionamento_b2b')!.perguntas.find((p) => p.id === 'b2b_ocasiao')!;
+    expect(b2b.opcoes).toEqual(ocasioes.B2B);
+    expect(b2b.origemOpcoes).toBe('ocasioes');
+    expect(() => validarRespostas(form, { ...baseB2C, c_tema01: 'x', b2c_ocasiao: 'oc-confra' })).toThrow(/Opção inválida/);
+    expect(() => validarRespostas(form, { ...baseB2C, c_tema01: 'x', b2c_ocasiao: '' })).toThrow(/Ocasião/);
+  });
+
+  it('ocasião sem nenhuma ocasião ligada ao tipo não aparece nem é exigida', () => {
+    const semOcasioes = montarFormulario({ secoes: [{ chave: 'gastronomia', ativa: true, perguntas: [custom] }] });
+    const { b2c_ocasiao, ...resto } = baseB2C;
+    const r = validarRespostas(semOcasioes, { ...resto, c_tema01: 'x' });
+    expect(r).not.toHaveProperty('b2c_ocasiao');
+    expect(b2c_ocasiao).toBeTruthy();
+  });
+
   it('resumo usa os rótulos das perguntas e opções', () => {
     const r = validarRespostas(form, { ...baseB2C, c_tema01: 'Anos 80' });
     const resumo = resumirRespostas(form, r);
     expect(resumo).toContainEqual(expect.objectContaining({ rotulo: 'Bebidas e bar', valor: 'Open bar completo (alcoólicos)' }));
     expect(resumo).toContainEqual(expect.objectContaining({ rotulo: 'Tema da festa', valor: 'Anos 80' }));
+    expect(resumo).toContainEqual(expect.objectContaining({ rotulo: 'Ocasião', valor: 'Casamento' }));
   });
 });

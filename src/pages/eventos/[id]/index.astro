@@ -4,6 +4,7 @@ import EventoLayout from '../../../layouts/EventoLayout.astro';
 import SectionCard from '../../../components/ui/SectionCard.astro';
 import Button from '../../../components/ui/Button.astro';
 import EventoInfoLateral from '../../../components/eventos/EventoInfoLateral.astro';
+import { isAdmin } from '../../../lib/auth';
 import EtapaDialogo from '../../../components/eventos/EtapaDialogo.astro';
 import { withTenant } from '../../../lib/db';
 import { handleFormPost } from '../../../lib/actions';
@@ -257,7 +258,7 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
       </section>
     </div>
   </div>
-  <EtapaDialogo slot="overlays" />
+  <EtapaDialogo slot="overlays" planoPagamento={isAdmin(user)} />
 </EventoLayout>
 
 <script>
@@ -292,6 +293,11 @@ const compliance = e.compliance.map((c) => COMPLIANCE[c as keyof typeof COMPLIAN
         try {
           await aplicar(selectEtapa.value, extras);
           anterior = selectEtapa.value;
+          // Fechamento com "cadastrar o plano de pagamento em seguida" (owner/admin)
+          if (extras._plano) {
+            window.location.href = `/eventos/${eventoId}/financas?plano=1`;
+            return;
+          }
           toast(`Etapa alterada para "${opcao.textContent?.trim()}".`, 'success', {
             acao: {
               rotulo: 'Desfazer',

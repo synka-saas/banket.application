@@ -1,4 +1,4 @@
-// Reordenação por arrastar (seções do cardápio, blocos de informação, etapas do funil).
+// Reordenação por arrastar (seções do cardápio, blocos de informação, etapas do funil, perguntas da pesquisa).
 // Recebe a lista de ids na nova ordem e redistribui entre eles as posições que já ocupavam: numa lista paginada
 // ou filtrada, os itens fora da tela não mudam de lugar.
 import { z } from 'zod';
@@ -9,6 +9,7 @@ const TABELAS = {
   secoes: 'catalogo_secoes',
   blocos: 'orcamento_blocos_info',
   status: 'status_orcamento',
+  perguntas: 'pesquisa_perguntas',
 } as const;
 
 export type RecursoOrdenavel = keyof typeof TABELAS;

@@ -14,10 +14,12 @@ import { formatMoney } from '../../lib/money';
 import { ESTOQUE_SUBMENU } from '../../lib/nav';
 import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
 import { formatarQuantidade } from '../../lib/calculo/orcamento';
-import { RAZOES, TIPOS_MOVIMENTO, itensParaSelecao, listarMovimentos, movimentar, movimentoSchema, type TipoMovimento } from '../../server/estoque';
+import { RAZOES, TIPOS_MOVIMENTO, itensParaSelecao, listarMovimentos, movimentarDoFormulario, type TipoMovimento } from '../../server/estoque';
 import { ehRazao } from '../../lib/estoqueRazoes';
 import { eventosParaReuniao } from '../../server/reunioes';
 import { espacosParaSelecao } from '../../server/espacos';
+import { listarCategorias } from '../../server/financeiro';
+import { isAdmin } from '../../lib/auth';
 
 // Histórico de movimentações do estoque (todas ou de um item: ?item=).
 const user = Astro.locals.user;
@@ -25,8 +27,7 @@ const user = Astro.locals.user;
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data) =>
     withTenant(user.tenantId, async (db) => {
-      const r = await movimentar(db, user, movimentoSchema.parse(data));
-      return `Movimentação registrada. Saldo de ${r.nome}: ${formatarQuantidade(r.saldo, r.unidade)}.`;
+      return movimentarDoFormulario(db, user, data);
     })
   );
 }
@@ -37,11 +38,12 @@ const itemId = /^[0-9a-f-]{36}$/i.test(p.get('item') ?? '') ? p.get('item') : nu
 const tipo = p.get('tipo') && p.get('tipo')! in TIPOS_MOVIMENTO ? (p.get('tipo') as TipoMovimento) : null;
 const razao = ehRazao(p.get('razao')) ? p.get('razao') as keyof typeof RAZOES : null;
 
-const { lista, itens, eventos, espacos } = await withTenant(user.tenantId, async (db) => ({
+const { lista, itens, eventos, espacos, categoriasFin } = await withTenant(user.tenantId, async (db) => ({
   lista: await listarMovimentos(db, { itemId, tipo, razao, busca: searchTerm(Astro.url) }, page),
   itens: await itensParaSelecao(db),
   eventos: await eventosParaReuniao(db),
   espacos: await espacosParaSelecao(db, null),
+  categoriasFin: isAdmin(user) ? await listarCategorias(db, { somenteAtivas: true }) : null,
 }));
 
 const ROTULO_BADGE: Record<TipoMovimento, string> = { entrada: 'badge-success', saida: 'badge-warning', ajuste: 'badge-info' };
@@ -51,7 +53,7 @@ const variacao = (m: (typeof lista.rows)[number]) => {
 };
 // Detalhes por motivo: fornecedor e nota, evento, espaço e observação
 const detalhes = (m: (typeof lista.rows)[number]) =>
-  html`${m.fornecedor ? html`<span class="mv-linha">${m.fornecedor}${m.documento ? ` · NF ${m.documento}` : ''}</span>` : ''}${m.evento_id ? html`<a class="link mv-linha" href="/eventos/${m.evento_id}">${m.evento_titulo ?? 'Evento'}</a>` : ''}${m.espaco_nome ? html`<span class="mv-linha">${m.espaco_nome}</span>` : ''}${m.observacao ? html`<span class="mv-linha mv-obs">${m.observacao}</span>` : ''}`;
+  html`${m.fornecedor ? html`<span class="mv-linha">${m.fornecedor}${m.documento ? ` · NF ${m.documento}` : ''}</span>` : ''}${m.evento_id ? html`<a class="link mv-linha" href="/eventos/${m.evento_id}">${m.evento_titulo ?? 'Evento'}</a>` : ''}${m.espaco_nome ? html`<span class="mv-linha">${m.espaco_nome}</span>` : ''}${m.observacao ? html`<span class="mv-linha mv-obs">${m.observacao}</span>` : ''}${m.financeiro && isAdmin(user) ? html`<span class="tag tag-sm tag-sage">No financeiro</span>` : ''}`;
 
 const tableData = lista.rows.map((m) => ({
   quando: dataHora(m.created_at),
@@ -94,7 +96,7 @@ const itemAtual = itemId ? itens.find((i) => i.id === itemId) : null;
     <Pagination slot="footer" info={pageInfo(page, lista.total)} />
   </Table>
 
-  <MovimentoDrawer slot="overlays" itens={itens} eventos={eventos} espacos={espacos} />
+  <MovimentoDrawer slot="overlays" itens={itens} eventos={eventos} espacos={espacos} categoriasFinanceiras={categoriasFin} />
 </AppLayout>
 
 <style>

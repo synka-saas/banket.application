@@ -23,11 +23,13 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true },
   { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true },
   { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'] },
+  { label: 'Financeiro', icon: 'wallet', href: '/financeiro', match: ['/financeiro'], adminOnly: true },
   { label: 'Estoque', icon: 'building-warehouse', href: '/estoque', match: ['/estoque'] },
   { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
   { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'] },
   { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
   { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'] },
+  { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'] },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
@@ -36,7 +38,6 @@ export const navAtiva = (pathname: string, match: string[]) => match.some((m) =>
 
 export const CONFIG_SUBMENU = [
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
-  { id: 'tipos', label: ROTULOS.tiposEvento, href: '/configuracoes/tipos-evento' },
   { id: 'categorias', label: ROTULOS.ocasioes, href: '/configuracoes/categorias' },
   { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
@@ -56,6 +57,23 @@ export const ESTOQUE_SUBMENU = [
   { id: 'itens', label: 'Itens em estoque', href: '/estoque' },
   { id: 'movimentos', label: 'Movimentações', href: '/estoque/movimentos' },
 ];
+
+export const FINANCEIRO_SUBMENU = [
+  { id: 'geral', label: 'Visão geral', href: '/financeiro' },
+  { id: 'receber', label: 'Contas a receber', href: '/financeiro/receber' },
+  { id: 'pagar', label: 'Contas a pagar', href: '/financeiro/pagar' },
+  { id: 'categorias', label: 'Categorias', href: '/financeiro/categorias' },
+];
+
+export const PESQUISAS_SUBMENU = [
+  { id: 'geral', label: 'Visão geral', href: '/pesquisas' },
+  { id: 'respostas', label: 'Respostas', href: '/pesquisas/respostas' },
+  { id: 'perguntas', label: 'Por pergunta', href: '/pesquisas/perguntas' },
+  { id: 'configurar', label: 'Questionário e e-mail', href: '/pesquisas/configurar' },
+];
+
+/** O questionário só é editado por owner/admin */
+export const pesquisasSubmenu = (admin: boolean) => (admin ? PESQUISAS_SUBMENU : PESQUISAS_SUBMENU.filter((i) => i.id !== 'configurar'));
 
 export const STAFF_SUBMENU = [
   { id: 'profissionais', label: 'Profissionais', href: '/staff/profissionais' },

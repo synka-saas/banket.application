@@ -16,6 +16,7 @@ import { imprimir, type PdfGerado } from './pdf';
 import { carregarEvento } from './eventos';
 import { carregarEmpresa } from './empresa';
 import { FONTES } from './templates';
+import { textoPlanoPagamento } from './financeiro';
 import { registrarTimeline } from './timeline';
 import { enviarNaConversa, obterOuCriarConversa } from './conversas';
 import { listaEmails } from './emailTexto';
@@ -293,6 +294,7 @@ export async function valoresDoEvento(db: Db, eventoId: string): Promise<Record<
     valor_total_extenso: valor !== null ? valorPorExtenso(valor) : '',
     versao_orcamento: orc[0] ? String(orc[0].versao_atual).padStart(2, '0') : '',
     forma_pagamento: v(e.forma_pagamento),
+    plano_pagamento: (await textoPlanoPagamento(db, eventoId)) || v(e.forma_pagamento),
 
     data_hoje: dataCurta(hoje),
     data_hoje_extenso: dataPorExtenso(hoje),

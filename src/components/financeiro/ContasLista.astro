@@ -1,0 +1,115 @@
+---
+// Lista de contas a receber ou a pagar do menu Financeiro: totais do recorte, filtros (situação, vencimento,
+// categoria, evento) e exportação CSV. A página renderiza os drawers (slot overlays) e trata o POST (acaoConta).
+import '../../styles/financeiro.css';
+import Button from '../ui/Button.astro';
+import Table from '../ui/Table.astro';
+import Pagination from '../ui/Pagination.astro';
+import PageToolbar from '../ui/PageToolbar.astro';
+import EstadoVazio from '../ui/EstadoVazio.astro';
+import { COLUNAS_CONTAS, linhaConta } from './linhas';
+import { withTenant } from '../../lib/db';
+import { formatMoney } from '../../lib/money';
+import { hojeSaoPaulo } from '../../lib/datas';
+import { estaFiltrando, pageInfo, pageParams, searchTerm } from '../../lib/pagination';
+import { lerOrdenacao } from '../../lib/ordenacao';
+import {
+  FILTROS_SITUACAO,
+  PERIODOS,
+  filtrosContasDaUrl,
+  listarContas,
+  type Categoria,
+  type TipoConta,
+} from '../../server/financeiro';
+
+interface Props {
+  tipo: TipoConta;
+  categorias: Categoria[];
+  eventos: { id: string; rotulo: string }[];
+}
+
+const { tipo, categorias, eventos } = Astro.props;
+const user = Astro.locals.user;
+const receber = tipo === 'receber';
+const p = Astro.url.searchParams;
+const page = pageParams(Astro.url);
+const filtros = filtrosContasDaUrl(Astro.url, tipo, searchTerm(Astro.url));
+
+const lista = await withTenant(user.tenantId, (db) => listarContas(db, filtros, page, lerOrdenacao(Astro.url)));
+
+const eventoFiltro = filtros.eventoId ? eventos.find((e) => e.id === filtros.eventoId) : null;
+const exportar = `/financeiro/exportar?${new URLSearchParams({ ...Object.fromEntries(p), tipo }).toString()}`;
+const nova = JSON.stringify({ vencimento: hojeSaoPaulo() });
+---
+
+<section class="fin-resumo">
+  <div>
+    <span class="eyebrow">Contas no filtro</span>
+    <strong>{String(lista.totais.quantidade).padStart(2, '0')}</strong>
+    <small>{formatMoney(Number(lista.totais.valor))}</small>
+  </div>
+  <div>
+    <span class="eyebrow">Em aberto</span>
+    <strong>{formatMoney(Number(lista.totais.aberto))}</strong>
+    <small>{receber ? 'A receber' : 'A pagar'}</small>
+  </div>
+  <a href={`${Astro.url.pathname}?situacao=vencida`} class:list={{ alerta: Number(lista.totais.vencido) > 0 }}>
+    <span class="eyebrow">Vencidas</span>
+    <strong>{formatMoney(Number(lista.totais.vencido))}</strong>
+    <small>{receber ? 'Cobrar o cliente' : 'Pagamentos atrasados'}</small>
+  </a>
+  <div>
+    <span class="eyebrow">{receber ? 'Recebido' : 'Pago'}</span>
+    <strong>{formatMoney(Number(lista.totais.pago))}</strong>
+    <small>Contas baixadas no filtro</small>
+  </div>
+</section>
+
+<PageToolbar
+  searchPlaceholder="Descrição, cliente, fornecedor ou documento"
+  filter={{ name: 'situacao', placeholder: 'Em aberto e vencidas', options: Object.entries(FILTROS_SITUACAO).filter(([v]) => v !== 'pendentes').map(([value, label]) => ({ value, label })) }}
+  filters={[
+    { name: 'periodo', placeholder: 'Qualquer vencimento', options: Object.entries(PERIODOS).map(([value, label]) => ({ value, label })) },
+    { name: 'categoria', placeholder: 'Todas as categorias', options: categorias.filter((c) => c.tipo === tipo).map((c) => ({ value: c.id, label: c.nome })) },
+  ]}
+>
+  <a class="btn btn-secondary btn-md" href={exportar}>Exportar CSV</a>
+  <Button icon="circle-plus" data-drawer-open={`drawer-conta-${tipo}`} data-values={nova}>{receber ? 'Nova conta a receber' : 'Nova conta a pagar'}</Button>
+</PageToolbar>
+
+{eventoFiltro && (
+  <p class="fin-filtro-evento">
+    Evento: <strong>{eventoFiltro.rotulo}</strong> · <a class="link" href={Astro.url.pathname}>ver todos</a>
+  </p>
+)}
+
+<Table columns={COLUNAS_CONTAS} data={lista.rows.map((c) => linhaConta(c))}>
+  {estaFiltrando(Astro.url) ? (
+    <EstadoVazio slot="empty" icon="search-off" titulo="Nenhuma conta para este filtro">
+      <a class="btn btn-secondary btn-md" href={`${Astro.url.pathname}?situacao=todas`}>Ver todas</a>
+    </EstadoVazio>
+  ) : (
+    <EstadoVazio
+      slot="empty"
+      icon="wallet"
+      titulo={receber ? 'Nenhuma conta a receber em aberto' : 'Nenhuma conta a pagar em aberto'}
+      texto={receber ? 'As parcelas nascem do plano de pagamento de cada evento (aba Finanças) ou podem ser lançadas aqui.' : 'Lance custos do evento e despesas da empresa. Compras do estoque também podem gerar a conta.'}
+    >
+      <button type="button" class="btn btn-primary btn-md" data-drawer-open={`drawer-conta-${tipo}`} data-values={nova}>{receber ? 'Nova conta a receber' : 'Nova conta a pagar'}</button>
+    </EstadoVazio>
+  )}
+  <Pagination slot="footer" info={pageInfo(page, lista.total)} />
+</Table>
+
+<style>
+  .fin-filtro-evento {
+    margin: calc(var(--space-2) * -1) 0 var(--space-3);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .fin-filtro-evento strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+</style>
