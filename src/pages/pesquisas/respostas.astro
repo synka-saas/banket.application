@@ -127,4 +127,9 @@ const tableData = lista.rows.map((e) => ({
   :global(.data-table tbody td[data-key='acoes']) {
     white-space: nowrap;
   }
+
+  /* Mesmo respiro entre ações de linha das outras listas (Documentos, Financeiro) */
+  :global(.data-table tbody td[data-key='acoes'] .row-action + .row-action) {
+    margin-left: var(--space-3);
+  }
 </style>
