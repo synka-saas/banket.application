@@ -18,7 +18,7 @@ interface Props {
   editTitle?: string;
   deletable?: boolean;
   deleteConfirm?: string;
-  width?: 'md' | 'lg';
+  width?: 'md' | 'lg' | 'xl';
   /** Rótulo e _action do botão principal (padrão: Salvar / save) */
   saveLabel?: string;
   saveAction?: string;
@@ -350,6 +350,8 @@ const {
 
   .drawer-lg { width: 720px; }
   .drawer-md { width: var(--drawer-width); }
+  /* Formulários longos que cabem sem rolagem em várias colunas (ex.: item do cardápio) */
+  .drawer-xl { width: min(1100px, calc(100vw - 96px)); }
 
   .drawer-backdrop.open .drawer {
     transform: none;
@@ -421,6 +423,7 @@ const {
 
   /* Celular: painel em tela cheia */
   @media (max-width: 768px) {
+    .drawer-xl,
     .drawer-lg,
     .drawer-md {
       width: 100%;

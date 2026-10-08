@@ -156,60 +156,60 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
     <Pagination slot="footer" info={pageInfo(page, total)} />
   </Table>
 
-  <Drawer slot="overlays" id="drawer-item" formId="form-item" title="Novo item" editTitle="Editar item">
+  <Drawer slot="overlays" id="drawer-item" formId="form-item" title="Novo item" editTitle="Editar item" width="xl">
     <button slot="actions" type="submit" form="form-item" name="_action" value="duplicar" class="btn btn-secondary btn-sm" formnovalidate data-edit-only data-carregando="Duplicando…">
       Duplicar
     </button>
-    <form id="form-item" method="post" class="form-grid">
+    <form id="form-item" method="post" class="form-grid form-item">
       <input type="hidden" name="id" />
-      <div class="field">
+      <div class="field c4">
         <label for="it-nome">Nome do item<span class="obrigatorio">*</span></label>
         <input id="it-nome" name="nome" required maxlength="200" placeholder="Ex.: Coxinha de frango" />
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-secao">Seção<span class="obrigatorio">*</span></label>
         <select id="it-secao" name="secao_id" required>
           <option value="">Selecione…</option>
           {secoes.map((s) => <option value={s.id}>{s.nome}</option>)}
         </select>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-catp">Categoria principal</label>
         <select id="it-catp" name="categoria_principal_id">
           <option value="">Selecione…</option>
           {principais.map((c) => <option value={c.id}>{c.nome}</option>)}
         </select>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-cats">Categoria secundária</label>
         <select id="it-cats" name="categoria_secundaria_id">
           <option value="">Selecione…</option>
           {secundarias.map((c) => <option value={c.id}>{c.nome}</option>)}
         </select>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-formato">Formato de serviço recomendado</label>
         <select id="it-formato" name="formato_servico_id">
           <option value="">Selecione…</option>
           {formatos.map((f) => <option value={f.id}>{f.nome}</option>)}
         </select>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-custo">Custo unitário / porção (R$)</label>
         <input id="it-custo" name="custo_unitario" inputmode="decimal" placeholder="0,00" data-mascara="dinheiro" />
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-preco">Preço de venda (R$)</label>
         <input id="it-preco" name="preco" inputmode="decimal" placeholder="Opcional" data-mascara="dinheiro" />
-        <span class="field-hint">Deixe em branco quando o item só é vendido dentro de uma opção de cardápio.</span>
+        <span class="field-hint">Em branco: vendido só dentro de uma opção de cardápio.</span>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-unidade">Cobrança</label>
         <select id="it-unidade" name="unidade_cobranca">
           {Object.entries(UNIDADES_COBRANCA).map(([value, label]) => <option value={value}>{label}</option>)}
         </select>
       </div>
-      <div class="field">
+      <div class="field c2">
         <label for="it-porcao">Porção por pessoa</label>
         <div class="porcao-campos">
           <input id="it-porcao" name="porcao_qtd" inputmode="decimal" placeholder="Ex.: 150" />
@@ -217,17 +217,25 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
             {Object.entries(UNIDADES_PORCAO_ROTULOS).map(([value, label]) => <option value={value}>{label}</option>)}
           </select>
         </div>
-        <span class="field-hint">Quantidade que cada convidado consome. Multiplicada pelos convidados do evento, monta a lista de compras do orçamento.</span>
+        <span class="field-hint">× convidados = lista de compras do orçamento.</span>
       </div>
-      <div class="field span-2">
+      <div class="field c2 campo-switch">
+        <label class="switch"><input type="checkbox" name="ativo" />Item ativo</label>
+        <span class="field-hint">Disponível para novos orçamentos.</span>
+      </div>
+      <div class="field c2 campo-switch">
+        <label class="switch"><input type="checkbox" name="estoque_gerenciado" />Gerenciado no estoque</label>
+        <span class="field-hint">Entra no Estoque e a lista de compras mostra se o saldo cobre o evento.</span>
+      </div>
+      <div class="field c3">
         <label for="it-desc">Descrição comercial</label>
-        <textarea id="it-desc" name="descricao" maxlength="2000" placeholder="Texto exibido na proposta"></textarea>
+        <textarea id="it-desc" name="descricao" rows="3" maxlength="2000" placeholder="Texto exibido na proposta"></textarea>
       </div>
-      <div class="field span-2">
+      <div class="field c3">
         <label for="it-comp">Composição / ingredientes</label>
-        <textarea id="it-comp" name="composicao" maxlength="2000"></textarea>
+        <textarea id="it-comp" name="composicao" rows="3" maxlength="2000"></textarea>
       </div>
-      <div class="field span-2">
+      <div class="field c3">
         <span class="field-label">Restrições alimentares e dietas</span>
         <div class="chip-group">
           {Object.entries(RESTRICOES).map(([value, label]) => (
@@ -235,20 +243,13 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
           ))}
         </div>
       </div>
-      <div class="field span-2">
+      <div class="field c3">
         <span class="field-label">Dados operacionais</span>
         <div class="chip-group">
           {Object.entries(DADOS_OPERACIONAIS).map(([value, label]) => (
             <label class="chip"><input type="checkbox" name="dados_operacionais" value={value} />{label}</label>
           ))}
         </div>
-      </div>
-      <div class="field span-2">
-        <label class="switch"><input type="checkbox" name="ativo" />Item ativo (disponível para novos orçamentos)</label>
-      </div>
-      <div class="field span-2">
-        <label class="switch"><input type="checkbox" name="estoque_gerenciado" />Gerenciado no estoque</label>
-        <span class="field-hint">Adiciona o item ao Estoque, com saldo e movimentações. A lista de compras do orçamento passa a mostrar se o estoque cobre a quantidade do evento.</span>
       </div>
     </form>
   </Drawer>
@@ -273,6 +274,40 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
   :global(.data-table tbody td[data-key='porcao']),
   :global(.data-table tbody td[data-key='estoque']) {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Drawer largo: grade de 6 colunas para o formulário inteiro caber sem rolagem (desktop) */
+  .form-item {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .form-item .c2 { grid-column: span 2; }
+  .form-item .c3 { grid-column: span 3; }
+  .form-item .c4 { grid-column: span 4; }
+
+  /* Switches alinhados com os campos da mesma linha (abaixo do rótulo) */
+  .form-item .campo-switch {
+    justify-content: flex-start;
+    padding-top: var(--space-6);
+  }
+
+  @media (max-width: 1024px) {
+    .form-item {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .form-item .c2 { grid-column: span 1; }
+    .form-item .c3,
+    .form-item .c4 { grid-column: 1 / -1; }
+
+    .form-item .campo-switch {
+      padding-top: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .form-item .c2 { grid-column: 1 / -1; }
   }
 
   /* Porção: quantidade + unidade lado a lado */

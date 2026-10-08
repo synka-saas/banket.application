@@ -56,7 +56,7 @@ if (Astro.request.method === 'POST') {
 const p = Astro.url.searchParams;
 const page = pageParams(Astro.url);
 const tipo = p.get('tipo') && p.get('tipo')! in TIPOS_ESTOQUE ? (p.get('tipo') as TipoEstoque) : null;
-const situacao = (['abaixo', 'zerado', 'inativos'] as const).find((s) => s === p.get('situacao')) ?? null;
+const situacao = (['abaixo', 'zerado', 'inativos', 'vencendo'] as const).find((s) => s === p.get('situacao')) ?? null;
 const categoria = p.get('categoria') || null;
 
 const { lista, resumo, categorias, itensSelecao, eventos, espacos } = await withTenant(user.tenantId, async (db) => ({
@@ -72,12 +72,14 @@ const fmt = (q: number | null, un: string) => (q === null ? '' : formatarQuantid
 const nomeCelula = (i: (typeof lista.rows)[number]) =>
   html`<span class="est-nome">${i.nome}${i.catalogo_item_id ? html` <span class="tag tag-sm tag-accent" title="${i.catalogo_item_nome ?? ''}">Cardápio</span>` : ''}${!i.ativo ? html` <span class="badge">Inativo</span>` : ''}</span>${i.local ? html`<span class="est-apoio">${i.local}</span>` : ''}`;
 const situacaoCelula = (i: (typeof lista.rows)[number]) =>
-  Number(i.quantidade) <= 0 ? html`<span class="badge badge-danger">Zerado</span>` : i.abaixo_minimo ? html`<span class="badge badge-warning">Abaixo do mínimo</span>` : html`<span class="badge badge-success">Ok</span>`;
+  i.dias_para_vencer !== null && Number(i.quantidade) > 0 && i.dias_para_vencer <= 15
+    ? html`<span class="badge ${i.dias_para_vencer < 0 ? 'badge-danger' : 'badge-warning'}">${i.dias_para_vencer < 0 ? 'Vencido' : i.dias_para_vencer === 0 ? 'Vence hoje' : `Vence em ${i.dias_para_vencer} dias`}</span>`
+    : Number(i.quantidade) <= 0 ? html`<span class="badge badge-danger">Zerado</span>` : i.abaixo_minimo ? html`<span class="badge badge-warning">Abaixo do mínimo</span>` : html`<span class="badge badge-success">Ok</span>`;
 const valores = (i: (typeof lista.rows)[number]) =>
   JSON.stringify({
     id: i.id, nome: i.nome, tipo: i.tipo, categoria: i.categoria ?? '', unidade: i.unidade,
     estoque_minimo: i.estoque_minimo === null ? '' : String(Number(i.estoque_minimo)).replace('.', ','),
-    custo_unitario: moneyInput(i.custo_unitario === null ? null : Number(i.custo_unitario)), local: i.local ?? '', observacoes: i.observacoes ?? '', ativo: i.ativo,
+    custo_unitario: moneyInput(i.custo_unitario === null ? null : Number(i.custo_unitario)), local: i.local ?? '', validade: i.validade ?? '', observacoes: i.observacoes ?? '', ativo: i.ativo,
     _titulo: i.nome,
   });
 const acoes = (i: (typeof lista.rows)[number]) =>
@@ -111,7 +113,7 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
     filter={{ name: 'tipo', placeholder: 'Todos os tipos', options: Object.entries(TIPOS_ESTOQUE).map(([value, label]) => ({ value, label })) }}
     filters={[
       { name: 'categoria', placeholder: 'Todas as categorias', options: categorias.map((c) => ({ value: c, label: c })) },
-      { name: 'situacao', placeholder: 'Ativos', options: [{ value: 'abaixo', label: 'Abaixo do mínimo' }, { value: 'zerado', label: 'Zerados' }, { value: 'inativos', label: 'Inativos' }] },
+      { name: 'situacao', placeholder: 'Ativos', options: [{ value: 'abaixo', label: 'Abaixo do mínimo' }, { value: 'zerado', label: 'Zerados' }, { value: 'vencendo', label: 'Vencendo em 15 dias' }, { value: 'inativos', label: 'Inativos' }] },
     ]}
   >
     <Button variant="secondary" icon="arrows-exchange" data-drawer-open="drawer-movimento" disabled={itensSelecao.length === 0}>Movimentar</Button>
@@ -156,7 +158,7 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
         <div class="chip-group">
           {Object.entries(TIPOS_ESTOQUE).map(([v, l]) => <label class="chip"><input type="radio" name="tipo" value={v} />{l}</label>)}
         </div>
-        <span class="field-hint">Consumível: ingredientes e produtos que acabam com o uso. Não consumível: louças, talheres, equipamentos.</span>
+        <span class="field-hint tipo-dica"><strong>Consumível:</strong> ingredientes e produtos que acabam com o uso.<br /><strong>Não consumível:</strong> louças, talheres, equipamentos.</span>
       </div>
       <div class="field">
         <label for="es-categoria">Categoria</label>
@@ -185,6 +187,11 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
       <div class="field">
         <label for="es-local">Local de armazenamento</label>
         <input id="es-local" name="local" maxlength="120" placeholder="Ex.: Câmara fria, Depósito" />
+      </div>
+      <div class="field">
+        <label for="es-validade">Validade</label>
+        <input id="es-validade" name="validade" type="date" />
+        <span class="field-hint">Do lote atual. Alerta a partir de 15 dias antes.</span>
       </div>
       <div class="field span-2">
         <label for="es-obs">Observações</label>
@@ -237,6 +244,12 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
     color: var(--warning);
   }
 
+  /* Dica dos tipos: um por linha, com o nome do tipo em destaque */
+  .tipo-dica strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
   :global(.est-nome) {
     display: inline-flex;
     align-items: center;
@@ -250,6 +263,10 @@ const novo = JSON.stringify({ tipo: 'consumivel', unidade: 'un', ativo: true });
     display: block;
     font-size: var(--fs-13);
     color: var(--text-secondary);
+  }
+
+  :global(.data-table tbody td[data-key='acoes']) {
+    white-space: nowrap;
   }
 
   :global(.data-table tbody td[data-key='minimo']),

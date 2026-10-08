@@ -1,0 +1,424 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import Button from '../../../components/ui/Button.astro';
+import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { UserError, optionalUuid } from '../../../lib/forms';
+import { formatMoney } from '../../../lib/money';
+import { dataHora } from '../../../lib/datas';
+import { openAiConfigurada } from '../../../lib/openai';
+import { calcularMargem } from '../../../lib/calculo/margem';
+import { formatarQuantidade } from '../../../lib/calculo/orcamento';
+import { eventoExiste } from '../../../server/eventos';
+import { contextoOrcamento } from '../../../server/orcamento';
+import { carregarAnalise, historicoAnalises } from '../../../server/ia/comum';
+import { alertasEstoque, analisarCardapio, aplicarSugestao, type AnaliseCardapio } from '../../../server/ia/cardapio';
+
+// Assistente de Orçamentos IA: margem projetada do cardápio (cálculo do sistema) e sugestões da IA para girar estoque e proteger a margem.
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/eventos/${id}/assistente-orcamento`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const numero = Number.parseInt(String(data.numero ?? ''), 10);
+    if (!Number.isInteger(numero) || numero < 1) throw new UserError('Versão inválida.');
+    if (data._action === 'aplicar') {
+      const incluir = optionalUuid().parse(data.incluir_id);
+      if (!incluir) throw new UserError('Sugestão inválida.');
+      const remover = optionalUuid().parse(data.remover_id ?? '');
+      const feito = await withTenant(user.tenantId, (db) => aplicarSugestao(db, user, id, numero, { incluirId: incluir, removerId: remover }));
+      return { message: `Cardápio atualizado: ${feito}.`, redirect: `${base}?versao=${numero}${data.analise ? `&analise=${data.analise}` : ''}` };
+    }
+    const analiseId = await withTenant(user.tenantId, (db) => analisarCardapio(db, user, id, numero));
+    return { message: 'Sugestões da IA prontas.', redirect: `${base}?versao=${numero}&analise=${analiseId}` };
+  });
+}
+
+const ctx = await withTenant(user.tenantId, async (db) => {
+  const c = await contextoOrcamento(db, id, Astro.url.searchParams.get('versao'));
+  return {
+    ...c,
+    alertas: await alertasEstoque(db),
+    analise: c.versao ? await carregarAnalise<AnaliseCardapio>(db, id, 'cardapio', Astro.url.searchParams.get('analise')) : null,
+    historico: await historicoAnalises(db, id, 'cardapio'),
+  };
+});
+const { evento, orcamento, versao, alertas, analise, historico } = ctx;
+const margem = versao ? calcularMargem(versao.conteudo) : null;
+const configurada = openAiConfigurada();
+const a = analise?.resultado;
+const pad = (n: number) => String(n).padStart(2, '0');
+const classeMargem = (p: number | null) => (p === null ? '' : p < 30 ? 'margem-baixa' : p < 50 ? 'margem-media' : 'margem-boa');
+const impacto = (v: number | null) => (v === null ? 'impacto no custo não calculado (item sem custo)' : v < 0 ? `economia de ${formatMoney(-v)} no evento` : v === 0 ? 'mesmo custo' : `${formatMoney(v)} a mais de custo no evento`);
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="margem">
+  {orcamento && <OrcamentoAbas eventoId={id} ativa="margem" versao={versao ? { numero: versao.numero, congelada: versao.congelada } : null} />}
+
+  {!orcamento || !versao || !margem ? (
+    <section class="card">
+      <h3>Este evento ainda não tem orçamento</h3>
+      <p class="muted">A margem é calculada a partir do cardápio do orçamento.</p>
+      <Button variant="primary" href={`/eventos/${id}/orcamento`}>Ir para o orçamento</Button>
+    </section>
+  ) : (
+    <>
+      <section class="kpis">
+        <div><span class="eyebrow">Receita de alimentos e bebidas</span><strong>{formatMoney(margem.receita)}</strong></div>
+        <div><span class="eyebrow">Custo dos insumos</span><strong>{formatMoney(margem.custo)}</strong><span class="muted">{formatMoney(margem.custo_por_convidado)} por convidado</span></div>
+        <div><span class="eyebrow">Margem projetada</span><strong class={classeMargem(margem.margem_pct)}>{margem.margem_pct === null ? '—' : `${margem.margem_pct.toLocaleString('pt-BR')}%`}</strong><span class="muted">{margem.margem_pct === null ? 'cadastre o custo dos itens' : formatMoney(margem.margem_valor)}</span></div>
+      </section>
+      <p class="nota">
+        Custo = custo por porção do item (Cardápios › Itens) × {versao.conteudo.pagantes.convidados} convidados; bebidas por unidade usam a quantidade do
+        orçamento. Staff, locação e extras ficam fora desta conta.
+      </p>
+
+      <div class="grade">
+        <div class="coluna">
+          <section class="card">
+            <div class="titulo-linha">
+              <h3 class="bloco-titulo"><Icon name="sparkles" size={18} /> Assistente de Orçamentos IA</h3>
+              <form method="post">
+                <input type="hidden" name="numero" value={versao.numero} />
+                <button type="submit" class="btn btn-primary btn-sm" disabled={!configurada} data-carregando="Analisando…">
+                  <Icon name="sparkles" size={15} /> {a ? 'Gerar de novo' : 'Gerar sugestões'}
+                </button>
+              </form>
+            </div>
+            {!configurada && <p class="muted">A integração com IA não está configurada neste servidor (OPENAI_TOKEN).</p>}
+            {!a ? (
+              <p class="muted">A IA cruza o cardápio com o catálogo e o estoque e sugere trocas de maior margem e pratos que aproveitam insumos parados ou perto do vencimento.</p>
+            ) : (
+              <>
+                {analise!.versao_numero !== versao.numero && <p class="aviso-versao">Esta análise foi feita na versão {pad(analise!.versao_numero ?? 0)}.</p>}
+                <p class="texto">{a.resumo}</p>
+
+                <h4>Substituições de maior margem</h4>
+                {a.substituicoes.length === 0 ? <p class="muted">{margem.itens.length === 0 ? 'Sem custos cadastrados não dá para comparar margem entre itens. Cadastre o custo por porção em Cardápios › Itens.' : 'Nenhuma troca com custo menor e equivalência gastronômica.'}</p> : (
+                  <ul class="sugestoes">
+                    {a.substituicoes.map((s) => (
+                      <li>
+                        <div class="sug-titulo">
+                          <span><s>{s.remover_nome}</s> <Icon name="arrow-right" size={14} /> <strong>{s.incluir_nome}</strong></span>
+                          <span class:list={['badge', s.impacto_custo !== null && s.impacto_custo < 0 ? 'badge-success' : 'badge-warning']}>{impacto(s.impacto_custo)}</span>
+                        </div>
+                        <p class="texto">{s.justificativa}</p>
+                        <p class="texto muted">{s.equivalencia}</p>
+                        {s.aplicavel && !versao.congelada && (
+                          <form method="post">
+                            <input type="hidden" name="_action" value="aplicar" />
+                            <input type="hidden" name="numero" value={versao.numero} />
+                            <input type="hidden" name="analise" value={analise!.id} />
+                            <input type="hidden" name="incluir_id" value={s.incluir_item_id} />
+                            <input type="hidden" name="remover_id" value={s.remover_item_id} />
+                            <button type="submit" class="btn btn-outline btn-sm" data-confirm={`Trocar "${s.remover_nome}" por "${s.incluir_nome}" na versão ${pad(versao.numero)}?`} data-confirm-rotulo="Aplicar troca" data-carregando="Aplicando…">Aplicar troca</button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <h4>Giro de estoque</h4>
+                {a.giro_estoque.length === 0 ? <p class="muted">Nenhuma sugestão de giro.</p> : (
+                  <ul class="sugestoes">
+                    {a.giro_estoque.map((g) => (
+                      <li>
+                        <div class="sug-titulo">
+                          <span><Icon name="circle-plus" size={14} /> <strong>{g.incluir_nome}</strong> <span class="muted">em {g.secao_nome}</span></span>
+                          <span class="badge badge-info">aproveita {g.aproveita}</span>
+                        </div>
+                        <p class="texto">{g.motivo}</p>
+                        {g.impacto_custo !== null && <p class="texto muted">Custo adicional estimado: {formatMoney(g.impacto_custo)} no evento.</p>}
+                        {g.aplicavel && !versao.congelada && (
+                          <form method="post">
+                            <input type="hidden" name="_action" value="aplicar" />
+                            <input type="hidden" name="numero" value={versao.numero} />
+                            <input type="hidden" name="analise" value={analise!.id} />
+                            <input type="hidden" name="incluir_id" value={g.incluir_item_id} />
+                            <button type="submit" class="btn btn-outline btn-sm" data-confirm={`Incluir "${g.incluir_nome}" no cardápio da versão ${pad(versao.numero)}?`} data-confirm-rotulo="Incluir" data-carregando="Incluindo…">Incluir no cardápio</button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {a.alertas.length > 0 && (
+                  <>
+                    <h4>Alertas</h4>
+                    <ul class="marcadores">{a.alertas.map((t) => <li>{t}</li>)}</ul>
+                  </>
+                )}
+                <p class="rodape-ia">
+                  Gerada em {dataHora(analise!.created_at)}{analise!.usuario_nome ? ` por ${analise!.usuario_nome}` : ''} · {analise!.modelo ?? 'OpenAI'} ·
+                  <a class="link" href={`/eventos/${id}/ia-contexto/${analise!.id}`}>contexto enviado (.md)</a>
+                  {historico.length > 1 && (
+                    <>
+                      {' '}· anteriores:{' '}
+                      {historico.slice(0, 6).filter((h) => h.id !== analise!.id).map((h) => <a class="link" href={`${base}?versao=${versao.numero}&analise=${h.id}`}>{dataHora(h.created_at)}</a>)}
+                    </>
+                  )}
+                </p>
+              </>
+            )}
+          </section>
+
+          <section class="card">
+            <h3 class="bloco-titulo"><Icon name="receipt" size={18} /> Custo por item</h3>
+            {margem.itens.length === 0 ? <p class="muted">Nenhum item com custo cadastrado no cardápio desta versão.</p> : (
+              <div class="tabela-orc-rolagem"><table class="tabela-orc">
+                <thead><tr><th>Item</th><th>Seção</th><th class="num">Custo/porção</th><th class="num">Qtd.</th><th class="num">Custo no evento</th><th class="num">% do custo</th></tr></thead>
+                <tbody>
+                  {margem.itens.map((i) => (
+                    <tr>
+                      <td><strong>{i.nome}</strong></td>
+                      <td class="muted">{i.grupo}</td>
+                      <td class="num">{formatMoney(i.custo_unitario)}</td>
+                      <td class="num">{i.quantidade.toLocaleString('pt-BR')}</td>
+                      <td class="num">{formatMoney(i.custo_total)}</td>
+                      <td class="num">{margem.custo > 0 ? `${((i.custo_total / margem.custo) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table></div>
+            )}
+            {margem.sem_custo.length > 0 && (
+              <p class="aviso-custo"><Icon name="alert-circle" size={16} /> Sem custo cadastrado: {margem.sem_custo.join(', ')}. Cadastre em <a class="link" href="/cardapio/itens">Cardápios › Itens</a> para a margem ficar real.</p>
+            )}
+          </section>
+        </div>
+
+        <aside class="coluna">
+          <section class="card">
+            <h3 class="bloco-titulo"><Icon name="building-warehouse" size={18} /> Estoque para girar</h3>
+            {alertas.length === 0 ? <p class="muted">Nenhum insumo vencendo em 15 dias ou parado há 45 dias ou mais.</p> : (
+              <ul class="alertas">
+                {alertas.slice(0, 12).map((e) => (
+                  <li>
+                    <strong>{e.nome}</strong>
+                    <span class="muted">{formatarQuantidade(e.quantidade, e.unidade)}</span>
+                    {e.motivo === 'validade'
+                      ? <span class:list={['badge', (e.dias_para_vencer ?? 0) < 0 ? 'badge-danger' : 'badge-warning']}>{(e.dias_para_vencer ?? 0) < 0 ? 'Vencido' : `Vence em ${e.dias_para_vencer} dias`}</span>
+                      : <span class="badge">{e.dias_sem_saida} dias parado</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <a class="link pequeno" href="/estoque">Abrir o estoque</a>
+          </section>
+        </aside>
+      </div>
+    </>
+  )}
+</EventoLayout>
+
+<style>
+  .card {
+    padding: var(--space-5) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .kpis > div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .kpis strong {
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-strong);
+  }
+
+  .kpis .muted {
+    font-size: var(--fs-12);
+  }
+
+  .nota {
+    margin: var(--space-2) 0 var(--space-5);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .grade {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .coluna {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .titulo-linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .card h4 {
+    margin: var(--space-5) 0 var(--space-2);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .texto {
+    margin-top: var(--space-1-5);
+    font-size: var(--fs-14);
+    line-height: 1.55;
+  }
+
+  .sugestoes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+  }
+
+  .sugestoes > li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: var(--clay-25);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+
+  .sugestoes form {
+    margin-top: var(--space-2);
+  }
+
+  .sug-titulo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sug-titulo > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1-5);
+  }
+
+  .sug-titulo strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .sug-titulo s {
+    color: var(--text-muted);
+  }
+
+  .aviso-versao,
+  .aviso-custo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    margin-top: var(--space-3);
+    font-size: var(--fs-13);
+    color: var(--warning);
+  }
+
+  .marcadores {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5);
+    padding-left: var(--space-5);
+    font-size: var(--fs-14);
+  }
+
+  .rodape-ia {
+    margin-top: var(--space-5);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  .alertas {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    list-style: none;
+    padding: 0;
+    font-size: var(--fs-13);
+  }
+
+  .alertas li {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+  }
+
+  .alertas strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .pequeno {
+    font-size: var(--fs-13);
+  }
+
+  .margem-boa { color: var(--success); }
+  .margem-media { color: var(--warning); }
+  .margem-baixa { color: var(--danger); }
+
+  @media (max-width: 1024px) {
+    .grade {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .kpis {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card {
+      padding: var(--space-4);
+    }
+  }
+</style>

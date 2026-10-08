@@ -1455,6 +1455,10 @@ a.selo-acessar:hover {
   accent-color: var(--terracotta-600);
 }
 
+.compras-tabela td:nth-child(2) {
+  min-width: 200px;
+}
+
 .compras-tabela tr.comprado td {
   color: var(--text-muted);
 }
@@ -1511,4 +1515,72 @@ a.selo-acessar:hover {
     align-items: flex-start;
     text-align: left;
   }
+}
+
+/* ---------- Margem projetada (resumo do construtor e otimizador) ---------- */
+.orc-margem {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  background: var(--clay-25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.orc-margem > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.orc-margem strong {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.orc-margem .muted {
+  font-size: var(--fs-12);
+  font-variant-numeric: tabular-nums;
+}
+
+.margem-boa { color: var(--success) !important; }
+.margem-media { color: var(--warning) !important; }
+.margem-baixa { color: var(--danger) !important; }
+
+.orc-margem-aviso {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  font-size: var(--fs-13);
+  color: var(--warning);
+}
+
+@media (max-width: 768px) {
+  .orc-margem {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Rodapé do bloco: "Adicionar linha" à esquerda e a legenda do selo automático à direita */
+.bloco-kv-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.auto-legenda {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 0 auto;
+  color: var(--text-secondary);
+  font-size: var(--fs-12);
 }

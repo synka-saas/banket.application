@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { parseMoney } from '../lib/money';
-import { UserError, optionalMoney, optionalText, optionalUuid, requiredText } from '../lib/forms';
+import { UserError, optionalDate, optionalMoney, optionalText, optionalUuid, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
 import { UNIDADES_PORCAO, type UnidadePorcao } from '../lib/calculo/orcamento';
@@ -39,6 +39,7 @@ export const estoqueItemSchema = z.object({
   estoque_minimo: quantidade('Estoque mínimo inválido.'),
   custo_unitario: optionalMoney(),
   local: optionalText(120),
+  validade: optionalDate(),
   observacoes: optionalText(2000),
   ativo: z.preprocess((v) => v === 'on' || v === 'true' || v === true, z.boolean()),
 });
@@ -83,6 +84,8 @@ export interface EstoqueItem {
   estoque_minimo: number | null;
   custo_unitario: number | null;
   local: string | null;
+  validade: string | null;
+  dias_para_vencer: number | null;
   observacoes: string | null;
   catalogo_item_id: string | null;
   catalogo_item_nome: string | null;
@@ -93,6 +96,7 @@ export interface EstoqueItem {
 
 const SELECT_ITEM = `
   SELECT e.id, e.nome, e.tipo, e.categoria, e.unidade, e.quantidade, e.estoque_minimo, e.custo_unitario, e.local, e.observacoes,
+         to_char(e.validade, 'YYYY-MM-DD') AS validade, (e.validade - current_date) AS dias_para_vencer,
          e.catalogo_item_id, ci.nome AS catalogo_item_nome, e.ativo,
          (e.estoque_minimo IS NOT NULL AND e.quantidade < e.estoque_minimo) AS abaixo_minimo,
          (SELECT max(m.created_at) FROM estoque_movimentos m WHERE m.estoque_item_id = e.id) AS ultima_movimentacao
@@ -104,7 +108,7 @@ const ORDEM: Record<string, string> = { nome: 'lower(e.nome)', categoria: 'lower
 export interface FiltrosEstoque {
   busca: string | null;
   tipo: TipoEstoque | null;
-  situacao: 'abaixo' | 'zerado' | 'inativos' | null;
+  situacao: 'abaixo' | 'zerado' | 'inativos' | 'vencendo' | null;
   categoria: string | null;
 }
 
@@ -117,6 +121,7 @@ export async function listarEstoque(db: Db, f: FiltrosEstoque, page: PageParams,
                          WHEN 'abaixo' THEN e.ativo AND e.estoque_minimo IS NOT NULL AND e.quantidade < e.estoque_minimo
                          WHEN 'zerado' THEN e.ativo AND e.quantidade <= 0
                          WHEN 'inativos' THEN NOT e.ativo
+                         WHEN 'vencendo' THEN e.ativo AND e.validade IS NOT NULL AND e.validade <= current_date + 15
                          ELSE e.ativo END`;
   const { rows } = await db.query<EstoqueItem>(
     `${SELECT_ITEM} ${where} ORDER BY ${orderBy(ord, ORDEM, 'lower(e.nome)')} LIMIT $5 OFFSET $6`,
@@ -201,7 +206,7 @@ async function registrarMovimento(db: Db, user: SessionUser, itemId: string, d: 
 
 /** Cria ou edita o item. O saldo só muda por movimentação; na criação, a quantidade inicial vira uma entrada. */
 export async function salvarEstoqueItem(db: Db, user: SessionUser, id: string | null, input: EstoqueItemInput): Promise<string> {
-  const valores = [input.nome, input.tipo, input.categoria ?? null, input.unidade, input.estoque_minimo, input.custo_unitario, input.local ?? null, input.observacoes ?? null, input.ativo];
+  const valores = [input.nome, input.tipo, input.categoria ?? null, input.unidade, input.estoque_minimo, input.custo_unitario, input.local ?? null, input.observacoes ?? null, input.ativo, input.validade];
   if (id) {
     const atual = await carregarEstoqueItem(db, id);
     if (atual.unidade !== input.unidade && Number(atual.quantidade) !== 0) {
@@ -209,15 +214,15 @@ export async function salvarEstoqueItem(db: Db, user: SessionUser, id: string | 
     }
     await db.query(
       `UPDATE estoque_itens SET nome = $1, tipo = $2, categoria = $3, unidade = $4, estoque_minimo = $5, custo_unitario = $6,
-              local = $7, observacoes = $8, ativo = $9, updated_at = now()
-        WHERE id = $10`,
+              local = $7, observacoes = $8, ativo = $9, validade = $10, updated_at = now()
+        WHERE id = $11`,
       [...valores, id]
     );
     return id;
   }
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO estoque_itens (nome, tipo, categoria, unidade, estoque_minimo, custo_unitario, local, observacoes, ativo, tenant_id, quantidade)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+    `INSERT INTO estoque_itens (nome, tipo, categoria, unidade, estoque_minimo, custo_unitario, local, observacoes, ativo, validade, tenant_id, quantidade)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
     [...valores, user.tenantId, input.quantidade_inicial ?? 0]
   );
   if (input.quantidade_inicial) {

@@ -163,7 +163,7 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
                       onBlur={(e) => e.currentTarget.value !== l.valor && atualizarLinha(b, l.key, { valor: e.currentTarget.value })} />
                   )}
                   <span class="linha-acoes">
-                    {l.auto && <span class="auto-selo tag tag-sm tag-sage" title="Calculado a partir do orçamento">auto</span>}
+                    {l.auto && <span class="auto-selo tag tag-sm tag-sage" title="Informação obtida automaticamente a partir de cálculo." aria-label="Informação obtida automaticamente a partir de cálculo."><Icon name="circle-letter-a" size={16} /></span>}
                     {!congelada && b.auto !== 'staff' && (
                       <>
                         <button type="button" class="remover" aria-label={`Mover ${l.label || 'linha'} para cima`} disabled={b.linhas[0]?.key === l.key} onClick={() => moverLinha(b, l.key, -1)}><Icon name="chevron-up" size={18} /></button>
@@ -177,10 +177,20 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
             </div>
           )}
 
-          {!congelada && b.auto !== 'staff' && (
-            <button type="button" class="btn btn-outline btn-sm" onClick={() => adicionarLinha(b)}>
-              <Icon name="circle-plus" size={18} /> Adicionar linha
-            </button>
+          {((!congelada && b.auto !== 'staff') || b.linhas.some((l) => l.auto)) && (
+            <div class="bloco-kv-rodape">
+              {!congelada && b.auto !== 'staff' && (
+                <button type="button" class="btn btn-outline btn-sm" onClick={() => adicionarLinha(b)}>
+                  <Icon name="circle-plus" size={18} /> Adicionar linha
+                </button>
+              )}
+              {b.linhas.some((l) => l.auto) && (
+                <p class="auto-legenda">
+                  <span class="auto-selo tag tag-sm tag-sage" aria-hidden="true"><Icon name="circle-letter-a" size={16} /></span>
+                  Informação obtida automaticamente a partir de cálculo.
+                </p>
+              )}
+            </div>
           )}
         </Acordeao>
       ))}

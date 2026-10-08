@@ -30,6 +30,7 @@ function itemDoCatalogo(i: SecaoCatalogo['itens'][number], comPreco: boolean, se
     restricoes: i.restricoes ?? [],
     porcao_qtd: i.porcao_qtd ?? null,
     porcao_unidade: i.porcao_unidade ?? null,
+    custo_unitario: i.custo_unitario ?? null,
   };
 }
 

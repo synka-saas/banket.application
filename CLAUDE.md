@@ -105,7 +105,7 @@ src/
     editorTexto.ts     barra de formatação do editor de documentos (aplica a marcação na seleção; navegador)
     documentos/        variáveis dos modelos de documento ({cliente}, {data_evento_extenso}…) e campos extras (puro)
     money.ts datas.ts documento.ts pagination.ts nav.ts
-    calculo/           cálculo PURO do orçamento e do staff (roda no navegador e no servidor)
+    calculo/           cálculo PURO do orçamento, do staff, da margem projetada (margem.ts) e do estoque × lista de compras
     formularios/       modelo do formulário de captação (compartilhado servidor/ilha/página pública)
   server/              regras de negócio por domínio; recebem `db` já dentro de withTenant
     espacos.ts         espaços de eventos (próprios/terceiros) e faixas de locação por espaço
@@ -117,6 +117,8 @@ src/
     googleConta.ts     conta Google do usuário (login, vínculo, agenda ativa, access token renovado); conexão de sistema
     reunioes.ts        reuniões agendadas na agenda Google do organizador (Meet + convites), por evento ou avulsas
     estoque.ts         estoque: itens, saldo, movimentações por motivo (custo médio, CMV), itens do cardápio gerenciados
+    ia/                assistentes de IA por evento (OpenAI): negociacao.ts (Assistente de Negociação IA), cardapio.ts
+                       (Assistente de Orçamentos IA: alertas de estoque, sugestões, aplicar troca), comum.ts (histórico, limite)
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
@@ -273,6 +275,8 @@ item do cardápio "gerenciado no estoque").
 **`estoque_movimentos`** — `estoque_item_id` (CASCADE), `tipo` (`entrada | saida | ajuste` = contagem física), `razao`
 (motivo, `lib/estoqueRazoes.ts`), `quantidade` (variação com sinal), `saldo_apos`, `custo_unitario` (pago na entrada; custo
 médio do momento na saída, base do CMV), `fornecedor`, `documento` (NF), `evento_id`, `espaco_id`, `observacao`, `usuario_id`.
+**`ia_analises`** — análises dos assistentes de IA: `evento_id` (CASCADE), `tipo` (`negociacao | cardapio`), `versao_numero`
+(Assistente de Orçamentos), `contexto_md` (exatamente o que foi enviado à IA), `resultado` JSONB, `modelo`, `usuario_id`.
 **`catalogo_itens`** — `secao_id` (NOT NULL, CASCADE), `nome` (UNIQUE por seção), `descricao`, `categoria_principal_id`,
 `categoria_secundaria_id`, `formato_servico_id`, `custo_unitario`, `preco`, `unidade_cobranca`, `composicao`,
 `restricoes TEXT[]` (`vegetariana, vegana, sem_gluten, sem_lactose, alergenicos`), `dados_operacionais TEXT[]`, `ativo`, `ordem`,
@@ -455,6 +459,7 @@ guardado: pode agendar reuniões).
 | `023_documentos_visual` | identidade visual própria dos modelos de documento (logo e posição, rodapé, fontes, três cores) e `documentos.visual` (snapshot); `template_id` sem uso |
 | `024_porcoes_lista_compras` | `catalogo_itens.porcao_qtd`/`porcao_unidade` (porção por pessoa; a lista de compras fica em `orcamento_versoes.conteudo.lista_compras`) |
 | `025_google_reunioes` | `usuario_google` (conta Google e tokens cifrados; só sistema) e `reunioes` (RLS) |
+| `027_ia_analises` | `ia_analises` (análises de IA por evento: contexto .md + resultado JSON) e `estoque_itens.validade` |
 | `026_estoque` | `estoque_itens` (saldo, mínimo, custo médio, ligação com o cardápio) e `estoque_movimentos` (motivo, NF, evento, espaço) |
 
 ### Seeds (somente dev, `--seed`)
@@ -572,7 +577,7 @@ pipeline em negociação, aprovados, recusados, taxa de conversão, ticket médi
 - Exportação CSV (`/eventos/exportar`, separador `;` para o Excel em português).
 - Evento (`/eventos/novo`, `/eventos/:id`, `/editar`): briefing completo, cliente existente ou novo no mesmo formulário.
   O local é um select de **Espaço** (nossos espaços, de terceiros ou "Outro local" com nome/endereço livres); o espaço
-  padrão da empresa já vem selecionado. Abas do `EventoLayout`: resumo, **Orçamento**, Informações complementares,
+  padrão da empresa já vem selecionado. Abas do `EventoLayout`: resumo, **Orçamento** (sub-abas: itens, informações, condições, prévia, lista de compras, Assistente de Orçamentos IA), **Assistente de Negociação IA**, Informações complementares,
   Condições gerais, **Mensagens** (Inbox do evento), **Documentos** (contratos gerados), Linha do tempo.
 - Checklist operacional por evento (degustação, laudos, documentos) com status e prazo.
 - Mudanças relevantes (data, convidados, cliente, espaço, status) vão para a linha do tempo.
@@ -679,6 +684,26 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
   linha (manual ?? calculada, com conversão g/kg e ml/l), "Faltam X" quando cobre parte, "Sem estoque" ou o saldo
   quando a unidade não converte. A linha casa com o estoque pelo item do cardápio ligado ou, sem ligação, pelo mesmo
   nome (avulsas, bebidas). Também no CSV e no PDF. O saldo é o atual da empresa (não reserva por evento).
+
+### Assistentes de IA (OpenAI, `lib/openai.ts` → `openAiJson` com JSON Schema strict; `OPENAI_TOKEN`/`OPENAI_MODEL`)
+- **Assistente de Negociação IA** — aba do evento `/eventos/:id/negociacao` (`server/ia/negociacao.ts`). "Analisar
+  negociação" consolida num markdown os dados do evento e do cliente, o comentário do pedido, as versões da proposta
+  (valores, envio), reuniões, linha do tempo (anotações, retornos, mudanças de etapa), e-mails do Inbox (usuário comum
+  só leva as conversas dele, como no Inbox) e as respostas do formulário; a IA devolve temperatura do fechamento
+  (fria/morna/quente, %, estágio, urgência), objeções com evidência e gravidade, sugestões de abordagem com roteiro
+  pronto (botão Copiar), sinais positivos, próximos passos e lacunas. Histórico das análises na lateral.
+- **Assistente de Orçamentos IA** — sub-aba do orçamento `/eventos/:id/assistente-orcamento` (`server/ia/cardapio.ts`).
+  A **margem projetada** é cálculo do sistema (`lib/calculo/margem.ts`), também no resumo do construtor: custo dos
+  insumos = `custo_unitario` do item (custo por porção, snapshot no orçamento e sincronizado na versão em edição) ×
+  convidados; bebida por unidade × quantidade; receita = alimentos + bebidas; sem nenhum custo a margem fica "—".
+  Mostra o custo por item e os alertas de estoque (validade em até 15 dias, 45+ dias sem saída). "Gerar sugestões"
+  envia cardápio, alternativas das mesmas seções do catálogo e estoque; a IA sugere **substituições** (o servidor só
+  aceita ids reais da mesma seção, com os dois custos conhecidos e custo menor; calcula a economia no evento) e **giro
+  de estoque** (itens a incluir). "Aplicar troca"/"Incluir no cardápio" (`aplicarSugestao`) altera a versão em edição
+  pelo `salvarVersao` e registra na linha do tempo.
+- Comum (`server/ia/comum.ts`): cada análise fica em `ia_analises` com o contexto enviado (download em
+  `/eventos/:id/ia-contexto/:analiseId`); limite de 20 análises / 10 min por empresa; o prompt trata o contexto (que
+  inclui texto de clientes) como dado, nunca instrução; resposta em até 55 s (o Nginx corta em 60 s).
 
 ### Reuniões — `/eventos/:id/reunioes`, `/reunioes` (`server/reunioes.ts`, `components/reunioes/ReuniaoDrawer.astro`)
 - Disponível só para quem tem a **agenda Google ativa** (login/vínculo com o Google, ver Autenticação); caso contrário as

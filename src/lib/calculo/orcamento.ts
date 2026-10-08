@@ -24,6 +24,8 @@ export interface ItemOrcamento {
   /** Porção por pessoa do catálogo (snapshot; a versão em edição acompanha o cadastro) */
   porcao_qtd?: number | null;
   porcao_unidade?: UnidadePorcao | null;
+  /** Custo por porção do catálogo (snapshot; a versão em edição acompanha o cadastro) — base da margem */
+  custo_unitario?: number | null;
 }
 
 export interface SecaoOrcamento {
@@ -63,6 +65,7 @@ export interface BebidaOrcamento {
   subtotal_manual: number | null;
   porcao_qtd?: number | null;
   porcao_unidade?: UnidadePorcao | null;
+  custo_unitario?: number | null;
   subtotal_calc?: number;
 }
 

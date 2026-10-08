@@ -42,6 +42,7 @@ const itemSchema = z.object({
   restricoes: z.array(z.string().max(40)).default([]),
   porcao_qtd: numNull,
   porcao_unidade: unidadePorcao,
+  custo_unitario: numNull,
 });
 
 const secaoSchema = z.object({
@@ -134,6 +135,7 @@ export const conteudoSchema = z.object({
         subtotal_manual: numNull,
         porcao_qtd: numNull,
         porcao_unidade: unidadePorcao,
+        custo_unitario: numNull,
       })
     )
     .default([]),
@@ -222,7 +224,7 @@ function sincronizarLocacaoComEvento(conteudo: ConteudoOrcamento, e: EventoDetal
 }
 
 /**
- * A versão em edição acompanha a porção por pessoa cadastrada no catálogo (itens dos cardápios e bebidas);
+ * A versão em edição acompanha a porção por pessoa e o custo cadastrados no catálogo (itens dos cardápios e bebidas);
  * as congeladas guardam o snapshot. Itens personalizados (sem id) ficam como estão.
  */
 async function sincronizarPorcoes(db: Db, conteudo: ConteudoOrcamento): Promise<ConteudoOrcamento> {
@@ -230,12 +232,13 @@ async function sincronizarPorcoes(db: Db, conteudo: ConteudoOrcamento): Promise<
   for (const c of conteudo.cardapios) for (const s of c.secoes) for (const i of s.itens) if (i.item_id) ids.add(i.item_id);
   for (const b of conteudo.bebidas) if (b.ref_id) ids.add(b.ref_id);
   if (!ids.size) return conteudo;
-  const { rows } = await db.query<{ id: string; porcao_qtd: number | null; porcao_unidade: UnidadePorcao | null }>(
-    'SELECT id, porcao_qtd, porcao_unidade FROM catalogo_itens WHERE id = ANY($1::uuid[])',
+  const { rows } = await db.query<{ id: string; porcao_qtd: number | null; porcao_unidade: UnidadePorcao | null; custo_unitario: number | null }>(
+    'SELECT id, porcao_qtd, porcao_unidade, custo_unitario FROM catalogo_itens WHERE id = ANY($1::uuid[])',
     [[...ids].filter((id) => /^[0-9a-f-]{36}$/i.test(id))]
   );
-  const porcoes = new Map(rows.map((r) => [r.id, { porcao_qtd: r.porcao_qtd === null ? null : Number(r.porcao_qtd), porcao_unidade: r.porcao_unidade }]));
-  const aplicar = <T extends { porcao_qtd?: number | null; porcao_unidade?: UnidadePorcao | null }>(x: T, id: string | null): T =>
+  const n = (v: number | null) => (v === null ? null : Number(v));
+  const porcoes = new Map(rows.map((r) => [r.id, { porcao_qtd: n(r.porcao_qtd), porcao_unidade: r.porcao_unidade, custo_unitario: n(r.custo_unitario) }]));
+  const aplicar = <T extends { porcao_qtd?: number | null; porcao_unidade?: UnidadePorcao | null; custo_unitario?: number | null }>(x: T, id: string | null): T =>
     id && porcoes.has(id) ? { ...x, ...porcoes.get(id)! } : x;
   return {
     ...conteudo,
@@ -618,6 +621,7 @@ export interface CatalogoConstrutor {
       restricoes: string[];
       porcao_qtd: number | null;
       porcao_unidade: UnidadePorcao | null;
+      custo_unitario: number | null;
     }[];
   }[];
   opcoes: {
@@ -636,7 +640,7 @@ export async function catalogoConstrutor(db: Db): Promise<CatalogoConstrutor> {
             COALESCE(json_agg(json_build_object(
               'id', i.id, 'nome', i.nome, 'descricao', i.descricao, 'preco', i.preco,
               'unidade', i.unidade_cobranca, 'restricoes', i.restricoes,
-              'porcao_qtd', i.porcao_qtd, 'porcao_unidade', i.porcao_unidade
+              'porcao_qtd', i.porcao_qtd, 'porcao_unidade', i.porcao_unidade, 'custo_unitario', i.custo_unitario
             ) ORDER BY i.ordem, lower(i.nome)) FILTER (WHERE i.id IS NOT NULL AND i.ativo), '[]') AS itens
        FROM catalogo_secoes s
        LEFT JOIN catalogo_itens i ON i.secao_id = s.id
@@ -663,7 +667,9 @@ export async function catalogoConstrutor(db: Db): Promise<CatalogoConstrutor> {
       ...s,
       bebida: Boolean(s.bebida),
       preco: n(s.preco),
-      itens: s.itens.map((i: { preco: unknown; porcao_qtd: unknown }) => ({ ...i, preco: n(i.preco), porcao_qtd: n(i.porcao_qtd) })),
+      itens: s.itens.map((i: { preco: unknown; porcao_qtd: unknown; custo_unitario: unknown }) => ({
+        ...i, preco: n(i.preco), porcao_qtd: n(i.porcao_qtd), custo_unitario: n(i.custo_unitario),
+      })),
     })),
     opcoes: opcoes.map((o) => ({
       ...o,

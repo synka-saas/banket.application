@@ -1,0 +1,405 @@
+---
+import EventoLayout from '../../../layouts/EventoLayout.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import EstadoVazio from '../../../components/ui/EstadoVazio.astro';
+import { withTenant } from '../../../lib/db';
+import { handleFormPost } from '../../../lib/actions';
+import { dataHora } from '../../../lib/datas';
+import { openAiConfigurada } from '../../../lib/openai';
+import { carregarEvento, eventoExiste } from '../../../server/eventos';
+import { carregarAnalise, historicoAnalises } from '../../../server/ia/comum';
+import { CATEGORIAS_OBJECAO, analisarNegociacao, type AnaliseNegociacao } from '../../../server/ia/negociacao';
+
+// Assistente de Negociação IA: diagnóstico da negociação feito pela IA a partir do histórico do evento.
+const user = Astro.locals.user;
+const id = Astro.params.id!;
+const base = `/eventos/${id}/negociacao`;
+
+if (!(await withTenant(user.tenantId, (db) => eventoExiste(db, id)))) {
+  return new Response(null, { status: 404 });
+}
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async () => {
+    const analiseId = await withTenant(user.tenantId, (db) => analisarNegociacao(db, user, id));
+    return { message: 'Análise da negociação pronta.', redirect: `${base}?analise=${analiseId}` };
+  });
+}
+
+const { evento, analise, historico } = await withTenant(user.tenantId, async (db) => ({
+  evento: await carregarEvento(db, id),
+  analise: await carregarAnalise<AnaliseNegociacao>(db, id, 'negociacao', Astro.url.searchParams.get('analise')),
+  historico: await historicoAnalises(db, id, 'negociacao'),
+}));
+const configurada = openAiConfigurada();
+const a = analise?.resultado;
+const NIVEL: Record<string, { rotulo: string; classe: string }> = {
+  quente: { rotulo: 'Quente', classe: 'quente' },
+  morna: { rotulo: 'Morna', classe: 'morna' },
+  fria: { rotulo: 'Fria', classe: 'fria' },
+};
+const GRAVIDADE: Record<string, string> = { alta: 'badge-danger', media: 'badge-warning', baixa: 'badge-info' };
+const CANAL: Record<string, string> = { whatsapp: 'WhatsApp', email: 'E-mail', ligacao: 'Ligação', reuniao: 'Reunião' };
+const URGENCIA: Record<string, string> = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
+---
+
+<EventoLayout eventoId={id} titulo={evento.titulo ?? evento.cliente_nome ?? 'Evento'} aba="negociacao">
+  <div class="cop-topo">
+    <p class="intro">
+      O <strong>Assistente de Negociação IA</strong> reúne o histórico desta negociação (mensagens, anotações, reuniões, propostas e o pedido do cliente) e a IA
+      aponta as <strong>objeções</strong>, a <strong>temperatura do fechamento</strong> e <strong>como abordar</strong> o cliente.
+    </p>
+    <form method="post" class="cop-acao">
+      <button type="submit" class="btn btn-primary btn-md" disabled={!configurada} data-carregando="Analisando… (até 1 minuto)">
+        <Icon name="sparkles" size={16} /> {a ? 'Atualizar análise' : 'Analisar negociação'}
+      </button>
+    </form>
+  </div>
+
+  {!configurada && <p class="aviso"><Icon name="info-circle" size={18} /> A integração com IA não está configurada neste servidor (OPENAI_TOKEN).</p>}
+
+  {!a ? (
+    <EstadoVazio icon="sparkles" titulo="Nenhuma análise ainda" texto="Gere a primeira análise para ver objeções, temperatura e sugestões de abordagem. Quanto mais anotações e mensagens o evento tiver, melhor o diagnóstico." />
+  ) : (
+    <div class="cop-grid">
+      <div class="cop-principal">
+        <section class="card cop-temperatura">
+          <div class:list={['termometro', NIVEL[a.temperatura.nivel]?.classe]}>
+            <Icon name="flame" size={22} />
+            <div>
+              <span class="eyebrow">Temperatura do fechamento</span>
+              <strong>{NIVEL[a.temperatura.nivel]?.rotulo ?? a.temperatura.nivel} · {a.temperatura.pontuacao}%</strong>
+            </div>
+          </div>
+          <div class="barra" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow={a.temperatura.pontuacao} aria-label="Probabilidade de fechamento">
+            <span style={`width:${a.temperatura.pontuacao}%`}></span>
+          </div>
+          <dl class="kv kv-2">
+            <div><dt>Estágio</dt><dd>{a.temperatura.estagio}</dd></div>
+            <div><dt>Urgência</dt><dd>{URGENCIA[a.temperatura.urgencia] ?? a.temperatura.urgencia}</dd></div>
+          </dl>
+          <p class="texto">{a.temperatura.justificativa}</p>
+          <p class="texto resumo">{a.resumo}</p>
+        </section>
+
+        <section class="card">
+          <h3 class="bloco-titulo"><Icon name="alert-triangle" size={18} /> Objeções mapeadas</h3>
+          {a.objecoes.length === 0 ? <p class="muted">Nenhuma objeção evidente no histórico.</p> : (
+            <ul class="lista-cards">
+              {a.objecoes.map((o) => (
+                <li>
+                  <div class="linha-titulo">
+                    <strong>{o.titulo}</strong>
+                    <span class="tag tag-sm">{CATEGORIAS_OBJECAO[o.categoria] ?? o.categoria}</span>
+                    <span class:list={['badge', GRAVIDADE[o.gravidade]]}>Gravidade {o.gravidade === 'media' ? 'média' : o.gravidade}</span>
+                  </div>
+                  <blockquote>{o.evidencia}</blockquote>
+                  <p class="texto"><span class="rotulo-inline">Como tratar:</span> {o.como_tratar}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section class="card">
+          <h3 class="bloco-titulo"><Icon name="message-plus" size={18} /> Sugestões de abordagem</h3>
+          <ul class="lista-cards">
+            {a.sugestoes.map((s, i) => (
+              <li>
+                <div class="linha-titulo">
+                  <strong>{s.titulo}</strong>
+                  <span class="tag tag-sm tag-accent">{CANAL[s.canal] ?? s.canal}</span>
+                </div>
+                <p class="texto">{s.argumento}</p>
+                <div class="roteiro">
+                  <pre id={`roteiro-${i}`}>{s.roteiro}</pre>
+                  <button type="button" class="btn btn-outline btn-sm" data-copiar={`roteiro-${i}`}><Icon name="copy" size={15} /> Copiar</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <aside class="cop-lateral">
+        <section class="card">
+          <h3 class="bloco-titulo"><Icon name="list-check" size={18} /> Próximos passos</h3>
+          <ol class="passos">{a.proximos_passos.map((p) => <li>{p}</li>)}</ol>
+        </section>
+        <section class="card">
+          <h3 class="bloco-titulo"><Icon name="circle-check" size={18} /> Sinais positivos</h3>
+          {a.sinais_positivos.length ? <ul class="marcadores">{a.sinais_positivos.map((p) => <li>{p}</li>)}</ul> : <p class="muted">Nenhum sinal claro.</p>}
+        </section>
+        {a.lacunas.length > 0 && (
+          <section class="card">
+            <h3 class="bloco-titulo"><Icon name="help-circle" size={18} /> O que falta saber</h3>
+            <ul class="marcadores">{a.lacunas.map((p) => <li>{p}</li>)}</ul>
+            <p class="muted pequeno">Registre na <a class="link" href={`/eventos/${id}/linha-do-tempo`}>linha do tempo</a> para as próximas análises.</p>
+          </section>
+        )}
+        <section class="card historico">
+          <h3 class="bloco-titulo"><Icon name="history" size={18} /> Análises</h3>
+          <ul>
+            {historico.map((h) => (
+              <li class:list={{ atual: h.id === analise!.id }}>
+                <a href={`${base}?analise=${h.id}`}>{dataHora(h.created_at)}</a>
+                <span class="muted">{h.usuario_nome ?? ''}</span>
+              </li>
+            ))}
+          </ul>
+          <a class="link pequeno" href={`/eventos/${id}/ia-contexto/${analise!.id}`}><Icon name="download" size={14} /> Contexto enviado à IA (.md)</a>
+          <p class="muted pequeno">Gerada por IA ({analise!.modelo ?? 'OpenAI'}): confira antes de usar com o cliente.</p>
+        </section>
+      </aside>
+    </div>
+  )}
+</EventoLayout>
+
+<script>
+  import { toast } from '../../../lib/ui';
+  document.addEventListener('click', (e) => {
+    const botao = (e.target as HTMLElement).closest<HTMLElement>('[data-copiar]');
+    if (!botao) return;
+    const texto = document.getElementById(botao.dataset.copiar!)?.textContent ?? '';
+    navigator.clipboard.writeText(texto).then(
+      () => toast('Roteiro copiado.', 'success'),
+      () => toast('Não foi possível copiar. Selecione o texto manualmente.', 'error')
+    );
+  });
+</script>
+
+<style>
+  .cop-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+
+  .intro {
+    max-width: 720px;
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+
+  .intro strong {
+    color: var(--text-body);
+    font-weight: var(--fw-medium);
+  }
+
+  .cop-acao {
+    flex: none;
+  }
+
+  .aviso {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--fs-13);
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-md);
+  }
+
+  .cop-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+  }
+
+  .cop-principal,
+  .cop-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .card {
+    padding: var(--space-5) var(--space-6);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .card .bloco-titulo {
+    margin-bottom: var(--space-3);
+  }
+
+  .termometro {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--cobalt-600);
+  }
+
+  .termometro.morna {
+    color: var(--warning);
+  }
+
+  .termometro.quente {
+    color: var(--terracotta-600);
+  }
+
+  .termometro strong {
+    display: block;
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+  }
+
+  .termometro .eyebrow {
+    color: var(--text-muted);
+  }
+
+  .barra {
+    height: 8px;
+    margin: var(--space-3) 0 var(--space-4);
+    background: var(--bg-subtle);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .barra span {
+    display: block;
+    height: 100%;
+    background: currentColor;
+    color: var(--terracotta-500);
+    border-radius: inherit;
+  }
+
+  .texto {
+    margin-top: var(--space-2);
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-body);
+  }
+
+  .resumo {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .lista-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+  }
+
+  .lista-cards > li {
+    padding: var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--clay-25);
+  }
+
+  .linha-titulo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .linha-titulo strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  blockquote {
+    margin: var(--space-2) 0 0;
+    padding-left: var(--space-3);
+    border-left: 2px solid var(--border-strong);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .rotulo-inline {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .roteiro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+
+  .roteiro pre {
+    width: 100%;
+    margin: 0;
+    padding: var(--space-3);
+    white-space: pre-wrap;
+    font-family: var(--font-sans);
+    font-size: var(--fs-13);
+    line-height: 1.55;
+    color: var(--text-body);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+  }
+
+  .passos,
+  .marcadores {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-left: var(--space-5);
+    font-size: var(--fs-14);
+    line-height: 1.5;
+  }
+
+  .historico ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5);
+    margin-bottom: var(--space-3);
+    list-style: none;
+    padding: 0;
+    font-size: var(--fs-13);
+  }
+
+  .historico li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .historico li.atual a {
+    color: var(--text-accent);
+    font-weight: var(--fw-medium);
+  }
+
+  .pequeno {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    font-size: var(--fs-12);
+  }
+
+  @media (max-width: 1024px) {
+    .cop-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .cop-topo {
+      flex-direction: column;
+    }
+
+    .card {
+      padding: var(--space-4);
+    }
+  }
+</style>

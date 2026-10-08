@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatMoney } from '../../lib/money';
 import { calcularOrcamento, type ConteudoOrcamento, type EspacoRef, type ReferenciasLocacao } from '../../lib/calculo/orcamento';
+import { calcularMargem } from '../../lib/calculo/margem';
 import type { CatalogoConstrutor } from '../../server/orcamento';
 import { Numero, ValorManual } from './controles';
 import Cardapios from './Cardapios';
@@ -156,6 +157,7 @@ export default function OrcamentoBuilder(props: Props) {
   }
 
   const p = conteudo.pagantes;
+  const margem = calcularMargem(conteudo);
   const rotuloEstado = { salvo: 'Todas as alterações salvas', pendente: 'Alterações pendentes…', salvando: 'Salvando…', erro: 'Erro ao salvar' }[
     estado
   ];
@@ -287,6 +289,26 @@ export default function OrcamentoBuilder(props: Props) {
             <dd>{formatMoney(totais.total_calc)}</dd>
           </div>
         </dl>
+        <div class="orc-margem" aria-label="Margem projetada">
+          <div>
+            <span class="rotulo">Custo dos insumos (estimado)</span>
+            <strong>{formatMoney(margem.custo)}</strong>
+            <span class="muted">{formatMoney(margem.custo_por_convidado)} por convidado</span>
+          </div>
+          <div>
+            <span class="rotulo">Margem de alimentos e bebidas</span>
+            <strong class={margem.margem_pct === null ? '' : margem.margem_pct < 30 ? 'margem-baixa' : margem.margem_pct < 50 ? 'margem-media' : 'margem-boa'}>
+              {margem.margem_pct === null ? '—' : `${margem.margem_pct.toLocaleString('pt-BR')}%`}
+            </strong>
+            <span class="muted">{margem.margem_pct === null ? 'cadastre o custo dos itens' : formatMoney(margem.margem_valor)}</span>
+          </div>
+          {margem.sem_custo.length > 0 && (
+            <p class="orc-margem-aviso">
+              <Icon name="alert-circle" size={16} /> {margem.sem_custo.length === 1 ? '1 item sem custo cadastrado' : `${margem.sem_custo.length} itens sem custo cadastrado`}: a margem fica maior do que a real.{' '}
+              <a class="link" href={`/eventos/${props.eventoId}/assistente-orcamento?versao=${props.numero}`}>Ver detalhes</a>
+            </p>
+          )}
+        </div>
         <div class="orc-total-final">
           <label>
             Valor final da proposta

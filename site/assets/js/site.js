@@ -193,22 +193,20 @@
         ess: '89', pro: '197', pri: '447',
         essOld: 'R$ 127/mês', proOld: 'R$ 297/mês', priOld: 'R$ 597/mês',
         essNote: 'R$ 1.068 cobrados por ano', proNote: 'R$ 2.364 cobrados por ano', priNote: 'R$ 5.364 cobrados por ano',
+        essMes: 'R$ 89/mês no anual', proMes: 'R$ 197/mês no anual', priMes: 'R$ 447/mês no anual',
       },
       mensal: {
         ess: '127', pro: '297', pri: '597',
         essOld: '', proOld: '', priOld: '',
         essNote: 'Cobrança mensal', proNote: 'Cobrança mensal', priNote: 'Cobrança mensal',
+        essMes: 'R$ 127/mês', proMes: 'R$ 297/mês', priMes: 'R$ 597/mês',
       },
     };
     const aplicarCobranca = (ciclo) => {
       const p = PRECOS[ciclo];
       $$('[data-valor]', cobranca).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.valor === ciclo)));
+      // Cards e a linha "Mensalidade" da comparação usam data-bind="pr.<chave>"
       $$('[data-bind^="pr."]').forEach((el) => { el.textContent = p[el.dataset.bind.slice(3)] ?? ''; });
-      // Primeira linha da tabela de comparação: a mensalidade de cada plano.
-      const mensalidades = $$('#comparacao tbody tr:first-child td');
-      ['ess', 'pro', 'pri'].forEach((plano, i) => {
-        if (mensalidades[i + 1]) mensalidades[i + 1].textContent = 'R$ ' + p[plano] + '/mês';
-      });
       if (!semMovimento) {
         $$('[data-price]').forEach((el) => el.animate(
           [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }],

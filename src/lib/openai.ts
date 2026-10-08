@@ -17,6 +17,13 @@ interface PedidoJson {
   /** nome e JSON Schema da resposta (modo strict) */
   nomeSchema: string;
   schema: Record<string, unknown>;
+  /** Tempo máximo de espera (padrão 45 s; análises longas usam mais) */
+  timeoutMs?: number;
+}
+
+/** Modelo de texto usado nas chamadas (OPENAI_MODEL ou o padrão). */
+export function modeloTexto(): string {
+  return env('OPENAI_MODEL') || 'gpt-4.1-mini';
 }
 
 interface PedidoImagem {
@@ -73,7 +80,7 @@ export async function openAiJson<T>(pedido: PedidoJson): Promise<T> {
       method: 'POST',
       headers: { Authorization: `Bearer ${chave}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: env('OPENAI_MODEL') || 'gpt-4.1-mini',
+        model: modeloTexto(),
         messages: [
           { role: 'system', content: pedido.sistema },
           { role: 'user', content: conteudo },
@@ -83,7 +90,7 @@ export async function openAiJson<T>(pedido: PedidoJson): Promise<T> {
           json_schema: { name: pedido.nomeSchema, strict: true, schema: pedido.schema },
         },
       }),
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(pedido.timeoutMs ?? 45_000),
     });
   } catch (err) {
     console.error('[openai] falha de rede', err);
@@ -96,7 +103,7 @@ export async function openAiJson<T>(pedido: PedidoJson): Promise<T> {
   }
   const corpo = (await res.json()) as { choices?: { message?: { content?: string; refusal?: string } }[] };
   const texto = corpo.choices?.[0]?.message?.content;
-  if (!texto) throw new UserError('A IA não conseguiu analisar a imagem.');
+  if (!texto) throw new UserError('A IA não conseguiu concluir a análise. Tente novamente.');
   try {
     return JSON.parse(texto) as T;
   } catch {
