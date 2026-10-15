@@ -2,6 +2,8 @@
 // As faixas de locação pertencem a um espaço próprio e alimentam o cálculo da locação no orçamento.
 import { z } from 'zod';
 import type { Db } from '../lib/db';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, optionalEmail, optionalInt, optionalMoney, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
@@ -113,6 +115,10 @@ export async function salvarEspaco(db: Db, tenantId: string, id: string | null, 
     input.nome, input.tipo, input.descricao, input.endereco, input.cidade, input.capacidade_min, input.capacidade_max,
     input.contato_nome, input.contato_telefone, input.contato_email, input.valor_referencia, input.observacoes, input.ativo,
   ];
+  if (input.ativo) {
+    const { rows: antes } = id ? await db.query<{ ativo: boolean }>('SELECT ativo FROM espacos WHERE id = $1', [id]) : { rows: [] as { ativo: boolean }[] };
+    if (!id || (antes[0] && !antes[0].ativo)) await exigirLimiteDb(db, 'espacos_qtd', CONTAGEM_SQL.espacos_qtd, 'espaços ativos');
+  }
   if (id) {
     const res = await db.query(
       `UPDATE espacos SET nome = $1, tipo = $2, descricao = $3, endereco = $4, cidade = $5, capacidade_min = $6,

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { parseMoney } from '../lib/money';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, optionalDate, optionalMoney, optionalText, optionalUuid, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
@@ -211,6 +213,10 @@ async function registrarMovimento(db: Db, user: SessionUser, itemId: string, d: 
 /** Cria ou edita o item. O saldo só muda por movimentação; na criação, a quantidade inicial vira uma entrada. */
 export async function salvarEstoqueItem(db: Db, user: SessionUser, id: string | null, input: EstoqueItemInput): Promise<string> {
   const valores = [input.nome, input.tipo, input.categoria ?? null, input.unidade, input.estoque_minimo, input.custo_unitario, input.local ?? null, input.observacoes ?? null, input.ativo, input.validade];
+  if (input.ativo) {
+    const { rows: antes } = id ? await db.query<{ ativo: boolean }>('SELECT ativo FROM estoque_itens WHERE id = $1', [id]) : { rows: [] as { ativo: boolean }[] };
+    if (!id || (antes[0] && !antes[0].ativo)) await exigirLimiteDb(db, 'estoque_itens', CONTAGEM_SQL.estoque_itens, 'itens em estoque');
+  }
   if (id) {
     const atual = await carregarEstoqueItem(db, id);
     if (atual.unidade !== input.unidade && Number(atual.quantidade) !== 0) {
@@ -389,9 +395,13 @@ export async function sincronizarItemCardapio(db: Db, tenantId: string, catalogo
     return;
   }
   if (ligado[0]) {
-    if (!ligado[0].ativo) await db.query('UPDATE estoque_itens SET ativo = true, updated_at = now() WHERE id = $1', [ligado[0].id]);
+    if (!ligado[0].ativo) {
+      await exigirLimiteDb(db, 'estoque_itens', CONTAGEM_SQL.estoque_itens, 'itens em estoque');
+      await db.query('UPDATE estoque_itens SET ativo = true, updated_at = now() WHERE id = $1', [ligado[0].id]);
+    }
     return;
   }
+  await exigirLimiteDb(db, 'estoque_itens', CONTAGEM_SQL.estoque_itens, 'itens em estoque');
   const { rows: item } = await db.query<{ nome: string; porcao_unidade: UnidadePorcao | null; custo_unitario: number | null }>(
     'SELECT nome, porcao_unidade, custo_unitario FROM catalogo_itens WHERE id = $1',
     [catalogoItemId]

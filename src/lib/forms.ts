@@ -70,6 +70,8 @@ export function fieldErrors(err: unknown): Record<string, string> {
 /** Traduz erros conhecidos do Postgres para mensagens de negócio. */
 export function userMessage(err: unknown, fallback = 'Ocorreu um erro ao processar a requisição.'): string {
   if (err instanceof UserError) return err.message;
+  // Erro de plano (lib/planos/gating.ts): a mensagem já é para o usuário (sem importar o módulo, que fala com o banco)
+  if ((err as { name?: string })?.name === 'ErroPlano') return (err as Error).message;
   if (err instanceof z.ZodError) return validationMessage(err);
   const code = (err as { code?: string })?.code;
   if (code === '23505') return duplicidade(err)?.mensagem ?? 'Já existe um registro com esses dados.';

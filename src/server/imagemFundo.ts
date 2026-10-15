@@ -5,6 +5,8 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { withTenant, type Db } from '../lib/db';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError } from '../lib/forms';
 import { openAiImagem } from '../lib/openai';
 import { removeFile, saveFile } from '../lib/storage';
@@ -84,6 +86,7 @@ export async function listarFundos(db: Db): Promise<FundoIa[]> {
 
 /** Registra o pedido; a geração em si começa com processarFundo depois do COMMIT. */
 export async function registrarFundo(db: Db, tenantId: string, usuarioId: string, pedido: PedidoImagemFundo): Promise<string> {
+  await exigirLimiteDb(db, 'ia_fundos_mes', CONTAGEM_SQL.ia_fundos_mes, 'fundos gerados por IA neste mês');
   await encerrarInterrompidas(db);
   const { rows: ativas } = await db.query<{ n: number }>(`SELECT count(*) AS n FROM template_fundos_ia WHERE status = 'gerando'`);
   if (ativas[0].n >= MAX_SIMULTANEAS) throw new UserError('Já há imagens sendo geradas. Aguarde terminarem.');

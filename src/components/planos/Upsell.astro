@@ -1,0 +1,251 @@
+---
+// Painel de upsell (fase 1 do Banket Busca): abre quando um recurso fora do plano é tocado — `?bloqueado=<recurso>`
+// (redirect do middleware), clique num item com cadeado (`[data-bloqueado]`) ou resposta 403 com
+// RECURSO_FORA_DO_PLANO / LIMITE_DO_PLANO em qualquer fetch. Conteúdo por recurso em lib/planos/recursos.ts
+// (BENEFICIOS). CTAs: teste grátis (gratuito com oferta, owner/admin), ver planos, falar com a equipe.
+// Registra os eventos do funil em POST /api/planos/upsell.
+import Icon from '../ui/Icon.astro';
+import { isAdmin } from '../../lib/auth';
+import { ofertaDeTrial } from '../../server/planos';
+
+const plano = Astro.locals.plano ?? null;
+const user = Astro.locals.user;
+const oferta = ofertaDeTrial(plano);
+const admin = isAdmin(user);
+const gratuito = plano?.gratuito === true;
+---
+
+<dialog
+  class="upsell"
+  aria-labelledby="upsell-titulo"
+  data-upsell
+  data-gratuito={gratuito ? '1' : '0'}
+  data-admin={admin ? '1' : '0'}
+  data-oferta={oferta}
+  data-plano={plano?.planoNome ?? ''}
+>
+  <form method="dialog" class="upsell-caixa">
+    <button type="submit" value="fechar" class="upsell-fechar" aria-label="Fechar"><Icon name="x" size={18} /></button>
+    <span class="upsell-tile"><Icon name="lock" size={20} /></span>
+    <p class="eyebrow upsell-eyebrow" data-upsell-eyebrow>Não incluído no seu plano</p>
+    <h2 id="upsell-titulo" class="upsell-titulo" data-upsell-titulo></h2>
+    <p class="upsell-texto" data-upsell-texto></p>
+    <p class="upsell-limite" data-upsell-limite hidden></p>
+    <div class="upsell-acoes">
+      <a href="/planos?teste=1" class="btn btn-primary btn-md" data-upsell-trial hidden>Iniciar teste grátis de 30 dias</a>
+      <a href="/planos" class="btn btn-outline btn-md" data-upsell-planos>Ver planos</a>
+      <button type="button" class="btn btn-text btn-md" data-upsell-recusar hidden>Não tenho interesse no momento</button>
+    </div>
+    <p class="upsell-rodape" data-upsell-rodape hidden>Só proprietários e administradores podem mudar o plano. Fale com o responsável pela conta.</p>
+  </form>
+</dialog>
+
+<script>
+  import { BENEFICIOS, rotuloRecurso } from '../../lib/planos/recursos';
+  import { toast } from '../../lib/ui';
+
+  const dialog = document.querySelector<HTMLDialogElement>('dialog[data-upsell]');
+  if (dialog) {
+    const q = <T extends HTMLElement>(sel: string) => dialog.querySelector<T>(sel)!;
+    const titulo = q('[data-upsell-titulo]');
+    const texto = q('[data-upsell-texto]');
+    const limite = q('[data-upsell-limite]');
+    const eyebrow = q('[data-upsell-eyebrow]');
+    const trial = q<HTMLAnchorElement>('[data-upsell-trial]');
+    const recusar = q<HTMLButtonElement>('[data-upsell-recusar]');
+    const rodape = q('[data-upsell-rodape]');
+    const gratuito = dialog.dataset.gratuito === '1';
+    const admin = dialog.dataset.admin === '1';
+    let oferta = dialog.dataset.oferta;
+    let recursoAtual = '';
+
+    const registrar = (tipo: string, recurso: string | null, dados: Record<string, unknown> = {}) => {
+      fetch('/api/planos/upsell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, recurso, dados }),
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+
+    function abrir(recurso: string, detalhe?: { limite?: number; uso?: number; mensagem?: string }) {
+      recursoAtual = recurso;
+      const b = BENEFICIOS[recurso];
+      const rotulo = rotuloRecurso(recurso);
+      const ehLimite = detalhe?.limite != null;
+      eyebrow.textContent = ehLimite ? 'Limite do plano' : 'Não incluído no seu plano';
+      titulo.textContent = b?.titulo ?? rotulo;
+      texto.textContent = b?.texto ?? `${rotulo} está disponível nos planos pagos do Banket.`;
+      limite.hidden = !ehLimite;
+      if (ehLimite) limite.textContent = detalhe?.mensagem ?? `Seu plano permite até ${detalhe?.limite} (você usa ${detalhe?.uso}).`;
+      const podeTestar = gratuito && admin && oferta === 'disponivel';
+      trial.hidden = !podeTestar;
+      recusar.hidden = !podeTestar;
+      rodape.hidden = admin;
+      if (!dialog!.open) dialog!.showModal();
+      registrar('cadeado_visto', recurso, ehLimite ? { limite: detalhe?.limite, uso: detalhe?.uso } : {});
+    }
+
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close('fechar');
+      const alvo = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.btn');
+      if (alvo) registrar('cta_clicado', recursoAtual, { destino: alvo.getAttribute('href') });
+    });
+
+    recusar.addEventListener('click', async () => {
+      recusar.disabled = true;
+      try {
+        const r = await fetch('/api/planos/trial', { method: 'DELETE' });
+        if (!r.ok) throw new Error();
+        oferta = 'recusada';
+        dialog.close('fechar');
+        toast('Tudo bem. A oferta de teste fica guardada em Planos.', 'info');
+      } catch {
+        toast('Não foi possível registrar a resposta.', 'error');
+      } finally {
+        recusar.disabled = false;
+      }
+    });
+
+    // 1) ?bloqueado=<recurso> (redirect do middleware): abre e limpa a URL
+    const url = new URL(window.location.href);
+    const bloqueado = url.searchParams.get('bloqueado');
+    if (bloqueado) {
+      url.searchParams.delete('bloqueado');
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+      abrir(bloqueado);
+    }
+
+    // 2) Clique num item com cadeado (menu, abas, cards): abre sem navegar
+    document.addEventListener('click', (e) => {
+      const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-bloqueado]');
+      if (!alvo || e.defaultPrevented) return;
+      e.preventDefault();
+      abrir(alvo.dataset.bloqueado!);
+    });
+
+    // 3) Qualquer fetch que receba 403 de plano abre o painel (a resposta segue intacta para quem chamou)
+    const original = window.fetch.bind(window);
+    window.fetch = async (entrada, init) => {
+      const resposta = await original(entrada, init);
+      if (resposta.status === 403 && (resposta.headers.get('content-type') ?? '').includes('application/json')) {
+        resposta
+          .clone()
+          .json()
+          .then((corpo) => {
+            if (corpo?.code === 'RECURSO_FORA_DO_PLANO') abrir(corpo.recurso);
+            else if (corpo?.code === 'LIMITE_DO_PLANO') abrir(corpo.recurso, { limite: corpo.limite, uso: corpo.uso, mensagem: corpo.error });
+          })
+          .catch(() => undefined);
+      }
+      return resposta;
+    };
+
+    window.addEventListener('banket:bloqueado', ((e: CustomEvent<{ recurso: string }>) => abrir(e.detail.recurso)) as EventListener);
+  }
+</script>
+
+<style>
+  .upsell {
+    width: min(480px, calc(100vw - 32px));
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xl);
+    color: var(--text-body);
+  }
+
+  .upsell::backdrop {
+    background: var(--bg-overlay);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .upsell-caixa {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-6);
+  }
+
+  .upsell-fechar {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .upsell-fechar:hover {
+    background: var(--action-ghost-hover);
+    color: var(--text-strong);
+  }
+
+  .upsell-tile {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
+    margin-bottom: var(--space-2);
+  }
+
+  .upsell-eyebrow {
+    margin: 0;
+    color: var(--terracotta-700);
+  }
+
+  .upsell-titulo {
+    margin: 0;
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
+    line-height: 1.35;
+    letter-spacing: var(--ls-snug);
+    color: var(--text-strong);
+  }
+
+  .upsell-texto,
+  .upsell-limite {
+    margin: 0;
+    font-size: var(--fs-14);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .upsell-limite {
+    color: var(--text-body);
+  }
+
+  .upsell-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+  }
+
+  .upsell-rodape {
+    margin: var(--space-2) 0 0;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .upsell-acoes {
+      flex-direction: column;
+    }
+  }
+</style>

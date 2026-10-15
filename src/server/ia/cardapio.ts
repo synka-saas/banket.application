@@ -11,7 +11,7 @@ import { NOMES_RESTRICOES, formatarQuantidade, novaChave, type ConteudoOrcamento
 import { carregarEvento } from '../eventos';
 import { carregarVersao, salvarVersao } from '../orcamento';
 import { registrarTimeline } from '../timeline';
-import { AVISO_DADOS, conferirLimiteIa, dataBr, guardarAnalise, trecho } from './comum';
+import { AVISO_DADOS, conferirCotaIa, conferirLimiteIa, dataBr, guardarAnalise, trecho } from './comum';
 
 // ---------------------------------------------------------------------------
 // Alertas de estoque (determinísticos): validade próxima e itens parados
@@ -285,6 +285,7 @@ export function semIds(texto: string, nomes: Map<string, string>): string {
 
 export async function analisarCardapio(db: Db, user: SessionUser, eventoId: string, numero: number): Promise<string> {
   conferirLimiteIa(user.tenantId);
+  await conferirCotaIa(db, user.tenantId);
   const { contexto, versao, margem, alertas, nomes } = await montarContexto(db, eventoId, numero);
   const c = versao.conteudo;
   if (!c.cardapios.some((x) => x.secoes.some((s) => s.itens.some((i) => i.selecionado)))) {

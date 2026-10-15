@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/styles.css">
+  <script src="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}</style>
+</helmet>
+<div data-screen-label="Onboarding do buffet" style="container-type:inline-size;min-height:100%;display:flex;flex-direction:column;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-body)">
+  <header style="display:flex;align-items:center;gap:16px;height:64px;padding:0 clamp(16px, 2.2cqw, 32px);background:var(--bg-surface);border-bottom:1px solid var(--border-default)">
+    <div style="display:flex;align-items:center;gap:8px">
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" height="{{ 24 }}" hint-size="91px,24px"></x-import>
+      <span style="display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;background:var(--terracotta-500);color:#fff;font-size:12px;font-weight:500;line-height:1;margin-top:3px">busca</span>
+    </div>
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}"><span style="height:20px;width:1px;background:var(--border-default)"></span><span style="font-size:14px;color:var(--text-secondary)">Cadastro do buffet</span></sc-if>
+    <div style="flex:1"></div>
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;font-weight:500;color:var(--text-secondary);font-variant-numeric:tabular-nums">{{ stepOf }}</span></sc-if>
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="ghost" size="sm" icon="logout" hint-size="110px,32px">Salvar e sair</x-import></sc-if>
+  </header>
+  <x-import component-from-global-scope="BanketDesignSystem_f9651f.ProgressBar" value="{{ step }}" max="{{ 8 }}" size="sm" color="var(--terracotta-500)" style="border-radius:0" hint-size="100%,6px"></x-import>
+  <div style="flex:1;display:flex;min-height:0">
+    <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+      <aside style="flex:0 0 288px;display:flex;flex-direction:column;gap:4px;padding:28px 16px;background:var(--bg-sidebar);border-right:1px solid #F1E2D9">
+        <span style="padding:0 12px 12px;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--clay-500)">{{ stepOf }}</span>
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="8">
+          <button onClick="{{ s.go }}" style="display:flex;align-items:center;gap:12px;padding:8px 12px;border:0;border-radius:10px;background:transparent;text-align:left;cursor:pointer" style-hover="background:rgba(227,83,54,.06)">
+            <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--terracotta-600);color:#fff"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 16 }}" stroke="{{ 2 }}" hint-size="16px,16px"></x-import></span></sc-if>
+            <sc-if value="{{ s.current }}" hint-placeholder-val="{{ false }}"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--bg-surface);box-shadow:inset 0 0 0 2px var(--terracotta-500);color:var(--terracotta-700);font-size:13px;font-weight:500">{{ s.n }}</span></sc-if>
+            <sc-if value="{{ s.todo }}" hint-placeholder-val="{{ true }}"><span style="flex:none;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--clay-300);color:var(--text-muted);font-size:13px">{{ s.n }}</span></sc-if>
+            <span style="display:flex;flex-direction:column;line-height:1.3"><span style="font-size:14px;font-weight:500;color:var(--text-heading)">{{ s.title }}</span><span style="font-size:12px;color:var(--text-muted)">{{ s.sub }}</span></span>
+          </button>
+        </sc-for>
+      </aside>
+    </sc-if>
+    <main style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="flex:1;width:100%;max-width:800px;margin:0 auto;padding:clamp(20px, 3cqw, 44px) clamp(16px, 3cqw, 40px) 24px;display:flex;flex-direction:column;gap:24px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta-700)">{{ eyebrow }}</span>
+          <h1 style="font-size:clamp(22px, 2cqw, 28px);letter-spacing:-.02em;color:var(--text-strong)">{{ cur.h }}</h1>
+          <p style="font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:60ch">{{ cur.p }}</p>
+        </div>
+        <sc-if value="{{ s1 }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:18px;padding:clamp(18px, 2cqw, 28px);background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Logotipo" hint-size="100%,120px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.FileField" emptyLabel="Enviar logotipo" emptyHint="PNG ou JPG quadrado, mínimo 400 × 400 px" hint-size="100%,100px"></x-import></x-import>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(220px, calc(50% - 10px)), 1fr));gap:16px 20px">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Nome do buffet" required="{{ true }}" hint="Como aparece na busca" hint-size="100%,84px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="Buffet Sabor de Festa" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="CNPJ" required="{{ true }}" hint="Não aparece no perfil" hint-size="100%,84px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="28.413.906/0001-52" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="WhatsApp para pedidos" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" prefix="+55" defaultValue="(11) 9 4512-3380" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="E-mail comercial" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="mail" defaultValue="contato@sabordefesta.com.br" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Instagram ou site" optional="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="link" defaultValue="@buffetsabordefesta" hint-size="100%,40px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Telefone fixo" optional="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="phone" placeholder="(11) 0000-0000" hint-size="100%,40px"></x-import></x-import>
+            </div>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Descrição" required="{{ true }}" hint="Até 600 caracteres. Conte o que torna o seu buffet especial." hint-size="100%,140px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Textarea" defaultValue="Há 17 anos fazendo festas infantis e familiares no ABC. Salão climatizado com brinquedoteca, área kids monitorada e cozinha própria — tudo é preparado no dia." hint-size="100%,88px"></x-import></x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <span style="font-size:15px;font-weight:500;color:var(--text-strong)">Tipos de evento atendidos</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(max(150px, calc(33.3% - 10px)), 1fr));gap:10px">
+              <sc-for list="{{ evTiles }}" as="t" hint-placeholder-count="9">
+                <button onClick="{{ t.toggle }}" style="position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;text-align:left;cursor:pointer" style-hover="border-color:var(--border-strong)">
+                  <span style="display:inline-flex;color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="{{ t.icon }}" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                  <span style="flex:1;font-size:14px;font-weight:500;color:var(--text-heading)">{{ t.label }}</span>
+                  <sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span><span style="position:absolute;inset:-1px;border:1.5px solid var(--terracotta-500);border-radius:10px;background:rgba(227,83,54,.05);pointer-events:none"></span></sc-if>
+                </button>
+              </sc-for>
+            </div>
+            <span style="margin-top:12px;font-size:15px;font-weight:500;color:var(--text-strong)">Tipos de serviço</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(max(150px, calc(50% - 10px)), 1fr));gap:10px">
+              <sc-for list="{{ svTiles }}" as="t" hint-placeholder-count="8">
+                <button onClick="{{ t.toggle }}" style="position:relative;display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:10px;text-align:left;cursor:pointer" style-hover="border-color:var(--border-strong)">
+                  <span style="flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--terracotta-50);color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="{{ t.icon }}" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                  <span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:500;color:var(--text-heading)">{{ t.label }}</span><span style="font-size:12px;line-height:1.4;color:var(--text-muted)">{{ t.desc }}</span></span>
+                  <sc-if value="{{ t.on }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span><span style="position:absolute;inset:-1px;border:1.5px solid var(--terracotta-500);border-radius:10px;background:rgba(227,83,54,.05);pointer-events:none"></span></sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Card" icon="building" title="Espaço próprio" description="Os clientes vão até o seu salão." hint-size="100%,220px">
+              <div style="display:flex;flex-direction:column;gap:16px">
+                <x-import component-from-global-scope="BanketDesignSystem_f9651f.Switch" label="Tenho espaço próprio para eventos" defaultChecked="{{ true }}" hint-size="260px,20px"></x-import>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(160px, calc(33% - 14px)), 1fr));gap:14px 20px">
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="CEP" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="09060-210" hint-size="100%,40px"></x-import></x-import>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Endereço" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="Rua das Figueiras, 1.240" hint-size="100%,40px"></x-import></x-import>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Bairro e cidade" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="Vila Assunção, Santo André" hint-size="100%,40px"></x-import></x-import>
+                </div>
+              </div>
+            </x-import>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Card" icon="home" title="Atendimento em domicílio" description="Sua equipe vai até a casa, o salão de condomínio ou a empresa do cliente." hint-size="100%,260px">
+              <div style="display:flex;flex-direction:column;gap:18px">
+                <x-import component-from-global-scope="BanketDesignSystem_f9651f.Switch" label="Atendo em domicílio" defaultChecked="{{ true }}" hint-size="200px,20px"></x-import>
+                <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Raio de atendimento a partir do endereço" hint="Pedidos fora do raio não chegam até você." hint-size="100%,90px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.SegmentedControl" options="{{ raios }}" value="{{ raio }}" onChange="{{ setRaio }}" variant="accent" block="{{ true }}" hint-size="100%,38px"></x-import></x-import>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <span style="font-size:13px;font-weight:500;color:var(--text-heading)">Cidades atendidas</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    <sc-for list="{{ cities }}" as="c" hint-placeholder-count="5">
+                      <span style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 8px 0 12px;border-radius:999px;background:var(--bg-subtle);font-size:13px;font-weight:500;color:var(--text-heading)">{{ c }}<x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="x" size="{{ 14 }}" hint-size="14px,14px"></x-import></span>
+                    </sc-for>
+                  </div>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="plus" placeholder="Adicionar cidade ou bairro" hint-size="100%,40px"></x-import>
+                </div>
+              </div>
+            </x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:20px;padding:clamp(18px, 2cqw, 28px);background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(200px, calc(50% - 10px)), 1fr));gap:16px 20px">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Mínimo de convidados" required="{{ true }}" hint="Abaixo disso, o pedido não chega até você." hint-size="100%,84px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" size="lg" defaultValue="40" suffix="convidados" hint-size="100%,48px"></x-import></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Máximo de convidados" required="{{ true }}" hint="Considere o espaço e a sua equipe." hint-size="100%,84px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" size="lg" defaultValue="250" suffix="convidados" hint-size="100%,48px"></x-import></x-import>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:16px 18px;background:var(--clay-25);border:1px solid var(--border-subtle);border-radius:10px">
+              <div style="position:relative;height:10px;border-radius:10px;background:var(--clay-150)"><div style="position:absolute;left:8%;width:42%;top:0;bottom:0;border-radius:10px;background:var(--terracotta-500)"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500+</span></div>
+              <p style="font-size:14px;color:var(--text-body)">Seu buffet aparece em buscas de <strong style="font-weight:500;color:var(--text-strong)">40 a 250 convidados</strong>.</p>
+            </div>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Switch" label="Aceito eventos menores com valor mínimo de contrato" hint-size="360px,20px"></x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:14px 16px;background:var(--bg-accent-subtle);border:1px solid var(--terracotta-100);border-radius:12px">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" variant="mark" height="{{ 28 }}" hint-size="28px,28px"></x-import>
+              <span style="flex:1;min-width:200px;font-size:14px;color:var(--text-body)"><strong style="font-weight:500;color:var(--text-strong)">Já usa o Banket?</strong> Traga seus cardápios prontos, com preços e opções.</span>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" size="sm" icon="file-import" hint-size="160px,32px">Importar do Banket</x-import>
+            </div>
+            <div style="display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px;overflow:hidden">
+              <sc-for list="{{ pkgs }}" as="p" hint-placeholder-count="2">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:14px 16px;border-bottom:1px solid var(--border-subtle)">
+                  <span style="flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--terracotta-50);color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="tools-kitchen-2" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                  <span style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:500;color:var(--text-strong)">{{ p.name }}</span><span style="font-size:12px;color:var(--text-muted)">{{ p.meta }}</span></span>
+                  <div style="display:flex;gap:4px"><sc-for list="{{ p.tags }}" as="t" hint-placeholder-count="1"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="sage" size="sm" hint-size="80px,20px">{{ t }}</x-import></sc-for></div>
+                  <span style="font-size:15px;font-weight:500;color:var(--text-strong);font-variant-numeric:tabular-nums">{{ p.price }}</span>
+                  <div style="display:flex"><x-import component-from-global-scope="BanketDesignSystem_f9651f.IconButton" icon="pencil" label="Editar" size="sm" hint-size="32px,32px"></x-import><x-import component-from-global-scope="BanketDesignSystem_f9651f.IconButton" icon="trash" label="Excluir" size="sm" hint-size="32px,32px"></x-import></div>
+                </div>
+              </sc-for>
+              <div style="display:flex;flex-direction:column;gap:16px;padding:18px 16px 18px;background:var(--clay-25)">
+                <span style="font-size:14px;font-weight:500;color:var(--text-strong)">Novo pacote</span>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(160px, calc(33% - 14px)), 1fr));gap:14px 16px">
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Nome do pacote" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="Adulto Finger Food" hint-size="100%,40px"></x-import></x-import>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Preço por pessoa" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" prefix="R$" defaultValue="115,00" hint-size="100%,40px"></x-import></x-import>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Mínimo" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" defaultValue="50" suffix="convidados" hint-size="100%,40px"></x-import></x-import>
+                </div>
+                <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="O que inclui" hint-size="100%,120px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Textarea" defaultValue="Volantes quentes e frios, mini hambúrguer, risoto na cumbuca, mesa de doces e bebidas não alcoólicas. 4 horas de serviço." hint-size="100%,88px"></x-import></x-import>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <span style="font-size:13px;font-weight:500;color:var(--text-heading)">Restrições alimentares atendidas</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:10px 20px"><sc-for list="{{ diets }}" as="d" hint-placeholder-count="5"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Checkbox" label="{{ d.l }}" defaultChecked="{{ d.on }}" hint-size="110px,20px"></x-import></sc-for></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:8px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="ghost" hint-size="90px,40px">Cancelar</x-import><x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="soft" icon="check" hint-size="140px,40px">Salvar pacote</x-import></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.FileField" emptyLabel="Arraste as fotos aqui ou clique para enviar" emptyHint="JPG ou PNG até 10 MB cada · 6 fotos enviadas" hint-size="100%,110px"></x-import>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(max(150px, calc(33.3% - 10px)), 1fr));gap:12px">
+              <sc-for list="{{ photos }}" as="f" hint-placeholder-count="6">
+                <div style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:var(--clay-150);color:var(--clay-600)">
+                  <image-slot id="onb-{{ ab }}-{{ f.id }}" shape="rect" placeholder="{{ f.label }}" style="position:absolute;inset:0;width:100%;height:100%"></image-slot>
+                  <sc-if value="{{ f.cover }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--terracotta-600);color:#fff;font-size:11px;font-weight:500;pointer-events:none">Capa</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+            <p style="font-size:13px;color:var(--text-muted)">Arraste as fotos para mudar a ordem. Dica: comece pelo salão montado, depois a comida de perto.</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s7 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+                <div style="display:flex;align-items:center;gap:4px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.IconButton" icon="chevron-left" label="Mês anterior" size="sm" hint-size="32px,32px"></x-import><span style="font-size:16px;font-weight:500;color:var(--text-strong);min-width:150px;text-align:center">Novembro de 2026</span><x-import component-from-global-scope="BanketDesignSystem_f9651f.IconButton" icon="chevron-right" label="Próximo mês" size="sm" hint-size="32px,32px"></x-import></div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-secondary)">
+                  <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--clay-800)"></span>Bloqueada</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:var(--sage-500)"></span>Evento fechado no Banket</span>
+                </div>
+              </div>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.CalendarMonth" year="{{ 2026 }}" month="{{ 10 }}" today="2026-11-03" events="{{ calEvents }}" maxPerDay="{{ 1 }}" onDayClick="{{ toggleDay }}" hint-size="100%,560px"></x-import>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Switch" label="Sincronizar com a agenda do Banket" defaultChecked="{{ true }}" hint-size="280px,20px"></x-import>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="calendar" hint-size="160px,40px">Bloquear período</x-import>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ s8 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <span style="font-size:13px;font-weight:500;color:var(--text-heading)">Como o seu buffet aparece na busca</span>
+              <dc-import name="BuffetCard" slot="onb-{{ ab }}" selectable="{{ false }}" hint-size="100%,240px"></dc-import>
+            </div>
+            <div style="display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px;overflow:hidden">
+              <sc-for list="{{ review }}" as="rv" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-subtle)">
+                  <span style="display:inline-flex;color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35"><span style="font-size:14px;font-weight:500;color:var(--text-heading)">{{ rv.t }}</span><span style="font-size:12px;color:var(--text-muted)">{{ rv.d }}</span></span>
+                  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="text" tone="accent" size="sm" onClick="{{ rv.go }}" hint-size="44px,24px">Editar</x-import>
+                </div>
+              </sc-for>
+            </div>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Checkbox" defaultChecked="{{ true }}" label="Li e aceito os termos de uso para buffets" hint-size="300px,20px"></x-import>
+          </div>
+        </sc-if>
+      </div>
+      <div style="position:sticky;bottom:0;z-index:10;padding:12px clamp(12px, 3cqw, 40px) 16px">
+        <div style="max-width:720px;margin:0 auto">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.ActionBar" sticky="{{ false }}" status="{{ saveStatus }}" hint-size="100%,64px">
+            <sc-if value="{{ canBack }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" icon="arrow-left" onClick="{{ back }}" hint-size="96px,40px">Voltar</x-import></sc-if>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="primary" iconRight="{{ nextIcon }}" onClick="{{ next }}" hint-size="130px,40px">{{ nextLabel }}</x-import>
+          </x-import>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;mobile&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'mobile'&quot;},&quot;step&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1,&quot;min&quot;:1,&quot;max&quot;:8,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  state = { step: Math.min(8, Math.max(1, Number(this.props.step) || 1)), ev: { "Aniversário infantil": 1, "Aniversário adulto": 1, "15 anos": 1, "Confraternização": 1 }, sv: { "Buffet completo": 1, "Buffet em domicílio": 1, "Doces e bolos": 1 }, raio: "25 km" };
+  componentDidMount() {
+    const tick = () => {
+      const N = window.BanketDesignSystem_f9651f;
+      if (!N || !N.ICON_PATHS) return setTimeout(tick, 40);
+      Object.assign(N.ICON_PATHS, {
+        flame: '<path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.621 -2.333 5.588c0 3.704 3.134 6.706 7 6.706s7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235"/>',
+        truck: '<path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 17h-2v-11a1 1 0 0 1 1 -1h9v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5"/>',
+        coffee: '<path d="M3 14c.83 .642 2.077 1.017 3.5 1c1.423 .017 2.67 -.358 3.5 -1c.83 -.642 2.077 -1.017 3.5 -1c1.423 -.017 2.67 .358 3.5 1"/><path d="M8 3a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2"/><path d="M12 3a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2"/><path d="M3 10h14v5a6 6 0 0 1 -6 6h-2a6 6 0 0 1 -6 -6v-5z"/><path d="M16.746 16.726a3 3 0 1 0 .252 -5.555"/>'
+      });
+      this.setState({ icons: true });
+    };
+    tick();
+  }
+  renderVals() {
+    const dev = this.props.device || "desktop", m = dev === "mobile";
+    const st = this.state.step, ok = !!this.state.icons;
+    const S = [
+      ["Dados da empresa", "Nome, CNPJ, logo e contato", "Comece pelos dados do buffet", "Essas informações identificam o seu buffet para os clientes e para o Banket Busca."],
+      ["Eventos e serviços", "O que você faz", "Que eventos e serviços você oferece?", "Usamos isso para mostrar o seu buffet só nas buscas certas. Marque quantos quiser."],
+      ["Região de atendimento", "Onde você atende", "Onde você atende?", "Informe se tem espaço próprio, se vai até o cliente e até que distância."],
+      ["Capacidade", "Mínimo e máximo", "Quantos convidados você atende?", "Pedidos fora dessa faixa não chegam até você — assim você só recebe o que consegue atender."],
+      ["Cardápios e pacotes", "Preço por pessoa", "Monte seus cardápios e pacotes", "O menor preço por pessoa aparece no card da busca como “a partir de”."],
+      ["Fotos e galeria", "Mínimo de 5 fotos", "Mostre o seu buffet", "Perfis com 8 fotos ou mais recebem mais pedidos. A primeira foto é a capa do card."],
+      ["Disponibilidade", "Datas bloqueadas", "Quais datas já estão ocupadas?", "Clique nos dias para bloquear. Datas bloqueadas tiram o selo “Disponível na data” das buscas."],
+      ["Revisão e publicação", "Confira e publique", "Tudo pronto para publicar", "Confira como o seu perfil vai aparecer. Você pode editar tudo depois, no painel."]
+    ];
+    const tog = (k, key) => () => this.setState(s => ({ [k]: { ...s[k], [key]: !s[k][key] } }));
+    const evI = { "Aniversário infantil": "cake", "Aniversário adulto": "glass-full", "Casamento": "heart", "15 anos": "sparkles", "Formatura": "star", "Corporativo": "briefcase", "Coffee break": ok ? "coffee" : "clock", "Confraternização": "users-group", "Outro": "dots" };
+    const sv = [["Buffet completo", "tools-kitchen-2", "Cardápio, equipe e estrutura"], ["Buffet em domicílio", "home", "Vai até o cliente"], ["Finger food", "chef-hat", "Volantes e porções"], ["Churrasco", ok ? "flame" : "soup", "Churrasqueiro e carnes"], ["Coffee break", ok ? "coffee" : "clock", "Reuniões e treinamentos"], ["Food truck", ok ? "truck" : "map-pin", "Lanches sobre rodas"], ["Doces e bolos", "cake", "Bolo e mesa de doces"], ["Bebidas e bartender", "glass-full", "Drinks, chopp e bar"]];
+    const r = {
+      device: dev, ab: this.props.ab || dev, isMobile: m, isDesktop: !m, step: st,
+      stepOf: "Etapa " + st + " de 8",
+      eyebrow: "Etapa " + st + " de 8 · " + S[st - 1][0],
+      cur: { h: S[st - 1][2], p: S[st - 1][3] },
+      steps: S.map((s, i) => ({ n: String(i + 1), title: s[0], sub: s[1], done: i + 1 < st, current: i + 1 === st, todo: i + 1 > st, go: () => this.setState({ step: i + 1 }) })),
+      evTiles: Object.keys(evI).map(k => ({ label: k, icon: evI[k], on: !!this.state.ev[k], toggle: tog("ev", k) })),
+      svTiles: sv.map(([k, icon, desc]) => ({ label: k, icon, desc, on: !!this.state.sv[k], toggle: tog("sv", k) })),
+      raios: ["10 km", "25 km", "50 km", "100 km"], raio: this.state.raio, setRaio: (v) => this.setState({ raio: v }),
+      cities: ["Santo André", "São Bernardo do Campo", "São Caetano do Sul", "Mauá", "Diadema"],
+      saveStatus: m ? "Salvo" : "Rascunho salvo automaticamente",
+      pkgs: [
+        { name: "Festa Kids Clássica", meta: "Mínimo de 40 convidados · 4h30", price: "R$ 89,00", tags: ["Vegetariano"] },
+        { name: "Festa Kids Premium", meta: "Mínimo de 60 convidados · 4h30", price: "R$ 129,00", tags: ["Sem glúten"] }
+      ],
+      diets: [{ l: "Vegetariano", on: true }, { l: "Vegano", on: true }, { l: "Sem glúten", on: false }, { l: "Sem lactose", on: false }, { l: "Kosher", on: false }],
+      photos: [{ id: "f1", label: "Salão montado", cover: true }, { id: "f2", label: "Mesa de doces" }, { id: "f3", label: "Salgados" }, { id: "f4", label: "Brinquedoteca" }, { id: "f5", label: "Bolo" }, { id: "f6", label: "Área externa" }],
+      calEvents: [
+        ...(this.state.blocked || ["2026-11-02", "2026-11-15", "2026-11-20"]).map(d => ({ date: d, title: "Bloqueada", color: "var(--clay-800)" })),
+        { date: "2026-11-07", title: "Festa · 120", stage: "won" }, { date: "2026-11-08", title: "Festa · 80", stage: "won" },
+        { date: "2026-11-14", title: "Festa · 60", stage: "won" }, { date: "2026-11-21", title: "15 anos", stage: "won" },
+        { date: "2026-11-28", title: "Festa · 90", stage: "won" }, { date: "2026-11-29", title: "Batizado", stage: "won" }
+      ],
+      toggleDay: (d) => this.setState(s => { const b = s.blocked || ["2026-11-02", "2026-11-15", "2026-11-20"]; return { blocked: b.includes(d) ? b.filter(x => x !== d) : [...b, d] }; }),
+      review: S.slice(0, 7).map((s, i) => ({ t: s[0], d: ["Buffet Sabor de Festa · CNPJ 28.413.906/0001-52", "4 tipos de evento · 3 serviços", "Espaço próprio + domicílio até 25 km", "40 a 250 convidados", "3 pacotes · a partir de R$ 89,00", "6 fotos · capa definida", "3 datas bloqueadas · agenda sincronizada"][i], go: () => this.setState({ step: i + 1 }) })),
+      canBack: st > 1,
+      back: () => this.setState(s => ({ step: Math.max(1, s.step - 1) })),
+      next: () => this.setState(s => ({ step: Math.min(8, s.step + 1) })),
+      nextLabel: st === 8 ? "Publicar perfil" : "Continuar",
+      nextIcon: st === 8 ? "send" : "arrow-right"
+    };
+    for (let i = 1; i <= 8; i++) r["s" + i] = st === i;
+    return r;
+  }
+}
+</script>
+</body>
+</html>

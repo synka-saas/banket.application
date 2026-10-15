@@ -1,0 +1,473 @@
+// Planos da empresa: catálogo, transições (único dono de `tenants.plano_id`), teste grátis, rebaixamento para o
+// plano Busca, excedentes e avisos. Fase 1 do Banket Busca (PLANO.md §5). Quem muda o plano: cadastro (`cadastroInicial`),
+// o usuário (`iniciarTrial`/`recusarTrial`), o Manager Hwesta (`aplicarDoManager`) e o agendador (`varrerTrials`).
+// As funções recebem `db` (withTenant da própria empresa ou withSystem no agendador/HCP): as linhas tocadas são
+// sempre da empresa (tenants, tenant_usuarios, tenant_plano_historico, plano_avisos).
+import { withSystem, type Db } from '../lib/db';
+import { isAdmin, type SessionUser } from '../lib/auth';
+import { UserError } from '../lib/forms';
+import { invalidateMembership, invalidateTenant } from '../lib/membership';
+import { appUrl, sendMail } from '../lib/mail';
+import { ErroPlano, entitlements, invalidar, type Entitlements } from '../lib/planos/gating';
+import { escolherExcedentes } from '../lib/planos/excedentes';
+import { avisoDoDia, deveRebaixar, emSaoPaulo, fimDoTrial, recusaVigente, type AvisoTrial } from '../lib/planos/trial';
+import type { HwestaEntitlements } from '../lib/hwesta/types';
+import { emailLayout } from './emails';
+
+export interface Plano {
+  id: string;
+  slug: string;
+  nome: string;
+  descricao: string | null;
+  gratuito: boolean;
+  publico: boolean;
+  ativo: boolean;
+  ordem: number;
+  preco_mensal: number | null;
+  preco_anual: number | null;
+  trial_dias: number;
+  recursos: Record<string, boolean | number>;
+}
+
+export type MotivoPlano = 'cadastro' | 'migracao' | 'trial_iniciado' | 'trial_encerrado' | 'upgrade' | 'downgrade' | 'hwesta' | 'backoffice' | 'assinatura' | 'cancelamento';
+export type OrigemPlano = 'app' | 'hwesta' | 'agendador' | 'migracao' | 'stripe';
+
+const COLUNAS = 'id, slug, nome, descricao, gratuito, publico, ativo, ordem, preco_mensal, preco_anual, trial_dias, recursos';
+
+/** Planos ativos (todos ou só os públicos), na ordem do catálogo. */
+export async function listarPlanos(db: Db, somentePublicos = true): Promise<Plano[]> {
+  const { rows } = await db.query<Plano>(
+    `SELECT ${COLUNAS} FROM planos WHERE ativo AND ($1 = false OR publico OR gratuito) ORDER BY ordem, nome`,
+    [somentePublicos]
+  );
+  return rows;
+}
+
+export async function planoPorSlug(db: Db, slug: string): Promise<Plano | null> {
+  const { rows } = await db.query<Plano>(`SELECT ${COLUNAS} FROM planos WHERE slug = $1`, [slug]);
+  return rows[0] ?? null;
+}
+
+export async function planoPorId(db: Db, id: string): Promise<Plano | null> {
+  const { rows } = await db.query<Plano>(`SELECT ${COLUNAS} FROM planos WHERE id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
+export async function planoGratuito(db: Db): Promise<Plano> {
+  const { rows } = await db.query<Plano>(`SELECT ${COLUNAS} FROM planos WHERE gratuito AND ativo ORDER BY ordem LIMIT 1`);
+  if (!rows[0]) throw new Error('Plano gratuito não encontrado (migration 031).');
+  return rows[0];
+}
+
+export interface HistoricoPlano {
+  id: string;
+  de: string | null;
+  para: string | null;
+  motivo: MotivoPlano;
+  origem: OrigemPlano;
+  usuario_nome: string | null;
+  dados: Record<string, unknown>;
+  created_at: Date;
+}
+
+export async function historicoPlano(db: Db, tenantId: string): Promise<HistoricoPlano[]> {
+  const { rows } = await db.query<HistoricoPlano>(
+    `SELECT h.id, pd.nome AS de, pp.nome AS para, h.motivo, h.origem, u.nome AS usuario_nome, h.dados, h.created_at
+       FROM tenant_plano_historico h
+       LEFT JOIN planos pd ON pd.id = h.de_plano_id
+       LEFT JOIN planos pp ON pp.id = h.para_plano_id
+       LEFT JOIN usuarios u ON u.id = h.usuario_id
+      WHERE h.tenant_id = $1 ORDER BY h.created_at DESC LIMIT 50`,
+    [tenantId]
+  );
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Transições
+// ---------------------------------------------------------------------------
+interface MetaTroca {
+  motivo: MotivoPlano;
+  origem: OrigemPlano;
+  usuarioId?: string | null;
+  dados?: Record<string, unknown>;
+  /** Mantém `trial_ate` (só o próprio início do teste usa) */
+  manterTrial?: boolean;
+}
+
+/**
+ * Troca o plano da empresa e registra o histórico. Devolve { de, para } ou null se nada mudou.
+ * Ir para o plano gratuito aplica os excedentes; sair dele restaura o que estava bloqueado.
+ * Qualquer troca que não seja o início do teste encerra o teste (trial_ate = NULL).
+ */
+export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string, meta: MetaTroca): Promise<{ de: string | null; para: string } | null> {
+  const { rows } = await db.query<{ plano_id: string | null; trial_ate: string | null }>(
+    'SELECT plano_id, trial_ate FROM tenants WHERE id = $1 FOR UPDATE',
+    [tenantId]
+  );
+  if (!rows[0]) return null;
+  const de = rows[0].plano_id;
+  const destino = await planoPorId(db, paraPlanoId);
+  if (!destino) throw new UserError('Plano não encontrado.');
+  if (de === paraPlanoId && !meta.manterTrial) return null;
+  const origemGratuita = de ? (await planoPorId(db, de))?.gratuito === true : false;
+
+  await db.query(
+    `UPDATE tenants
+        SET plano_id = $2, plano_pendente_id = NULL,
+            trial_ate = CASE WHEN $3 THEN trial_ate ELSE NULL END,
+            plano_rebaixado_em = CASE WHEN $4 THEN now() ELSE NULL END,
+            updated_at = now()
+      WHERE id = $1`,
+    [tenantId, paraPlanoId, meta.manterTrial === true, destino.gratuito && !origemGratuita]
+  );
+  await db.query(
+    `INSERT INTO tenant_plano_historico (tenant_id, de_plano_id, para_plano_id, motivo, origem, usuario_id, dados)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [tenantId, de, paraPlanoId, meta.motivo, meta.origem, meta.usuarioId ?? null, JSON.stringify(meta.dados ?? {})]
+  );
+  invalidar(tenantId);
+  if (destino.gratuito) await aplicarExcedentes(db, tenantId);
+  else if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
+  return { de, para: paraPlanoId };
+}
+
+/**
+ * Excedentes do plano atual (rebaixamento): usuários além do limite ficam com o vínculo desativado e marcados
+ * com bloqueado_plano_em (o proprietário mais antigo nunca sai; ficam os mais recentes). Nada é apagado.
+ * Itens do Banket Busca (fotos, tipos) entram aqui nas fases 4–5.
+ */
+export async function aplicarExcedentes(db: Db, tenantId: string): Promise<{ usuariosBloqueados: string[] }> {
+  const ent = await entitlements(tenantId, db);
+  const limiteUsuarios = ent ? limiteNumerico(ent, 'usuarios') : null;
+  const { rows: vinculos } = await db.query<{ usuario_id: string; role: string; ativo: boolean; bloqueado: boolean; created_at: Date }>(
+    `SELECT usuario_id, role, ativo, bloqueado_plano_em IS NOT NULL AS bloqueado, created_at
+       FROM tenant_usuarios WHERE tenant_id = $1 AND (ativo OR bloqueado_plano_em IS NOT NULL)
+      ORDER BY created_at`,
+    [tenantId]
+  );
+  const dono = vinculos.find((v) => v.role === 'owner')?.usuario_id;
+  const escolha = escolherExcedentes(
+    vinculos.map((v) => ({ id: v.usuario_id, atualizadoEm: v.created_at })),
+    limiteUsuarios,
+    { sempreFica: dono ? [dono] : [] }
+  );
+  if (escolha.bloquear.length) {
+    await db.query(
+      `UPDATE tenant_usuarios SET ativo = false, bloqueado_plano_em = COALESCE(bloqueado_plano_em, now())
+        WHERE tenant_id = $1 AND usuario_id = ANY($2::uuid[])`,
+      [tenantId, escolha.bloquear]
+    );
+  }
+  const reativar = vinculos.filter((v) => v.bloqueado && escolha.manter.includes(v.usuario_id)).map((v) => v.usuario_id);
+  if (reativar.length) {
+    await db.query(
+      `UPDATE tenant_usuarios SET ativo = true, bloqueado_plano_em = NULL WHERE tenant_id = $1 AND usuario_id = ANY($2::uuid[])`,
+      [tenantId, reativar]
+    );
+  }
+  invalidateTenant(tenantId);
+  return { usuariosBloqueados: escolha.bloquear };
+}
+
+/** Upgrade a partir do gratuito: reativa quem foi bloqueado pelo plano (quem foi desativado à mão não é tocado). */
+export async function restaurarAposUpgrade(db: Db, tenantId: string): Promise<void> {
+  await db.query(
+    `UPDATE tenant_usuarios SET ativo = true, bloqueado_plano_em = NULL WHERE tenant_id = $1 AND bloqueado_plano_em IS NOT NULL`,
+    [tenantId]
+  );
+  await db.query('UPDATE tenants SET plano_rebaixado_em = NULL WHERE id = $1', [tenantId]);
+  invalidateTenant(tenantId);
+}
+
+const limiteNumerico = (ent: Entitlements, recurso: string): number | null => {
+  if (ent.semPlano) return null;
+  const v = ent.recursos[recurso];
+  return typeof v === 'number' && v >= 0 ? v : null;
+};
+
+// ---------------------------------------------------------------------------
+// Cadastro, teste grátis e rebaixamento
+// ---------------------------------------------------------------------------
+
+/** Plano inicial da empresa recém-criada: Busca (origem 'busca') ou teste do Profissional (origem 'site'). */
+export async function cadastroInicial(db: Db, tenantId: string, origem: 'site' | 'busca', usuarioId: string | null): Promise<void> {
+  if (origem === 'busca') {
+    const gratuito = await planoGratuito(db);
+    await trocarPlano(db, tenantId, gratuito.id, { motivo: 'cadastro', origem: 'app', usuarioId, dados: { origem } });
+    return;
+  }
+  const plano = (await planoPorSlug(db, 'profissional')) ?? (await planoPorSlug(db, 'completo'));
+  if (!plano) throw new Error('Plano do cadastro não encontrado (migration 031).');
+  const hoje = emSaoPaulo(new Date()).data;
+  const ate = fimDoTrial(hoje, plano.trial_dias);
+  await db.query('UPDATE tenants SET trial_ate = $2, trial_iniciado_em = now(), trial_usado_em = now() WHERE id = $1', [tenantId, ate]);
+  await trocarPlano(db, tenantId, plano.id, { motivo: 'cadastro', origem: 'app', usuarioId, dados: { origem, trial_ate: ate }, manterTrial: true });
+}
+
+/** Oferta de teste disponível? (plano gratuito, nunca testou e não recusou nos últimos 30 dias) */
+export function ofertaDeTrial(ent: Entitlements | null, agora = new Date()): 'disponivel' | 'recusada' | 'usada' | 'nao_se_aplica' {
+  if (!ent || !ent.gratuito) return 'nao_se_aplica';
+  if (ent.trialUsado) return 'usada';
+  if (recusaVigente(ent.trialRecusadoEm, agora)) return 'recusada';
+  return 'disponivel';
+}
+
+/** Começa o teste grátis de um plano pago a partir do plano gratuito. Só owner/admin, uma vez por empresa. */
+export async function iniciarTrial(db: Db, user: SessionUser, planoId: string): Promise<{ ate: string; plano: Plano }> {
+  if (!isAdmin(user)) throw new UserError('Só proprietários e administradores podem iniciar o teste.');
+  const ent = await entitlements(user.tenantId, db);
+  if (!ent || !ent.gratuito) throw new ErroPlano('TRIAL_INDISPONIVEL', 'trial', 'O teste grátis é para empresas no plano gratuito.');
+  if (ent.trialUsado) throw new ErroPlano('TRIAL_INDISPONIVEL', 'trial', 'Sua empresa já usou o teste grátis. Para continuar, escolha um plano.');
+  const plano = await planoPorId(db, planoId);
+  if (!plano || plano.gratuito || !plano.publico || !plano.ativo) throw new UserError('Escolha um dos planos disponíveis para o teste.');
+  const hoje = emSaoPaulo(new Date()).data;
+  const ate = fimDoTrial(hoje, plano.trial_dias);
+  await db.query(
+    'UPDATE tenants SET trial_ate = $2, trial_iniciado_em = now(), trial_usado_em = now(), trial_recusado_em = NULL WHERE id = $1',
+    [user.tenantId, ate]
+  );
+  await trocarPlano(db, user.tenantId, plano.id, { motivo: 'trial_iniciado', origem: 'app', usuarioId: user.id, dados: { trial_ate: ate }, manterTrial: true });
+  await registrarUpsell(db, user, 'trial_iniciado', null, { plano: plano.slug });
+  enviarEmailTrial(db, user.tenantId, 'inicio', { planoNome: plano.nome, ate }).catch((err) => console.error('[planos] e-mail de início do teste:', err));
+  return { ate, plano };
+}
+
+/** "Não tenho interesse no momento": a oferta some por 30 dias. */
+export async function recusarTrial(db: Db, user: SessionUser): Promise<void> {
+  if (!isAdmin(user)) throw new UserError('Só proprietários e administradores podem responder à oferta.');
+  await db.query('UPDATE tenants SET trial_recusado_em = now() WHERE id = $1', [user.tenantId]);
+  invalidar(user.tenantId);
+  await registrarUpsell(db, user, 'trial_recusado', null, {});
+}
+
+/** Rebaixa uma empresa em plano pago para o plano gratuito. Idempotente (já gratuita → null). */
+export async function rebaixarParaBusca(
+  db: Db,
+  tenantId: string,
+  motivo: Extract<MotivoPlano, 'trial_encerrado' | 'cancelamento' | 'hwesta' | 'backoffice'>,
+  origem: OrigemPlano,
+  dados: Record<string, unknown> = {}
+): Promise<boolean> {
+  const ent = await entitlements(tenantId, db);
+  if (!ent || ent.gratuito) return false;
+  const gratuito = await planoGratuito(db);
+  const troca = await trocarPlano(db, tenantId, gratuito.id, { motivo, origem, dados: { ...dados, plano_anterior: ent.planoSlug } });
+  if (!troca) return false;
+  await registrarUpsell(db, { id: null, tenantId }, 'rebaixado', null, { motivo, plano_anterior: ent.planoSlug });
+  if (motivo === 'trial_encerrado') {
+    enviarEmailTrial(db, tenantId, 'fim', { planoNome: ent.planoNome ?? '', ate: ent.trialAte ?? '' }).catch((err) =>
+      console.error('[planos] e-mail de fim do teste:', err)
+    );
+  }
+  return true;
+}
+
+/** Chamado pelo middleware quando o entitlements diz `trialVencido`: rebaixa se já passou de D+1 12h. */
+export async function verificarTrialVencido(ent: Entitlements): Promise<boolean> {
+  if (!ent.trialVencido || !ent.trialAte || !deveRebaixar(ent.trialAte, new Date())) return false;
+  return withSystem((db) => rebaixarParaBusca(db, ent.tenantId, 'trial_encerrado', 'app'));
+}
+
+/**
+ * Varredura do agendador: rebaixa testes vencidos (D+1 12h) e envia os avisos D-7, D-1 e D0 (9h), com dedup em
+ * plano_avisos. Cada empresa num try/catch. Devolve contadores para o log.
+ */
+export async function varrerTrials(db: Db, agora = new Date()): Promise<{ rebaixadas: number; avisos: number }> {
+  const { rows } = await db.query<{ id: string; trial_ate: string; plano_nome: string }>(
+    `SELECT t.id, to_char(t.trial_ate, 'YYYY-MM-DD') AS trial_ate, p.nome AS plano_nome
+       FROM tenants t JOIN planos p ON p.id = t.plano_id
+      WHERE t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.status = 'active'`
+  );
+  let rebaixadas = 0;
+  let avisos = 0;
+  for (const t of rows) {
+    try {
+      if (deveRebaixar(t.trial_ate, agora)) {
+        if (await rebaixarParaBusca(db, t.id, 'trial_encerrado', 'agendador')) rebaixadas++;
+        continue;
+      }
+      const aviso = avisoDoDia(t.trial_ate, agora);
+      if (!aviso) continue;
+      const { rowCount } = await db.query(
+        'INSERT INTO plano_avisos (tenant_id, chave) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [t.id, `trial:${t.trial_ate}:${aviso}`]
+      );
+      if (!rowCount) continue;
+      await enviarEmailTrial(db, t.id, aviso, { planoNome: t.plano_nome, ate: t.trial_ate });
+      avisos++;
+    } catch (err) {
+      console.error(`[planos] varredura do trial falhou para ${t.id}:`, err);
+    }
+  }
+  return { rebaixadas, avisos };
+}
+
+// ---------------------------------------------------------------------------
+// Manager Hwesta (HCP)
+// ---------------------------------------------------------------------------
+
+/**
+ * Push do Manager: `plan_slug` existente no catálogo troca o plano (motivo 'hwesta'); `capabilities` viram override
+ * em hwesta_entitlements (a tabela passa a significar override + espelho do último push).
+ */
+export async function aplicarDoManager(tenantId: string, ent: HwestaEntitlements): Promise<boolean> {
+  return withSystem(async (db) => {
+    const { rows } = await db.query('SELECT 1 FROM tenants WHERE id = $1', [tenantId]);
+    if (!rows.length) return false;
+    await db.query(
+      `INSERT INTO hwesta_entitlements (tenant_id, plan_slug, plan_name, status, capabilities, expires_at, source, pushed_at, synced_at)
+       VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, now())
+       ON CONFLICT (tenant_id) DO UPDATE SET
+         plan_slug = EXCLUDED.plan_slug, plan_name = EXCLUDED.plan_name, status = EXCLUDED.status,
+         capabilities = EXCLUDED.capabilities, expires_at = EXCLUDED.expires_at, source = EXCLUDED.source,
+         pushed_at = EXCLUDED.pushed_at, synced_at = now()`,
+      [tenantId, ent.plan_slug, ent.plan_name, ent.status, JSON.stringify(ent.capabilities ?? {}), ent.expires_at, ent.source ?? null, ent.pushed_at ?? null]
+    );
+    if (ent.plan_slug) {
+      const plano = await planoPorSlug(db, ent.plan_slug);
+      if (plano) {
+        if (plano.gratuito) await rebaixarParaBusca(db, tenantId, 'hwesta', 'hwesta', { status: ent.status });
+        else await trocarPlano(db, tenantId, plano.id, { motivo: 'hwesta', origem: 'hwesta', dados: { status: ent.status, source: ent.source ?? null } });
+      }
+    }
+    invalidar(tenantId);
+    return true;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Eventos de funil (upsell) e e-mails
+// ---------------------------------------------------------------------------
+export type TipoUpsell = 'cadeado_visto' | 'cta_clicado' | 'planos_visitado' | 'trial_iniciado' | 'trial_recusado' | 'assinatura_concluida' | 'rebaixado';
+
+/**
+ * Evento do funil de upsell. Nunca lança nem aborta a transação de quem chama (SAVEPOINT): é métrica, não regra.
+ * `usuarioId` null nos eventos do agendador.
+ */
+export async function registrarUpsell(db: Db, user: { id: string | null; tenantId: string }, tipo: TipoUpsell, recurso: string | null, dados: Record<string, unknown>): Promise<void> {
+  try {
+    await db.query('SAVEPOINT upsell');
+    await db.query(
+      `INSERT INTO busca_upsell_eventos (tenant_id, usuario_id, tipo, recurso, dados) VALUES ($1, $2, $3, $4, $5::jsonb)`,
+      [user.tenantId, user.id, tipo, recurso, JSON.stringify(dados)]
+    );
+    await db.query('RELEASE SAVEPOINT upsell');
+  } catch (err) {
+    await db.query('ROLLBACK TO SAVEPOINT upsell').catch(() => undefined);
+    console.error('[planos] evento de upsell:', err);
+  }
+}
+
+async function destinatarios(db: Db, tenantId: string): Promise<{ nome: string; email: string; empresa: string }[]> {
+  const { rows } = await db.query<{ nome: string; email: string; empresa: string }>(
+    `SELECT u.nome, u.email, t.nome AS empresa
+       FROM tenant_usuarios tu JOIN usuarios u ON u.id = tu.usuario_id JOIN tenants t ON t.id = tu.tenant_id
+      WHERE tu.tenant_id = $1 AND tu.ativo AND tu.role IN ('owner', 'admin') AND u.email_verificado_em IS NOT NULL`,
+    [tenantId]
+  );
+  return rows;
+}
+
+const dataBR = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
+
+async function enviarEmailTrial(db: Db, tenantId: string, tipo: AvisoTrial | 'inicio' | 'fim', ctx: { planoNome: string; ate: string }): Promise<void> {
+  const pessoas = await destinatarios(db, tenantId);
+  if (!pessoas.length) return;
+  const empresa = pessoas[0].empresa;
+  const textos: Record<typeof tipo, { assunto: string; titulo: string; paragrafos: (nome: string) => string[]; cta: { texto: string; url: string } }> = {
+    inicio: {
+      assunto: `Seu teste do plano ${ctx.planoNome} começou`,
+      titulo: 'Seu teste grátis começou',
+      paragrafos: (nome) => [
+        `Olá, ${nome}!`,
+        `A ${empresa} tem acesso a tudo do plano ${ctx.planoNome} até ${dataBR(ctx.ate)}. Explore o Painel de Propostas, os orçamentos em PDF, o Inbox e o resto do Banket.`,
+        'Ao fim do teste, se não houver assinatura, a empresa volta ao plano Busca sem perder nenhum dado.',
+      ],
+      cta: { texto: 'Abrir o Banket', url: appUrl('/dashboard') },
+    },
+    d7: {
+      assunto: `Faltam 7 dias para o fim do seu teste do ${ctx.planoNome}`,
+      titulo: 'Seu teste termina em 7 dias',
+      paragrafos: (nome) => [
+        `Olá, ${nome}!`,
+        `O teste do plano ${ctx.planoNome} da ${empresa} vai até ${dataBR(ctx.ate)}. Para continuar com o Painel de Propostas, os orçamentos e o Inbox, fale com a equipe e escolha o seu plano.`,
+      ],
+      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+    },
+    d1: {
+      assunto: `Amanhã é o último dia do seu teste do ${ctx.planoNome}`,
+      titulo: 'Seu teste termina amanhã',
+      paragrafos: (nome) => [
+        `Olá, ${nome}!`,
+        `Amanhã (${dataBR(ctx.ate)}) é o último dia do teste do plano ${ctx.planoNome} da ${empresa}. Depois disso a empresa volta ao plano Busca: os dados ficam guardados, mas os módulos do plano deixam de abrir.`,
+      ],
+      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+    },
+    d0: {
+      assunto: `Hoje é o último dia do seu teste do ${ctx.planoNome}`,
+      titulo: 'Último dia do teste',
+      paragrafos: (nome) => [
+        `Olá, ${nome}!`,
+        `Hoje é o último dia do teste do plano ${ctx.planoNome} da ${empresa}. Amanhã, ao meio-dia, a empresa volta ao plano Busca. Para continuar sem interrupção, escolha o seu plano.`,
+      ],
+      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+    },
+    fim: {
+      assunto: 'Seu período de teste terminou',
+      titulo: 'Seu período de teste terminou',
+      paragrafos: (nome) => [
+        `Olá, ${nome}!`,
+        `O teste do plano ${ctx.planoNome} da ${empresa} terminou e a empresa voltou ao plano Busca. Nada foi apagado: o perfil no Banket Busca e os pedidos continuam, e todo o resto fica guardado para quando você assinar um plano.`,
+        'Usuários além do limite do plano gratuito ficaram sem acesso até a assinatura.',
+      ],
+      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+    },
+  };
+  const t = textos[tipo];
+  for (const p of pessoas) {
+    const { html, text } = emailLayout({
+      titulo: t.titulo,
+      paragrafos: t.paragrafos(p.nome.split(' ')[0]),
+      cta: t.cta,
+      rodape: `Você recebeu esta mensagem porque é responsável pela conta da ${empresa} no Banket.`,
+    });
+    await sendMail({ to: p.email, subject: t.assunto, html, text });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Contagens de uso dos limites (um SQL por recurso; rodam dentro do tenant)
+// ---------------------------------------------------------------------------
+export const CONTAGEM_SQL: Record<string, string> = {
+  usuarios: `SELECT (SELECT count(*) FROM tenant_usuarios WHERE ativo)
+                  + (SELECT count(*) FROM auth_tokens WHERE tipo = 'convite' AND usado_em IS NULL AND expira_em > now()) AS n`,
+  espacos_qtd: 'SELECT count(*) AS n FROM espacos WHERE ativo',
+  templates_qtd: 'SELECT count(*) AS n FROM orcamento_templates',
+  cardapios_opcoes: 'SELECT count(*) AS n FROM cardapio_opcoes WHERE ativo',
+  formularios_qtd: 'SELECT count(*) AS n FROM formularios WHERE ativo',
+  documento_modelos: 'SELECT count(*) AS n FROM documento_modelos WHERE ativo',
+  email_modelos: 'SELECT count(*) AS n FROM email_modelos WHERE ativo',
+  estoque_itens: 'SELECT count(*) AS n FROM estoque_itens WHERE ativo',
+  ia_analises_mes: `SELECT count(*) AS n FROM ia_analises
+                     WHERE created_at >= date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo'`,
+  ia_fundos_mes: `SELECT count(*) AS n FROM template_fundos_ia
+                   WHERE created_at >= date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo'`,
+};
+
+/** Uso atual dos limites numéricos do plano (para /planos e para o card da sidebar). */
+export async function usoDosLimites(db: Db, ent: Entitlements): Promise<Record<string, { uso: number; limite: number }>> {
+  const saida: Record<string, { uso: number; limite: number }> = {};
+  for (const [recurso, sql] of Object.entries(CONTAGEM_SQL)) {
+    const v = ent.recursos[recurso];
+    if (ent.semPlano || typeof v !== 'number' || v < 0) continue;
+    const { rows } = await db.query<{ n: number }>(sql);
+    saida[recurso] = { uso: Number(rows[0]?.n ?? 0), limite: v };
+  }
+  return saida;
+}
+
+export function invalidarMembros(tenantId: string, usuarioId?: string) {
+  if (usuarioId) invalidateMembership(usuarioId, tenantId);
+  else invalidateTenant(tenantId);
+}

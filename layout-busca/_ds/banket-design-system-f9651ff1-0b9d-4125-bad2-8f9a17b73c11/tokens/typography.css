@@ -1,0 +1,32 @@
+/* Banket — typography tokens. One family: General Sans.
+   Refinement vs. legacy UI (Open Sans, heavy bolds): lighter weights, 500 for headings, 400 body. */
+:root{
+  --font-sans:"General Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+
+  --fw-light:300;/* @kind font */
+  --fw-regular:400;/* @kind font */
+  --fw-medium:500;/* @kind font */
+  --fw-semibold:600;/* @kind font */
+  --fw-bold:700;/* @kind font */
+
+  --fs-11:11px;--fs-12:12px;--fs-13:13px;--fs-14:14px;--fs-15:15px;--fs-16:16px;--fs-17:17px;--fs-18:18px;--fs-20:20px;--fs-24:24px;--fs-28:28px;--fs-32:32px;--fs-40:40px;
+
+  --lh-tight:1.15;/* @kind font */--lh-snug:1.3;/* @kind font */--lh-normal:1.5;/* @kind font */--lh-relaxed:1.6;/* @kind font */
+
+  --ls-tight:-0.02em;/* @kind font */--ls-snug:-0.01em;/* @kind font */--ls-normal:0;/* @kind font */--ls-wide:0.04em;/* @kind font */--ls-eyebrow:0.08em;/* @kind font */
+
+  /* Roles (size / line-height / weight / tracking) */
+  --type-display-size:var(--fs-32);--type-display-lh:1.1;/* @kind font */--type-display-weight:var(--fw-medium);/* @kind font */--type-display-ls:var(--ls-tight);/* @kind font */
+  --type-h1-size:var(--fs-24);--type-h1-lh:1.25;/* @kind font */--type-h1-weight:var(--fw-medium);/* @kind font */--type-h1-ls:var(--ls-snug);/* @kind font */
+  --type-h2-size:var(--fs-20);--type-h2-lh:1.3;/* @kind font */--type-h2-weight:var(--fw-medium);/* @kind font */--type-h2-ls:var(--ls-snug);/* @kind font */
+  --type-h3-size:var(--fs-17);--type-h3-lh:1.35;/* @kind font */--type-h3-weight:var(--fw-medium);/* @kind font */--type-h3-ls:var(--ls-snug);/* @kind font */
+  --type-h4-size:var(--fs-15);--type-h4-lh:1.4;/* @kind font */--type-h4-weight:var(--fw-medium);/* @kind font */
+  --type-body-lg-size:var(--fs-15);--type-body-lg-lh:1.55;/* @kind font */
+  --type-body-size:var(--fs-14);--type-body-lh:1.5;/* @kind font */
+  --type-body-sm-size:var(--fs-13);--type-body-sm-lh:1.45;/* @kind font */
+  --type-caption-size:var(--fs-12);--type-caption-lh:1.4;/* @kind font */
+  --type-eyebrow-size:var(--fs-11);--type-eyebrow-lh:1.3;/* @kind font */--type-eyebrow-weight:var(--fw-medium);/* @kind font */--type-eyebrow-ls:var(--ls-eyebrow);/* @kind font */
+  --type-label-size:var(--fs-13);--type-label-weight:var(--fw-medium);/* @kind font */
+  --type-button-size:var(--fs-14);--type-button-weight:var(--fw-medium);/* @kind font */
+}

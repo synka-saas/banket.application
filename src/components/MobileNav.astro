@@ -3,28 +3,35 @@
 // e o botão "Mais" com os demais, num painel que sobe do rodapé.
 import Icon from './ui/Icon.astro';
 import { isAdmin } from '../lib/auth';
-import { NAV_PRINCIPAL, navAtiva, type BadgesNavegacao } from '../lib/nav';
+import { itensDoMenu, linkBloqueado, navAtiva, type BadgesNavegacao, type ItemNavegacao } from '../lib/nav';
+import { podeUsarEm } from '../lib/planos/gating';
+import { inicioDoPlano } from '../lib/planos/rotas';
 
 interface Props {
   badges?: BadgesNavegacao;
+  items?: ItemNavegacao[];
 }
 
-const { badges = {} } = Astro.props;
+const { badges = {}, items } = Astro.props;
 const { pathname } = Astro.url;
 const user = Astro.locals.user;
+const plano = Astro.locals.plano ?? null;
 
-const itens = NAV_PRINCIPAL.filter((item) => !item.adminOnly || isAdmin(user));
-const naBarra = itens.filter((i) => i.barra);
-const noPainel = itens.filter((i) => !i.barra);
+const itens = itensDoMenu(isAdmin(user), (r) => podeUsarEm(plano, r), items);
+const inicio = inicioDoPlano(podeUsarEm(plano, 'propostas'));
+// Na barra inferior entram os itens liberados; no plano gratuito, o Banket Busca ocupa o lugar do Dashboard
+const naBarra = itens.filter((i) => (i.barra && !i.bloqueado) || (i.marca === 'busca' && !podeUsarEm(plano, 'propostas')));
+const noPainel = itens.filter((i) => !naBarra.includes(i));
+const href = (i: (typeof itens)[number]) => (i.bloqueado ? linkBloqueado(i.bloqueado, inicio) : i.href);
 const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
 const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
 ---
 
 <nav class="mnav" aria-label="Navegação principal">
   {naBarra.map((item) => (
-    <a href={item.href} class:list={['mnav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
+    <a href={href(item)} class:list={['mnav-item', { active: navAtiva(pathname, item.match) }]} aria-current={navAtiva(pathname, item.match) ? 'page' : undefined}>
       <Icon name={item.icon} size={22} />
-      <span>{item.label}</span>
+      <span>{item.marca === 'busca' ? 'Busca' : item.label}</span>
     </a>
   ))}
   <button type="button" class:list={['mnav-item', { active: painelAtivo }]} data-mnav-mais aria-expanded="false" aria-controls="mnav-painel">
@@ -38,11 +45,12 @@ const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
 <div class="mnav-painel" id="mnav-painel" data-mnav-painel hidden aria-label="Outros módulos">
   <div class="mnav-painel-alca" aria-hidden="true"></div>
   {noPainel.map((item) => (
-    <a href={item.href} class:list={['mnav-painel-item', { active: navAtiva(pathname, item.match) }]}>
+    <a href={href(item)} class:list={['mnav-painel-item', { active: navAtiva(pathname, item.match) && !item.bloqueado, 'mnav-painel-item--bloqueado': item.bloqueado }]} data-bloqueado={item.bloqueado || undefined}>
       <Icon name={item.icon} size={22} />
       <span>{item.label}</span>
       {badges[item.href] ? <span class="mnav-badge mnav-badge-item tabular">{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
-      <Icon name="chevron-right" size={20} class="mnav-seta" />
+      {item.bloqueado && <span class="sr-only">(não incluído no seu plano)</span>}
+      <Icon name={item.bloqueado ? 'lock' : 'chevron-right'} size={item.bloqueado ? 16 : 20} class="mnav-seta" />
     </a>
   ))}
 </div>
@@ -161,6 +169,10 @@ const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
       font-weight: var(--fw-regular);
       color: var(--text-body);
       text-decoration: none;
+    }
+
+    .mnav-painel-item--bloqueado {
+      color: var(--text-muted);
     }
 
     .mnav-painel-item:active {

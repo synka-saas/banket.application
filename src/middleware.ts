@@ -3,6 +3,13 @@ import { defineMiddleware } from 'astro:middleware';
 import { SESSION_COOKIE, clearSessionCookie, isAdmin, verifySession } from './lib/auth';
 import { consumeFlash, setFlash } from './lib/flash';
 import { getMembership } from './lib/membership';
+import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
+import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
+import { verificarTrialVencido } from './server/planos';
+import { iniciarAgendador } from './server/agendador';
+
+// Agendador do app (trials): um por processo, iniciado junto com o middleware
+iniciarAgendador();
 
 // Rotas acessíveis sem sessão
 // /print/* é acessado pelo Chromium interno e exige um token de impressão (lib/printToken)
@@ -55,6 +62,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname } = context.url;
   context.locals.flash = consumeFlash(context.cookies);
+  context.locals.plano = null;
 
   if (isPublic(pathname)) return next();
 
@@ -92,6 +100,23 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
     return context.redirect('/dashboard');
   }
 
+  // Plano da empresa (fonte única: fn_tenant_entitlements, cache 15 s). Teste vencido: rebaixa na hora (D+1 12h)
+  let plano = await entitlements(user.tenantId);
+  if (plano?.trialVencido && (await verificarTrialVencido(plano))) plano = await entitlements(user.tenantId);
+  context.locals.plano = plano;
+
+  // Página inicial por plano: quem não tem o Painel de Propostas cai no Banket Busca (sem painel de upsell)
+  const temPropostas = podeUsarEm(plano, 'propostas');
+  if ((pathname === '/dashboard' || pathname === '/') && !temPropostas) return context.redirect('/busca');
+
+  // Gate por plano: rota de módulo fora do plano → 403 padronizado na API, upsell nas páginas
+  const recurso = recursoDaRota(pathname);
+  if (recurso && !podeUsarEm(plano, recurso)) {
+    if (pathname.startsWith('/api/') || pathname.startsWith('/print/')) {
+      return Response.json(new ErroPlano('RECURSO_FORA_DO_PLANO', recurso, 'Este recurso não faz parte do seu plano.').toJSON(), { status: 403 });
+    }
+    return context.redirect(`${inicioDoPlano(temPropostas)}?bloqueado=${encodeURIComponent(recurso)}`);
+  }
+
   return next();
 }
-

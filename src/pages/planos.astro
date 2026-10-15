@@ -1,0 +1,351 @@
+---
+// Planos do Banket: comparação lida do catálogo (planos.recursos × lib/planos/recursos.ts), plano atual, uso dos
+// limites e os CTAs — teste grátis de 30 dias (plano gratuito, owner/admin, uma vez) e "Falar com a equipe"
+// (enquanto a assinatura não é feita no app). Fase 1 do Banket Busca.
+import AppLayout from '../layouts/AppLayout.astro';
+import Icon from '../components/ui/Icon.astro';
+import SectionCard from '../components/ui/SectionCard.astro';
+import { handleFormPost } from '../lib/actions';
+import { isAdmin } from '../lib/auth';
+import { withTenant } from '../lib/db';
+import { brl } from '../lib/forms';
+import { RECURSOS, type GrupoRecurso } from '../lib/planos/recursos';
+import { iniciarTrial, listarPlanos, ofertaDeTrial, registrarUpsell, usoDosLimites } from '../server/planos';
+
+const user = Astro.locals.user;
+const plano = Astro.locals.plano;
+const admin = isAdmin(user);
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    if (data._action !== 'trial') throw new Error('Ação desconhecida.');
+    const r = await withTenant(user.tenantId, (db) => iniciarTrial(db, user, String(data.plano_id ?? '')));
+    return {
+      message: `Seu teste do plano ${r.plano.nome} começou. Você tem acesso a tudo até ${r.ate.split('-').reverse().join('/')}.`,
+      redirect: '/dashboard',
+    };
+  });
+}
+
+const { planos, uso } = await withTenant(user.tenantId, async (db) => {
+  await registrarUpsell(db, user, 'planos_visitado', null, { teste: Astro.url.searchParams.has('teste') });
+  return { planos: await listarPlanos(db, true), uso: plano ? await usoDosLimites(db, plano) : {} };
+});
+const oferta = ofertaDeTrial(plano);
+const destacarTeste = Astro.url.searchParams.has('teste') && oferta === 'disponivel';
+const pagos = planos.filter((p) => !p.gratuito);
+const GRUPOS: { id: GrupoRecurso; titulo: string }[] = [
+  { id: 'modulos', titulo: 'Módulos' },
+  { id: 'limites', titulo: 'Limites' },
+  { id: 'busca', titulo: 'Banket Busca' },
+];
+const valor = (v: boolean | number | undefined, unidade?: string) => {
+  if (v === true) return '✓';
+  if (v === false || v === undefined || v === 0) return '—';
+  if (v === -1) return 'Sem limite';
+  return `${v}${unidade ? ` ${unidade}` : ''}`;
+};
+const usoRotulo = (slug: string) => RECURSOS.find((r) => r.slug === slug)?.rotulo ?? slug;
+// Só os limites que valem no plano (zero = o módulo não faz parte dele, já aparece na comparação)
+const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
+---
+
+<AppLayout title="Planos" heading="Planos">
+  <div class="planos">
+    <header class="planos-cabecalho">
+      <p class="eyebrow">{plano?.gratuito ? 'Seu plano: Busca (gratuito)' : plano?.trial ? `Teste do ${plano.planoNome}` : `Seu plano: ${plano?.planoNome ?? '—'}`}</p>
+      <h2 class="planos-titulo">Do pedido ao pós-festa, no mesmo lugar</h2>
+      <p class="planos-sub">
+        {plano?.gratuito
+          ? 'O Plano Busca é gratuito para sempre. Os planos pagos liberam o Painel de Propostas, o Inbox, o financeiro e os demais módulos, com prioridade nos resultados da busca.'
+          : plano?.trial
+            ? `Seu teste vai até ${plano.trial.ate.split('-').reverse().join('/')}. Para continuar sem interrupção, fale com a equipe e escolha o plano.`
+            : 'Para mudar de plano ou tirar dúvidas, fale com a equipe.'}
+      </p>
+    </header>
+
+    <div class="planos-cards">
+      {pagos.map((p) => (
+        <article class:list={['plano-card', { 'plano-card--atual': plano?.planoId === p.id, 'plano-card--destaque': p.slug === 'profissional' }]}>
+          {plano?.planoId === p.id && <span class="badge badge-accent plano-card-badge">{plano.trial ? 'Em teste' : 'Seu plano'}</span>}
+          <h3 class="plano-card-nome">{p.nome}</h3>
+          <p class="plano-card-desc">{p.descricao}</p>
+          <p class="plano-card-preco">
+            <span class="plano-card-valor tabular">{p.preco_mensal != null ? brl(p.preco_mensal) : '—'}</span>
+            <span class="plano-card-periodo">/mês</span>
+          </p>
+          {p.preco_anual != null && <p class="plano-card-anual">ou {brl(p.preco_anual)}/ano (2 meses grátis)</p>}
+          <div class="plano-card-acoes">
+            {plano?.gratuito && admin && oferta === 'disponivel' ? (
+              <form method="post">
+                <input type="hidden" name="_action" value="trial" />
+                <input type="hidden" name="plano_id" value={p.id} />
+                <button type="submit" class:list={['btn btn-md btn-block', destacarTeste && p.slug === 'profissional' ? 'btn-primary' : 'btn-outline']} data-carregando="Iniciando…">
+                  Testar 30 dias grátis
+                </button>
+              </form>
+            ) : (
+              <a href="https://banket.com.br/#contato" target="_blank" rel="noopener" class="btn btn-outline btn-md btn-block">Falar com a equipe</a>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    {plano?.gratuito && oferta !== 'disponivel' && (
+      <p class="planos-nota">
+        {oferta === 'usada' ? 'Sua empresa já usou o teste grátis. Para assinar um plano, fale com a equipe.' : 'Quando quiser, a oferta de teste grátis volta a aparecer aqui.'}
+      </p>
+    )}
+
+    {usoVisivel.length > 0 && (
+      <SectionCard title="Uso do seu plano" description="Limites do plano atual e quanto você já usa." icon="chart-bar">
+        <ul class="planos-uso">
+          {usoVisivel.map(([slug, u]) => (
+            <li class:list={['planos-uso-item', { 'planos-uso-item--cheio': u.uso >= u.limite }]}>
+              <span>{usoRotulo(slug)}</span>
+              <span class="tabular">{u.uso} de {u.limite}</span>
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
+    )}
+
+    <SectionCard title="Compare os planos" description="O Plano Busca é gratuito; os demais incluem tudo do Busca." icon="list-check">
+      <div class="planos-tabela-wrap">
+        <table class="planos-tabela">
+          <thead>
+            <tr>
+              <th scope="col">Recurso</th>
+              {planos.map((p) => <th scope="col" class:list={{ 'col-atual': plano?.planoId === p.id }}>{p.nome}</th>)}
+            </tr>
+          </thead>
+          {GRUPOS.map((g) => (
+            <tbody>
+              <tr class="planos-grupo"><th scope="rowgroup" colspan={planos.length + 1}>{g.titulo}</th></tr>
+              {RECURSOS.filter((r) => r.grupo === g.id && r.slug !== 'busca').map((r) => (
+                <tr>
+                  <th scope="row">
+                    <span class="planos-recurso">{r.rotulo}</span>
+                    <span class="planos-recurso-desc">{r.descricao}</span>
+                  </th>
+                  {planos.map((p) => {
+                    const v = p.recursos[r.slug];
+                    const texto = valor(v, r.tipo === 'limite' ? r.unidade : undefined);
+                    return (
+                      <td class:list={['tabular', { 'col-atual': plano?.planoId === p.id, 'planos-sim': v === true, 'planos-nao': texto === '—' }]}>
+                        {v === true ? <Icon name="check" size={16} /> : texto}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          ))}
+        </table>
+      </div>
+    </SectionCard>
+  </div>
+</AppLayout>
+
+<style>
+  .planos {
+    display: grid;
+    gap: var(--space-6);
+    max-width: 1100px;
+  }
+
+  .planos-cabecalho {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .planos-titulo {
+    margin: 0;
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-strong);
+  }
+
+  .planos-sub {
+    margin: 0;
+    max-width: 70ch;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .planos-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-4);
+  }
+
+  .plano-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .plano-card--destaque {
+    border-color: var(--border-accent);
+  }
+
+  .plano-card--atual {
+    background: var(--bg-accent-subtle);
+  }
+
+  .plano-card-badge {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+  }
+
+  .plano-card-nome {
+    margin: 0;
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .plano-card-desc {
+    margin: 0;
+    min-height: 3em;
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
+  .plano-card-preco {
+    margin: var(--space-2) 0 0;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .plano-card-valor {
+    font-size: var(--fs-28);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-strong);
+  }
+
+  .plano-card-periodo,
+  .plano-card-anual {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
+  }
+
+  .plano-card-anual {
+    margin: 0;
+  }
+
+  .plano-card-acoes {
+    margin-top: auto;
+    padding-top: var(--space-3);
+  }
+
+  .planos-nota {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .planos-uso {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-2) var(--space-5);
+  }
+
+  .planos-uso-item {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+  }
+
+  .planos-uso-item--cheio {
+    color: var(--danger);
+  }
+
+  .planos-tabela-wrap {
+    overflow-x: auto;
+  }
+
+  .planos-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-13);
+  }
+
+  .planos-tabela th,
+  .planos-tabela td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .planos-tabela thead th {
+    background: var(--clay-25);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .planos-tabela thead th:not(:first-child),
+  .planos-tabela td {
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .planos-grupo th {
+    padding-top: var(--space-4);
+    font-size: var(--fs-11);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-eyebrow);
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: transparent;
+  }
+
+  .planos-recurso {
+    display: block;
+    font-weight: var(--fw-medium);
+    color: var(--text-body);
+  }
+
+  .planos-recurso-desc {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .planos-sim {
+    color: var(--success);
+  }
+
+  .planos-nao {
+    color: var(--text-placeholder);
+  }
+
+  .col-atual {
+    background: var(--bg-accent-subtle);
+  }
+
+  @media (max-width: 768px) {
+    .planos-recurso-desc {
+      display: none;
+    }
+  }
+</style>

@@ -2,6 +2,8 @@
 // no envio da proposta e ao responder no Inbox. Um deles é o padrão (pré-selecionado).
 import { z } from 'zod';
 import type { Db } from '../lib/db';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, requiredText } from '../lib/forms';
 import { aplicarVariaveis } from '../lib/documentos/variaveis';
 
@@ -47,6 +49,10 @@ export async function salvarEmailModelo(db: Db, tenantId: string, id: string | n
   const ativo = padrao ? true : input.ativo;
   if (input.padrao && !input.ativo) throw new UserError('O modelo padrão precisa estar ativo.', 'ativo');
   if (padrao) await db.query('UPDATE email_modelos SET padrao = false WHERE padrao AND ($1::uuid IS NULL OR id <> $1)', [id]);
+  if (ativo) {
+    const { rows: antes } = id ? await db.query<{ ativo: boolean }>('SELECT ativo FROM email_modelos WHERE id = $1', [id]) : { rows: [] as { ativo: boolean }[] };
+    if (!id || (antes[0] && !antes[0].ativo)) await exigirLimiteDb(db, 'email_modelos', CONTAGEM_SQL.email_modelos, 'modelos de e-mail ativos');
+  }
 
   if (id) {
     const res = await db.query(

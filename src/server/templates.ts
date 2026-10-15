@@ -1,6 +1,8 @@
 // Templates visuais da proposta e blocos de texto reutilizáveis.
 import { z } from 'zod';
 import type { Db } from '../lib/db';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, optionalInt, optionalText, requiredText, tagList } from '../lib/forms';
 import { arquivoDoFundo, arquivoEmUso, type PaginaFundo } from './imagemFundo';
 
@@ -106,6 +108,7 @@ export async function salvarTemplate(
   const imgCampos = Object.keys(imagens) as CampoImagem[];
   const valores = [...campos.map((c) => input[c]), ...imgCampos.map((c) => imagens[c])];
 
+  if (!id) await exigirLimiteDb(db, 'templates_qtd', CONTAGEM_SQL.templates_qtd, 'templates');
   if (id) {
     const antigo = await carregarTemplate(db, id);
     if (antigo.padrao && !input.padrao) {
@@ -139,6 +142,7 @@ export async function excluirTemplate(db: Db, id: string): Promise<string[]> {
 }
 
 export async function duplicarTemplate(db: Db, id: string): Promise<string> {
+  await exigirLimiteDb(db, 'templates_qtd', CONTAGEM_SQL.templates_qtd, 'templates');
   const t = await carregarTemplate(db, id);
   let nome = `${t.nome} (cópia)`;
   for (let i = 2; ; i++) {

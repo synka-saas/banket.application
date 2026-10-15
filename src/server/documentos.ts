@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, optionalText, optionalUuid, requiredText } from '../lib/forms';
 import { dataCurta, faixaHorario, hojeSaoPaulo } from '../lib/datas';
 import { formatMoney } from '../lib/money';
@@ -156,6 +158,10 @@ export async function salvarModelo(
     ...CAMPOS_VISUAL.map((c) => input[c]),
   ];
   const n = values.length;
+  if (input.ativo) {
+    const { rows: antes } = id ? await db.query<{ ativo: boolean }>('SELECT ativo FROM documento_modelos WHERE id = $1', [id]) : { rows: [] as { ativo: boolean }[] };
+    if (!id || (antes[0] && !antes[0].ativo)) await exigirLimiteDb(db, 'documento_modelos', CONTAGEM_SQL.documento_modelos, 'modelos de documento ativos');
+  }
   if (id) {
     const { rows } = await db.query<{ logo_path: string | null }>(
       `UPDATE documento_modelos SET nome = $1, descricao = $2, titulo = $3, corpo = $4, incluir_assinaturas = $5, testemunhas = $6,

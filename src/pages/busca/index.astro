@@ -1,0 +1,57 @@
+---
+// Banket Busca — área do buffet (fase 1: página inicial provisória; o painel completo chega nas fases 4–6).
+import AppLayout from '../../layouts/AppLayout.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import { isAdmin } from '../../lib/auth';
+import { ofertaDeTrial } from '../../server/planos';
+
+const plano = Astro.locals.plano;
+const oferta = ofertaDeTrial(plano);
+const admin = isAdmin(Astro.locals.user);
+---
+
+<AppLayout title="Banket Busca">
+  <div class="busca-inicio">
+    <SectionCard title="Seu perfil no Banket Busca" description="O marketplace que conecta clientes a buffets. O cadastro do perfil público chega em breve." icon="building-store">
+      <p class="busca-texto">
+        Em breve você vai cadastrar aqui o perfil do seu buffet (dados, eventos atendidos, região, capacidade, pacotes e fotos)
+        e receber pedidos de orçamento de clientes da sua região.
+      </p>
+    </SectionCard>
+
+    {plano?.gratuito && (
+      <SectionCard title="Seu plano" description="Plano Busca · gratuito" icon="sparkles">
+        <p class="busca-texto">
+          O Plano Busca inclui o perfil público, os pacotes, as fotos e os pedidos de orçamento. Os planos pagos liberam o Painel
+          de Propostas, orçamentos em PDF, Inbox, financeiro e tudo o mais do Banket, além de prioridade nos resultados.
+        </p>
+        <div class="busca-acoes">
+          {oferta === 'disponivel' && admin && <a href="/planos?teste=1" class="btn btn-primary btn-md">Iniciar teste grátis de 30 dias</a>}
+          <a href="/planos" class="btn btn-outline btn-md">Ver planos</a>
+        </div>
+      </SectionCard>
+    )}
+  </div>
+</AppLayout>
+
+<style>
+  .busca-inicio {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 820px;
+  }
+
+  .busca-texto {
+    margin: 0;
+    font-size: var(--fs-14);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .busca-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
+  }
+</style>

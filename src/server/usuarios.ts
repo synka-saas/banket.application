@@ -2,6 +2,8 @@
 import { z } from 'zod';
 import type { Db } from '../lib/db';
 import { ROLE_LABELS, type Role, type SessionUser } from '../lib/auth';
+import { exigirLimite } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, requiredText } from '../lib/forms';
 import { appUrl, sendMail } from '../lib/mail';
 import { invalidateMembership } from '../lib/membership';
@@ -111,7 +113,9 @@ export async function atualizarMembro(db: Db, actor: SessionUser, usuarioId: str
   if (atual.role === 'owner' && (input.role !== 'owner' || !input.ativo)) {
     await garantirOutroProprietario(db, usuarioId);
   }
-  await db.query('UPDATE tenant_usuarios SET role = $1, ativo = $2 WHERE usuario_id = $3', [input.role, input.ativo, usuarioId]);
+  // Reativar ocupa uma vaga do plano (e limpa a marca de bloqueio por excedente)
+  if (input.ativo && !atual.ativo) await exigirUsuarios(db, actor.tenantId);
+  await db.query('UPDATE tenant_usuarios SET role = $1, ativo = $2, bloqueado_plano_em = CASE WHEN $2 THEN NULL ELSE bloqueado_plano_em END WHERE usuario_id = $3', [input.role, input.ativo, usuarioId]);
   invalidateMembership(usuarioId, actor.tenantId);
 }
 
@@ -149,6 +153,7 @@ export async function convidarUsuario(db: Db, actor: SessionUser, input: z.infer
     [input.email]
   );
   if (membro.length) throw new UserError('Esta pessoa já faz parte da empresa.');
+  await exigirUsuarios(db, actor.tenantId);
 
   const token = generateToken();
   // Substitui um convite pendente anterior para o mesmo e-mail
@@ -176,4 +181,9 @@ export async function reenviarConvite(db: Db, actor: SessionUser, conviteId: str
 export async function cancelarConvite(db: Db, conviteId: string) {
   const res = await db.query(`DELETE FROM auth_tokens WHERE id = $1 AND tipo = 'convite' AND usado_em IS NULL`, [conviteId]);
   if (!res.rowCount) throw new UserError('Convite não encontrado.');
+}
+
+/** Limite de usuários do plano: vínculos ativos + convites pendentes. */
+async function exigirUsuarios(db: Db, tenantId: string) {
+  await exigirLimite(tenantId, 'usuarios', async () => Number((await db.query<{ n: number }>(CONTAGEM_SQL.usuarios)).rows[0]?.n ?? 0), 'usuários');
 }

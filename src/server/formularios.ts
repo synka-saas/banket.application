@@ -2,6 +2,8 @@
 import { z } from 'zod';
 import { systemQuery, withTenant, type Db } from '../lib/db';
 import { sendMail } from '../lib/mail';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import { UserError, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import {
@@ -136,6 +138,7 @@ async function slugDisponivel(base: string): Promise<string> {
 }
 
 export async function criarFormulario(db: Db, tenantId: string, nome = 'Novo formulário'): Promise<string> {
+  await exigirLimiteDb(db, 'formularios_qtd', CONTAGEM_SQL.formularios_qtd, 'formulários ativos');
   const slug = await slugDisponivel(slugify(nome));
   const { rows } = await db.query<{ id: string }>(
     'INSERT INTO formularios (tenant_id, nome, slug, config) VALUES ($1, $2, $3, $4) RETURNING id',
@@ -145,6 +148,10 @@ export async function criarFormulario(db: Db, tenantId: string, nome = 'Novo for
 }
 
 export async function salvarFormulario(db: Db, id: string, input: FormularioInput) {
+  if (input.ativo) {
+    const { rows: antes } = await db.query<{ ativo: boolean }>('SELECT ativo FROM formularios WHERE id = $1', [id]);
+    if (antes[0] && !antes[0].ativo) await exigirLimiteDb(db, 'formularios_qtd', CONTAGEM_SQL.formularios_qtd, 'formulários ativos');
+  }
   try {
     const res = await db.query(
       `UPDATE formularios SET nome = $1, descricao = $2, slug = $3, ativo = $4, mensagem_sucesso = $5,

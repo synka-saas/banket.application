@@ -10,6 +10,11 @@ import { generateToken, hashToken } from '../lib/tokens';
 import { cnpjValido, cpfValido, somenteDigitos } from '../lib/documento';
 import { appUrl, sendMail } from '../lib/mail';
 import { emailLayout } from './emails';
+import { cadastroInicial } from './planos';
+
+/** De onde veio o cadastro: pelo site (teste do plano Profissional) ou pela vitrine do Banket Busca (plano gratuito). */
+export type OrigemCadastro = 'site' | 'busca';
+export const origemCadastro = (v: unknown): OrigemCadastro => (v === 'busca' ? 'busca' : 'site');
 
 type TipoToken = 'verificacao_email' | 'reset_senha' | 'link_acesso';
 
@@ -77,7 +82,7 @@ export const cadastroSchema = z
     if (erro) ctx.addIssue({ code: 'custom', message: erro });
   });
 
-export async function cadastrarConta(input: z.infer<typeof cadastroSchema>): Promise<void> {
+export async function cadastrarConta(input: z.infer<typeof cadastroSchema>, origem: OrigemCadastro = 'site'): Promise<void> {
   const { usuario, token } = await withSystem(async (db) => {
     const { rows } = await db.query<{ id: string; verificado: boolean }>(
       'SELECT id, email_verificado_em IS NOT NULL AS verificado FROM usuarios WHERE lower(email) = $1 FOR UPDATE',
@@ -89,15 +94,16 @@ export async function cadastrarConta(input: z.infer<typeof cadastroSchema>): Pro
     } else if (rows[0]) {
       // Cadastro anterior nunca confirmado: atualiza os dados e reenvia a confirmação
       id = rows[0].id;
-      await db.query(`UPDATE usuarios SET nome = $2, senha_hash = crypt($3, gen_salt('bf')), updated_at = now() WHERE id = $1`, [
+      await db.query(`UPDATE usuarios SET nome = $2, senha_hash = crypt($3, gen_salt('bf')), origem_cadastro = $4, updated_at = now() WHERE id = $1`, [
         id,
         input.nome,
         input.senha,
+        origem,
       ]);
     } else {
       const novo = await db.query<{ id: string }>(
-        `INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, crypt($3, gen_salt('bf'))) RETURNING id`,
-        [input.nome, input.email, input.senha]
+        `INSERT INTO usuarios (nome, email, senha_hash, origem_cadastro) VALUES ($1, $2, crypt($3, gen_salt('bf')), $4) RETURNING id`,
+        [input.nome, input.email, input.senha, origem]
       );
       id = novo.rows[0].id;
     }
@@ -237,8 +243,8 @@ export function slugify(texto: string): string {
 
 export async function criarEmpresa(usuario: OnboardingUser, input: z.infer<typeof empresaNovaSchema>): Promise<SessionUser> {
   return withSystem(async (db) => {
-    const { rows: u } = await db.query<{ nome: string; email: string; verificado: boolean }>(
-      'SELECT nome, email, email_verificado_em IS NOT NULL AS verificado FROM usuarios WHERE id = $1 FOR UPDATE',
+    const { rows: u } = await db.query<{ nome: string; email: string; verificado: boolean; origem_cadastro: string }>(
+      'SELECT nome, email, email_verificado_em IS NOT NULL AS verificado, origem_cadastro FROM usuarios WHERE id = $1 FOR UPDATE',
       [usuario.id]
     );
     if (!u[0]?.verificado) throw new UserError('Confirme seu e-mail antes de cadastrar a empresa.');
@@ -259,14 +265,17 @@ export async function criarEmpresa(usuario: OnboardingUser, input: z.infer<typeo
     let slug = base;
     for (let i = 2; usados.some((r) => r.slug === slug); i++) slug = `${base}-${i}`;
 
+    const origem = origemCadastro(u[0].origem_cadastro);
     const { rows: t } = await db.query<{ id: string }>(
-      `INSERT INTO tenants (nome, slug, tipo_pessoa, documento, razao_social, email, telefone, endereco, onboarding_completo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true) RETURNING id`,
-      [nome, slug, input.tipo_pessoa, documento, input.tipo_pessoa === 'PJ' ? input.razao_social : null, u[0].email, input.celular, input.endereco]
+      `INSERT INTO tenants (nome, slug, tipo_pessoa, documento, razao_social, email, telefone, endereco, onboarding_completo, origem_cadastro)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9) RETURNING id`,
+      [nome, slug, input.tipo_pessoa, documento, input.tipo_pessoa === 'PJ' ? input.razao_social : null, u[0].email, input.celular, input.endereco, origem]
     );
     const tenantId = t[0].id;
     // Padrões da empresa: status do Kanban, tipos, formatos, categorias, faixas, template e blocos da proposta
     await db.query('SELECT aplicar_padroes_tenant_completo($1)', [tenantId]);
+    // Plano inicial: Busca (cadastro pela vitrine) ou teste de 30 dias do Profissional (cadastro pelo site)
+    await cadastroInicial(db, tenantId, origem, usuario.id);
     await db.query(
       `INSERT INTO configuracoes_tenant (tenant_id, assinatura_nome, assinatura_cargo, assinatura_telefone)
        VALUES ($1, $2, 'Proprietário', $3)

@@ -89,6 +89,9 @@ src/
     senha.ts           política de senha
     estoqueRazoes.ts   motivos das movimentações de estoque e os campos que cada um exige (puro)
     financeiro.ts      rótulos, situação da conta (vencida é calculada) e geração das parcelas do plano de pagamento (puro)
+    planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
+                       gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
+                       excedentes.ts (regras puras do teste grátis e do rebaixamento)
     pesquisa.ts        tipos de pergunta, NPS/CSAT (classes, zonas) e validação das respostas da pesquisa (puro)
     cripto.ts          AES-256-GCM com chave derivada do JWT_SECRET (tokens OAuth do Google guardados cifrados)
     google.ts          OAuth do Google (state assinado + nonce), perfil, renovação de token e Calendar API (evento + Meet)
@@ -124,6 +127,9 @@ src/
                        (Assistente de Orçamentos IA: alertas de estoque, sugestões, aplicar troca), comum.ts (histórico, limite)
     financeiro.ts      contas a receber/pagar, categorias, baixa, plano de pagamento do evento, contas do estoque, CSV
     pesquisas.ts       pesquisa de satisfação: questionário, envio pelo Inbox, página pública (token), indicadores
+    planos.ts          planos da empresa: único dono de tenants.plano_id (trocarPlano), teste grátis, rebaixamento para o
+                       plano Busca, excedentes, push do Manager, eventos de upsell, e-mails do teste, contagens dos limites
+    agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
@@ -440,6 +446,23 @@ transferencia | dinheiro | cheque | outro`), `documento`, `observacoes`, `origem
 calculada: aberta com vencimento antes de hoje), `pago_em`, `valor_pago` (aceita juros/desconto; CHECK exige os dois
 quando paga), `usuario_id`, `baixa_usuario_id`.
 
+### Planos
+
+**`planos`** — catálogo do próprio Banket (sem RLS; o papel do app só lê): `slug` (`busca` gratuito, `essencial`,
+`profissional`, `prime`, `completo` interno), `nome`, `gratuito`, `publico`, `ativo`, `ordem`, `preco_mensal/anual`,
+`trial_dias` (30), `recursos` JSONB (`{slug: true|false|int}`, `-1` = sem limite; slugs em `lib/planos/recursos.ts`),
+`stripe_*` (padrão Hwesta, uso futuro). Valores versionados pela migration `031`.
+**`tenants`** ganhou `plano_id`, `plano_pendente_id`, `trial_ate` (último dia do teste), `trial_iniciado_em`,
+`trial_usado_em` (um teste por empresa), `trial_recusado_em`, `plano_rebaixado_em`, `origem_cadastro` (`site | busca`);
+`usuarios.origem_cadastro`; `tenant_usuarios.bloqueado_plano_em` (vínculo desativado por excedente do plano).
+**`tenant_plano_historico`** — uma linha por troca (`motivo`: cadastro, migracao, trial_iniciado, trial_encerrado,
+upgrade, downgrade, hwesta, backoffice, assinatura, cancelamento; `origem`: app, hwesta, agendador, migracao, stripe).
+**`plano_avisos`** — dedup dos e-mails do teste (PK tenant + chave `trial:<data>:d7|d1|d0`).
+**`busca_upsell_eventos`** — funil de upsell: `tipo` (cadeado_visto, cta_clicado, planos_visitado, trial_iniciado,
+trial_recusado, assinatura_concluida, rebaixado), `recurso`, `dados`.
+**`hwesta_entitlements`** passou a ser **override** por empresa (`capabilities` sobrepõe `planos.recursos`) e espelho
+do último push; a verdade do plano é `tenants.plano_id`.
+
 ### Pesquisa de satisfação
 
 **`pesquisa_config`** — PK `tenant_id`: `titulo`, `introducao`, `agradecimento` (página pública), `email_assunto`,
@@ -466,6 +489,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `aplicar_padroes_documentos(id)` | modelo "Contrato de prestação de serviços" (texto genérico de exemplo) |
 | `aplicar_padroes_financeiro(id)` | categorias iniciais de contas a receber e a pagar |
 | `aplicar_padroes_pesquisa(id)` | `pesquisa_config` (textos e e-mail) + questionário inicial (NPS, CSAT, escolhas, abertas) |
+| `fn_tenant_entitlements(id)` | **fonte única do plano**: `{sem_plano, plano_slug, gratuito, trial, trial_vencido, trial_usado, recursos, override}` (SECURITY DEFINER, datas em São Paulo); atalhos `fn_tenant_pode(id, recurso)` e `fn_tenant_limite(id, recurso)` |
 | `aplicar_padroes_tenant_completo(id)` | chama as sete acima; usado no cadastro de empresa nova |
 
 ### Histórico das migrations
@@ -502,6 +526,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `026_estoque` | `estoque_itens` (saldo, mínimo, custo médio, ligação com o cardápio) e `estoque_movimentos` (motivo, NF, evento, espaço) |
 | `028_financeiro` | `fin_categorias`, `fin_contas` (RLS), `aplicar_padroes_financeiro` (backfill em toda empresa), `aplicar_padroes_tenant_completo` com 6 chamadas |
 | `029_pesquisas` | `pesquisa_config`, `pesquisa_perguntas`, `pesquisa_envios`, `pesquisa_respostas` (RLS), `aplicar_padroes_pesquisa` (backfill), `aplicar_padroes_tenant_completo` com 7 chamadas |
+| `031_planos` | catálogo `planos` (Busca, Essencial, Profissional, Prime, Completo), plano e teste em `tenants`, `tenant_plano_historico`, `plano_avisos`, `busca_upsell_eventos`, `fn_tenant_*`; backfill de todas as empresas no Completo |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
 ### Seeds (somente dev, `--seed`)
@@ -509,7 +534,8 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 `001` tenant Banket + usuários · `002` tenant "Outro Buffet" (isolamento) · `003` ajuste de tipos/categorias demo ·
 `004` catálogo e opções a partir de `public/ref` · `005` staff e profissionais · `006` eventos demo · `007` template e
 blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario) · `009` espaço de terceiro "Sede
-TechCorp" ligado ao evento corporativo. `_legacy_*` são ignorados.
+TechCorp" ligado ao evento corporativo · `010` empresa "Buffet Gratuito Demo" no plano Busca
+(`gratuito@buffetgratis.com.br`, owner). `_legacy_*` são ignorados.
 
 ---
 
@@ -530,6 +556,11 @@ TechCorp" ligado ao evento corporativo. `_legacy_*` são ignorados.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
 - `/configuracoes*`, `/api/configuracoes*`, `/financeiro*`, `/api/financeiro*` e a aba `/eventos/:id/financas`: só
   `owner` e `admin` (403 / redirect para o dashboard).
+- **Plano** (depois do papel): `locals.plano` = `entitlements(tenant)` (cache 15 s). Teste vencido depois de D+1 12h
+  rebaixa na hora. `/` e `/dashboard` sem o recurso `propostas` vão para `/busca`. Rota de módulo fora do plano
+  (`recursoDaRota`, `lib/planos/rotas.ts`): API/print → `403 {code: 'RECURSO_FORA_DO_PLANO', recurso, upgrade_url}`;
+  página → `<início do plano>?bloqueado=<recurso>`, que abre o painel de upsell. Livres: `/busca`, `/planos`, `/conta`,
+  `/suporte`, `/api/sessao`, `/api/planos`, `/uploads`.
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
   (exceto `/f/*`, que pode ser incorporado no site do buffet), HSTS em produção.
 - CSRF: `security.checkOrigin` do Astro; `allowedDomains` confia no `X-Forwarded-*` só para `app.banket.com.br` e localhost.
@@ -954,6 +985,31 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   com Desfazer no aviso.
 - Filtros e período (selects de listagem, dashboard): aplicam na hora, não precisam de confirmação.
 
+### Planos e gating — `/planos`, `/busca` (`lib/planos/*`, `server/planos.ts`, `server/agendador.ts`)
+- **Modelo**: o Banket Busca é uma funcionalidade liberada por plano. **Plano Busca** (gratuito, `publico = false`):
+  só o menu Banket Busca, 1 usuário, 5 fotos, 3 tipos de evento e 3 de serviço, sem cardápio no perfil, aviso de pedido
+  só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
+  **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031. Detalhes em `PLANO.md`.
+- **Gating**: nunca leia `planos` para decidir; use `podeUsar`/`limite`/`exigir`/`exigirLimite`/`exigirLimiteDb` de
+  `lib/planos/gating.ts` no servidor (a interface só espelha). `ErroPlano` vira 403 JSON no `jsonEndpoint` e mensagem em
+  `userMessage`. Empresa **sem plano** é permissiva. Recurso novo: slug em `RECURSOS` (`recursos.ts`), valor em cada
+  plano (migration nova com `UPDATE planos SET recursos = recursos || '{…}'`), prefixo em `rotas.ts` se for módulo,
+  `recurso` no item de `nav.ts`.
+- **Limites aplicados** (contagens em `CONTAGEM_SQL`): usuários (convite e reativação; ativos + convites pendentes),
+  espaços, templates, opções de cardápio, formulários, modelos de documento e de e-mail e itens de estoque (contam os
+  ativos: criar ativo ou reativar ocupa vaga), análises de IA e fundos de template por mês (fuso SP).
+- **Menu**: itens fora do plano ficam com cadeado (`nav-item--bloqueado`, `data-bloqueado`); o clique abre o painel
+  (`components/planos/Upsell.astro`, no `AppLayout`), que também abre com `?bloqueado=` e com qualquer `fetch` 403 de
+  plano. Item "Banket Busca" com a marca (logo + pílula "busca"). Card do plano no rodapé da sidebar (owner/admin).
+- **Teste grátis**: a partir do plano gratuito, owner/admin, uma vez por empresa (`trial_usado_em`), 30 dias
+  (`/planos` ou `POST /api/planos/trial {plano_id}`; `DELETE` = "não tenho interesse", some por 30 dias).
+  Cadastro pelo site já nasce no teste do Profissional; `?plano=busca` em `/auth/cadastro` nasce no plano Busca.
+- **Fim do teste** sem conversão: volta ao plano Busca às 12h (SP) do dia seguinte a `trial_ate` (agendador a cada
+  10 min ou a próxima página da empresa). Excedentes: ficam o proprietário e os vínculos mais recentes até o limite;
+  os demais ficam `ativo = false` + `bloqueado_plano_em` (nada é apagado; o upgrade reativa). Avisos D-7, D-1 e D0 às
+  9h por e-mail para owner/admin.
+- **Conversão** (sem Stripe por enquanto): o Manager troca o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.
+
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
@@ -1087,7 +1143,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
   (agenda-dashboard, autoatendimento, cardápio, conta, drawer, estoque, eventos, financeiro, formulários, listas, mobile,
-  orçamento, pesquisas, segurança, staff, templates).
+  orçamento, pesquisas, planos, segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
@@ -1110,6 +1166,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
+| `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |
 
 ---
@@ -1182,5 +1239,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   por isso "Ativar agenda" usa `?agenda=1`.
 - Contas do financeiro sobrevivem à exclusão do evento (`evento_id` SET NULL); os e2e as apagam explicitamente
   (`removerEventoBanco` em `tests/e2e/helpers.ts`).
+- O plano fica 15 s em cache por processo: uma troca feita pelo Manager ou direto no banco demora até 15 s para valer na
+  outra cor do blue-green (e nos e2e). Toda troca passa por `trocarPlano`, que invalida o cache do próprio processo.
+- `registrarUpsell` usa SAVEPOINT: evento de funil nunca aborta a transação de quem chama.
 - O link da pesquisa (`/p/<token>`) é a credencial do cliente: não exponha o token fora das telas da empresa.
 - A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

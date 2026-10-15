@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/styles.css">
+  <script src="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/_ds_bundle.js"></script>
+</helmet>
+<sc-if value="{{ isDrawer }}" hint-placeholder-val="{{ true }}">
+  <x-import component-from-global-scope="BanketDesignSystem_f9651f.Drawer" open="{{ true }}" contained="{{ true }}" title="{{ title }}" subtitle="{{ subtitle }}" width="{{ width }}" onClose="{{ close }}" hint-size="100%,100%">
+    <sc-if value="{{ form }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:22px;font-family:var(--font-sans)">
+        <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:13px;font-weight:500;color:var(--text-heading)">Enviando para</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ buffets }}" as="b" hint-placeholder-count="3"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Tag" tone="accent" icon="check" hint-size="120px,22px">{{ b }}</x-import></sc-for></div>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500;color:var(--text-strong)">Seu evento</span><span style="font-size:13px;color:var(--text-muted)">Preenchido com a sua busca. Altere se precisar.</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(180px, calc(50% - 8px)), 1fr));gap:14px 16px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Tipo de evento" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" options="{{ eventTypes }}" defaultValue="Aniversário infantil" hint-size="100%,40px"></x-import></x-import>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Local" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="map-pin" defaultValue="Santo André, SP" hint-size="100%,40px"></x-import></x-import>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Data do evento" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="calendar" defaultValue="14/11/2026" hint-size="100%,40px"></x-import></x-import>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Convidados" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" icon="users" defaultValue="80" suffix="convidados" hint-size="100%,40px"></x-import></x-import>
+          </div>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Observações" optional="{{ true }}" hint-size="100%,120px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Textarea" placeholder="Tema da festa, horário, restrições alimentares, se precisa de decoração ou monitores…" hint-size="100%,88px"></x-import></x-import>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding-top:20px;border-top:1px solid var(--border-subtle)">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500;color:var(--text-strong)">Seus dados</span><span style="font-size:13px;color:var(--text-muted)">Vão apenas para os buffets escolhidos.</span></div>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Nome" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" placeholder="Seu nome completo" hint-size="100%,40px"></x-import></x-import>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(180px, calc(50% - 8px)), 1fr));gap:14px 16px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="E-mail" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" type="email" placeholder="voce@email.com" hint-size="100%,40px"></x-import></x-import>
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="WhatsApp" required="{{ true }}" hint-size="100%,64px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" prefix="+55" placeholder="(11) 9 0000-0000" hint-size="100%,40px"></x-import></x-import>
+          </div>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Checkbox" size="sm" defaultChecked="{{ true }}" label="Aceito receber as propostas por WhatsApp e e-mail" hint-size="100%,20px"></x-import>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="primary" size="lg" icon="send" block="{{ true }}" onClick="{{ submit }}" hint-size="100%,48px">{{ cta }}</x-import>
+          <span style="font-size:12px;text-align:center;color:var(--text-muted)">Grátis e sem compromisso.</span>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ sent }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:24px;font-family:var(--font-sans)">
+        <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:20px 8px 4px">
+          <span style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:20px;background:var(--sage-50);color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 30 }}" hint-size="30px,30px"></x-import></span>
+          <h2 style="font-size:22px;letter-spacing:-.01em;color:var(--text-strong)">{{ sentTitle }}</h2>
+          <p style="font-size:14px;line-height:1.55;color:var(--text-secondary);max-width:40ch">Os buffets costumam responder em até 24 horas pelo WhatsApp (11) 9 8765-4321 ou pelo e-mail ana.ribeiro@gmail.com.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:18px 20px;background:var(--clay-25);border:1px solid var(--border-default);border-radius:12px">
+          <span style="font-size:13px;font-weight:500;color:var(--text-heading)">O que acontece agora</span>
+          <sc-for list="{{ next }}" as="n" hint-placeholder-count="3">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <span style="flex:none;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--terracotta-50);color:var(--terracotta-700);font-size:12px;font-weight:500">{{ n.i }}</span>
+              <span style="font-size:14px;line-height:1.5;color:var(--text-body);padding-top:1px">{{ n.t }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;border:1px solid var(--border-default);border-radius:12px;overflow:hidden">
+          <sc-for list="{{ buffets }}" as="b" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-subtle);background:var(--bg-surface)">
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="{{ b }}" size="sm" hint-size="28px,28px"></x-import>
+              <span style="flex:1;font-size:14px;font-weight:500;color:var(--text-heading)">{{ b }}</span>
+              <x-import component-from-global-scope="BanketDesignSystem_f9651f.StatusBadge" status="sent" dot="{{ true }}" hint-size="70px,22px">Enviado</x-import>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" onClick="{{ close }}" style="flex:1" hint-size="160px,40px">Voltar aos resultados</x-import>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="primary" onClick="{{ close }}" style="flex:1" hint-size="160px,40px">Ver buffets parecidos</x-import>
+        </div>
+      </div>
+    </sc-if>
+  </x-import>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:900},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;mobile&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'mobile'&quot;},&quot;sent&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;buffets&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;}}">
+class Component extends DCLogic {
+  state = { sent: !!this.props.sent };
+  renderVals() {
+    const p = this.props;
+    const buffets = p.buffets && p.buffets.length ? p.buffets : ["Buffet Sabor de Festa"];
+    const multi = buffets.length > 1;
+    const sent = this.state.sent;
+    return {
+      isDrawer: true,
+      title: sent ? "Pedido enviado" : "Pedir orçamento",
+      subtitle: multi ? "Um pedido, " + buffets.length + " buffets" : "Para " + buffets[0],
+      width: p.device === "mobile" ? "100%" : 560,
+      multi, buffets, sent, form: !sent,
+      cta: multi ? "Enviar para os " + buffets.length + " buffets" : "Enviar pedido de orçamento",
+      sentTitle: multi ? "Pedido enviado para " + buffets.length + " buffets" : "Pedido enviado para " + buffets[0],
+      eventTypes: ["Aniversário infantil", "Aniversário adulto", "Casamento", "15 anos", "Formatura", "Corporativo", "Coffee break", "Confraternização", "Outro"],
+      next: [
+        { i: "1", t: "Cada buffet confere a data e monta a proposta." },
+        { i: "2", t: "Você recebe os orçamentos no WhatsApp e no e-mail." },
+        { i: "3", t: "Compare, tire dúvidas e feche com o escolhido." }
+      ],
+      submit: () => this.setState({ sent: true }),
+      close: () => { if (p.onClose) p.onClose(); else this.setState({ sent: false }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

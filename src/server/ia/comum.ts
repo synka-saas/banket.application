@@ -2,7 +2,9 @@
 import type { Db } from '../../lib/db';
 import type { SessionUser } from '../../lib/auth';
 import { UserError } from '../../lib/forms';
+import { exigirLimite } from '../../lib/planos/gating';
 import { permitir } from '../../lib/rateLimit';
+import { CONTAGEM_SQL } from '../planos';
 
 export type TipoAnalise = 'negociacao' | 'cardapio';
 
@@ -22,6 +24,11 @@ export function conferirLimiteIa(tenantId: string) {
   if (!permitir(`ia-analise:${tenantId}`, 20, 10 * 60_000)) {
     throw new UserError('Muitas análises de IA em pouco tempo. Aguarde alguns minutos e tente de novo.');
   }
+}
+
+/** Cota mensal de análises do plano (ia_analises_mes). Chamar antes da análise, dentro do tenant. */
+export async function conferirCotaIa(db: Db, tenantId: string) {
+  await exigirLimite(tenantId, 'ia_analises_mes', async () => Number((await db.query<{ n: number }>(CONTAGEM_SQL.ia_analises_mes)).rows[0]?.n ?? 0), 'análises de IA por mês');
 }
 
 export async function guardarAnalise<T>(

@@ -11,8 +11,8 @@ aplica planos e centraliza os chamados de suporte. O Manager **nunca** lê o ban
 |---|---|---|
 | `accounts`, `users` | sim | `tenants` e `tenant_usuarios` + `usuarios` |
 | `kill_switch` | sim | `tenants.status` (`active` / `suspended` / `canceled`), conferido a cada requisição |
-| `entitlements_push` | sim | o Manager é o catálogo de planos; aqui fica só o snapshot |
-| `plans_catalog` | **não** | o Banket não tem planos próprios |
+| `entitlements_push` | sim | `plan_slug` do catálogo do Banket troca o plano da conta; `capabilities` viram override por conta |
+| `plans_catalog` | **sim** (desde a migration 031) | o catálogo é do Banket (tabela `planos`); `GET /plans` devolve cada plano com os `recursos` como capabilities, mais `is_free`/`is_public` |
 | `users_status` | sim | liga/desliga o vínculo (`tenant_usuarios.ativo`); o último proprietário ativo não pode ser desativado (409) |
 | `users_reset_password` | **não** | o usuário redefine a senha sozinho em `/auth/recuperacao` |
 | `events`, `tickets` | sim | eventos ficam em `hwesta_events`; chamados pela tela **Suporte** |
@@ -63,6 +63,25 @@ Pontos de atenção:
 - O formulário público (`/f/:slug`) de uma empresa suspensa **continua recebendo pedidos**: a suspensão tira o
   acesso dos usuários, não descarta contatos de clientes do buffet.
 - `suspenso_motivo` é interno (vem do operador do Manager) e não é mostrado ao usuário.
+
+## Planos (desde a migration 031)
+
+O Banket passou a ser dono do catálogo (tabela `planos`: Busca gratuito, Essencial, Profissional, Prime e Completo
+interno). A fonte única do que a empresa pode usar é `fn_tenant_entitlements` (plano de `tenants.plano_id` +
+override). O que o Manager faz:
+
+- **Ler o catálogo**: `GET /api/hwesta/v1/plans`.
+- **Trocar o plano** de uma conta (ex.: converter o teste em assinatura enquanto não há Stripe no app):
+  `PUT /api/hwesta/v1/accounts/:id/entitlements` com `plan_slug` de um plano ativo do catálogo. A troca passa por
+  `server/planos.ts` (histórico `motivo = 'hwesta'`, encerra o teste, restaura excedentes ao sair do gratuito; ir para
+  `busca` rebaixa com excedentes). `plan_slug` desconhecido → 409.
+- **Override por conta**: `capabilities` no mesmo push sobrepõem os recursos do plano (ex.: `{"usuarios": 8}` ou
+  `{"inbox": true}`). Enviar `{}` remove o override.
+- `GET /accounts/:id` devolve `plan_slug`/`plan_name` do plano atual e `status = 'trial'` durante o teste;
+  `extra.plan_free`, `extra.trial_ends_at` e `extra.signup_source` (`site | busca`).
+
+O texto abaixo (`can`/`limit` de `lib/hwesta`) continua valendo para chaves livres do Manager, mas o gating do app
+usa `lib/planos/gating.ts`.
 
 ## Planos e limites (`can` / `limit`)
 

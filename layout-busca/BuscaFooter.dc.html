@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/styles.css">
+  <script src="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/_ds_bundle.js"></script>
+</helmet>
+<footer style="background:var(--clay-900);color:var(--clay-300);padding:56px clamp(16px, 4.4cqw, 64px) 28px;font-family:var(--font-sans)">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(150px, 15%), 1fr));gap:36px 24px">
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:200px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Logo" tone="light" height="{{ 24 }}" hint-size="91px,24px"></x-import>
+        <span style="display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;background:var(--terracotta-500);color:#fff;font-size:12px;font-weight:500;line-height:1;margin-top:3px">busca</span>
+      </div>
+      <p style="font-size:13px;line-height:1.55;color:var(--clay-400);max-width:30ch">Buffets e catering para eventos sociais e corporativos em São Paulo e região.</p>
+    </div>
+    <sc-for list="{{ cols }}" as="col" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--clay-500)">{{ col.title }}</span>
+        <sc-for list="{{ col.links }}" as="l" hint-placeholder-count="4">
+          <a href="#" style="font-size:14px;color:var(--clay-200)">{{ l }}</a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;margin-top:44px;padding-top:20px;border-top:1px solid var(--clay-800);font-size:12px;color:var(--clay-500)">
+    <span>© 2026 Banket · CNPJ 41.552.180/0001-07</span>
+    <div style="display:flex;gap:20px"><a href="#" style="color:var(--clay-400)">Termos de uso</a><a href="#" style="color:var(--clay-400)">Privacidade</a></div>
+  </div>
+</footer>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:340}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      cols: [
+        { title: "Banket Busca", links: ["Como funciona", "Para buffets", "Central de ajuda"] },
+        { title: "Eventos", links: ["Aniversário infantil", "Casamento", "15 anos", "Corporativo"] },
+        { title: "Cidades", links: ["São Paulo", "Campinas", "Santo André", "São Bernardo do Campo"] },
+        { title: "Banket", links: ["Sistema de gestão", "Fale com a gente"] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

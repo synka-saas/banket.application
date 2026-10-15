@@ -1,20 +1,25 @@
 // Adapter HCP do Banket. Destino: src/lib/hwesta/adapter.ts
-// Modelo: tenants (conta) N:N usuarios via tenant_usuarios(role, ativo). Sem planos no app:
-// o catálogo vive no Manager e chega aqui como snapshot em hwesta_entitlements.
+// Modelo: tenants (conta) N:N usuarios via tenant_usuarios(role, ativo). O catálogo de planos é do próprio
+// Banket (tabela `planos`, migration 031; plans_catalog = true): o Manager lê o catálogo, troca o plano de uma
+// conta por `plan_slug` e envia `capabilities` como override por conta (hwesta_entitlements).
 import pkg from '../../../package.json';
 import { systemQuery, withSystem } from '../db';
 import { invalidateTenant } from '../membership';
+import { aplicarDoManager } from '../../server/planos';
 import {
   HwestaError,
-  type HwestaAccount, type HwestaAccountStatus, type HwestaAdapter, type HwestaEntitlements, type HwestaEvent, type HwestaUser,
+  type HwestaAccount, type HwestaAccountStatus, type HwestaAdapter, type HwestaEntitlements, type HwestaEvent, type HwestaPlan, type HwestaUser,
 } from './types';
 
 const ACCOUNT_SQL = `
   SELECT t.id, t.nome, t.razao_social, t.documento, t.email, t.telefone, t.status, t.slug,
          t.tipo_pessoa, t.segmento, t.porte, t.onboarding_completo, t.created_at, t.updated_at,
+         t.trial_ate, t.origem_cadastro,
          o.nome AS owner_name, o.email AS owner_email, o.telefone AS owner_phone,
          (SELECT count(*)::int FROM tenant_usuarios tu WHERE tu.tenant_id = t.id AND tu.ativo) AS user_count,
-         e.plan_slug, e.plan_name, e.status AS ent_status
+         p.slug AS plan_slug, p.nome AS plan_name, p.gratuito AS plan_free,
+         (t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.trial_ate >= (now() AT TIME ZONE 'America/Sao_Paulo')::date) AS em_trial,
+         e.status AS ent_status
     FROM tenants t
     LEFT JOIN LATERAL (
       SELECT u.nome, u.email, u.telefone
@@ -22,13 +27,15 @@ const ACCOUNT_SQL = `
        WHERE tu.tenant_id = t.id AND tu.role = 'owner'
        ORDER BY tu.created_at ASC LIMIT 1
     ) o ON true
+    LEFT JOIN planos p ON p.id = t.plano_id
     LEFT JOIN hwesta_entitlements e ON e.tenant_id = t.id`;
 
 const iso = (v: unknown): string | null => (v ? new Date(v as string).toISOString() : null);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function toAccount(r: any): HwestaAccount {
-  const commercial: HwestaAccountStatus = ['trial', 'past_due'].includes(r.ent_status) ? r.ent_status : 'active';
+  // Em teste → 'trial'; inadimplência vem do Manager (past_due) até o Stripe existir no app
+  const commercial: HwestaAccountStatus = r.em_trial ? 'trial' : r.ent_status === 'past_due' ? 'past_due' : 'active';
   return {
     id: r.id,
     name: r.nome,
@@ -45,7 +52,10 @@ function toAccount(r: any): HwestaAccount {
     user_count: r.user_count ?? 0,
     created_at: iso(r.created_at),
     updated_at: iso(r.updated_at),
-    extra: { slug: r.slug, tipo_pessoa: r.tipo_pessoa, segmento: r.segmento, porte: r.porte, onboarding_completo: r.onboarding_completo },
+    extra: {
+      slug: r.slug, tipo_pessoa: r.tipo_pessoa, segmento: r.segmento, porte: r.porte, onboarding_completo: r.onboarding_completo,
+      plan_free: r.plan_free ?? null, trial_ends_at: r.trial_ate ? String(r.trial_ate).slice(0, 10) : null, signup_source: r.origem_cadastro ?? 'site',
+    },
   };
 }
 
@@ -62,11 +72,20 @@ const adapter: HwestaAdapter = {
   name: 'Banket',
   version: (pkg as { version?: string }).version ?? '0.0.0',
   capabilities: {
-    accounts: true, users: true, plans_catalog: false, entitlements_push: true, kill_switch: true,
+    accounts: true, users: true, plans_catalog: true, entitlements_push: true, kill_switch: true,
     users_status: true, users_reset_password: false, events: true, tickets: true,
   },
 
-  async listPlans() { return []; },
+  /** Catálogo do Banket (tabela planos): um item por plano ativo, com os recursos como capabilities. */
+  async listPlans(): Promise<HwestaPlan[]> {
+    const { rows } = await systemQuery(
+      `SELECT id, slug, nome, gratuito, publico, ativo, preco_mensal, recursos FROM planos WHERE ativo ORDER BY ordem, nome`
+    );
+    return rows.map((p: any) => ({
+      id: p.id, slug: p.slug, name: p.nome, price: Number(p.preco_mensal ?? 0), billing_cycle: 'monthly' as const,
+      is_active: p.ativo, capabilities: { ...(p.recursos ?? {}), is_free: p.gratuito, is_public: p.publico },
+    }));
+  },
 
   async listAccounts({ page, perPage, updatedSince, q }) {
     const where = `WHERE ($1::text IS NULL OR t.nome ILIKE '%' || $1 || '%' OR t.razao_social ILIKE '%' || $1 || '%'
@@ -108,26 +127,36 @@ const adapter: HwestaAdapter = {
     return adapter.getAccount(id);
   },
 
+  /**
+   * Push do Manager: `plan_slug` do catálogo troca o plano da conta (server/planos.ts, com histórico);
+   * `capabilities` ficam como override por conta. `plan_slug` desconhecido → 409.
+   */
   async applyEntitlements(accountId, ent) {
     if (!UUID_RE.test(accountId)) return false;
-    const { rowCount } = await systemQuery(
-      `INSERT INTO hwesta_entitlements (tenant_id, plan_slug, plan_name, status, capabilities, expires_at, source, pushed_at, synced_at)
-       SELECT t.id, $2, $3, $4, $5::jsonb, $6, $7, $8, now() FROM tenants t WHERE t.id = $1
-       ON CONFLICT (tenant_id) DO UPDATE SET
-         plan_slug = EXCLUDED.plan_slug, plan_name = EXCLUDED.plan_name, status = EXCLUDED.status,
-         capabilities = EXCLUDED.capabilities, expires_at = EXCLUDED.expires_at, source = EXCLUDED.source,
-         pushed_at = EXCLUDED.pushed_at, synced_at = now()`,
-      [accountId, ent.plan_slug, ent.plan_name, ent.status, JSON.stringify(ent.capabilities ?? {}), ent.expires_at, ent.source ?? null, ent.pushed_at ?? null]);
-    return (rowCount ?? 0) > 0;
+    if (ent.plan_slug) {
+      const { rows } = await systemQuery('SELECT 1 FROM planos WHERE slug = $1 AND ativo', [ent.plan_slug]);
+      if (!rows.length) throw new HwestaError(`Plano "${ent.plan_slug}" não existe no catálogo do Banket.`, 409);
+    }
+    return aplicarDoManager(accountId, ent);
   },
 
+  /** Plano atual (fonte: tenants.plano_id) + override enviado pelo Manager. */
   async getEntitlements(accountId) {
     if (!UUID_RE.test(accountId)) return null;
     const { rows } = await systemQuery(
-      `SELECT plan_slug, plan_name, status, capabilities, expires_at, source, pushed_at FROM hwesta_entitlements WHERE tenant_id = $1`, [accountId]);
+      `SELECT p.slug AS plan_slug, p.nome AS plan_name, p.recursos,
+              (t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.trial_ate >= (now() AT TIME ZONE 'America/Sao_Paulo')::date) AS em_trial,
+              t.trial_ate, e.capabilities, e.expires_at, e.source, e.pushed_at
+         FROM tenants t LEFT JOIN planos p ON p.id = t.plano_id LEFT JOIN hwesta_entitlements e ON e.tenant_id = t.id
+        WHERE t.id = $1`, [accountId]);
     const r = rows[0];
     if (!r) return null;
-    return { ...r, expires_at: iso(r.expires_at), pushed_at: iso(r.pushed_at) ?? undefined } as HwestaEntitlements;
+    return {
+      plan_slug: r.plan_slug ?? null, plan_name: r.plan_name ?? null, status: r.em_trial ? 'trial' : 'active',
+      capabilities: { ...(r.recursos ?? {}), ...(r.capabilities ?? {}) },
+      expires_at: r.trial_ate ? String(r.trial_ate).slice(0, 10) : iso(r.expires_at),
+      source: r.source ?? undefined, pushed_at: iso(r.pushed_at) ?? undefined,
+    } as HwestaEntitlements;
   },
 
   async setUserStatus(accountId, userId, status) {

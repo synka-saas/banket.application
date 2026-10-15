@@ -8,7 +8,7 @@ import { dataCurta, faixaHorario } from '../../lib/datas';
 import { modeloTexto, openAiJson } from '../../lib/openai';
 import { carregarEvento } from '../eventos';
 import { NOMES_RESTRICOES } from '../../lib/calculo/orcamento';
-import { AVISO_DADOS, conferirLimiteIa, dataBr, guardarAnalise, trecho } from './comum';
+import { AVISO_DADOS, conferirCotaIa, conferirLimiteIa, dataBr, guardarAnalise, trecho } from './comum';
 
 export interface AnaliseNegociacao {
   resumo: string;
@@ -205,6 +205,7 @@ const SISTEMA = [
 
 export async function analisarNegociacao(db: Db, user: SessionUser, eventoId: string): Promise<string> {
   conferirLimiteIa(user.tenantId);
+  await conferirCotaIa(db, user.tenantId);
   const contexto = await contextoNegociacao(db, user, eventoId);
   const resultado = await openAiJson<AnaliseNegociacao>({
     sistema: SISTEMA,

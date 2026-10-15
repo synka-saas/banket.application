@@ -1,5 +1,6 @@
 // Navegação principal e submenus compartilhados entre páginas de um mesmo módulo.
 import { ROTULOS } from './rotulos';
+import type { Modulo } from './planos/recursos';
 
 /** Contadores mostrados ao lado de um item (chave = href), ex.: mensagens não lidas no Inbox */
 export type BadgesNavegacao = Record<string, number>;
@@ -12,27 +13,46 @@ export interface ItemNavegacao {
   adminOnly?: boolean;
   /** Entra na barra inferior do celular (os demais ficam no painel "Mais") */
   barra?: boolean;
+  /** Recurso do plano que libera o item (lib/planos); fora do plano, o item aparece com cadeado */
+  recurso?: Modulo;
+  /** Item com a marca própria (Banket Busca): ícone é o símbolo do logo com a pílula "busca" */
+  marca?: 'busca';
 }
 
 // Uma só lista para a sidebar (desktop) e a barra inferior + painel "Mais" (celular)
 export const NAV_PRINCIPAL: ItemNavegacao[] = [
-  { label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard', match: ['/dashboard'], barra: true },
-  { label: ROTULOS.funil, icon: 'layout-kanban', href: '/eventos', match: ['/eventos'], barra: true },
-  { label: 'Inbox', icon: 'mail', href: '/inbox', match: ['/inbox'] },
-  { label: 'Cardápios', icon: 'tools-kitchen-2', href: '/cardapio/secoes', match: ['/cardapio'] },
-  { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true },
-  { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true },
-  { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'] },
-  { label: 'Financeiro', icon: 'wallet', href: '/financeiro', match: ['/financeiro'], adminOnly: true },
-  { label: 'Estoque', icon: 'building-warehouse', href: '/estoque', match: ['/estoque'] },
-  { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'] },
-  { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'] },
-  { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'] },
-  { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'] },
-  { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'] },
-  { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true },
+  { label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard', match: ['/dashboard'], barra: true, recurso: 'propostas' },
+  { label: 'Banket Busca', icon: 'building-store', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
+  { label: ROTULOS.funil, icon: 'layout-kanban', href: '/eventos', match: ['/eventos'], barra: true, recurso: 'propostas' },
+  { label: 'Inbox', icon: 'mail', href: '/inbox', match: ['/inbox'], recurso: 'inbox' },
+  { label: 'Cardápios', icon: 'tools-kitchen-2', href: '/cardapio/secoes', match: ['/cardapio'], recurso: 'cardapios' },
+  { label: 'Clientes', icon: 'user-square', href: '/clientes', match: ['/clientes'], barra: true, recurso: 'clientes' },
+  { label: 'Agenda', icon: 'calendar', href: '/agenda', match: ['/agenda'], barra: true, recurso: 'agenda' },
+  { label: 'Formulários', icon: 'stack-2', href: '/formularios', match: ['/formularios'], recurso: 'formularios' },
+  { label: 'Financeiro', icon: 'wallet', href: '/financeiro', match: ['/financeiro'], adminOnly: true, recurso: 'financeiro' },
+  { label: 'Estoque', icon: 'building-warehouse', href: '/estoque', match: ['/estoque'], recurso: 'estoque' },
+  { label: 'Staff', icon: 'users', href: '/staff/profissionais', match: ['/staff'], recurso: 'staff' },
+  { label: ROTULOS.espacos, icon: 'building', href: '/espacos', match: ['/espacos'], recurso: 'espacos' },
+  { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'], recurso: 'templates' },
+  { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'], recurso: 'documentos' },
+  { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'], recurso: 'pesquisas' },
+  { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes' },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
+
+/** Itens do menu para a sessão: filtra por papel e marca o que está fora do plano (`bloqueado` = recurso). */
+export function itensDoMenu(
+  admin: boolean,
+  podeUsar: (recurso: Modulo) => boolean,
+  itens: ItemNavegacao[] = NAV_PRINCIPAL
+): (ItemNavegacao & { bloqueado: Modulo | null })[] {
+  return itens
+    .filter((item) => !item.adminOnly || admin)
+    .map((item) => ({ ...item, bloqueado: item.recurso && !podeUsar(item.recurso) ? item.recurso : null }));
+}
+
+/** Link de um item bloqueado: abre o painel de upsell na página inicial do plano. */
+export const linkBloqueado = (recurso: string, inicio: string) => `${inicio}?bloqueado=${encodeURIComponent(recurso)}`;
 
 export const navAtiva = (pathname: string, match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 

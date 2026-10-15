@@ -1,15 +1,18 @@
 # Banket SaaS — Estrutura Oficial de Planos Comerciais
 
-Este documento consolida a arquitetura comercial do **Banket**, SaaS multi-tenant voltado para gestão operacional, orçamentária, de suprimentos e de relacionamento de buffets e casas de eventos.
+Este documento consolida a arquitetura comercial do **Banket**, SaaS multi-tenant voltado para gestão operacional, orçamentária, financeira, de suprimentos e de relacionamento de buffets e casas de eventos.
 
 > **Atualização de 07/10/2026:** inclui os módulos lançados nesta data — Lista de Compras por evento, Estoque, Reuniões com Google Meet (login com Google), Assistente de Negociação IA, Assistente de Orçamentos IA e margem projetada do orçamento — e o catálogo completo de funcionalidades (seção 5). A distribuição desses novos recursos entre os planos (linhas marcadas com **★**) é uma proposta e precisa ser validada pela área comercial.
+>
+> **Atualização de 08/10/2026:** inclui a **Gestão Financeira** (contas a receber e a pagar, plano de pagamento acertado no fechamento do evento, aba Finanças do evento, fluxo de caixa, contas geradas pelas compras do estoque) e a **Pesquisa de Satisfação** pós-evento (metodologia NPS + CSAT, questionário editável, envio por e-mail com link de resposta e painel de resultados). A distribuição entre os planos segue como proposta (**★**).
 
 ## 1. Glossário de Conceitos e Modulagem
 
-As ferramentas do sistema estão divididas funcionalmente em quatro grandes grupos:
+As ferramentas do sistema estão divididas funcionalmente em cinco grandes grupos:
 
 * **Gestão Administrativa:** Ferramentas operacionais de governança e parametrização do negócio (gerenciamento do funcionamento do sistema, estrutura de catálogo, disposições visuais, espaços físicos, alocação de equipe e métricas de desempenho).
-* **Gestão de Relacionamento (CRM & Vendas):** Toda a dinâmica de interação direta e captação do cliente final (captação via formulários públicos, cadência no Painel de Propostas, geração e versionamento de orçamentos, disparos/rastreamento de propostas, conversas por e-mail, reuniões e contratos).
+* **Gestão de Relacionamento (CRM & Vendas):** Toda a dinâmica de interação direta e captação do cliente final (captação via formulários públicos, cadência no Painel de Propostas, geração e versionamento de orçamentos, disparos/rastreamento de propostas, conversas por e-mail, reuniões, contratos e pesquisa de satisfação pós-evento).
+* **Gestão Financeira:** O dinheiro que entra e sai (plano de pagamento de cada evento fechado, contas a receber e a pagar, baixas, vencimentos, fluxo de caixa e resultado previsto por evento). Restrita a proprietários e administradores.
 * **Operação & Suprimentos:** Planejamento do que o evento consome e controle do que a casa tem (lista de compras por evento a partir da porção por pessoa, estoque de consumíveis e não consumíveis, movimentações rastreáveis e base de custo para o CMV).
 * **Inteligência Artificial:** Assistentes que leem o histórico e os números do sistema para recomendar ações (negociação, composição do orçamento, identidade visual das propostas). As recomendações são sempre revisadas e aplicadas pelo usuário.
 
@@ -48,6 +51,10 @@ As ferramentas do sistema estão divididas funcionalmente em quatro grandes grup
 | **Assistente de Negociação IA** ★ | — | **Limitado** (30 análises/mês, somadas aos demais assistentes) | **Livre** |
 | **Assistente de Orçamentos IA** ★ | — | **Limitado** (cota compartilhada acima) | **Livre** (+ sugestões de giro de estoque) |
 | **Importação de clientes e itens por CSV** ★ | Básico | Básico | Básico |
+| **Gestão financeira: contas a receber e a pagar, baixa, plano de pagamento do evento** ★ | Básico | Livre | Livre |
+| **Financeiro: visão geral com fluxo de caixa, exportação CSV e resultado previsto por evento** ★ | — | Livre | Livre (+ custo do estoque consumido por evento) |
+| **Contas a pagar geradas pelas compras do estoque** ★ | — | Livre | Livre |
+| **Pesquisa de satisfação (NPS + CSAT)** ★ | **Limitado** (questionário padrão; link copiado e enviado por conta própria) | **Livre** (questionário editável, envio por e-mail pelo Inbox, painel de resultados) | **Livre** (idem, com análise por pergunta e por tipo de evento) |
 | **Módulo: Gestão Administrativa** | **Limitado** (Visões e regras padrão) | **Limitado** (Visões e regras padrão) | **Livre** (Total controle e customização) |
 | **Módulo: Gestão de Relacionamento** | **Limitado** (Fluxo padrão, sem automações/envios) | **Livre** (Fluxo flexível, envio integrado Resend) | **Livre** (Fluxo flexível, envio integrado Resend) |
 | **Painel de Propostas (Kanban)** | **Fixo** (Etapas padrão, não editável) | **Livre** (Etapas e campos customizáveis) | **Livre** (Múltiplos funis e customizável) |
@@ -69,6 +76,8 @@ As ferramentas do sistema estão divididas funcionalmente em quatro grandes grup
 * **Orçamento:** Construtor completo com cálculo automático (pagantes, cardápios, bebidas, staff, locação e extras), versionamento e prévia do PDF.
 * **Lista de Compras:** Quantidade de cada item do evento calculada pela porção por pessoa × convidados, com ajuste manual, marcação de comprado, linhas avulsas e exportação em CSV e PDF.
 * **Documentos:** 1 modelo de contrato com variáveis do evento, gerado em PDF numerado para download.
+* **Financeiro (Básico):** Plano de pagamento de cada evento fechado (entrada e parcelas com vencimento), contas a receber e a pagar com baixa, e a aba Finanças do evento com o resultado previsto.
+* **Pesquisa de Satisfação (Limitada):** Questionário padrão (NPS e notas de satisfação); o link de resposta é copiado e enviado pelo próprio buffet; resultados no painel de pesquisas.
 * **Formulários de Captação:** 1 formulário público para divulgação (link na bio do Instagram/WhatsApp).
 * **Painel de Propostas (Kanban):** Etapas fixas e padronizadas (ex: *Novo orçamento*, *Em negociação*, *Aprovado*, *Recusado*), sem permissão para renomear, reordenar ou criar novas fases.
 * **Gestão Administrativa (Limitada):** Acesso às configurações estruturais padrão, cadastro essencial de itens e visualização predefinida do sistema.
@@ -89,6 +98,8 @@ As ferramentas do sistema estão divididas funcionalmente em quatro grandes grup
 * **Documentos:** Até 3 modelos de contrato/documento, com envio pelo Inbox.
 * **Catálogo de Cardápios:** Até 7 cardápios ativos completos com ficha técnica/itens.
 * **Estoque (Limitado):** Até 200 itens consumíveis e não consumíveis, movimentações com motivo (compra com NF, consumo em evento, perda, quebra, transferência, contagem), custo médio e alertas de mínimo e validade. A Lista de Compras mostra o que o estoque já cobre.
+* **Financeiro (Livre):** Além do básico, visão geral com saldos, contas vencidas, fluxo de caixa mensal e vencimentos da semana, categorias próprias, exportação CSV e contas a pagar lançadas na própria entrada de compra do estoque.
+* **Pesquisa de Satisfação (Livre):** Questionário editável (perguntas fechadas de nota ou escolha e perguntas abertas), envio por e-mail dentro da conversa do evento, lembrete dos eventos realizados sem pesquisa e painel com NPS, satisfação por aspecto, comentários e respostas por pergunta.
 * **Margem projetada e Assistentes de IA (Limitado):** Margem de alimentos e bebidas calculada a cada alteração do orçamento; Assistente de Negociação IA e Assistente de Orçamentos IA com cota de 30 análises por mês.
 * **Formulários de Captação:** Até 3 formulários públicos independentes (ex: um formulário para festas infantis, um para eventos sociais e outro corporativo).
 * **Painel de Propostas (Kanban):** **Livre e Personalizável.** Permite adicionar, remover e ordenar colunas de acordo com a jornada comercial da casa.
@@ -108,6 +119,8 @@ As ferramentas do sistema estão divididas funcionalmente em quatro grandes grup
 * **Documentos:** Modelos de contrato **ilimitados**, cada um com identidade visual própria.
 * **Catálogo de Cardápios:** **Ilimitado.** Liberdade total para montar variações sazonais, pacotes especiais e múltiplos menus.
 * **Estoque (Livre):** Itens ilimitados, transferências entre espaços e custo gravado em cada saída como base do CMV por evento (custo real × orçado).
+* **Financeiro (Livre):** Tudo do Profissional, com o custo do estoque consumido (CMV) somado ao resultado de cada evento.
+* **Pesquisa de Satisfação (Livre):** Tudo do Profissional, com leitura dos resultados por período e por tipo de evento para acompanhar a qualidade de cada linha de serviço.
 * **Assistentes de IA (Livre):** Assistente de Negociação IA e Assistente de Orçamentos IA sem cota mensal, incluindo sugestões de giro de estoque (pratos que aproveitam insumos parados ou perto do vencimento) e substituições de maior margem aplicáveis com um clique.
 * **Formulários de Captação:** **Ilimitados**, segmentados por tipo de evento, campanhas de tráfego pago ou salões parceiros.
 * **Painel de Propostas (Kanban):** **Livre e Multi-Funil.** Criação de múltiplos funis simultâneos por segmento de venda.
@@ -128,16 +141,18 @@ As ferramentas do sistema estão divididas funcionalmente em quatro grandes grup
 | **Documentos e contratos** | De 1 para 3 modelos, com envio pelo Inbox. | Modelos ilimitados. |
 | **Suprimentos** ★ | Libera o Estoque (até 200 itens) e a cobertura da Lista de Compras pelo estoque. | Estoque ilimitado e base de CMV por evento. |
 | **Inteligência Artificial** ★ | Libera os dois assistentes de IA com cota mensal e a margem projetada. | Assistentes sem cota, com sugestões de giro de estoque. |
+| **Financeiro** ★ | Libera a visão geral com fluxo de caixa, exportação e as contas geradas pelo estoque. | Resultado do evento com o custo real do estoque consumido. |
+| **Pesquisa de satisfação** ★ | Libera o questionário editável, o envio por e-mail e o lembrete pós-evento. | Análise por período e por tipo de evento. |
 | **Administração** | Mantém a governança estrutural padrão. | Desbloqueia total controle de exibição, regras e gestão de dados. |
 
 ---
 
 ## 5. Catálogo Completo de Funcionalidades
 
-Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)** foram lançados em 07/10/2026.
+Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)** foram lançados em 07/10/2026 ou 08/10/2026.
 
 ### 5.1 Acesso, conta e empresa
-* Cadastro self-service com confirmação de e-mail e cadastro da empresa (PF com CPF ou PJ com CNPJ e razão social), já com etapas, formatos de serviço, categorias, espaço padrão, template, blocos de texto, formulário e contrato de exemplo.
+* Cadastro self-service com confirmação de e-mail e cadastro da empresa (PF com CPF ou PJ com CNPJ e razão social), já com etapas, formatos de serviço, categorias, espaço padrão, template, blocos de texto, formulário, contrato de exemplo, **categorias financeiras e questionário de satisfação (novo)**.
 * Login por e-mail e senha (com "manter conectado"), link de acesso sem senha, recuperação de senha e **login com Google (novo)**.
 * Usuário em várias empresas, com troca da empresa ativa; convites por e-mail com validade de 7 dias.
 * Papéis: Proprietário, Administrador e Usuário (sem acesso a Configurações); regras que garantem ao menos um proprietário ativo.
@@ -152,7 +167,7 @@ Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)**
 
 ### 5.3 Painel de Propostas (Kanban) e eventos
 * Kanban com as etapas da empresa (arrastar e soltar, cores próprias) e visão em lista paginada; filtros por busca, período, tipo, formato e etapa; intervalo de trabalho configurável; exportação CSV.
-* Etapas de fechamento: motivo da perda ao recusar e data ao aprovar, com desfazer.
+* Etapas de fechamento: motivo da perda ao recusar e data ao aprovar, com desfazer; ao aprovar, **oferta de cadastrar o plano de pagamento em seguida (novo)**.
 * Ficha do evento com briefing completo: cliente (novo ou existente), tipo, ocasião, formato de serviço, data e horário, convidados e perfil, espaço, infraestrutura, verba, forma de pagamento, qualificação, responsável, estilo gastronômico, bebidas, restrições alimentares, compliance e comentário do cliente.
 * Checklist operacional com prazo e status; linha do tempo automática de tudo o que acontece, com anotações manuais (ligação, WhatsApp, visita, degustação) e data de retorno.
 
@@ -183,6 +198,7 @@ Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)**
 * Modelos com variáveis do evento, cliente, empresa e orçamento (inclusive valores e datas por extenso), campos extras preenchidos na geração, editor com barra de formatação e prévia ao vivo.
 * Identidade visual própria por modelo (logotipo, rodapé, fontes e cores), bloco de assinaturas e testemunhas.
 * Geração no evento com numeração anual por empresa, PDF guardado, download e envio pelo Inbox.
+* **Variável do plano de pagamento (novo):** o contrato pode trazer as parcelas cadastradas no financeiro (valores, vencimentos e forma).
 
 ### 5.9 Cardápios
 * Seções, itens e categorias (principal e secundária); opções prontas (pacotes) com seções, "escolha N" e preço por pessoa.
@@ -198,6 +214,7 @@ Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)**
   * Contagem física (inventário), que registra a diferença.
 * Histórico de movimentações com filtros; cada saída grava o custo médio do momento (base do CMV por evento).
 * Itens do cardápio ligados ao estoque pelo botão "Gerenciado no estoque".
+* **Registro financeiro na movimentação (novo):** a compra com nota fiscal pode lançar a conta a pagar (valor sugerido pela quantidade × custo, vencimento, forma, já pago) e a devolução ao fornecedor, a conta a receber.
 
 ### 5.11 Clientes
 * Cadastro PF e PJ com CPF/CNPJ validado, e-mail e documento únicos por empresa, histórico de eventos e importação por CSV.
@@ -221,7 +238,22 @@ Inventário do que o sistema oferece, por módulo. Itens marcados com **(novo)**
 * **Assistente de Orçamentos IA** (sub-aba do orçamento): mostra a margem projetada e o custo por item, os insumos do estoque vencendo ou parados, e pede à IA substituições de maior margem (mesma seção, custo menor, equivalência gastronômica e restrições respeitadas) e pratos que aproveitam o estoque; cada sugestão mostra o impacto no custo do evento e pode ser aplicada com um clique.
 * Histórico de análises por evento, com o material analisado pela IA disponível para conferência.
 
-### 5.17 Configurações e suporte
-* Usuários e convites; tipos de evento, ocasiões, etapas do Painel de Propostas (nome, função, cor, ordem e intervalo do Kanban), formatos de serviço, modelos de e-mail e dados da empresa (logotipo, validade da proposta, faixas de idade das crianças, espaço padrão e assinatura).
+### 5.17 Gestão financeira (novo)
+* **Plano de pagamento do evento:** cadastrado no fechamento (etapa Aprovado) ou a qualquer momento — valor (sugerido pelo orçamento), entrada/sinal, parcelas do saldo (à vista ou parcelado), intervalo mensal, bimestral ou trimestral, forma de pagamento — com prévia das parcelas; cada parcela vira uma conta a receber. Refazer o plano preserva o que já foi recebido.
+* **Aba Finanças do evento:** valor do orçamento, a receber (recebido e em aberto), custos do evento, custo do estoque consumido, resultado previsto e margem; contas a receber e a pagar do evento.
+* **Contas a receber e a pagar:** descrição, valor, vencimento, categoria, forma de pagamento, evento, fornecedor/pagador, documento; registro do pagamento com data, valor efetivo (juros ou desconto) e forma; cancelar (mantém o histórico) e reabrir; situação em aberto, vencida, paga ou cancelada.
+* **Visão geral:** a receber e a pagar em aberto e vencidos, saldo previsto, realizado no mês, fluxo de caixa mensal (realizado e previsto), contas vencidas e vencimentos da semana com baixa direta.
+* Listas com totais, filtros por situação, vencimento, categoria e evento, busca e exportação CSV; categorias de receita e despesa editáveis.
+* Acesso restrito a proprietários e administradores; pagamentos e planos registrados na linha do tempo do evento.
+
+### 5.18 Pesquisa de satisfação (novo)
+* **Metodologia:** NPS (recomendação de 0 a 10: promotores, neutros e detratores, com zona de classificação) como indicador principal, CSAT (notas de 1 a 5 por aspecto, com média e % de satisfeitos) e perguntas de escolha e abertas para coletar ideias de melhoria.
+* **Questionário editável**, já criado com perguntas sobre recomendação, comida, bebidas, equipe, atendimento comercial, pontualidade, expectativas, o que mais gostou, o que melhorar e autorização de depoimento; perguntas fechadas (nota ou escolha) e abertas, obrigatórias ou opcionais, reordenáveis.
+* **Envio por e-mail** com modelo editável e link de resposta, dentro da conversa do evento no Inbox (o cliente pode responder o e-mail); reenvio e cópia do link para WhatsApp; lembrete dos eventos realizados que ainda não receberam a pesquisa.
+* **Página de resposta** com a marca do buffet, pensada para o celular, respondida uma vez por evento.
+* **Painel de resultados:** NPS, taxa de resposta, distribuição das notas, satisfação por aspecto, escolhas e comentários recentes, com filtros de período e tipo de evento; lista de respostas com filtros (respondidas, aguardando, promotores, detratores) e detalhe de cada pesquisa; respostas por pergunta com distribuição e filtros, para ler as respostas abertas.
+
+### 5.19 Configurações e suporte
+* Usuários e convites; tipos de evento (fixos: Social e Corporativo), ocasiões, etapas do Painel de Propostas (nome, função, cor, ordem e intervalo do Kanban), formatos de serviço, modelos de e-mail e dados da empresa (logotipo, validade da proposta, faixas de idade das crianças, espaço padrão e assinatura).
 * Suporte: chamados abertos no sistema e acompanhados pelo usuário.
 

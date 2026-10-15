@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/styles.css">
+  <script src="_ds/banket-design-system-f9651ff1-0b9d-4125-bad2-8f9a17b73c11/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}</style>
+</helmet>
+<div data-screen-label="Home" style="container-type:inline-size;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-body)">
+  <dc-import name="BuscaHeader" device="{{ device }}" hint-size="100%,68px"></dc-import>
+
+  <section style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 480px), 1fr));gap:clamp(28px, 4cqw, 64px);align-items:center;padding:clamp(28px, 4.4cqw, 72px) clamp(16px, 4.4cqw, 64px) clamp(40px, 5cqw, 80px)">
+    <div style="display:flex;flex-direction:column;gap:clamp(20px, 2.2cqw, 28px);min-width:0">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <span style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta-700)">Buffets e catering · social e corporativo</span>
+        <h1 style="font-size:clamp(34px, 4.1cqw, 60px);line-height:1.04;letter-spacing:-.03em;font-weight:500;color:var(--text-strong)">Encontre o <span style="color:var(--terracotta-600)">buffet certo</span> para o seu evento</h1>
+        <p style="font-size:clamp(15px, 1.25cqw, 18px);line-height:1.55;color:var(--text-secondary);max-width:46ch">Conte como vai ser a festa e veja os buffets que atendem a sua região, têm a data livre e comportam os seus convidados.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding:clamp(16px, 1.7cqw, 24px);background:var(--bg-surface);border:1px solid var(--border-default);border-radius:16px;box-shadow:var(--shadow-lg)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(max(200px, calc(50% - 8px)), 1fr));gap:14px 16px">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Tipo de evento" hint-size="100%,72px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Select" size="lg" icon="confetti" placeholder="Selecione" options="{{ eventTypes }}" hint-size="100%,48px"></x-import></x-import>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Cidade ou bairro" hint-size="100%,72px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" size="lg" icon="map-pin" placeholder="Ex.: Moema, São Paulo" hint-size="100%,48px"></x-import></x-import>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Data do evento" hint-size="100%,72px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" size="lg" icon="calendar" placeholder="dd/mm/aaaa" hint-size="100%,48px"></x-import></x-import>
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Field" label="Número de convidados" hint-size="100%,72px"><x-import component-from-global-scope="BanketDesignSystem_f9651f.TextInput" size="lg" icon="users" placeholder="Ex.: 80" suffix="convidados" hint-size="100%,48px"></x-import></x-import>
+        </div>
+        <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="primary" size="lg" icon="search" block="{{ true }}" hint-size="100%,48px">Buscar buffets</x-import>
+        <div style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--text-secondary)">
+          <span style="display:inline-flex;align-items:center;gap:6px"><span style="display:inline-flex;color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Grátis e sem compromisso</span>
+          <span style="display:inline-flex;align-items:center;gap:6px"><span style="display:inline-flex;color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="circle-check" size="{{ 16 }}" hint-size="16px,16px"></x-import></span>Peça para vários buffets de uma vez</span>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:clamp(300px, 42cqw, 600px);min-width:0">
+      <div style="position:relative;grid-row:span 2;border-radius:20px;overflow:hidden;background:var(--terracotta-100);color:var(--terracotta-800)"><image-slot id="home-{{ device }}-hero-1" shape="rect" placeholder="Mesa posta de casamento" style="position:absolute;inset:0;width:100%;height:100%"></image-slot></div>
+      <div style="position:relative;border-radius:20px;overflow:hidden;background:var(--ochre-50);color:var(--ochre-700)"><image-slot id="home-{{ device }}-hero-2" shape="rect" placeholder="Doces e bolo" style="position:absolute;inset:0;width:100%;height:100%"></image-slot></div>
+      <div style="position:relative;border-radius:20px;overflow:hidden;background:var(--clay-150);color:var(--clay-600)"><image-slot id="home-{{ device }}-hero-3" shape="rect" placeholder="Finger food" style="position:absolute;inset:0;width:100%;height:100%"></image-slot></div>
+      <div style="position:absolute;left:16px;bottom:16px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;background:var(--bg-surface);border-radius:12px;box-shadow:var(--shadow-lg);pointer-events:none;max-width:calc(100% - 32px)">
+        <span style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--sage-50);color:var(--sage-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="calendar-event" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+        <span style="display:flex;flex-direction:column;line-height:1.3"><span style="font-size:13px;font-weight:500;color:var(--text-strong)">Casa Jardim Eventos</span><span style="font-size:12px;color:var(--sage-700)">Disponível em 12/12/2026</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 clamp(16px, 4.4cqw, 64px) clamp(48px, 5.5cqw, 88px);display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h2 style="font-size:clamp(22px, 2.2cqw, 30px);letter-spacing:-.02em;color:var(--text-strong)">Que evento você vai fazer?</h2>
+      <p style="font-size:15px;color:var(--text-secondary)">Comece pelo tipo de festa — mostramos os buffets especializados nela.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(max(150px, 22%), 1fr));gap:clamp(12px, 1.4cqw, 20px)">
+      <sc-for list="{{ categories }}" as="c" hint-placeholder-count="8">
+        <a href="#" style="display:flex;flex-direction:column;gap:10px;text-decoration:none">
+          <div style="position:relative;aspect-ratio:5/4;border-radius:14px;overflow:hidden;background:var(--clay-150);color:var(--clay-600)"><image-slot id="home-{{ device }}-cat-{{ c.id }}" shape="rect" placeholder="{{ c.photo }}" style="position:absolute;inset:0;width:100%;height:100%"></image-slot></div>
+          <span style="display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:500;color:var(--text-strong)">{{ c.name }}</span><span style="font-size:13px;color:var(--text-muted)">{{ c.count }}</span></span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:0 clamp(16px, 4.4cqw, 64px) clamp(48px, 5.5cqw, 88px);display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h2 style="font-size:clamp(22px, 2.2cqw, 30px);letter-spacing:-.02em;color:var(--text-strong)">Tipos de serviço</h2>
+      <p style="font-size:15px;color:var(--text-secondary)">Do buffet completo ao food truck no quintal.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(max(150px, 22%), 1fr));gap:12px">
+      <sc-for list="{{ services }}" as="s" hint-placeholder-count="8">
+        <a href="#" style="display:flex;flex-direction:column;gap:12px;padding:16px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:12px;text-decoration:none;box-shadow:var(--shadow-xs)" style-hover="border-color:var(--border-strong);box-shadow:var(--shadow-md)">
+          <span style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--terracotta-50);color:var(--terracotta-600)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="{{ s.icon }}" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:500;color:var(--text-strong)">{{ s.name }}</span><span style="font-size:13px;line-height:1.45;color:var(--text-secondary)">{{ s.desc }}</span></span>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="como-funciona" style="padding:clamp(48px, 5.5cqw, 88px) clamp(16px, 4.4cqw, 64px);background:var(--bg-surface);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:clamp(28px, 3cqw, 44px)">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:640px">
+      <span style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta-700)">Como funciona</span>
+      <h2 style="font-size:clamp(24px, 2.6cqw, 36px);letter-spacing:-.02em;color:var(--text-strong)">Do pedido ao buffet contratado em três passos</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 260px), 1fr));gap:clamp(24px, 3cqw, 48px)">
+      <sc-for list="{{ steps }}" as="st" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:12px;padding-top:20px;border-top:2px solid var(--terracotta-200)">
+          <span style="font-size:44px;line-height:1;font-weight:300;letter-spacing:-.03em;color:var(--terracotta-500);font-variant-numeric:tabular-nums">{{ st.n }}</span>
+          <h3 style="font-size:18px;color:var(--text-strong)">{{ st.title }}</h3>
+          <p style="font-size:15px;line-height:1.55;color:var(--text-secondary)">{{ st.desc }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:clamp(48px, 5.5cqw, 88px) 0 0;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:0 clamp(16px, 4.4cqw, 64px)">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 style="font-size:clamp(22px, 2.2cqw, 30px);letter-spacing:-.02em;color:var(--text-strong)">Buffets em destaque</h2>
+        <p style="font-size:15px;color:var(--text-secondary)">Bem avaliados por quem já fez festa com eles.</p>
+      </div>
+      <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="text" tone="accent" iconRight="arrow-right" hint-size="90px,24px">Ver todos</x-import>
+    </div>
+    <div style="display:grid;grid-auto-flow:column;grid-auto-columns:minmax(272px, 1fr);gap:16px;overflow-x:auto;padding:0 clamp(16px, 4.4cqw, 64px) 4px;scrollbar-width:none">
+      <sc-for list="{{ featured }}" as="b" hint-placeholder-count="4">
+        <dc-import name="BuffetCard" buffet="{{ b }}" compact="{{ true }}" slot="home-{{ device }}" hint-size="100%,380px"></dc-import>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:clamp(48px, 5.5cqw, 88px) 0;display:flex;flex-direction:column;gap:24px">
+    <h2 style="padding:0 clamp(16px, 4.4cqw, 64px);font-size:clamp(22px, 2.2cqw, 30px);letter-spacing:-.02em;color:var(--text-strong)">Quem já fez festa conta</h2>
+    <div style="display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px, 1fr);gap:16px;overflow-x:auto;padding:0 clamp(16px, 4.4cqw, 64px) 4px;scrollbar-width:none">
+      <sc-for list="{{ testimonials }}" as="t" hint-placeholder-count="3">
+        <figure style="margin:0;display:flex;flex-direction:column;gap:16px;padding:22px;background:var(--bg-surface);border:1px solid var(--border-default);border-radius:16px">
+          <span style="display:flex;gap:2px;color:var(--ochre-500)"><sc-for list="{{ five }}" as="i" hint-placeholder-count="5"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="star" fill="currentColor" size="{{ 16 }}" hint-size="16px,16px"></x-import></sc-for></span>
+          <blockquote style="margin:0;font-size:16px;line-height:1.55;color:var(--text-heading)">“{{ t.quote }}”</blockquote>
+          <figcaption style="margin-top:auto;display:flex;align-items:center;gap:12px">
+            <x-import component-from-global-scope="BanketDesignSystem_f9651f.Avatar" name="{{ t.name }}" shape="circle" hint-size="36px,36px"></x-import>
+            <span style="display:flex;flex-direction:column;line-height:1.35"><span style="font-size:14px;font-weight:500;color:var(--text-strong)">{{ t.name }}</span><span style="font-size:12px;color:var(--text-muted)">{{ t.meta }}</span></span>
+          </figcaption>
+        </figure>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="para-buffets" style="padding:0 clamp(16px, 4.4cqw, 64px) clamp(48px, 5.5cqw, 88px)">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr));background:var(--terracotta-700);border-radius:24px;overflow:hidden">
+      <div style="display:flex;flex-direction:column;gap:20px;padding:clamp(28px, 4cqw, 56px);color:#fff">
+        <span style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--terracotta-200)">Para buffets</span>
+        <h2 style="font-size:clamp(26px, 2.8cqw, 40px);line-height:1.1;letter-spacing:-.025em;color:#fff">Tem um buffet? Receba pedidos de orçamento</h2>
+        <p style="font-size:16px;line-height:1.55;color:var(--terracotta-100);max-width:48ch">Cadastre seu buffet de graça, mostre cardápios e fotos e receba pedidos de clientes da sua região — já com data, local e número de convidados.</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ perks }}" as="p" hint-placeholder-count="3">
+            <span style="display:flex;align-items:center;gap:10px;font-size:14px;color:#fff"><span style="display:inline-flex;color:var(--terracotta-200)"><x-import component-from-global-scope="BanketDesignSystem_f9651f.Icon" name="check" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>{{ p }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:6px">
+          <x-import component-from-global-scope="BanketDesignSystem_f9651f.Button" variant="secondary" size="lg" iconRight="arrow-right" hint-size="220px,48px">Cadastrar meu buffet</x-import>
+        </div>
+      </div>
+      <div style="position:relative;min-height:300px;background:var(--terracotta-800);color:var(--terracotta-200)"><image-slot id="home-{{ device }}-cta" shape="rect" placeholder="Equipe do buffet em ação" style="position:absolute;inset:0;width:100%;height:100%"></image-slot></div>
+    </div>
+  </section>
+
+  <dc-import name="BuscaFooter" hint-size="100%,340px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;mobile&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'mobile'&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    const tick = () => {
+      const N = window.BanketDesignSystem_f9651f;
+      if (!N || !N.ICON_PATHS) return setTimeout(tick, 40);
+      Object.assign(N.ICON_PATHS, {
+        flame: '<path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.621 -2.333 5.588c0 3.704 3.134 6.706 7 6.706s7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235"/>',
+        truck: '<path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 17h-2v-11a1 1 0 0 1 1 -1h9v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5"/>',
+        coffee: '<path d="M3 14c.83 .642 2.077 1.017 3.5 1c1.423 .017 2.67 -.358 3.5 -1c.83 -.642 2.077 -1.017 3.5 -1c1.423 -.017 2.67 .358 3.5 1"/><path d="M8 3a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2"/><path d="M12 3a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2"/><path d="M3 10h14v5a6 6 0 0 1 -6 6h-2a6 6 0 0 1 -6 -6v-5z"/><path d="M16.746 16.726a3 3 0 1 0 .252 -5.555"/>'
+      });
+      this.setState({ icons: true });
+    };
+    tick();
+  }
+  renderVals() {
+    const ready = !!this.state?.icons;
+    return {
+      device: this.props.device || "desktop",
+      eventTypes: ["Aniversário infantil", "Aniversário adulto", "Casamento", "15 anos", "Formatura", "Corporativo", "Coffee break", "Confraternização", "Outro"],
+      categories: [
+        { id: "infantil", name: "Aniversário infantil", count: "412 buffets", photo: "Festa infantil" },
+        { id: "casamento", name: "Casamento", count: "286 buffets", photo: "Casamento" },
+        { id: "15anos", name: "15 anos", count: "198 buffets", photo: "Festa de 15 anos" },
+        { id: "corporativo", name: "Corporativo", count: "241 buffets", photo: "Evento corporativo" },
+        { id: "adulto", name: "Aniversário adulto", count: "355 buffets", photo: "Aniversário adulto" },
+        { id: "formatura", name: "Formatura", count: "87 buffets", photo: "Formatura" },
+        { id: "coffee", name: "Coffee break", count: "164 buffets", photo: "Coffee break" },
+        { id: "confra", name: "Confraternização", count: "229 buffets", photo: "Confraternização" }
+      ],
+      services: [
+        { name: "Buffet completo", icon: "tools-kitchen-2", desc: "Cardápio, equipe e estrutura do início ao fim." },
+        { name: "Buffet em domicílio", icon: "home", desc: "A equipe vai até a sua casa ou salão." },
+        { name: "Finger food", icon: "chef-hat", desc: "Volantes e porções servidas em pé." },
+        { name: "Churrasco", icon: ready ? "flame" : "soup", desc: "Churrasqueiro, carnes e acompanhamentos." },
+        { name: "Coffee break", icon: ready ? "coffee" : "clock", desc: "Para reuniões, cursos e treinamentos." },
+        { name: "Food truck", icon: ready ? "truck" : "map-pin", desc: "Lanches, pizzas e doces sobre rodas." },
+        { name: "Doces e bolos", icon: "cake", desc: "Bolo, docinhos e mesa de sobremesas." },
+        { name: "Bebidas e bartender", icon: "glass-full", desc: "Drinks, chopp e serviço de bar." }
+      ],
+      steps: [
+        { n: "01", title: "Conte sobre o evento", desc: "Tipo de festa, data, local e número de convidados. Leva menos de um minuto." },
+        { n: "02", title: "Receba buffets compatíveis", desc: "Mostramos só quem atende a sua região, tem a data livre e comporta o seu evento." },
+        { n: "03", title: "Peça orçamentos e escolha", desc: "Envie o pedido para vários buffets de uma vez e compare as propostas com calma." }
+      ],
+      featured: [
+        { id: "sabor", name: "Buffet Sabor de Festa", rating: "4,9", reviews: 128, area: "Santo André, SP", price: "R$ 89", min: 40, max: 250, tags: ["Infantil", "Espaço próprio"], banket: true, photo: "Salão de festas" },
+        { id: "jardim", name: "Casa Jardim Eventos", rating: "4,8", reviews: 94, area: "Moema, São Paulo", price: "R$ 145", min: 60, max: 300, tags: ["Casamento", "15 anos"], banket: true, photo: "Jardim decorado" },
+        { id: "villa", name: "Villa Bistrô Catering", rating: "4,9", reviews: 61, area: "Cambuí, Campinas", price: "R$ 118", min: 20, max: 180, tags: ["Corporativo", "Em domicílio"], banket: false, photo: "Finger food" },
+        { id: "brasa", name: "Brasa & Cia Churrasco", rating: "4,7", reviews: 203, area: "Tatuapé, São Paulo", price: "R$ 72", min: 30, max: 400, tags: ["Churrasco", "Em domicílio"], banket: false, photo: "Churrasco" }
+      ],
+      testimonials: [
+        { quote: "Mandei o pedido para quatro buffets numa noite e no dia seguinte já tinha três propostas. Fechamos o Sabor de Festa e a festa do Theo foi um sucesso.", name: "Juliana Ramos", meta: "Aniversário infantil · Santo André" },
+        { quote: "Precisava de coffee break para 120 pessoas numa terça. Achei quem atendia a data em minutos, com opção vegana para o time.", name: "Ricardo Menezes", meta: "Evento corporativo · Campinas" },
+        { quote: "Comparar cardápio e preço por pessoa lado a lado fez toda a diferença no orçamento do casamento.", name: "Camila e Bruno", meta: "Casamento · São Paulo" }
+      ],
+      five: [1, 2, 3, 4, 5],
+      perks: ["Pedidos com data, local e número de convidados", "Perfil com cardápios, pacotes e galeria", "Agenda e cardápios sincronizados com o Banket"]
+    };
+  }
+}
+</script>
+</body>
+</html>

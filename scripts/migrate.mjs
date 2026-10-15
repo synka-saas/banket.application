@@ -100,6 +100,8 @@ async function ensureAppRole() {
   await q('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $APP');
   await q('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO $APP');
   await q('REVOKE ALL ON schema_migrations FROM $APP');
+  // Catálogo de planos (migration 031): o app só lê; quem muda é a migration (ou o dono, via Manager/backoffice)
+  await q("DO $$ BEGIN IF to_regclass('public.planos') IS NOT NULL THEN REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON planos FROM $APP; END IF; END $$");
   if (withSeeds) await q('REVOKE ALL ON schema_seeds FROM $APP');
   console.log(`[migrate] papel da aplicação "${appUser}" pronto`);
 }

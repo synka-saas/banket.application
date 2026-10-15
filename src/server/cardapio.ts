@@ -1,5 +1,7 @@
 // Catálogo do cardápio: seções, itens e opções prontas (pacotes).
 import { z } from 'zod';
+import { exigirLimiteDb } from '../lib/planos/gating';
+import { CONTAGEM_SQL } from './planos';
 import type { Db } from '../lib/db';
 import {
   UserError,
@@ -440,6 +442,11 @@ export async function salvarOpcao(db: Db, tenantId: string, id: string | null, i
     input.ativo,
   ];
   let opcaoId = id;
+  // Limite do plano conta as opções ativas: criar ativa ou reativar uma inativa ocupa vaga
+  if (input.ativo) {
+    const { rows: antes } = id ? await db.query<{ ativo: boolean }>('SELECT ativo FROM cardapio_opcoes WHERE id = $1', [id]) : { rows: [] as { ativo: boolean }[] };
+    if (!id || (antes[0] && !antes[0].ativo)) await exigirLimiteDb(db, 'cardapios_opcoes', CONTAGEM_SQL.cardapios_opcoes, 'opções de cardápio ativas');
+  }
   if (id) {
     const res = await db.query(
       `UPDATE cardapio_opcoes SET nome = $1, descricao = $2, preco_por_pessoa = $3, duracao_horas = $4,

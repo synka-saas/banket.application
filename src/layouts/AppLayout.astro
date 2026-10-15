@@ -9,6 +9,7 @@ import Toast from '../components/ui/Toast.astro';
 import Confirmar from '../components/ui/Confirmar.astro';
 import Mascaras from '../components/ui/Mascaras.astro';
 import Reordenar from '../components/ui/Reordenar.astro';
+import Upsell from '../components/planos/Upsell.astro';
 import { withTenant } from '../lib/db';
 import { contarNaoLidas } from '../server/conversas';
 import type { BadgesNavegacao } from '../lib/nav';
@@ -55,6 +56,7 @@ const badges: BadgesNavegacao = naoLidas > 0 ? { '/inbox': naoLidas } : {};
   <slot name="overlays" />
   <Toast flash={Astro.locals.flash} />
   <Confirmar />
+  <Upsell />
   <Mascaras />
   <Reordenar />
 </Layout>
