@@ -22,15 +22,6 @@ const { criterios: c, facetas, id, temCidade } = Astro.props;
   {c.convidados && <input type="hidden" name="convidados" value={c.convidados} />}
   {c.ordem !== 'relevancia' && <input type="hidden" name="ordem" value={c.ordem} />}
 
-  <fieldset class="vf-grupo">
-    <legend>Preço por pessoa</legend>
-    <div class="vf-preco">
-      <div class="field"><label class="sr-only" for={`${id}-pmin`}>Mínimo (R$)</label><input id={`${id}-pmin`} name="preco_min" type="number" inputmode="numeric" min="0" step="1" placeholder="R$ mín." value={c.precoMin ?? ''} /></div>
-      <span aria-hidden="true">–</span>
-      <div class="field"><label class="sr-only" for={`${id}-pmax`}>Máximo (R$)</label><input id={`${id}-pmax`} name="preco_max" type="number" inputmode="numeric" min="0" step="1" placeholder="R$ máx." value={c.precoMax ?? ''} /></div>
-    </div>
-  </fieldset>
-
   {facetas.servicos.length > 0 && (
     <fieldset class="vf-grupo">
       <legend>Tipo de serviço</legend>

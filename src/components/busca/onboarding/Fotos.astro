@@ -1,9 +1,11 @@
 ---
-// Etapa 6: fotos (JPG, PNG ou WebP; comprimidas no navegador). A capa é a primeira. Plano gratuito: até 5 fotos e sem
-// tags; o que passa do limite volta com o painel de upsell. Fotos bloqueadas pelo plano (rebaixamento) aparecem
+// Etapa 5: fotos (JPG, PNG ou WebP; comprimidas no navegador). A capa é a primeira. Plano gratuito: até 5 fotos gerais,
+// sem grupos; o que passa do limite volta com o painel de upsell. Planos pagos: fotos sem limite e em grupos (tags),
+// para mostrar eventos diferentes ("Casamento Ana e Pedro"). Fotos bloqueadas pelo plano (rebaixamento) aparecem
 // esmaecidas e não vão para o perfil público.
 import Icon from '../../ui/Icon.astro';
 import Acoes from './Acoes.astro';
+import { ETAPA_FOTOS } from '../../../lib/busca/onboarding';
 import { urlMidia } from '../../../server/busca/perfil';
 import type { Foto } from '../../../server/busca/onboarding';
 interface Props {
@@ -11,32 +13,48 @@ interface Props {
   tenantId: string;
   editor: boolean;
   maxFotos: number;
+  /** Grupos de fotos (tags) liberados pelo plano */
   tags: boolean;
 }
 const { fotos, tenantId, editor, maxFotos, tags } = Astro.props;
 const visiveis = fotos.filter((f) => !f.bloqueado_plano_em);
 const limitado = Number.isFinite(maxFotos);
 const restam = limitado ? Math.max(0, maxFotos - visiveis.length) : 20;
+// Galeria por grupo (o primeiro grupo da foto); sem grupos no plano, uma lista só
+const nomesGrupos = [...new Set(fotos.flatMap((f) => f.tags))];
+const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.length
+  ? [...nomesGrupos.map((g) => ({ nome: g, fotos: fotos.filter((f) => f.tags[0] === g) })), { nome: null, fotos: fotos.filter((f) => !f.tags.length) }].filter((g) => g.fotos.length)
+  : [{ nome: null, fotos }];
 ---
 
 {editor && (
   <form method="post" enctype="multipart/form-data" class="onb-cartao" data-fotos-form data-restam={restam}>
-    <input type="hidden" name="_etapa" value="6" />
+    <input type="hidden" name="_etapa" value={ETAPA_FOTOS} />
     <h2>Enviar fotos</h2>
     <p class="onb-limite">
-      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no plano gratuito. <a href="/busca?etapa=6&bloqueado=busca_fotos" data-bloqueado="busca_fotos">Galeria sem limite</a></> : <span class="tabular">{visiveis.length} fotos</span>}
+      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no plano gratuito. <a href={`/busca?etapa=${ETAPA_FOTOS}&bloqueado=busca_fotos`} data-bloqueado="busca_fotos">Mais fotos e grupos por evento</a></> : <span class="tabular">{visiveis.length} fotos</span>}
     </p>
     {restam > 0 ? (
       <>
-        <div class="field">
-          <label for="f-arquivos">Fotos (JPG, PNG ou WebP)</label>
-          <input id="f-arquivos" name="fotos" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-fotos-input />
-          <span class="field-hint" data-fotos-status>{limitado ? `Você pode enviar mais ${restam}.` : 'Até 8 MB cada; fotos grandes são reduzidas antes do envio.'}</span>
+        <div class="form-grid">
+          <div class="field">
+            <label for="f-arquivos">Fotos (JPG, PNG ou WebP)</label>
+            <input id="f-arquivos" name="fotos" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-fotos-input />
+            <span class="field-hint" data-fotos-status>{limitado ? `Você pode enviar mais ${restam}.` : 'Até 8 MB cada; fotos grandes são reduzidas antes do envio.'}</span>
+          </div>
+          {tags && (
+            <div class="field">
+              <label for="f-grupo">Grupo</label>
+              <input id="f-grupo" name="grupo" maxlength="40" list="f-grupos" placeholder="Ex.: Casamento Ana e Pedro" />
+              <datalist id="f-grupos">{nomesGrupos.map((g) => <option value={g} />)}</datalist>
+              <span class="field-hint">Opcional. Junte as fotos de um mesmo evento; no perfil, cada grupo aparece separado.</span>
+            </div>
+          )}
         </div>
         <div><button type="submit" name="_acao" value="enviar" class="btn btn-soft btn-md" data-carregando="Enviando…"><Icon name="upload" size={16} /> Enviar fotos</button></div>
       </>
     ) : (
-      <div class="onb-aviso">Você atingiu o limite de fotos do plano gratuito. Exclua uma foto para enviar outra ou conheça os planos Banket.</div>
+      <div class="onb-aviso">Você atingiu o limite de 5 fotos do plano gratuito. Exclua uma foto para enviar outra ou conheça os planos Banket, com fotos sem limite e grupos por evento.</div>
     )}
   </form>
 )}
@@ -45,8 +63,11 @@ const restam = limitado ? Math.max(0, maxFotos - visiveis.length) : 20;
   <section class="onb-cartao">
     <h2>Galeria</h2>
     <p>A capa aparece primeiro nos resultados. Use as setas para mudar a ordem.</p>
+    {grupos.map((g) => (
+    <>
+    {g.nome !== null || grupos.length > 1 ? <h3 class="onb-grupo-titulo">{g.nome ?? 'Sem grupo'} <span class="tabular">{String(g.fotos.length).padStart(2, '0')}</span></h3> : null}
     <ul class="onb-fotos">
-      {fotos.map((f, i) => (
+      {g.fotos.map((f, i) => (
         <li class:list={['onb-foto', { 'onb-foto--bloqueada': f.bloqueado_plano_em }]}>
           <div class="onb-foto-img">
             <img src={urlMidia(tenantId, f.path)!} alt={f.legenda ?? `Foto ${i + 1}`} loading="lazy" width="360" height="270" />
@@ -56,35 +77,37 @@ const restam = limitado ? Math.max(0, maxFotos - visiveis.length) : 20;
           {editor && !f.bloqueado_plano_em && (
             <>
               <form method="post" class="onb-foto-acoes">
-                <input type="hidden" name="_etapa" value="6" /><input type="hidden" name="id" value={f.id} />
+                <input type="hidden" name="_etapa" value={ETAPA_FOTOS} /><input type="hidden" name="id" value={f.id} />
                 {!f.capa && <button type="submit" name="_acao" value="capa" class="btn btn-ghost btn-sm">Usar como capa</button>}
                 {!f.capa && <button type="submit" name="_acao" value="antes" class="btn btn-ghost btn-sm" aria-label="Mover para antes"><Icon name="arrow-left" size={15} /></button>}
                 {!f.capa && <button type="submit" name="_acao" value="depois" class="btn btn-ghost btn-sm" aria-label="Mover para depois"><Icon name="arrow-right" size={15} /></button>}
                 <button type="submit" name="_acao" value="excluir" class="btn btn-ghost btn-sm" aria-label="Excluir foto" data-confirm="Excluir esta foto?"><Icon name="trash" size={15} /></button>
               </form>
               <form method="post" style="display:flex;flex-direction:column;gap:6px">
-                <input type="hidden" name="_etapa" value="6" /><input type="hidden" name="id" value={f.id} />
+                <input type="hidden" name="_etapa" value={ETAPA_FOTOS} /><input type="hidden" name="id" value={f.id} />
                 <div class="field"><label class="sr-only" for={`f-leg-${f.id}`}>Legenda</label><input id={`f-leg-${f.id}`} name="legenda" maxlength="160" placeholder="Legenda" value={f.legenda ?? ''} /></div>
                 {tags ? (
-                  <div class="field"><label class="sr-only" for={`f-tags-${f.id}`}>Tags</label><input id={`f-tags-${f.id}`} name="tags" placeholder="Tags: salão, doces" value={f.tags.join(', ')} /></div>
+                  <div class="field"><label class="sr-only" for={`f-tags-${f.id}`}>Grupo</label><input id={`f-tags-${f.id}`} name="tags" list="f-grupos" maxlength="120" placeholder="Grupo do evento" value={f.tags.join(', ')} /></div>
                 ) : (
-                  <a class="field-hint" href="/busca?etapa=6&bloqueado=busca_fotos_tags" data-bloqueado="busca_fotos_tags"><Icon name="lock" size={12} /> Tags nas fotos: exclusivo Banket</a>
+                  <a class="field-hint" href={`/busca?etapa=${ETAPA_FOTOS}&bloqueado=busca_fotos_tags`} data-bloqueado="busca_fotos_tags"><Icon name="lock" size={12} /> Grupos de fotos por evento: exclusivo Banket</a>
                 )}
-                <button type="submit" name="_acao" value="foto" class="btn btn-outline btn-sm">Salvar legenda</button>
+                <button type="submit" name="_acao" value="foto" class="btn btn-outline btn-sm">{tags ? 'Salvar legenda e grupo' : 'Salvar legenda'}</button>
               </form>
             </>
           )}
         </li>
       ))}
     </ul>
+    </>
+    ))}
   </section>
 ) : (
   <div class="onb-aviso">Envie ao menos 3 fotos para publicar o perfil. Comece pelo salão montado, depois a comida de perto.</div>
 )}
 
 <form method="post">
-  <input type="hidden" name="_etapa" value="6" />
-  <Acoes etapa={6} editor={editor} soContinuar />
+  <input type="hidden" name="_etapa" value={ETAPA_FOTOS} />
+  <Acoes etapa={ETAPA_FOTOS} editor={editor} soContinuar />
 </form>
 
 <script>

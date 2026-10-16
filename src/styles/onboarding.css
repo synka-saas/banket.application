@@ -408,6 +408,68 @@ a.onb-etapa:hover {
   color: var(--text-body);
 }
 
+/* Etapa 1: capturar os dados da conta (PJ em plano pago) */
+.onb-cartao.onb-conta {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-accent-subtle);
+  border-color: var(--border-accent);
+}
+
+.onb-conta-ico {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--terracotta-600);
+}
+
+.onb-conta-texto {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.onb-conta-texto strong {
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+/* Etapa 5: título de cada grupo de fotos */
+.onb-grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--space-2) 0 0;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.onb-grupo-titulo span {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .onb-cartao.onb-conta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 @media (max-width: 1024px) {
   .onb-revisao-grade {
     grid-template-columns: 1fr;

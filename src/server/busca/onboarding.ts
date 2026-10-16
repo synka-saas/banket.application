@@ -1,16 +1,17 @@
 // Onboarding e edição do perfil no Banket Busca (fase 4, PLANO.md §7). Cada etapa valida com zod e grava no perfil
 // da própria empresa (withTenant). Depois de toda gravação: completude e etapa_concluida recalculadas; perfil publicado
-// que deixa de cumprir as etapas 1–6 volta a rascunho. Limites do plano (tipos, fotos, tags) pelo gating central.
+// que deixa de cumprir as etapas 1–5 volta a rascunho. Limites do plano (tipos, fotos, grupos de fotos) pelo gating
+// central. Sem pacotes nem preço (16/10/2026); a tabela busca_pacotes fica sem uso.
 import { z } from 'zod';
 import type { Db } from '../../lib/db';
 import { isAdmin, type SessionUser } from '../../lib/auth';
-import { UserError, checkbox, optionalEmail, optionalInt, optionalMoney, optionalText, requiredText } from '../../lib/forms';
+import { UserError, checkbox, optionalInt, optionalText, requiredText } from '../../lib/forms';
 import { cnpjValido, cpfValido, somenteDigitos } from '../../lib/documento';
 import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO, filtrarSlugs } from '../../lib/busca/catalogos';
 import { cepValido } from '../../lib/busca/geo';
-import { completude, etapasConcluidas, podePublicar, pendentesParaPublicar, type Contagens } from '../../lib/busca/onboarding';
-import { ErroPlano, exigir, limite, podeUsar } from '../../lib/planos/gating';
-import { removeFile, saveUpload } from '../../lib/storage';
+import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, completude, etapasConcluidas, podePublicar, pendentesParaPublicar, type Contagens } from '../../lib/busca/onboarding';
+import { ErroPlano, entitlements, exigir, limite, podeUsar } from '../../lib/planos/gating';
+import { copiarArquivo, removeFile, saveUpload } from '../../lib/storage';
 import { garantirPerfil, type PerfilBusca } from './perfil';
 
 export const TIPOS_FOTO = ['image/png', 'image/jpeg', 'image/webp'];
@@ -21,12 +22,11 @@ function exigirEditor(user: SessionUser) {
 }
 
 export async function contagens(db: Db, perfilId: string): Promise<Contagens> {
-  const { rows } = await db.query<{ pacotes: number; fotos: number }>(
-    `SELECT (SELECT count(*) FROM busca_pacotes WHERE perfil_id = $1 AND ativo) AS pacotes,
-            (SELECT count(*) FROM busca_fotos WHERE perfil_id = $1 AND bloqueado_plano_em IS NULL) AS fotos`,
+  const { rows } = await db.query<{ fotos: number }>(
+    'SELECT count(*) AS fotos FROM busca_fotos WHERE perfil_id = $1 AND bloqueado_plano_em IS NULL',
     [perfilId]
   );
-  return { pacotes: Number(rows[0].pacotes), fotos: Number(rows[0].fotos) };
+  return { fotos: Number(rows[0].fotos) };
 }
 
 /** Recalcula completude e etapa concluída; despublica se faltar alguma etapa. Devolve se foi despublicado. */
@@ -36,11 +36,11 @@ export async function recalcular(db: Db, perfilId: string): Promise<{ despublica
   const c = await contagens(db, perfilId);
   const ok = etapasConcluidas(p, c);
   let maior = 0;
-  for (let n = 1; n <= 6 && ok.has(n); n++) maior = n;
+  for (let n = 1; n <= ETAPAS_PARA_PUBLICAR && ok.has(n); n++) maior = n;
   const despublicar = p.publicado && !podePublicar(p, c);
   await db.query(
     `UPDATE busca_perfis SET completude = $2, etapa_concluida = $3, publicado = publicado AND NOT $4, updated_at = now() WHERE id = $1`,
-    [perfilId, completude(p, c), despublicar ? maior : p.publicado ? 7 : maior, despublicar]
+    [perfilId, completude(p, c), despublicar ? maior : p.publicado ? ETAPA_REVISAO : maior, despublicar]
   );
   return { despublicado: despublicar };
 }
@@ -159,7 +159,6 @@ export const capacidadeSchema = z
     capacidade_min: z.preprocess((v) => (v === '' || v == null ? undefined : Number(String(v).replace(/\D/g, ''))), z.number({ error: 'Informe o mínimo de convidados.' }).int().min(1, 'O mínimo é 1 convidado.').max(5000)),
     capacidade_max: z.preprocess((v) => (v === '' || v == null ? undefined : Number(String(v).replace(/\D/g, ''))), z.number({ error: 'Informe o máximo de convidados.' }).int().min(1).max(5000, 'O máximo é 5.000 convidados.')),
     aceita_menor: checkbox(),
-    valor_minimo: optionalMoney(),
   })
   .refine((d) => d.capacidade_min <= d.capacidade_max, { message: 'O mínimo não pode passar do máximo.', path: ['capacidade_max'] });
 
@@ -167,79 +166,14 @@ export async function salvarCapacidade(db: Db, user: SessionUser, input: z.infer
   exigirEditor(user);
   const p = await garantirPerfil(db, user.tenantId);
   await db.query(
-    `UPDATE busca_perfis SET capacidade_min = $2, capacidade_max = $3, aceita_menor = $4, valor_minimo = $5, updated_at = now() WHERE id = $1`,
-    [p.id, input.capacidade_min, input.capacidade_max, input.aceita_menor, input.aceita_menor ? input.valor_minimo : null]
+    `UPDATE busca_perfis SET capacidade_min = $2, capacidade_max = $3, aceita_menor = $4, valor_minimo = NULL, updated_at = now() WHERE id = $1`,
+    [p.id, input.capacidade_min, input.capacidade_max, input.aceita_menor]
   );
   return recalcular(db, p.id);
 }
 
 // ---------------------------------------------------------------------------
-// Etapa 5: pacotes
-// ---------------------------------------------------------------------------
-export interface Pacote {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  inclui: string[];
-  preco_pessoa: number | null;
-  convidados_min: number | null;
-  convidados_max: number | null;
-  cardapio_opcao_id: string | null;
-  ativo: boolean;
-  ordem: number;
-}
-
-export const pacoteSchema = z
-  .object({
-    nome: requiredText('Informe o nome do pacote.', 120),
-    descricao: optionalText(600),
-    inclui: z.preprocess((v) => (typeof v === 'string' ? v.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 12) : []), z.array(z.string().max(80, 'Cada item do "inclui" pode ter até 80 caracteres.'))),
-    preco_pessoa: z.preprocess((v) => (v === '' || v == null ? undefined : v), optionalMoney().pipe(z.number({ error: 'Informe o preço por pessoa.' }).min(1, 'Informe o preço por pessoa.'))),
-    convidados_min: optionalInt(),
-    convidados_max: optionalInt(),
-    ativo: checkbox(),
-  })
-  .refine((d) => d.convidados_min == null || d.convidados_max == null || d.convidados_min <= d.convidados_max, { message: 'O mínimo não pode passar do máximo.', path: ['convidados_max'] });
-
-export async function listarPacotes(db: Db, perfilId: string): Promise<Pacote[]> {
-  const { rows } = await db.query<Pacote>(
-    `SELECT id, nome, descricao, inclui, preco_pessoa, convidados_min, convidados_max, cardapio_opcao_id, ativo, ordem
-       FROM busca_pacotes WHERE perfil_id = $1 ORDER BY ordem, created_at`,
-    [perfilId]
-  );
-  return rows;
-}
-
-export async function salvarPacote(db: Db, user: SessionUser, id: string | null, input: z.infer<typeof pacoteSchema>) {
-  exigirEditor(user);
-  const p = await garantirPerfil(db, user.tenantId);
-  const valores = [input.nome, input.descricao, input.inclui, input.preco_pessoa, input.convidados_min, input.convidados_max, input.ativo];
-  if (id) {
-    const r = await db.query(
-      `UPDATE busca_pacotes SET nome = $1, descricao = $2, inclui = $3, preco_pessoa = $4, convidados_min = $5, convidados_max = $6, ativo = $7, updated_at = now()
-        WHERE id = $8 AND perfil_id = $9`,
-      [...valores, id, p.id]
-    );
-    if (!r.rowCount) throw new UserError('Pacote não encontrado.');
-  } else {
-    await db.query(
-      `INSERT INTO busca_pacotes (tenant_id, perfil_id, nome, descricao, inclui, preco_pessoa, convidados_min, convidados_max, ativo, ordem)
-       VALUES ($8, $9, $1, $2, $3, $4, $5, $6, $7, (SELECT coalesce(max(ordem), 0) + 1 FROM busca_pacotes WHERE perfil_id = $9))`,
-      [...valores, user.tenantId, p.id]
-    );
-  }
-  return recalcular(db, p.id);
-}
-
-export async function excluirPacote(db: Db, user: SessionUser, id: string) {
-  exigirEditor(user);
-  const p = await garantirPerfil(db, user.tenantId);
-  await db.query('DELETE FROM busca_pacotes WHERE id = $1 AND perfil_id = $2', [id, p.id]);
-  return recalcular(db, p.id);
-}
-
-// ---------------------------------------------------------------------------
-// Etapa 6: fotos
+// Etapa 5: fotos (grupos = tags, só nos planos pagos: fotos de eventos diferentes)
 // ---------------------------------------------------------------------------
 export interface Foto {
   id: string;
@@ -260,11 +194,14 @@ export async function listarFotos(db: Db, perfilId: string): Promise<Foto[]> {
   return rows;
 }
 
-/** Envia fotos novas até o limite do plano (as que excederem são recusadas com ErroPlano antes de gravar). */
-export async function adicionarFotos(db: Db, user: SessionUser, arquivos: File[]) {
+/** Envia fotos novas até o limite do plano (as que excederem são recusadas com ErroPlano antes de gravar). `grupo`
+ * (planos pagos): todas as fotos do envio entram no mesmo grupo, ex.: "Casamento Ana e Pedro". */
+export async function adicionarFotos(db: Db, user: SessionUser, arquivos: File[], grupo: string | null = null) {
   exigirEditor(user);
   const lista = arquivos.filter((f) => f && f.size > 0);
   if (!lista.length) throw new UserError('Escolha ao menos uma foto.', 'fotos');
+  const tags = grupoParaTags(grupo);
+  if (tags.length) await exigir(user.tenantId, 'busca_fotos_tags', 'Grupos de fotos');
   const p = await garantirPerfil(db, user.tenantId);
   const { fotos } = await contagens(db, p.id);
   const max = await limite(user.tenantId, 'busca_fotos');
@@ -280,22 +217,34 @@ export async function adicionarFotos(db: Db, user: SessionUser, arquivos: File[]
     });
     ordem++;
     await db.query(
-      `INSERT INTO busca_fotos (tenant_id, perfil_id, path, ordem, capa) VALUES ($1, $2, $3, $4, $5)`,
-      [user.tenantId, p.id, path, ordem, !temCapa]
+      `INSERT INTO busca_fotos (tenant_id, perfil_id, path, ordem, capa, tags) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [user.tenantId, p.id, path, ordem, !temCapa, tags]
     );
     temCapa = true;
   }
   return recalcular(db, p.id);
 }
 
+/** Grupos digitados ("Casamento Ana, Coffee break") → tags: sem repetição (sem diferenciar maiúsculas), até 8 de 40. */
+export function grupoParaTags(v: unknown): string[] {
+  if (typeof v !== 'string') return [];
+  const vistos = new Set<string>();
+  const out: string[] = [];
+  for (const t of v.split(',').map((s) => s.trim().replace(/\s+/g, ' ').slice(0, 40)).filter(Boolean)) {
+    const k = t.toLocaleLowerCase('pt-BR');
+    if (!vistos.has(k)) { vistos.add(k); out.push(t); }
+  }
+  return out.slice(0, 8);
+}
+
 export const fotoSchema = z.object({
   legenda: optionalText(160),
-  tags: z.preprocess((v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8) : []), z.array(z.string().max(30))),
+  tags: z.preprocess(grupoParaTags, z.array(z.string())),
 });
 
 export async function salvarFoto(db: Db, user: SessionUser, id: string, input: z.infer<typeof fotoSchema>) {
   exigirEditor(user);
-  if (input.tags.length) await exigir(user.tenantId, 'busca_fotos_tags', 'Tags nas fotos');
+  if (input.tags.length) await exigir(user.tenantId, 'busca_fotos_tags', 'Grupos de fotos');
   const p = await garantirPerfil(db, user.tenantId);
   await db.query('UPDATE busca_fotos SET legenda = $1, tags = $2 WHERE id = $3 AND perfil_id = $4', [input.legenda, input.tags, id, p.id]);
 }
@@ -334,7 +283,7 @@ export async function excluirFoto(db: Db, user: SessionUser, id: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Etapa 7: publicação
+// Etapa 6: publicação
 // ---------------------------------------------------------------------------
 export async function publicar(db: Db, user: SessionUser, aceite: boolean) {
   exigirEditor(user);
@@ -343,7 +292,7 @@ export async function publicar(db: Db, user: SessionUser, aceite: boolean) {
   const c = await contagens(db, p.id);
   const faltam = pendentesParaPublicar(p, c);
   if (faltam.length) throw new UserError(`Para publicar, conclua: ${faltam.map((e) => e.titulo.toLowerCase()).join(', ')}.`);
-  await db.query(`UPDATE busca_perfis SET publicado = true, publicado_em = coalesce(publicado_em, now()), etapa_concluida = 7, updated_at = now() WHERE id = $1`, [p.id]);
+  await db.query(`UPDATE busca_perfis SET publicado = true, publicado_em = coalesce(publicado_em, now()), etapa_concluida = $2, updated_at = now() WHERE id = $1`, [p.id, ETAPA_REVISAO]);
   await recalcular(db, p.id);
 }
 
@@ -352,6 +301,58 @@ export async function despublicar(db: Db, user: SessionUser) {
   const p = await garantirPerfil(db, user.tenantId);
   await db.query('UPDATE busca_perfis SET publicado = false, updated_at = now() WHERE id = $1', [p.id]);
   await recalcular(db, p.id);
+}
+
+// ---------------------------------------------------------------------------
+// Dados da conta (etapa 1): empresa PJ em plano pago (ou em teste) traz o cadastro do Banket para o perfil
+// ---------------------------------------------------------------------------
+export interface DadosConta {
+  nome: string;
+  documento: string | null;
+  email: string | null;
+  telefone: string | null;
+  logo_path: string | null;
+}
+
+/** Cadastro da empresa no Banket, se ela puder capturá-lo: PJ e plano pago (não o gratuito). Senão null. */
+export async function dadosDaConta(db: Db, tenantId: string): Promise<DadosConta | null> {
+  // Empresa sem plano é permissiva (como no gating); o plano gratuito não captura
+  const ent = await entitlements(tenantId, db);
+  if (ent?.gratuito) return null;
+  const { rows } = await db.query<DadosConta & { tipo_pessoa: string | null }>(
+    'SELECT nome, documento, email, telefone, logo_path, tipo_pessoa FROM tenants WHERE id = $1',
+    [tenantId]
+  );
+  const t = rows[0];
+  if (!t || t.tipo_pessoa !== 'PJ') return null;
+  return { nome: t.nome, documento: t.documento, email: t.email, telefone: t.telefone, logo_path: t.logo_path };
+}
+
+/**
+ * Copia para o perfil o nome, o CNPJ, o e-mail, o telefone (vira o WhatsApp quando é celular) e o logotipo do
+ * cadastro da empresa. Só preenche o que a conta tem: campos vazios na conta não apagam o que já está no perfil.
+ * O logo é copiado para a pasta do Busca (o do cadastro pode ser trocado ou apagado depois).
+ */
+export async function capturarDadosDaConta(db: Db, user: SessionUser) {
+  exigirEditor(user);
+  const conta = await dadosDaConta(db, user.tenantId);
+  if (!conta) throw new UserError('Capturar os dados da conta é exclusivo de empresas (CNPJ) com um plano pago do Banket.');
+  const p = await garantirPerfil(db, user.tenantId);
+  const fone = conta.telefone ? somenteDigitos(conta.telefone) : null;
+  const celular = fone && fone.length === 11 ? fone : null;
+  const fixo = fone && fone.length === 10 ? fone : null;
+  let logo = p.logo_path;
+  // O endereço público das fotos do Busca só serve PNG, JPG e WebP (SVG fica de fora)
+  if (conta.logo_path && /\.(png|jpe?g|webp)$/i.test(conta.logo_path)) {
+    logo = (await copiarArquivo(user.tenantId, conta.logo_path, 'busca').catch(() => null)) ?? logo;
+  }
+  await db.query(
+    `UPDATE busca_perfis SET nome = coalesce($2, nome), documento = coalesce($3, documento), email_contato = coalesce($4, email_contato),
+            whatsapp = coalesce($5, whatsapp), telefone = coalesce($6, telefone), logo_path = $7, updated_at = now() WHERE id = $1`,
+    [p.id, conta.nome?.trim() || null, conta.documento ? somenteDigitos(conta.documento) : null, conta.email?.trim().toLowerCase() || null, celular, fixo, logo]
+  );
+  if (p.logo_path && p.logo_path !== logo && p.logo_path.startsWith('busca/')) await removeFile(user.tenantId, p.logo_path).catch(() => undefined);
+  return recalcular(db, p.id);
 }
 
 /** Recursos do plano que a interface do onboarding precisa (espelho; a regra vale no servidor). */

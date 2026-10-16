@@ -24,7 +24,6 @@ export interface Rankeavel {
   totalAvaliacoes: number;
   taxaResposta: number | null; // 0..1
   distanciaKm: number | null;
-  precoMin: number | null;
 }
 
 /** Pesos do ambiente (JSON parcial) normalizados para somar 1; inválido → padrão. */
@@ -64,8 +63,8 @@ const nulosNoFim = (a: number | null, b: number | null, asc: boolean) => {
 };
 
 /**
- * Ordena mantendo sempre o grupo prioritário na frente. Dentro do grupo: relevância (pontos), melhor avaliados,
- * menor preço ou mais próximos. Empates: mais avaliações, depois nome.
+ * Ordena mantendo sempre o grupo prioritário na frente. Dentro do grupo: relevância (pontos), melhor avaliados
+ * ou mais próximos. Empates: mais avaliações, depois nome.
  */
 export function ordenar<T extends Rankeavel>(lista: T[], ordem: Ordem = 'relevancia', pesos: Pesos = PESOS_PADRAO, raioRef = RAIO_REFERENCIA_KM): T[] {
   const pontos = new Map(lista.map((r) => [r.id, pontuar(r, pesos, raioRef)]));
@@ -73,7 +72,6 @@ export function ordenar<T extends Rankeavel>(lista: T[], ordem: Ordem = 'relevan
     if (a.prioridade !== b.prioridade) return a.prioridade ? -1 : 1;
     let d = 0;
     if (ordem === 'avaliacao') d = nulosNoFim(a.notaMedia, b.notaMedia, false) || b.totalAvaliacoes - a.totalAvaliacoes;
-    else if (ordem === 'preco') d = nulosNoFim(a.precoMin, b.precoMin, true);
     else if (ordem === 'distancia') d = nulosNoFim(a.distanciaKm, b.distanciaKm, true);
     if (d === 0) d = (pontos.get(b.id) ?? 0) - (pontos.get(a.id) ?? 0);
     if (Math.abs(d) < 1e-12) d = b.totalAvaliacoes - a.totalAvaliacoes;

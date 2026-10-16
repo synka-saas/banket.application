@@ -6,8 +6,10 @@ const ler = (q: string) => lerCriterios(new URLSearchParams(q), HOJE);
 
 describe('lerCriterios', () => {
   it('lê os critérios principais e ignora inválidos', () => {
-    const c = ler('tipo=casamento&cidade=Campinas-SP&data=2026-11-14&convidados=120&ordem=preco&pagina=2');
-    expect(c).toMatchObject({ tipo: 'casamento', cidade: 'campinas-sp', data: '2026-11-14', convidados: 120, ordem: 'preco', pagina: 2 });
+    const c = ler('tipo=casamento&cidade=Campinas-SP&data=2026-11-14&convidados=120&ordem=distancia&pagina=2');
+    expect(c).toMatchObject({ tipo: 'casamento', cidade: 'campinas-sp', data: '2026-11-14', convidados: 120, ordem: 'distancia', pagina: 2 });
+    // ordenar por preço saiu (o Busca não divulga preço): cai na relevância
+    expect(ler('ordem=preco').ordem).toBe('relevancia');
     expect(ler('tipo=show&cidade=x&data=2026-02-30&convidados=0&ordem=aleatoria&pagina=999')).toMatchObject({
       tipo: null, cidade: null, data: null, convidados: null, ordem: 'relevancia', pagina: 1,
     });
@@ -19,11 +21,11 @@ describe('lerCriterios', () => {
     expect(dataValida('31/04/2027', HOJE)).toBeNull();
   });
 
-  it('filtros secundários: múltiplos, preço invertido, notas e raios permitidos', () => {
-    const c = ler('servico=churrasco&servico=xyz&servico=finger_food&restricao=vegana&preco_min=150&preco_max=60&avaliacao=4.5&raio=25&local=espaco');
+  it('filtros secundários: múltiplos, notas e raios permitidos', () => {
+    const c = ler('servico=churrasco&servico=xyz&servico=finger_food&restricao=vegana&preco_min=150&avaliacao=4.5&raio=25&local=espaco');
     expect(c.servicos).toEqual(['finger_food', 'churrasco']);
     expect(c.restricoes).toEqual(['vegana']);
-    expect([c.precoMin, c.precoMax]).toEqual([60, 150]);
+    expect(c).not.toHaveProperty('precoMin');
     expect([c.avaliacao, c.raio, c.local]).toEqual([4.5, 25, 'espaco']);
     expect(ler('avaliacao=3&raio=7&local=praia')).toMatchObject({ avaliacao: null, raio: null, local: null });
     expect(temFiltrosSecundarios(c)).toBe(true);
@@ -33,7 +35,7 @@ describe('lerCriterios', () => {
 
 describe('queryDaBusca', () => {
   it('ida e volta preserva os critérios', () => {
-    const q = '?tipo=infantil&cidade=santo-andre-sp&convidados=80&servico=kids&preco_max=120&ordem=avaliacao';
+    const q = '?tipo=infantil&cidade=santo-andre-sp&convidados=80&servico=kids&ordem=avaliacao';
     expect(queryDaBusca(ler(q.slice(1)))).toBe(q);
     expect(queryDaBusca({})).toBe('');
   });

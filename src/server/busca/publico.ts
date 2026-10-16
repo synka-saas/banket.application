@@ -77,7 +77,6 @@ export interface PerfilPublico {
   instagram: string | null;
   site: string | null;
   fotos: { url: string; legenda: string | null; tags: string[] }[];
-  pacotes: { nome: string; descricao: string | null; inclui: string[]; preco_pessoa: number | null; convidados_min: number | null; convidados_max: number | null; cardapio_opcao_id: string | null }[];
   atualizado_em: Date;
   publicado: boolean;
 }
@@ -102,11 +101,6 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
     if (!p) return null;
     // Um client só faz uma consulta por vez (pg): em sequência
     const fotos = await db.query(`SELECT path, legenda, tags FROM busca_fotos WHERE perfil_id = $1 AND bloqueado_plano_em IS NULL ORDER BY capa DESC, ordem, created_at`, [p.id]);
-    const pacotes = await db.query(
-      `SELECT nome, descricao, inclui, preco_pessoa, convidados_min, convidados_max, cardapio_opcao_id
-         FROM busca_pacotes WHERE perfil_id = $1 AND ativo ORDER BY ordem, preco_pessoa NULLS LAST`,
-      [p.id]
-    );
     return {
       tenantId: p.tenant_id, slug: p.slug, nome: p.nome, descricao: p.descricao, logo: urlMidia(p.tenant_id, p.logo_path),
       cidade: p.cidade, uf: p.uf, bairro: p.bairro, tipos_evento: p.tipos_evento, tipos_servico: p.tipos_servico,
@@ -114,7 +108,6 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
       capacidade_min: p.capacidade_min, capacidade_max: p.capacidade_max, nivel: p.nivel, nota_media: p.nota_media,
       total_avaliacoes: p.total_avaliacoes, tempo_resposta_texto: p.tempo_resposta_texto, instagram: p.instagram, site: p.site,
       fotos: fotos.rows.map((f) => ({ url: urlMidia(p.tenant_id, f.path)!, legenda: f.legenda, tags: f.tags })),
-      pacotes: pacotes.rows,
       atualizado_em: p.updated_at,
       publicado: p.publicado,
     };
@@ -175,7 +168,6 @@ const SQL_CANDIDATOS = `
          p.completude, p.nota_media, p.total_avaliacoes, p.taxa_resposta, p.sincronizar_agenda,
          CASE WHEN $1::float8 IS NULL OR p.lat IS NULL THEN NULL
               ELSE earth_distance(ll_to_earth(p.lat, p.lng), ll_to_earth($1, $2)) / 1000 END AS distancia_km,
-         (SELECT min(k.preco_pessoa) FROM busca_pacotes k WHERE k.perfil_id = p.id AND k.ativo) AS preco_min,
          ARRAY(SELECT pc.cidade_id FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id) AS cidades,
          (SELECT f.path FROM busca_fotos f WHERE f.perfil_id = p.id AND f.bloqueado_plano_em IS NULL ORDER BY f.capa DESC, f.ordem LIMIT 1) AS foto,
          fn_tenant_pode(p.tenant_id, 'busca_prioridade') AS prioridade,
@@ -202,7 +194,7 @@ function paraItem(r: any, data: string | null): ItemResultado {
     cidadeId: r.cidade_id, cidadesAtendidas: r.cidades ?? [], tiposEvento: r.tipos_evento, tiposServico: r.tipos_servico,
     restricoes: r.restricoes, atendeDomicilio: r.atende_domicilio, raioKm: r.raio_km, espacoProprio: r.espaco_proprio,
     capacidadeMin: r.capacidade_min, capacidadeMax: r.capacidade_max, aceitaMenor: r.aceita_menor,
-    distanciaKm: r.distancia_km == null ? null : Number(r.distancia_km), precoMin: r.preco_min == null ? null : Number(r.preco_min),
+    distanciaKm: r.distancia_km == null ? null : Number(r.distancia_km),
     notaMedia: r.nota_media == null ? null : Number(r.nota_media), totalAvaliacoes: r.total_avaliacoes,
     taxaResposta: r.taxa_resposta == null ? null : Number(r.taxa_resposta), completude: r.completude,
     prioridade: r.prioridade === true, selo: r.selo === true, usaAgenda: r.agenda === true && r.sincronizar_agenda,
@@ -322,10 +314,12 @@ export interface AvaliacaoPublica {
   resposta: string | null;
 }
 
+/** Opção de cardápio do cliente Banket no perfil público: seções e itens, sem preço (o Busca não divulga preço). */
 export interface CardapioPublico {
-  titulo: string;
-  escolha: number | null;
-  itens: { nome: string; restricoes: string[] }[];
+  id: string;
+  nome: string;
+  descricao: string | null;
+  secoes: { titulo: string; escolha: number | null; itens: { nome: string; restricoes: string[] }[] }[];
 }
 
 export interface PerfilCompleto extends PerfilPublico {
@@ -336,17 +330,17 @@ export interface PerfilCompleto extends PerfilPublico {
   logradouro: string | null;
   numero: string | null;
   aceita_menor: boolean;
-  precoMin: number | null;
   cidadesAtendidas: string[];
   avaliacoes: AvaliacaoPublica[];
   distribuicao: Record<1 | 2 | 3 | 4 | 5, number>;
-  cardapios: Record<string, CardapioPublico[]>;
+  /** Opções de cardápio ativas da empresa (só com o recurso busca_cardapios) */
+  cardapios: CardapioPublico[];
   disponibilidade: 'disponivel' | 'indisponivel' | 'consultar' | null;
   /** Datas ocupadas nos próximos 90 dias (só cliente com agenda) */
   datasOcupadas: string[];
 }
 
-/** Perfil completo para a página pública: avaliações, cardápios (cliente) e disponibilidade na data pedida. */
+/** Perfil completo para a página pública: avaliações, cardápios (cliente Banket) e disponibilidade na data pedida. */
 export async function perfilCompleto(slug: string, data: string | null, previaDoTenant: string | null = null): Promise<PerfilCompleto | null> {
   const base = await perfilPublico(slug, previaDoTenant);
   if (!base) return null;
@@ -356,7 +350,6 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
               fn_tenant_pode(p.tenant_id, 'busca_selo') AS selo,
               fn_tenant_pode(p.tenant_id, 'busca_disponibilidade') AS agenda,
               fn_tenant_pode(p.tenant_id, 'busca_cardapios') AS cardapios,
-              (SELECT min(preco_pessoa) FROM busca_pacotes k WHERE k.perfil_id = p.id AND k.ativo) AS preco_min,
               ARRAY(SELECT c.nome FROM busca_perfil_cidades pc JOIN busca_cidades c ON c.id = pc.cidade_id WHERE pc.perfil_id = p.id ORDER BY c.nome) AS cidades
          FROM busca_perfis p WHERE p.slug = $1`,
       [slug]
@@ -381,27 +374,28 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
             [base.tenantId, p.id]
           )
         : Promise.resolve({ rows: [] as { d: string }[] }));
-    const cardapios: Record<string, CardapioPublico[]> = {};
     const mostraCardapio = p.cardapios === true;
+    const cardapios: CardapioPublico[] = [];
     if (mostraCardapio) {
-      const opcoes = base.pacotes.map((k) => k.cardapio_opcao_id).filter((x): x is string => Boolean(x));
-      if (opcoes.length) {
-        const { rows } = await db.query<{ opcao_id: string; titulo: string; escolha: number | null; nome: string; restricoes: string[] }>(
-          `SELECT os.opcao_id, coalesce(os.titulo, cs.nome) AS titulo, os.escolha_qtd AS escolha, ci.nome, ci.restricoes
-             FROM cardapio_opcao_secoes os
-             JOIN catalogo_secoes cs ON cs.id = os.secao_id
-             JOIN cardapio_opcao_itens oi ON oi.opcao_secao_id = os.id
-             JOIN catalogo_itens ci ON ci.id = oi.item_id AND ci.ativo
-            WHERE os.opcao_id = ANY($1::uuid[]) AND os.tenant_id = $2
-            ORDER BY os.ordem, oi.ordem`,
-          [opcoes, base.tenantId]
-        );
-        for (const r of rows) {
-          const lista = (cardapios[r.opcao_id] ??= []);
-          let sec = lista.find((s) => s.titulo === r.titulo);
-          if (!sec) lista.push((sec = { titulo: r.titulo, escolha: r.escolha, itens: [] }));
-          sec.itens.push({ nome: r.nome, restricoes: r.restricoes ?? [] });
-        }
+      // Opções de cardápio ativas, na ordem do catálogo do app (seções e itens ativos)
+      const { rows } = await db.query<{ opcao_id: string; opcao: string; descricao: string | null; titulo: string; escolha: number | null; nome: string; restricoes: string[] }>(
+        `SELECT o.id AS opcao_id, o.nome AS opcao, o.descricao, coalesce(os.titulo, cs.nome) AS titulo, os.escolha_qtd AS escolha,
+                ci.nome, ci.restricoes
+           FROM cardapio_opcoes o
+           JOIN cardapio_opcao_secoes os ON os.opcao_id = o.id
+           JOIN catalogo_secoes cs ON cs.id = os.secao_id
+           JOIN cardapio_opcao_itens oi ON oi.opcao_secao_id = os.id
+           JOIN catalogo_itens ci ON ci.id = oi.item_id AND ci.ativo
+          WHERE o.tenant_id = $1 AND o.ativo
+          ORDER BY o.nome, o.id, os.ordem, oi.ordem`,
+        [base.tenantId]
+      );
+      for (const r of rows) {
+        let op = cardapios.find((c) => c.id === r.opcao_id);
+        if (!op) cardapios.push((op = { id: r.opcao_id, nome: r.opcao, descricao: r.descricao, secoes: [] }));
+        let sec = op.secoes.find((x) => x.titulo === r.titulo);
+        if (!sec) op.secoes.push((sec = { titulo: r.titulo, escolha: r.escolha, itens: [] }));
+        sec.itens.push({ nome: r.nome, restricoes: r.restricoes ?? [] });
       }
     }
     const datasOcupadas = ocupadas.rows.map((r) => r.d);
@@ -409,8 +403,8 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
     for (const d of dist.rows) distribuicao[d.nota as 1 | 2 | 3 | 4 | 5] = Number(d.n);
     return {
       ...base, id: p.id, selo: p.selo === true, usaAgenda, mostraCardapio, logradouro: p.logradouro, numero: p.numero,
-      aceita_menor: p.aceita_menor, precoMin: p.preco_min == null ? null : Number(p.preco_min), cidadesAtendidas: p.cidades,
-      avaliacoes: avs.rows, distribuicao, cardapios: mostraCardapio ? cardapios : {},
+      aceita_menor: p.aceita_menor, cidadesAtendidas: p.cidades,
+      avaliacoes: avs.rows, distribuicao, cardapios,
       disponibilidade: disponibilidade({ usaAgenda, ocupado: data != null && datasOcupadas.includes(data) }, data),
       datasOcupadas: usaAgenda ? datasOcupadas : [],
     };

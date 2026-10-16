@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
-import { psql } from './helpers';
+import { login, psql } from './helpers';
 
-// Banket Busca, fase 4: cadastro gratuito pela vitrine e onboarding do perfil em 7 etapas. Cria uma empresa nova no
-// plano Busca (e-mail @example.com: nada é enviado) e a remove no fim.
+// Banket Busca, fase 4: cadastro gratuito pela vitrine e onboarding do perfil em 6 etapas (sem pacotes nem preço).
+// Cria uma empresa nova no plano Busca (e-mail @example.com: nada é enviado) e a remove no fim. O plano pago (captura
+// dos dados da conta e grupos de fotos) usa o buffet de demonstração Mesa Posta (seed 011, PJ no plano Essencial).
 
 const ts = Date.now();
 const EMAIL = `e2e.busca.${ts}@example.com`;
@@ -69,7 +70,10 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await expect(page.locator('.onb-principal form').first()).toBeVisible(); // o formulário é a própria página
     expect(psql(`SELECT p.slug || '|' || t.origem_cadastro FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT}`)).toBe('busca|busca');
     await expect(page.locator('[data-situacao]')).toContainText('Rascunho');
-    await expect(page.locator('[data-situacao]')).toContainText('0 de 6 etapas');
+    await expect(page.locator('[data-situacao]')).toContainText('0 de 5 etapas');
+    // Empresa PJ no plano gratuito: sem a captura dos dados da conta e sem a etapa de pacotes
+    await expect(page.locator('[data-capturar-conta]')).toHaveCount(0);
+    await expect(page.locator('.onb-etapas')).not.toContainText('Pacotes');
   });
 
   test('etapas 1 a 4 com validação e o limite de 3 tipos no plano gratuito', async ({ page }) => {
@@ -139,7 +143,7 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     expect(psql(`SELECT array_length(tipos_evento, 1) FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('3');
   });
 
-  test('pacotes, fotos com limite, prévia só para o dono e publicação', async ({ page, browser }) => {
+  test('fotos com limite de 5, prévia só para o dono e publicação', async ({ page, browser }) => {
     test.setTimeout(60_000);
     await page.goto('/auth/login');
     await page.fill('#email', EMAIL);
@@ -153,44 +157,40 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await expect(page.locator('dialog[data-upsell]')).toContainText('Cardápios detalhados no seu perfil');
     await page.locator('dialog[data-upsell]').getByRole('button', { name: 'Fechar' }).click();
 
-    // Etapa 5: um pacote
-    await page.fill('#k-nome', 'Festa completa');
-    await page.fill('#k-preco', '129,00');
-    await page.fill('#k-inclui', '8 tipos de salgado\nBolo e doces');
-    await page.getByRole('button', { name: 'Incluir pacote' }).click();
-    await expect(page.locator('.onb-item', { hasText: 'Festa completa' })).toContainText('R$ 129,00');
-    await page.getByRole('button', { name: /Continuar/ }).click();
-    await page.waitForURL(/etapa=6/);
-
-    // Etapa 6: 6 fotos de uma vez → só 5 cabem (o navegador corta; o servidor confere)
+    // Etapa 5: 6 fotos de uma vez → só 5 cabem (o navegador corta; o servidor confere); sem grupos no gratuito
+    await expect(page.locator('#f-grupo')).toHaveCount(0);
     await page.locator('[data-fotos-input]').setInputFiles([1, 2, 3, 4, 5, 6].map(foto));
     await expect(page.locator('[data-fotos-status]')).toContainText('Só 5 cabem');
     await page.getByRole('button', { name: 'Enviar fotos' }).click();
     await expect(page.locator('.onb-foto')).toHaveCount(5);
     await expect(page.locator('.onb-foto').first()).toContainText('Capa');
-    await expect(page.locator('[data-fotos-form]')).toContainText('limite de fotos');
+    await expect(page.locator('[data-fotos-form]')).toContainText('limite de 5 fotos');
+    await expect(page.locator('.onb-foto').first()).toContainText('Grupos de fotos por evento: exclusivo Banket');
 
-    // Prévia antes de publicar: o dono vê; anônimo recebe 404
+    // Prévia antes de publicar: o dono vê; anônimo recebe 404. Nenhuma menção a preço
     const slug = psql(`SELECT slug FROM busca_perfis WHERE tenant_id = ${TENANT}`);
     await page.goto(`/vitrine/buffet/${slug}?previa=1`);
     await expect(page.locator('.vp-previa')).toContainText('ainda não publicado');
+    await expect(page.locator('main')).not.toContainText('R$');
+    await expect(page.locator('main')).not.toContainText('por pessoa');
     const anonimo = await browser.newContext();
     expect((await anonimo.request.get(`${new URL(page.url()).origin}/vitrine/buffet/${slug}?previa=1`)).status()).toBe(404);
     await anonimo.close();
 
-    // Etapa 7: publicar exige o aceite
-    await etapa(page, 7);
+    // Etapa 6: publicar exige o aceite
+    await etapa(page, 6);
     await expect(page.locator('.onb-item .onb-falta')).toHaveCount(0);
     await page.getByLabel(/termos de uso/).check();
     await page.getByRole('button', { name: 'Publicar perfil' }).click();
-    await page.waitForURL(/\/busca\?etapa=7/);
+    await page.waitForURL(/\/busca\?etapa=6/);
     await expect(page.locator('[data-situacao]')).toContainText('Publicado');
     await page.goto(`/vitrine/buscar?tipo=infantil&cidade=santo-andre-sp&convidados=80`);
     await expect(page.locator(`[data-buffet="${slug}"]`)).toBeVisible();
     await expect(page.locator(`[data-buffet="${slug}"]`)).not.toContainText('Cliente Banket');
+    await expect(page.locator(`[data-buffet="${slug}"]`)).not.toContainText('R$');
 
     // Excluir fotos até ficar abaixo do mínimo despublica o perfil
-    await etapa(page, 6);
+    await etapa(page, 5);
     for (let i = 0; i < 3; i++) {
       await page.locator('.onb-foto').last().getByRole('button', { name: 'Excluir foto' }).click();
       await page.locator('dialog.confirmar[open] [data-confirmar-ok]').click();
@@ -198,5 +198,31 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     }
     await expect(page.locator('.toast').last()).toContainText('voltou a rascunho');
     expect(psql(`SELECT publicado::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('false');
+  });
+
+  test('plano pago e PJ: captura os dados da conta e agrupa fotos por evento', async ({ page }) => {
+    const MESA = `(SELECT id FROM tenants WHERE nome = 'Mesa Posta Catering')`;
+    const GRUPO = `E2E Casamento ${ts}`;
+    await login(page, { email: 'contato@mesaposta.test', senha: 'Banket.2026' });
+    await etapa(page, 1);
+    const cartao = page.locator('[data-capturar-conta]');
+    await expect(cartao).toContainText('41.111.111/0001-03');
+    psql(`UPDATE busca_perfis SET email_contato = 'outro@example.com' WHERE tenant_id = ${MESA}`);
+    await cartao.getByRole('button', { name: 'Capturar dados da conta' }).click();
+    await page.locator('dialog.confirmar[open] [data-confirmar-ok]').click();
+    await expect(page.locator('.toast').first()).toContainText('Dados da conta trazidos');
+    await expect(page.locator('#e-email')).toHaveValue('contato@mesaposta.test');
+    await expect(page.locator('#e-doc')).toHaveValue('41.111.111/0001-03');
+
+    // Fotos: sem limite e com grupo; no perfil público o grupo aparece separado
+    await etapa(page, 5);
+    await page.locator('[data-fotos-input]').setInputFiles([foto(1), foto(2)]);
+    await page.fill('#f-grupo', GRUPO);
+    await page.getByRole('button', { name: 'Enviar fotos' }).click();
+    await expect(page.locator('.onb-grupo-titulo', { hasText: GRUPO })).toContainText('02');
+    await page.goto('/vitrine/buffet/mesa-posta-catering');
+    await expect(page.locator('.vp-fotos-grupo', { hasText: GRUPO })).toBeVisible();
+    await expect(page.locator('main')).not.toContainText('R$');
+    psql(`DELETE FROM busca_fotos WHERE tenant_id = ${MESA} AND '${GRUPO}' = ANY(tags)`);
   });
 });

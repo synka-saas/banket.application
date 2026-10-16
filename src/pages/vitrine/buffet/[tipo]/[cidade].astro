@@ -31,8 +31,7 @@ params.set('cidade', cidade.slug);
 const criterios = lerCriterios(params, hojeSaoPaulo());
 const resultado = await buscarBuffets(criterios);
 await registrarMetrica(resultado.itens.slice(-12).map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
-const precos = resultado.itens.map((i) => i.precoMin).filter((p): p is number => p != null);
-const texto = textoLanding(tipo, cidade.nome, resultado.total, precos.length ? Math.min(...precos) : null);
+const texto = textoLanding(tipo, cidade.nome, resultado.total);
 const canonical = `/buffet/${urlDoTipo(tipo)}/${curto}`;
 // Links internos: o mesmo evento em cidades próximas e outros eventos na mesma cidade (só onde há buffets)
 const combos = await combinacoesLanding();

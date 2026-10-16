@@ -1,10 +1,10 @@
 ---
-// Perfil público do buffet (layout-busca/BuscaPerfil). Cliente Banket: selo, cardápio detalhado de cada pacote (direto
-// do catálogo do app) e disponibilidade pela agenda. Gratuito: pacotes sem cardápio e "Consultar disponibilidade".
+// Perfil público do buffet (layout-busca/BuscaPerfil). Sem preço em lugar nenhum (decisão de 16/10/2026). Cliente
+// Banket: selo, cardápios (opções de cardápio do catálogo do app) e disponibilidade pela agenda. Gratuito: até 5 fotos
+// e "Consultar disponibilidade". Fotos em grupos (tags, planos pagos) aparecem separadas por evento.
 import VitrineLayout from '../../../layouts/VitrineLayout.astro';
 import Estrelas from '../../../components/busca/Estrelas.astro';
 import Icon from '../../../components/ui/Icon.astro';
-import { brl } from '../../../lib/forms';
 import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../../lib/busca/catalogos';
 import { buscaUrl, caminhoVitrine } from '../../../lib/busca/url';
 import { queryDaBusca } from '../../../lib/busca/filtros';
@@ -38,7 +38,11 @@ const capacidade = p.capacidade_min && p.capacidade_max ? `${p.capacidade_min} a
 const dataBR = criterios.data?.split('-').reverse().join('/');
 const fotos = p.fotos;
 const extras = fotos.slice(1, 5);
-const estimativa = criterios.convidados && p.precoMin != null ? criterios.convidados * p.precoMin : null;
+// Grupos de fotos (o primeiro grupo de cada foto); fotos sem grupo ficam em "Mais fotos"
+const nomesGrupos = [...new Set(fotos.flatMap((f) => f.tags.slice(0, 1)))];
+const gruposFotos = nomesGrupos.length
+  ? [...nomesGrupos.map((g) => ({ nome: g, fotos: fotos.filter((f) => f.tags[0] === g) })), { nome: 'Mais fotos', fotos: fotos.filter((f) => !f.tags.length).slice(5) }].filter((g) => g.fotos.length)
+  : fotos.length > 5 ? [{ nome: null as string | null, fotos: fotos.slice(5) }] : [];
 const tipoInicial = criterios.tipo && p.tipos_evento.includes(criterios.tipo) ? criterios.tipo : p.tipos_evento[0];
 const totalAv = Object.values(p.distribuicao).reduce((a, b) => a + b, 0);
 const fatos = [
@@ -50,7 +54,7 @@ const fatos = [
 const ld = jsonLdPerfil({
   nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
   fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
-  totalAvaliacoes: p.total_avaliacoes, precoMin: p.precoMin, pacotes: p.pacotes, avaliacoes: p.avaliacoes,
+  totalAvaliacoes: p.total_avaliacoes, avaliacoes: p.avaliacoes,
 });
 const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
 const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
@@ -60,7 +64,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
   {emPrevia && (
     <div class="vp-previa" role="status">
       <Icon name="eye" size={16} /> <span>Prévia do seu perfil{p.publicado ? '' : ' · ainda não publicado, só você vê esta página'}.</span>
-      <a href="/busca?etapa=7">Voltar ao cadastro</a>
+      <a href="/busca?etapa=6">Voltar ao cadastro</a>
     </div>
   )}
   <div class="vitrine-secao" style="padding-top:16px">
@@ -109,38 +113,27 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
           )}
         </section>
 
-        {p.pacotes.length > 0 && (
-          <section class="vp-secao" aria-labelledby="h-pacotes">
-            <h2 id="h-pacotes">{p.mostraCardapio ? 'Cardápios e pacotes' : 'Pacotes'}</h2>
-            <p style="margin-bottom:12px;color:var(--text-secondary)">Preço por pessoa.</p>
+        {p.cardapios.length > 0 && (
+          <section class="vp-secao" aria-labelledby="h-cardapios">
+            <h2 id="h-cardapios">Cardápios</h2>
+            <p style="margin-bottom:12px;color:var(--text-secondary)">Opções de cardápio do buffet. Peça orçamento para montar o seu.</p>
             <ul class="vp-pacotes">
-              {p.pacotes.map((k) => {
-                const cardapio = k.cardapio_opcao_id ? p.cardapios[k.cardapio_opcao_id] : undefined;
-                const faixa = k.convidados_min && k.convidados_max ? `${k.convidados_min} a ${k.convidados_max} convidados` : null;
-                return (
-                  <li class="vp-pacote">
-                    <div class="vp-pacote-cabeca">
-                      <h3>{k.nome}</h3>
-                      {k.preco_pessoa != null && <span class="vp-pacote-preco tabular">{brl(k.preco_pessoa)} <small>por pessoa</small></span>}
-                    </div>
-                    {k.descricao && <p>{k.descricao}</p>}
-                    {faixa && <p class="bcard-cap"><Icon name="users" size={14} />{faixa}</p>}
-                    {k.inclui.length > 0 && <ul class="vp-inclui">{k.inclui.map((i) => <li><Icon name="check" size={14} />{i}</li>)}</ul>}
-                    {cardapio && cardapio.length > 0 && (
-                      <details class="vp-cardapio">
-                        <summary>Ver cardápio</summary>
-                        {cardapio.map((s) => (
-                          <>
-                            <h4>{s.titulo}{s.escolha ? ` · escolha ${s.escolha}` : ''}</h4>
-                            <ul>{s.itens.map((i) => <li>{i.nome}{i.restricoes.length ? ` (${i.restricoes.map(rotuloRestricao).join(', ').toLowerCase()})` : ''}</li>)}</ul>
-                          </>
-                        ))}
-                      </details>
-                    )}
-                    <a class="btn btn-outline btn-sm" style="align-self:flex-start" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}&pacote=${encodeURIComponent(k.nome)}`}>Pedir este pacote</a>
-                  </li>
-                );
-              })}
+              {p.cardapios.map((k) => (
+                <li class="vp-pacote">
+                  <div class="vp-pacote-cabeca"><h3>{k.nome}</h3></div>
+                  {k.descricao && <p>{k.descricao}</p>}
+                  <details class="vp-cardapio">
+                    <summary>Ver cardápio</summary>
+                    {k.secoes.map((sec) => (
+                      <>
+                        <h4>{sec.titulo}{sec.escolha ? ` · escolha ${sec.escolha}` : ''}</h4>
+                        <ul>{sec.itens.map((i) => <li>{i.nome}{i.restricoes.length ? ` (${i.restricoes.map(rotuloRestricao).join(', ').toLowerCase()})` : ''}</li>)}</ul>
+                      </>
+                    ))}
+                  </details>
+                  <a class="btn btn-outline btn-sm" style="align-self:flex-start" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}&cardapio=${encodeURIComponent(k.nome)}`}>Pedir orçamento com este cardápio</a>
+                </li>
+              ))}
             </ul>
           </section>
         )}
@@ -158,12 +151,17 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
           {p.cidadesAtendidas.length > 0 && <ul class="vp-tags" style="margin-top:12px">{p.cidadesAtendidas.map((c) => <li class="tag"><Icon name="map-pin" size={13} />{c}</li>)}</ul>}
         </section>
 
-        {fotos.length > 5 && (
+        {gruposFotos.length > 0 && (
           <section class="vp-secao" aria-labelledby="h-fotos" id="fotos">
             <h2 id="h-fotos">Fotos</h2>
-            <ul class="vh-grade-cards" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-              {fotos.slice(5).map((f) => <li><img src={f.url} alt={f.legenda ?? ''} loading="lazy" width="320" height="240" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md)" /></li>)}
-            </ul>
+            {gruposFotos.map((g) => (
+              <>
+                {g.nome && <h3 class="vp-fotos-grupo">{g.nome}</h3>}
+                <ul class="vh-grade-cards vp-fotos-grade">
+                  {g.fotos.map((f) => <li><img src={f.url} alt={f.legenda ?? g.nome ?? ''} loading="lazy" width="320" height="240" /></li>)}
+                </ul>
+              </>
+            ))}
           </section>
         )}
 
@@ -198,7 +196,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
       </div>
 
       <aside class="vp-aside" aria-label="Pedir orçamento">
-        {p.precoMin != null && <div class="vp-aside-preco"><small>a partir de</small><span><strong class="tabular">{brl(p.precoMin).replace(',00', '')}</strong> por pessoa</span></div>}
+        <h2 class="vp-aside-titulo">Peça um orçamento</h2>
         {p.disponibilidade === 'disponivel' && <span class="badge badge-success vp-disp"><span class="bcard-ponto" aria-hidden="true"></span>Disponível em {dataBR}</span>}
         {p.disponibilidade === 'indisponivel' && <span class="badge badge-warning vp-disp">Data ocupada na agenda em {dataBR}</span>}
         {p.disponibilidade === 'consultar' && <span class="badge vp-disp">Consultar disponibilidade</span>}
@@ -213,7 +211,6 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
             <div class="field"><label for="vp-data">Data</label><input id="vp-data" name="data" type="date" min={hojeSaoPaulo()} value={criterios.data ?? ''} /></div>
             <div class="field"><label for="vp-conv">Convidados</label><input id="vp-conv" name="convidados" type="number" inputmode="numeric" min="1" max="5000" value={criterios.convidados ?? ''} /></div>
           </div>
-          {estimativa != null && <div class="vp-estimativa"><span>Estimativa para {criterios.convidados} convidados</span><strong class="tabular">{brl(estimativa)}</strong></div>}
           <button type="submit" class="btn btn-primary btn-large btn-block">Pedir orçamento</button>
         </form>
         <span class="vp-aside-nota">Grátis e sem compromisso{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
@@ -222,7 +219,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
   </div>
 
   <div class="vp-movel">
-    {p.precoMin != null ? <span class="vp-aside-preco"><small>a partir de</small><span><strong class="tabular" style="font-size:var(--fs-20)">{brl(p.precoMin).replace(',00', '')}</strong> por pessoa</span></span> : <span></span>}
+    <span class="vp-movel-nome">{p.nome}</span>
     <a class="btn btn-primary btn-large" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}`}>Pedir orçamento</a>
   </div>
 </VitrineLayout>

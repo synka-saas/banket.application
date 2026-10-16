@@ -1,17 +1,40 @@
 ---
-// Etapa 1: dados da empresa (nome, CNPJ/CPF validado, logo, contato, descrição).
+// Etapa 1: dados da empresa (nome, CNPJ/CPF validado, logo, contato, descrição). Empresa PJ em plano pago vê
+// "Capturar dados da conta": traz nome, CNPJ, e-mail, telefone e logo do cadastro do Banket (server/busca/onboarding).
 import FileUpload from '../../ui/FileUpload.astro';
+import Icon from '../../ui/Icon.astro';
 import Acoes from './Acoes.astro';
 import { formatarDocumento } from '../../../lib/documento';
 import { mascararTelefone } from '../../../lib/mascaras';
 import { urlMidia, type PerfilBusca } from '../../../server/busca/perfil';
+import type { DadosConta } from '../../../server/busca/onboarding';
 interface Props {
   perfil: PerfilBusca;
   editor: boolean;
+  /** Cadastro da empresa no Banket (só PJ em plano pago) */
+  conta?: DadosConta | null;
 }
-const { perfil: p, editor } = Astro.props;
+const { perfil: p, editor, conta = null } = Astro.props;
 const logo = urlMidia(p.tenant_id, p.logo_path);
+const daConta = conta
+  ? [conta.nome, conta.documento && formatarDocumento(conta.documento), conta.email, conta.telefone && mascararTelefone(conta.telefone), conta.logo_path && 'logotipo'].filter(Boolean).join(' · ')
+  : '';
 ---
+
+{editor && conta && (
+  <form method="post" class="onb-cartao onb-conta" data-capturar-conta>
+    <input type="hidden" name="_etapa" value="1" />
+    <span class="onb-conta-ico"><Icon name="building" size={18} /></span>
+    <div class="onb-conta-texto">
+      <strong>Usar os dados da sua conta Banket</strong>
+      <span>Trazemos do cadastro da empresa: {daConta}. A descrição e as redes sociais você completa aqui.</span>
+    </div>
+    <button type="submit" name="_acao" value="capturar" class="btn btn-secondary btn-md" data-carregando="Capturando…"
+      data-confirm="Capturar os dados da conta?" data-confirm-texto="Nome, CNPJ, e-mail, telefone e logotipo do perfil passam a ser os do cadastro da empresa. O que você digitou e ainda não salvou nesta etapa se perde." data-confirm-rotulo="Capturar dados">
+      <Icon name="download" size={16} /> Capturar dados da conta
+    </button>
+  </form>
+)}
 
 <form method="post" enctype="multipart/form-data" data-form-sujo>
   <input type="hidden" name="_etapa" value="1" />

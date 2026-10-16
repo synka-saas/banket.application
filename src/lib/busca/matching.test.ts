@@ -6,7 +6,7 @@ const SA = { id: 1 }; // Santo André
 const base: CandidatoBusca = {
   id: 'b', cidadeId: 1, cidadesAtendidas: [], tiposEvento: ['infantil', 'aniversario'], tiposServico: ['buffet_completo', 'kids'],
   restricoes: ['vegetariana'], atendeDomicilio: false, raioKm: null, espacoProprio: true, capacidadeMin: 40, capacidadeMax: 250,
-  aceitaMenor: false, distanciaKm: 2, precoMin: 89, notaMedia: 4.8, usaAgenda: true, ocupado: false,
+  aceitaMenor: false, distanciaKm: 2, notaMedia: 4.8, usaAgenda: true, ocupado: false,
 };
 const crit = (q: string) => lerCriterios(new URLSearchParams(q), '2026-10-16');
 
@@ -46,13 +46,12 @@ describe('compatibilidade (eliminatória)', () => {
 });
 
 describe('filtros secundários', () => {
-  it('serviço (qualquer), restrição (todas), preço, nota, raio e modo de atendimento', () => {
+  it('serviço (qualquer), restrição (todas), nota, raio e modo de atendimento', () => {
     expect(passaFiltros(base, crit('servico=churrasco&servico=kids'), SA)).toBe(true);
     expect(passaFiltros(base, crit('servico=churrasco'), SA)).toBe(false);
     expect(passaFiltros(base, crit('restricao=vegetariana&restricao=vegana'), SA)).toBe(false);
-    expect(passaFiltros(base, crit('preco_max=80'), SA)).toBe(false);
-    expect(passaFiltros(base, crit('preco_min=60&preco_max=100'), SA)).toBe(true);
-    expect(passaFiltros({ ...base, precoMin: null }, crit('preco_max=200'), SA)).toBe(false);
+    // preço não é filtro: parâmetro antigo na URL é ignorado
+    expect(passaFiltros(base, crit('preco_max=10'), SA)).toBe(true);
     expect(passaFiltros(base, crit('avaliacao=4.5'), SA)).toBe(true);
     expect(passaFiltros({ ...base, notaMedia: null }, crit('avaliacao=4'), SA)).toBe(false);
     expect(passaFiltros({ ...base, distanciaKm: 7 }, crit('raio=5'), SA)).toBe(false);

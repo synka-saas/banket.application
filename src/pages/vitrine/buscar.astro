@@ -22,7 +22,7 @@ const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toL
 
 <VitrineLayout
   title={titulo}
-  description={`${resultado.total} buffets compatíveis com o seu evento. Compare pacotes, fotos e avaliações e peça orçamento grátis.`}
+  description={`${resultado.total} buffets compatíveis com o seu evento. Compare fotos, serviços e avaliações e peça orçamento grátis.`}
   noindex
   jsonLd={resultado.itens.length ? [jsonLdLista(resultado.itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []}
 >

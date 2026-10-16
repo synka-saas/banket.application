@@ -1,5 +1,6 @@
 ---
-// Etapa 4: capacidade mínima e máxima (eliminatória na busca) e eventos menores com valor mínimo de contrato.
+// Etapa 4: capacidade mínima e máxima (eliminatória na busca) e se aceita eventos menores (sob consulta; sem valor:
+// o Busca não divulga preço).
 import Acoes from './Acoes.astro';
 import type { PerfilBusca } from '../../../server/busca/perfil';
 interface Props {
@@ -18,11 +19,7 @@ const { perfil: p, editor } = Astro.props;
         <div class="field"><label for="c-max">Máximo de convidados<span class="obrigatorio">*</span></label><input id="c-max" name="capacidade_max" type="number" min="1" max="5000" required inputmode="numeric" value={p.capacidade_max ?? ''} /><span class="field-hint">Considere o espaço e a sua equipe.</span></div>
       </div>
       <p class="onb-limite" data-faixa aria-live="polite">{p.capacidade_min && p.capacidade_max ? `Seu buffet aparece em buscas de ${p.capacidade_min} a ${p.capacidade_max} convidados.` : 'Informe a faixa de convidados.'}</p>
-      <label class="switch"><input type="checkbox" name="aceita_menor" checked={p.aceita_menor} data-menor /><span>Aceito eventos menores com valor mínimo de contrato</span></label>
-      <div class="field" data-valor-minimo style="max-width:280px">
-        <label for="c-valor">Valor mínimo do contrato (R$)</label>
-        <input id="c-valor" name="valor_minimo" data-mascara="dinheiro" inputmode="decimal" value={p.valor_minimo != null ? p.valor_minimo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''} />
-      </div>
+      <label class="switch"><input type="checkbox" name="aceita_menor" checked={p.aceita_menor} /><span>Aceito eventos menores que o mínimo, sob consulta</span></label>
     </section>
   </fieldset>
   <Acoes etapa={4} editor={editor} />
@@ -34,11 +31,8 @@ const { perfil: p, editor } = Astro.props;
     const min = form.querySelector<HTMLInputElement>('#c-min')!;
     const max = form.querySelector<HTMLInputElement>('#c-max')!;
     const faixa = form.querySelector<HTMLElement>('[data-faixa]')!;
-    const menor = form.querySelector<HTMLInputElement>('[data-menor]')!;
-    const valor = form.querySelector<HTMLElement>('[data-valor-minimo]')!;
     const atualizar = () => {
       faixa.textContent = min.value && max.value ? `Seu buffet aparece em buscas de ${min.value} a ${max.value} convidados.` : 'Informe a faixa de convidados.';
-      valor.hidden = !menor.checked;
     };
     form.addEventListener('input', atualizar);
     atualizar();

@@ -1,7 +1,7 @@
 ---
-// Banket Busca — área do buffet no app (menu Banket Busca): o próprio cadastro do perfil em 7 etapas, com a situação do
-// perfil no topo. Cada etapa grava ao salvar (o progresso fica no banco) e funciona sem JavaScript. POST: _etapa +
-// _acao. Limites do plano (tipos, fotos, tags) abrem o painel de upsell. Decisão de 16/10/2026: tudo fica em
+// Banket Busca — área do buffet no app (menu Banket Busca): o próprio cadastro do perfil em 6 etapas (sem pacotes nem
+// preço), com a situação do perfil no topo. Cada etapa grava ao salvar (o progresso fica no banco) e funciona sem JavaScript. POST: _etapa +
+// _acao. Limites do plano (tipos, fotos, grupos de fotos) abrem o painel de upsell. Decisão de 16/10/2026: tudo fica em
 // app.banket.com.br, dentro do layout do app (o subdomínio do Busca é só a vitrine).
 import AppLayout from '../../layouts/AppLayout.astro';
 import Icon from '../../components/ui/Icon.astro';
@@ -10,7 +10,6 @@ import Empresa from '../../components/busca/onboarding/Empresa.astro';
 import Eventos from '../../components/busca/onboarding/Eventos.astro';
 import Regiao from '../../components/busca/onboarding/Regiao.astro';
 import Capacidade from '../../components/busca/onboarding/Capacidade.astro';
-import Pacotes from '../../components/busca/onboarding/Pacotes.astro';
 import Fotos from '../../components/busca/onboarding/Fotos.astro';
 import Revisao from '../../components/busca/onboarding/Revisao.astro';
 import { handleFormPost } from '../../lib/actions';
@@ -18,16 +17,16 @@ import { isAdmin } from '../../lib/auth';
 import { withTenant } from '../../lib/db';
 import { setFlash } from '../../lib/flash';
 import { ErroPlano } from '../../lib/planos/gating';
-import { ETAPAS, etapasConcluidas, proximaEtapa } from '../../lib/busca/onboarding';
+import { ETAPAS, ETAPAS_PARA_PUBLICAR, ETAPA_FOTOS, ETAPA_REVISAO, etapasConcluidas, proximaEtapa } from '../../lib/busca/onboarding';
 import { appUrl } from '../../lib/mail';
 import { buscaUrl } from '../../lib/busca/url';
 import '../../styles/busca.css';
 import '../../styles/onboarding.css';
 import { garantirPerfil } from '../../server/busca/perfil';
 import {
-  adicionarFotos, capacidadeSchema, contagens, definirCapa, despublicar, empresaSchema, eventosSchema, excluirFoto, excluirPacote,
-  fotoSchema, listarFotos, listarPacotes, moverFoto, pacoteSchema, publicar, recursosOnboarding, regiaoSchema, salvarCapacidade,
-  salvarEmpresa, salvarEventos, salvarFoto, salvarPacote, salvarRegiao,
+  adicionarFotos, capacidadeSchema, capturarDadosDaConta, contagens, dadosDaConta, definirCapa, despublicar, empresaSchema,
+  eventosSchema, excluirFoto, fotoSchema, listarFotos, moverFoto, publicar, recursosOnboarding, regiaoSchema, salvarCapacidade,
+  salvarEmpresa, salvarEventos, salvarFoto, salvarRegiao,
 } from '../../server/busca/onboarding';
 
 const user = Astro.locals.user;
@@ -39,52 +38,51 @@ if (Astro.request.method === 'POST') {
   return handleFormPost(
     Astro,
     async (data, raw) => {
-      const etapa = Math.min(Math.max(Number(data._etapa) || 1, 1), 7);
+      const etapa = Math.min(Math.max(Number(data._etapa) || 1, 1), ETAPA_REVISAO);
       const acao = String(data._acao ?? 'salvar');
       const aqui = `/busca?etapa=${etapa}`;
       const AVISO = ' O perfil voltou a rascunho: conclua as etapas que faltam para publicar de novo.';
       const com = (msg: string, r?: { despublicado: boolean } | void) => `${msg}${r && r.despublicado ? AVISO : ''}`;
       const seguir = (r?: { despublicado: boolean }) => {
-        const proxima = acao === 'continuar' ? `/busca?etapa=${Math.min(etapa + 1, 7)}` : aqui;
+        const proxima = acao === 'continuar' ? `/busca?etapa=${Math.min(etapa + 1, ETAPA_REVISAO)}` : aqui;
         const aviso = r?.despublicado ? ' O perfil voltou a rascunho: conclua as etapas que faltam para publicar de novo.' : '';
         return { message: `${acao === 'continuar' ? 'Etapa salva.' : 'Alterações salvas.'}${aviso}`, redirect: proxima };
       };
       try {
         return await withTenant(user.tenantId, async (db) => {
           const id = typeof data.id === 'string' && /^[0-9a-f-]{36}$/i.test(data.id) ? data.id : null;
+          // Etapas 1–4: formulário; 5: fotos; 6: revisão e publicação
           switch (`${etapa}:${acao}`) {
             case '1:salvar': case '1:continuar':
               return seguir(await salvarEmpresa(db, user, empresaSchema.parse(data), (raw.get('logo') as File | null) ?? null, data.remover_logo === 'on'));
+            case '1:capturar':
+              return { message: com('Dados da conta trazidos para o perfil. Confira e complete o que faltar.', await capturarDadosDaConta(db, user)), redirect: aqui };
             case '2:salvar': case '2:continuar':
               return seguir(await salvarEventos(db, user, eventosSchema.parse(data)));
             case '3:salvar': case '3:continuar':
               return seguir(await salvarRegiao(db, user, regiaoSchema.parse(data)));
             case '4:salvar': case '4:continuar':
               return seguir(await salvarCapacidade(db, user, capacidadeSchema.parse(data)));
-            case '5:pacote':
-              return { message: com(id ? 'Pacote atualizado.' : 'Pacote incluído.', await salvarPacote(db, user, id, pacoteSchema.parse(data))), redirect: aqui };
-            case '5:excluir':
-              return { message: com('Pacote excluído.', id ? await excluirPacote(db, user, id) : undefined), redirect: aqui };
-            case '5:continuar': case '6:continuar':
-              return { message: '', redirect: `/busca?etapa=${etapa + 1}` };
-            case '6:enviar':
-              await adicionarFotos(db, user, raw.getAll('fotos').filter((f): f is File => f instanceof File));
+            case '5:continuar':
+              return { message: '', redirect: `/busca?etapa=${ETAPA_REVISAO}` };
+            case '5:enviar':
+              await adicionarFotos(db, user, raw.getAll('fotos').filter((f): f is File => f instanceof File), typeof data.grupo === 'string' ? data.grupo : null);
               return { message: 'Fotos enviadas.', redirect: aqui };
-            case '6:foto':
+            case '5:foto':
               if (id) await salvarFoto(db, user, id, fotoSchema.parse(data));
               return { message: 'Foto atualizada.', redirect: aqui };
-            case '6:capa':
+            case '5:capa':
               if (id) await definirCapa(db, user, id);
               return { message: 'Capa definida.', redirect: aqui };
-            case '6:antes': case '6:depois':
+            case '5:antes': case '5:depois':
               if (id) await moverFoto(db, user, id, acao as 'antes' | 'depois');
               return { message: '', redirect: aqui };
-            case '6:excluir':
+            case '5:excluir':
               return { message: com('Foto excluída.', id ? await excluirFoto(db, user, id) : undefined), redirect: aqui };
-            case '7:publicar':
+            case '6:publicar':
               await publicar(db, user, data.aceite === 'on');
-              return { message: 'Perfil publicado! Ele já aparece nas buscas compatíveis.', redirect: '/busca?etapa=7' };
-            case '7:despublicar':
+              return { message: 'Perfil publicado! Ele já aparece nas buscas compatíveis.', redirect: `/busca?etapa=${ETAPA_REVISAO}` };
+            case '6:despublicar':
               await despublicar(db, user);
               return { message: 'Perfil despublicado. Ele não aparece mais na busca.', redirect: aqui };
             default:
@@ -112,13 +110,14 @@ if (Astro.request.method === 'POST') {
 const dados = await withTenant(user.tenantId, async (db) => {
   const perfil = await garantirPerfil(db, user.tenantId);
   const c = await contagens(db, perfil.id);
-  const [pacotes, fotos] = [await listarPacotes(db, perfil.id), await listarFotos(db, perfil.id)];
+  const fotos = await listarFotos(db, perfil.id);
+  const conta = await dadosDaConta(db, user.tenantId);
   const { rows: cidades } = await db.query<{ nome: string; uf: string; slug: string; base: boolean }>(
     `SELECT c.nome, c.uf, c.slug, (c.id = $2) AS base FROM busca_cidades c
       WHERE c.id = $2 OR c.id IN (SELECT cidade_id FROM busca_perfil_cidades WHERE perfil_id = $1) ORDER BY base DESC, c.nome`,
     [perfil.id, perfil.cidade_id]
   );
-  return { perfil, c, pacotes, fotos, cidades };
+  return { perfil, c, fotos, cidades, conta };
 });
 const recursos = await recursosOnboarding(user.tenantId);
 let rascunho: Record<string, string | string[]> | null = null;
@@ -131,7 +130,8 @@ try {
 if (Astro.cookies.has(RASCUNHO)) Astro.cookies.delete(RASCUNHO, { path: '/busca' });
 const { perfil, c } = dados;
 const pedida = Number(url.searchParams.get('etapa'));
-const etapa = pedida >= 1 && pedida <= 7 ? pedida : proximaEtapa(perfil, c);
+// Endereços antigos (7 etapas, com pacotes): ?etapa=7 vira a revisão
+const etapa = pedida >= 1 && pedida <= ETAPA_REVISAO ? pedida : pedida > ETAPA_REVISAO ? ETAPA_REVISAO : proximaEtapa(perfil, c);
 const info = ETAPAS[etapa - 1];
 const concluidas = [...etapasConcluidas(perfil, c)];
 const editor = isAdmin(user);
@@ -153,14 +153,14 @@ function comRascunho<T extends Record<string, any>>(p: T, r: Record<string, stri
   return out as T;
 }
 const extras = dados.cidades.filter((x) => !x.base);
-const feitas = concluidas.filter((n) => n <= 6).length;
+const feitas = concluidas.filter((n) => n <= ETAPAS_PARA_PUBLICAR).length;
 const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUrl(`/vitrine/buffet/${perfil.slug}?previa=1`);
 ---
 
 <AppLayout title={`${info.titulo} · Banket Busca`} heading={`Banket Busca / ${info.titulo}`}>
   <div class="onb-situacao" data-situacao>
     <span class:list={['badge', perfil.publicado ? 'badge-success' : 'badge-warning']}>{perfil.publicado ? 'Publicado' : 'Rascunho'}</span>
-    <span class="tabular">{feitas} de 6 etapas concluídas</span>
+    <span class="tabular">{feitas} de {ETAPAS_PARA_PUBLICAR} etapas concluídas</span>
     <span class="tabular">Completude {perfil.completude}%</span>
     <span class="onb-situacao-barra" role="progressbar" aria-label="Completude do perfil" aria-valuemin="0" aria-valuemax="100" aria-valuenow={perfil.completude}><span style={`width:${perfil.completude}%`}></span></span>
     <a href={publicoUrl} target="_blank" rel="noopener" class="btn btn-outline btn-sm"><Icon name="eye" size={16} /> {perfil.publicado ? 'Ver perfil público' : 'Ver prévia'}</a>
@@ -175,13 +175,12 @@ const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUr
   </div>
   {!editor && <div class="onb-aviso">Só proprietários e administradores editam o perfil. Você pode consultar as etapas.</div>}
 
-  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} />}
+  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} conta={dados.conta} />}
   {etapa === 2 && <Eventos perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} maxEventos={recursos.maxEventos} maxServicos={recursos.maxServicos} />}
   {etapa === 3 && <Regiao perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} cidadeBase={cidadeBase} extras={extras} />}
   {etapa === 4 && <Capacidade perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} />}
-  {etapa === 5 && <Pacotes pacotes={dados.pacotes} editor={editor} editarId={url.searchParams.get('pacote')} cliente={recursos.cardapios} />}
-  {etapa === 6 && <Fotos fotos={dados.fotos} tenantId={user.tenantId} editor={editor} maxFotos={recursos.maxFotos} tags={recursos.tags} />}
-  {etapa === 7 && <Revisao perfil={perfil} contagens={c} pacotes={dados.pacotes} fotos={dados.fotos} cidade={cidadeBase} editor={editor} />}
+  {etapa === ETAPA_FOTOS && <Fotos fotos={dados.fotos} tenantId={user.tenantId} editor={editor} maxFotos={recursos.maxFotos} tags={recursos.tags} />}
+  {etapa === ETAPA_REVISAO && <Revisao perfil={perfil} contagens={c} fotos={dados.fotos} cidade={cidadeBase} editor={editor} />}
   </div>
   </div>
 </AppLayout>

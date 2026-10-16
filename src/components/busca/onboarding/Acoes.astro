@@ -1,6 +1,7 @@
 ---
 // Rodapé fixo do onboarding: Voltar (etapa anterior), Salvar (fica na etapa) e Continuar (salva e avança).
 import Icon from '../../ui/Icon.astro';
+import { ETAPA_REVISAO } from '../../../lib/busca/onboarding';
 interface Props {
   etapa: number;
   editor: boolean;
@@ -17,6 +18,6 @@ const { etapa, editor, soContinuar = false, rotuloContinuar = 'Continuar' } = As
   {editor ? (
     <button type="submit" name="_acao" value="continuar" class="btn btn-primary btn-md" data-carregando="Salvando…">{rotuloContinuar} <Icon name="arrow-right" size={16} /></button>
   ) : (
-    etapa < 7 && <a class="btn btn-primary btn-md" href={`/busca?etapa=${etapa + 1}`}>Próxima etapa <Icon name="arrow-right" size={16} /></a>
+    etapa < ETAPA_REVISAO && <a class="btn btn-primary btn-md" href={`/busca?etapa=${etapa + 1}`}>Próxima etapa <Icon name="arrow-right" size={16} /></a>
   )}
 </div>

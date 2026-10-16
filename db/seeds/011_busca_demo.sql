@@ -46,7 +46,7 @@ BEGIN
   VALUES (v_t, p_slug, p_nome, p_doc, p_descricao, '1140000000', '11990000000', p_email, '@' || replace(p_slug, '-', ''),
           p_eventos, p_servicos, p_restricoes, p_domicilio, p_raio, p_espaco, p_bairro,
           v_cid, v_lat + (random() - 0.5) * 0.04, v_lng + (random() - 0.5) * 0.04, p_min, p_max, p_resposta,
-          CASE WHEN p_publicado THEN 7 ELSE 3 END, p_publicado, CASE WHEN p_publicado THEN now() - interval '40 days' END,
+          CASE WHEN p_publicado THEN 6 ELSE 3 END, p_publicado, CASE WHEN p_publicado THEN now() - interval '40 days' END,
           CASE WHEN p_publicado THEN 70 + (random() * 30)::int ELSE 35 END,
           CASE WHEN v_cliente THEN 'cliente' ELSE 'gratuito' END, round((0.6 + random() * 0.4)::numeric, 4))
   RETURNING id INTO v_p;

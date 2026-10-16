@@ -7,7 +7,7 @@
 //      buffet ou espaço próprio até a distância de deslocamento (filtro de raio ou 30 km).
 //   3. Capacidade: convidados entre o mínimo e o máximo; abaixo do mínimo só se o buffet aceita eventos menores.
 //   4. Data: elimina só cliente Banket com agenda sincronizada e data ocupada; gratuito nunca é eliminado pela data.
-//   Filtros secundários (também eliminatórios quando usados): serviço, restrição, preço, modo de atendimento, nota, raio.
+//   Filtros secundários (também eliminatórios quando usados): serviço, restrição, modo de atendimento, nota, raio.
 import type { Criterios } from './filtros';
 
 export const DESLOCAMENTO_PADRAO_KM = 30;
@@ -28,7 +28,6 @@ export interface CandidatoBusca {
   aceitaMenor: boolean;
   /** Distância até o centro da cidade buscada (null sem cidade ou sem coordenadas) */
   distanciaKm: number | null;
-  precoMin: number | null;
   notaMedia: number | null;
   /** Recurso busca_disponibilidade do plano + agenda sincronizada */
   usaAgenda: boolean;
@@ -81,8 +80,6 @@ export function compativel(c: CandidatoBusca, crit: Pick<Criterios, 'tipo' | 'co
 export function passaFiltros(c: CandidatoBusca, crit: Criterios, cidade: CidadeBusca | null): boolean {
   if (crit.servicos.length && !crit.servicos.some((s) => c.tiposServico.includes(s))) return false;
   if (crit.restricoes.length && !crit.restricoes.every((r) => c.restricoes.includes(r))) return false;
-  if (crit.precoMin != null && (c.precoMin == null || c.precoMin < crit.precoMin)) return false;
-  if (crit.precoMax != null && (c.precoMin == null || c.precoMin > crit.precoMax)) return false;
   if (crit.avaliacao != null && (c.notaMedia == null || c.notaMedia < crit.avaliacao)) return false;
   if (crit.raio != null && cidade && (c.distanciaKm == null || c.distanciaKm > crit.raio)) return false;
   if (crit.local) {

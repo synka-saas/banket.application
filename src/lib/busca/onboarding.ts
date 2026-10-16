@@ -1,10 +1,11 @@
-// Onboarding do perfil no Banket Busca (PLANO.md §7): as 7 etapas, quando cada uma está concluída, quando o perfil pode
-// ser publicado (etapas 1 a 6) e a completude (0–100) usada no ranking. Puro e testado (onboarding.test.ts).
-// Cardápios e Disponibilidade não são etapas: aparecem na lista como recursos "Exclusivo Banket".
+// Onboarding do perfil no Banket Busca (PLANO.md §7): as 6 etapas, quando cada uma está concluída, quando o perfil pode
+// ser publicado (etapas 1 a 5) e a completude (0–100) usada no ranking. Puro e testado (onboarding.test.ts).
+// Sem pacotes nem preço (decisão de 16/10/2026: o Busca não divulga preço). Cardápios e Disponibilidade não são
+// etapas: aparecem na lista como recursos "Exclusivo Banket" (vêm do próprio Banket).
 
 export interface EtapaOnboarding {
   n: number;
-  slug: 'empresa' | 'eventos' | 'regiao' | 'capacidade' | 'pacotes' | 'fotos' | 'revisao';
+  slug: 'empresa' | 'eventos' | 'regiao' | 'capacidade' | 'fotos' | 'revisao';
   titulo: string;
   sub: string;
   /** Título e apoio da página da etapa */
@@ -17,14 +18,18 @@ export const ETAPAS: EtapaOnboarding[] = [
   { n: 2, slug: 'eventos', titulo: 'Eventos e serviços', sub: 'O que você atende', h: 'Que eventos você atende?', p: 'Seu buffet aparece nas buscas desses tipos de evento e serviço.' },
   { n: 3, slug: 'regiao', titulo: 'Região de atendimento', sub: 'Espaço próprio e domicílio', h: 'Onde você atende?', p: 'Pedidos fora da sua região não chegam até você.' },
   { n: 4, slug: 'capacidade', titulo: 'Capacidade', sub: 'Mínimo e máximo de convidados', h: 'Quantos convidados você atende?', p: 'Usamos a faixa para mostrar seu buffet só em eventos que você comporta.' },
-  { n: 5, slug: 'pacotes', titulo: 'Pacotes', sub: 'Preço por pessoa', h: 'Seus pacotes', p: 'Nome, descrição, preço por pessoa e faixa de convidados de cada pacote.' },
-  { n: 6, slug: 'fotos', titulo: 'Fotos e galeria', sub: 'A primeira é a capa', h: 'Mostre o seu trabalho', p: 'Comece pelo salão montado, depois a comida de perto. A primeira foto é a capa.' },
-  { n: 7, slug: 'revisao', titulo: 'Revisão e publicação', sub: 'Confira e publique', h: 'Revise e publique', p: 'É assim que o seu buffet aparece na busca. Publique quando estiver tudo certo.' },
+  { n: 5, slug: 'fotos', titulo: 'Fotos e galeria', sub: 'A primeira é a capa', h: 'Mostre o seu trabalho', p: 'Comece pelo salão montado, depois a comida de perto. A primeira foto é a capa.' },
+  { n: 6, slug: 'revisao', titulo: 'Revisão e publicação', sub: 'Confira e publique', h: 'Revise e publique', p: 'É assim que o seu buffet aparece na busca. Publique quando estiver tudo certo.' },
 ];
+
+/** Etapa de revisão/publicação (a última) e a quantidade de etapas exigidas para publicar. */
+export const ETAPA_REVISAO = ETAPAS.length;
+export const ETAPAS_PARA_PUBLICAR = ETAPA_REVISAO - 1;
+export const ETAPA_FOTOS = 5;
 
 /** Recursos exclusivos de clientes Banket que aparecem na lista de etapas com cadeado (plano gratuito). */
 export const EXCLUSIVOS = [
-  { recurso: 'busca_cardapios', titulo: 'Cardápios', sub: 'Seções e itens de cada pacote' },
+  { recurso: 'busca_cardapios', titulo: 'Cardápios', sub: 'Suas opções de cardápio no perfil' },
   { recurso: 'busca_disponibilidade', titulo: 'Disponibilidade', sub: 'Agenda sincronizada com o Banket' },
 ] as const;
 
@@ -55,14 +60,13 @@ export interface EstadoPerfil {
 }
 
 export interface Contagens {
-  pacotes: number;
   /** Fotos visíveis (não bloqueadas pelo plano) */
   fotos: number;
 }
 
 const preenchido = (v: string | null | undefined) => Boolean(v && v.trim());
 
-/** Etapas concluídas (1–6 pelos dados; 7 = publicado). */
+/** Etapas concluídas (1–5 pelos dados; 6 = publicado). */
 export function etapasConcluidas(p: EstadoPerfil, c: Contagens): Set<number> {
   const ok = new Set<number>();
   if (preenchido(p.nome) && preenchido(p.documento) && (preenchido(p.whatsapp) || preenchido(p.telefone)) && preenchido(p.email_contato) && (p.descricao?.trim().length ?? 0) >= MIN_DESCRICAO) ok.add(1);
@@ -71,29 +75,28 @@ export function etapasConcluidas(p: EstadoPerfil, c: Contagens): Set<number> {
   const domicilio = p.atende_domicilio && (p.raio_km ?? 0) > 0;
   if (p.cidade_id != null && (espaco || domicilio)) ok.add(3);
   if (p.capacidade_min != null && p.capacidade_max != null && p.capacidade_min <= p.capacidade_max) ok.add(4);
-  if (c.pacotes > 0) ok.add(5);
-  if (c.fotos >= MIN_FOTOS_PUBLICAR) ok.add(6);
-  if (p.publicado) ok.add(7);
+  if (c.fotos >= MIN_FOTOS_PUBLICAR) ok.add(ETAPA_FOTOS);
+  if (p.publicado) ok.add(ETAPA_REVISAO);
   return ok;
 }
 
-/** Etapas que ainda faltam para publicar (1 a 6). */
+/** Etapas que ainda faltam para publicar (1 a 5). */
 export function pendentesParaPublicar(p: EstadoPerfil, c: Contagens): EtapaOnboarding[] {
   const ok = etapasConcluidas(p, c);
-  return ETAPAS.filter((e) => e.n <= 6 && !ok.has(e.n));
+  return ETAPAS.filter((e) => e.n <= ETAPAS_PARA_PUBLICAR && !ok.has(e.n));
 }
 
 export const podePublicar = (p: EstadoPerfil, c: Contagens) => pendentesParaPublicar(p, c).length === 0;
 
 /** Primeira etapa não concluída (onde o "Continuar cadastro" leva). */
 export function proximaEtapa(p: EstadoPerfil, c: Contagens): number {
-  return pendentesParaPublicar(p, c)[0]?.n ?? 7;
+  return pendentesParaPublicar(p, c)[0]?.n ?? ETAPA_REVISAO;
 }
 
 /**
  * Completude 0–100 (ranking e painel). Pesos: descrição longa 15, tipos de evento e serviço 10, logo 10, fotos até 5
- * (proporcional) 15, pacotes até 2 (proporcional) 10, região 10, capacidade 10, contato (e-mail e WhatsApp) 10,
- * Instagram ou site 5, tempo de resposta 5.
+ * (proporcional) 25, região 10, capacidade 10, contato (e-mail e WhatsApp) 10, Instagram ou site 5, tempo de
+ * resposta 5. A migration 034 repete a mesma conta em SQL para recalcular os perfis existentes.
  */
 export function completude(p: EstadoPerfil, c: Contagens): number {
   const ok = etapasConcluidas(p, c);
@@ -102,8 +105,7 @@ export function completude(p: EstadoPerfil, c: Contagens): number {
   pts += desc >= 300 ? 15 : desc >= MIN_DESCRICAO ? 8 : 0;
   pts += ok.has(2) ? 10 : 0;
   pts += preenchido(p.logo_path) ? 10 : 0;
-  pts += Math.round((Math.min(c.fotos, 5) / 5) * 15);
-  pts += Math.round((Math.min(c.pacotes, 2) / 2) * 10);
+  pts += Math.round((Math.min(c.fotos, 5) / 5) * 25);
   pts += ok.has(3) ? 10 : 0;
   pts += ok.has(4) ? 10 : 0;
   pts += (preenchido(p.email_contato) ? 5 : 0) + (preenchido(p.whatsapp) ? 5 : 0);
@@ -113,15 +115,13 @@ export function completude(p: EstadoPerfil, c: Contagens): number {
 }
 
 /** Linhas de leitura da etapa de revisão (o que foi preenchido em cada etapa). */
-export function resumoEtapas(p: EstadoPerfil, c: Contagens, rotulos: { cidade: string | null; precoMin: number | null }): Record<number, string> {
+export function resumoEtapas(p: EstadoPerfil, c: Contagens, rotulos: { cidade: string | null }): Record<number, string> {
   const atend = [p.espaco_proprio ? 'Espaço próprio' : null, p.atende_domicilio ? `Domicílio até ${p.raio_km ?? '—'} km` : null].filter(Boolean).join(' + ');
-  const preco = rotulos.precoMin != null ? ` · a partir de R$ ${rotulos.precoMin.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
   return {
     1: [p.nome, p.email_contato].filter(Boolean).join(' · ') || 'Faltam os dados da empresa',
     2: `${p.tipos_evento.length} ${p.tipos_evento.length === 1 ? 'tipo de evento' : 'tipos de evento'} · ${p.tipos_servico.length} ${p.tipos_servico.length === 1 ? 'serviço' : 'serviços'}`,
     3: [atend || 'Nenhum modo de atendimento', rotulos.cidade].filter(Boolean).join(' · '),
     4: p.capacidade_min != null && p.capacidade_max != null ? `${p.capacidade_min} a ${p.capacidade_max} convidados` : 'Falta a faixa de convidados',
-    5: `${c.pacotes} ${c.pacotes === 1 ? 'pacote' : 'pacotes'}${preco}`,
-    6: `${c.fotos} ${c.fotos === 1 ? 'foto' : 'fotos'}${c.fotos < MIN_FOTOS_PUBLICAR ? ` · mínimo de ${MIN_FOTOS_PUBLICAR} para publicar` : ' · capa definida'}`,
+    5: `${c.fotos} ${c.fotos === 1 ? 'foto' : 'fotos'}${c.fotos < MIN_FOTOS_PUBLICAR ? ` · mínimo de ${MIN_FOTOS_PUBLICAR} para publicar` : ' · capa definida'}`,
   };
 }

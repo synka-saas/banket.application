@@ -14,36 +14,36 @@ const completo: EstadoPerfil = {
 
 describe('etapas do onboarding', () => {
   it('perfil novo: só falta tudo e a próxima etapa é a 1', () => {
-    expect([...etapasConcluidas(vazio, { pacotes: 0, fotos: 0 })]).toEqual([]);
-    expect(proximaEtapa(vazio, { pacotes: 0, fotos: 0 })).toBe(1);
-    expect(pendentesParaPublicar(vazio, { pacotes: 0, fotos: 0 }).map((e) => e.n)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect([...etapasConcluidas(vazio, { fotos: 0 })]).toEqual([]);
+    expect(proximaEtapa(vazio, { fotos: 0 })).toBe(1);
+    expect(pendentesParaPublicar(vazio, { fotos: 0 }).map((e) => e.n)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('cada etapa tem sua regra', () => {
-    expect(etapasConcluidas({ ...completo, descricao: 'curta' }, { pacotes: 1, fotos: 3 }).has(1)).toBe(false);
-    expect(etapasConcluidas({ ...completo, whatsapp: null, telefone: '1140000000' }, { pacotes: 1, fotos: 3 }).has(1)).toBe(true);
-    expect(etapasConcluidas({ ...completo, tipos_servico: [] }, { pacotes: 1, fotos: 3 }).has(2)).toBe(false);
+    expect(etapasConcluidas({ ...completo, descricao: 'curta' }, { fotos: 3 }).has(1)).toBe(false);
+    expect(etapasConcluidas({ ...completo, whatsapp: null, telefone: '1140000000' }, { fotos: 3 }).has(1)).toBe(true);
+    expect(etapasConcluidas({ ...completo, tipos_servico: [] }, { fotos: 3 }).has(2)).toBe(false);
     // região: espaço próprio precisa de endereço; domicílio precisa de raio; os dois precisam da cidade
-    expect(etapasConcluidas({ ...completo, logradouro: null }, { pacotes: 1, fotos: 3 }).has(3)).toBe(false);
-    expect(etapasConcluidas({ ...completo, espaco_proprio: false, atende_domicilio: true, raio_km: 25 }, { pacotes: 1, fotos: 3 }).has(3)).toBe(true);
-    expect(etapasConcluidas({ ...completo, cidade_id: null }, { pacotes: 1, fotos: 3 }).has(3)).toBe(false);
-    expect(etapasConcluidas({ ...completo, capacidade_min: 300 }, { pacotes: 1, fotos: 3 }).has(4)).toBe(false);
-    expect(etapasConcluidas(completo, { pacotes: 0, fotos: 3 }).has(5)).toBe(false);
-    expect(etapasConcluidas(completo, { pacotes: 1, fotos: 2 }).has(6)).toBe(false);
+    expect(etapasConcluidas({ ...completo, logradouro: null }, { fotos: 3 }).has(3)).toBe(false);
+    expect(etapasConcluidas({ ...completo, espaco_proprio: false, atende_domicilio: true, raio_km: 25 }, { fotos: 3 }).has(3)).toBe(true);
+    expect(etapasConcluidas({ ...completo, cidade_id: null }, { fotos: 3 }).has(3)).toBe(false);
+    expect(etapasConcluidas({ ...completo, capacidade_min: 300 }, { fotos: 3 }).has(4)).toBe(false);
+    expect(etapasConcluidas(completo, { fotos: 2 }).has(5)).toBe(false);
+    expect(etapasConcluidas(completo, { fotos: 3 }).has(5)).toBe(true);
   });
 
-  it('publica com as etapas 1 a 6 concluídas', () => {
-    expect(podePublicar(completo, { pacotes: 1, fotos: 3 })).toBe(true);
-    expect(podePublicar(completo, { pacotes: 1, fotos: 2 })).toBe(false);
-    expect(proximaEtapa(completo, { pacotes: 1, fotos: 3 })).toBe(7);
+  it('publica com as etapas 1 a 5 concluídas', () => {
+    expect(podePublicar(completo, { fotos: 3 })).toBe(true);
+    expect(podePublicar(completo, { fotos: 2 })).toBe(false);
+    expect(proximaEtapa(completo, { fotos: 3 })).toBe(6);
   });
 });
 
 describe('completude', () => {
   it('vai de 0 a 100 com os pesos do plano', () => {
-    expect(completude(vazio, { pacotes: 0, fotos: 0 })).toBe(0);
-    expect(completude(completo, { pacotes: 2, fotos: 5 })).toBe(100);
-    expect(completude(completo, { pacotes: 1, fotos: 3 })).toBe(89);
-    expect(completude({ ...completo, descricao: 'x'.repeat(100) }, { pacotes: 2, fotos: 5 })).toBe(93);
+    expect(completude(vazio, { fotos: 0 })).toBe(0);
+    expect(completude(completo, { fotos: 5 })).toBe(100);
+    expect(completude(completo, { fotos: 3 })).toBe(90);
+    expect(completude({ ...completo, descricao: 'x'.repeat(100) }, { fotos: 5 })).toBe(93);
   });
 });

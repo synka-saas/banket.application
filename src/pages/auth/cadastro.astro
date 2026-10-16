@@ -39,7 +39,7 @@ if (Astro.request.method === 'POST') {
 
 <AuthLayout title="Cadastro" showOverlay={true} erro={erro}>
   <h1 class="auth-title">{origem === 'busca' ? 'Cadastre seu buffet no Banket Busca.' : 'Crie sua conta.'}</h1>
-  {origem === 'busca' && <p class="auth-subtitle">Gratuito: perfil público, pacotes, fotos e pedidos de orçamento. Sem cartão.</p>}
+  {origem === 'busca' && <p class="auth-subtitle">Gratuito: perfil público com fotos e pedidos de orçamento. Sem cartão.</p>}
 
   <form class="auth-form" method="post">
     <input type="hidden" name="origem" value={origem} />

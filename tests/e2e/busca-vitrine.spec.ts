@@ -77,19 +77,22 @@ test.describe('Banket Busca: vitrine', () => {
     await expect(barra).toBeHidden();
   });
 
-  test('perfil: cliente mostra cardápio, estimativa e JSON-LD; gratuito só pacotes', async ({ page }) => {
+  test('perfil: cliente mostra cardápios e JSON-LD; nenhuma menção a preço; gratuito sem cardápio', async ({ page }) => {
     await page.goto(`${V}/buffet/buffet-sabor-de-festa?convidados=80`);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Buffet Sabor de Festa');
     await expect(page.locator('.vp-cabeca')).toContainText('Cliente Banket');
+    await expect(page.locator('#h-cardapios')).toHaveText('Cardápios');
     await page.getByText('Ver cardápio').first().click();
     await expect(page.locator('.vp-cardapio').first()).toContainText('Coxinha de frango');
-    await expect(page.locator('.vp-estimativa')).toContainText('80 convidados');
+    await expect(page.locator('main')).not.toContainText('R$');
+    await expect(page.locator('main')).not.toContainText('por pessoa');
     const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent())!);
     expect(ld.aggregateRating.reviewCount).toBeGreaterThan(0);
+    expect(ld).not.toHaveProperty('makesOffer');
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/buffet\/buffet-sabor-de-festa$/);
 
     await page.goto(`${V}/buffet/brasa-e-cia-churrasco?data=${psql(`SELECT to_char(current_date + 20, 'YYYY-MM-DD')`)}`);
-    await expect(page.locator('#h-pacotes')).toHaveText('Pacotes');
+    await expect(page.locator('#h-cardapios')).toHaveCount(0);
     await expect(page.getByText('Ver cardápio')).toHaveCount(0);
     await expect(page.locator('.vp-aside')).toContainText('Consultar disponibilidade');
   });

@@ -13,15 +13,13 @@ export interface PerfilSeo {
   bairro: string | null;
   notaMedia: number | null;
   totalAvaliacoes: number;
-  precoMin: number | null;
-  pacotes: { nome: string; preco_pessoa: number | null }[];
   avaliacoes: { nome: string; nota: number; texto: string | null; data: Date | string }[];
 }
 
 const limpar = <T extends Record<string, unknown>>(o: T): T =>
   Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && !(Array.isArray(v) && v.length === 0))) as T;
 
-/** LocalBusiness (FoodEstablishment) + AggregateRating + Offers do perfil público. */
+/** LocalBusiness (FoodEstablishment) + AggregateRating do perfil público (o Busca não divulga preço). */
 export function jsonLdPerfil(p: PerfilSeo): Record<string, unknown> {
   const temNota = p.notaMedia != null && p.totalAvaliacoes > 0;
   return limpar({
@@ -33,7 +31,6 @@ export function jsonLdPerfil(p: PerfilSeo): Record<string, unknown> {
     logo: p.logo ?? undefined,
     image: p.fotos.slice(0, 6),
     servesCuisine: 'Buffet',
-    priceRange: p.precoMin != null ? `A partir de R$ ${Math.round(p.precoMin)} por pessoa` : undefined,
     address: p.cidade
       ? limpar({ '@type': 'PostalAddress', addressLocality: p.cidade, addressRegion: p.uf ?? undefined, streetAddress: p.bairro ?? undefined, addressCountry: 'BR' })
       : undefined,
@@ -49,9 +46,6 @@ export function jsonLdPerfil(p: PerfilSeo): Record<string, unknown> {
         datePublished: new Date(a.data).toISOString().slice(0, 10),
       })
     ),
-    makesOffer: p.pacotes
-      .filter((k) => k.preco_pessoa != null)
-      .map((k) => ({ '@type': 'Offer', name: k.nome, priceCurrency: 'BRL', price: Number(k.preco_pessoa!.toFixed(2)), unitText: 'por pessoa' })),
   });
 }
 
@@ -84,19 +78,16 @@ export function jsonLdPerguntas(perguntas: { pergunta: string; resposta: string 
 }
 
 /** Textos das landings /buffet/[tipo]/[cidade]. */
-export function textoLanding(tipo: string, cidade: string, total: number, precoMin: number | null) {
+export function textoLanding(tipo: string, cidade: string, total: number) {
   const rotulo = rotuloEvento(tipo);
   const plural = tipoEvento(tipo)?.plural ?? rotulo.toLowerCase();
   const titulo = `Buffet para ${rotulo.toLowerCase()} em ${cidade}`;
   const qtd = total === 1 ? '1 buffet' : `${total} buffets`;
-  const descricao = `${qtd} para ${plural} em ${cidade} e região${precoMin != null ? `, a partir de R$ ${Math.round(precoMin)} por pessoa` : ''}. Compare pacotes, fotos e avaliações e peça orçamento grátis para vários de uma vez.`;
+  const descricao = `${qtd} para ${plural} em ${cidade} e região. Compare fotos, serviços e avaliações e peça orçamento grátis para vários de uma vez.`;
   const perguntas = [
     {
-      pergunta: `Quanto custa um buffet para ${rotulo.toLowerCase()} em ${cidade}?`,
-      resposta:
-        precoMin != null
-          ? `Entre os buffets do Banket Busca em ${cidade}, os pacotes para ${plural} começam em R$ ${Math.round(precoMin)} por pessoa. O valor final depende do cardápio, do número de convidados e da duração.`
-          : `O valor depende do cardápio, do número de convidados e da duração. Peça orçamento a vários buffets de uma vez para comparar.`,
+      pergunta: `Como escolher um buffet para ${rotulo.toLowerCase()} em ${cidade}?`,
+      resposta: `Filtre pelos buffets que atendem a sua região e o número de convidados, compare fotos, serviços e avaliações e peça orçamento a vários de uma vez.`,
     },
     {
       pergunta: 'Pedir orçamento tem custo?',

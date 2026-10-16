@@ -1,8 +1,7 @@
 ---
 // Card de buffet nos resultados e nos destaques (layout-busca/BuffetCard): foto, selo "Cliente Banket", nota, região,
-// distância, tags, preço a partir de, capacidade e as ações (selecionar para pedir a vários + pedir orçamento).
+// distância, tags, capacidade e as ações (selecionar para pedir a vários + pedir orçamento). O Busca não divulga preço.
 import Icon from '../ui/Icon.astro';
-import { brl } from '../../lib/forms';
 import { formatarDistancia } from '../../lib/busca/geo';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
 import { caminhoVitrine } from '../../lib/busca/url';
@@ -66,15 +65,7 @@ const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1,
     {tags.length > 0 && <ul class="bcard-tags">{tags.map((t) => <li class="tag tag-sm">{t}</li>)}</ul>}
     {item.disponibilidade === 'consultar' && <p class="bcard-consultar"><Icon name="calendar" size={14} /> Consultar disponibilidade</p>}
     <div class="bcard-rodape">
-      <div class="bcard-preco">
-        {item.precoMin != null ? (
-          <>
-            <span class="bcard-preco-rotulo">a partir de</span>
-            <span><span class="bcard-preco-valor tabular">{brl(item.precoMin).replace(',00', '')}</span> <span class="bcard-preco-un">por pessoa</span></span>
-          </>
-        ) : (
-          <span class="bcard-preco-rotulo">Preço sob consulta</span>
-        )}
+      <div class="bcard-info">
         {capacidade && <span class="bcard-cap"><Icon name="users" size={14} />{capacidade}</span>}
       </div>
       <div class="bcard-acoes">

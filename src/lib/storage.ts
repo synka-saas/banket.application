@@ -77,3 +77,11 @@ export async function removeFile(tenantId: string, key: string): Promise<void> {
 export async function removeDir(tenantId: string, key: string): Promise<void> {
   await fs.rm(resolveKey(tenantId, key), { force: true, recursive: true });
 }
+
+/** Copia um arquivo do tenant para outra pasta com nome novo (ex.: logo do cadastro → perfil do Busca). */
+export async function copiarArquivo(tenantId: string, key: string, folder: string): Promise<string> {
+  const conteudo = await readFile(tenantId, key);
+  if (!conteudo) throw new Error('Arquivo não encontrado.');
+  const novo = `${folder}/${crypto.randomUUID()}${path.extname(key).toLowerCase()}`;
+  return saveFile(tenantId, novo, conteudo);
+}

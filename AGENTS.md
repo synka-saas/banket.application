@@ -93,7 +93,7 @@ src/
                        (distância, slugs, CEP), url.ts (BUSCA_URL), filtros.ts (critérios ↔ query string, chips),
                        matching.ts (compatibilidade eliminatória e disponibilidade), ranking.ts (grupo + pontuação com
                        pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host do Busca),
-                       onboarding.ts (as 7 etapas, conclusão, publicação e completude)
+                       onboarding.ts (as 6 etapas, conclusão, publicação e completude)
     planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
@@ -138,7 +138,8 @@ src/
                        urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: pool da vitrine READ ONLY, só perfis
                        publicados de empresas ativas; cidades, busca, destaques, depoimentos, perfil completo, métricas),
                        vitrine.ts (critérios da URL, cidade digitada, cache público), onboarding.ts (etapas do cadastro do
-                       perfil: validação, pacotes, fotos com limite do plano, cidades atendidas, publicar/despublicar)
+                       perfil: validação, fotos com limite e grupos pelo plano, captura dos dados da conta, cidades
+                       atendidas, publicar/despublicar)
     agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
@@ -484,9 +485,9 @@ liberada a todos. **`busca_perfis`** — um por empresa: `slug` (UNIQUE global),
 `tipos_servico`/`restricoes` (slugs de `lib/busca/catalogos.ts`), região (`atende_domicilio`, `raio_km`, `espaco_proprio`,
 endereço, `cidade_id`, `lat/lng`), capacidade, `etapa_concluida`, `publicado`, `completude`, `nivel` (`gratuito | cliente`,
 sincronizado pelo `trocarPlano`), `nota_media`/`total_avaliacoes`/`taxa_resposta`, `excedentes` (tipos guardados no
-rebaixamento). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** (`preco_pessoa`, faixa de convidados,
-`inclui`, `cardapio_opcao_id` → cardápio detalhado do cliente Banket), **`busca_fotos`** (`path` do storage `busca/…` ou
-estático `/busca-demo/…`, `tags`, `capa`, `bloqueado_plano_em`), **`busca_bloqueios`** (datas indisponíveis),
+rebaixamento). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** e `busca_perfis.valor_minimo` (**sem uso**
+desde a migration 034: o Busca não tem pacotes nem divulga preço; remover num deploy futuro), **`busca_fotos`** (`path` do
+storage `busca/…` ou estático `/busca-demo/…`, `tags` = grupos de fotos por evento, `capa`, `bloqueado_plano_em`), **`busca_bloqueios`** (datas indisponíveis),
 **`busca_pedidos`** (um por buffet escolhido; `grupo_id` junta o mesmo pedido; `evento_id`, `cliente_id`, `conversa_id`),
 **`busca_avaliacoes`** (uma por pedido, link com `token_hash`), **`busca_metricas_dia`** (aparições, visualizações,
 cliques por dia). `eventos.origem` aceita `busca`. Extensões: `cube`, `earthdistance`, `unaccent`, `pg_trgm`.
@@ -557,6 +558,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `031_planos` | catálogo `planos` (Busca, Essencial, Profissional, Prime, Completo), plano e teste em `tenants`, `tenant_plano_historico`, `plano_avisos`, `busca_upsell_eventos`, `fn_tenant_*`; backfill de todas as empresas no Completo |
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
+| `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
 ### Seeds (somente dev, `--seed`)
@@ -566,8 +568,8 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario) · `009` espaço de terceiro "Sede
 TechCorp" ligado ao evento corporativo · `010` empresa "Buffet Gratuito Demo" no plano Busca
 (`gratuito@buffetgratis.com.br`, owner) · `011` Banket Busca: 10 buffets fictícios em SP, Campinas, Santo André e ABC
-(4 clientes, um em teste; 5 gratuitos publicados; 1 incompleto), com pacotes, fotos de `public/busca-demo`, avaliações,
-métricas, pedidos e cardápios ligados aos pacotes dos clientes (usuários `contato@<buffet>.test`, senha `Banket.2026`).
+(4 clientes, um em teste; 5 gratuitos publicados; 1 incompleto), com fotos de `public/busca-demo`, avaliações,
+métricas, pedidos e opções de cardápio dos clientes (usuários `contato@<buffet>.test`, senha `Banket.2026`).
 `_legacy_*` são ignorados.
 
 ---
@@ -1022,7 +1024,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 
 ### Planos e gating — `/planos`, `/busca` (`lib/planos/*`, `server/planos.ts`, `server/agendador.ts`)
 - **Modelo**: o Banket Busca é uma funcionalidade liberada por plano. **Plano Busca** (gratuito, `publico = false`):
-  só o menu Banket Busca, 1 usuário, 5 fotos, 3 tipos de evento e 3 de serviço, sem cardápio no perfil, aviso de pedido
+  só o menu Banket Busca, 1 usuário, 5 fotos gerais (sem grupos), 3 tipos de evento e 3 de serviço, sem cardápio no perfil, aviso de pedido
   só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
   **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031. Detalhes em `PLANO.md`.
 - **Gating**: nunca leia `planos` para decidir; use `podeUsar`/`limite`/`exigir`/`exigirLimite`/`exigirLimiteDb` de
@@ -1047,35 +1049,41 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 
 ### Banket Busca: vitrine pública — `/vitrine/*` (em produção, `busca.banket.com.br/*`)
 - **Rotas**: `/` (buscador, tipos com contagem, serviços, como funciona, destaques, depoimentos, chamada para buffets),
-  `/buscar` (filtros na URL, `noindex`), `/buffet/[slug]` (perfil), `/buffet/[tipo]/[cidade]` (landing de SEO; cidade
+  `/buscar` (filtros na URL, `noindex`; sem filtro nem ordenação por preço), `/buffet/[slug]` (perfil), `/buffet/[tipo]/[cidade]` (landing de SEO; cidade
   no slug curto, `campinas`; o longo `campinas-sp` dá 301), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
 - **Busca** (`buscarBuffets`): pré-filtro SQL largo (tipo, 200 km da cidade) → `compativel` (tipo, local, capacidade e,
   só para cliente Banket com agenda, data ocupada por evento aprovado ou bloqueio) → `passaFiltros` (serviço, restrição,
-  preço, atendimento, nota, raio) → `ordenar` (clientes com `busca_prioridade` sempre antes; depois completude 30%,
+  atendimento, nota, raio) → `ordenar` (clientes com `busca_prioridade` sempre antes; depois completude 30%,
   avaliação 30%, taxa de resposta 20%, distância 20%; `BUSCA_RANKING_PESOS` sobrescreve) → "Mostrar mais" de 12 em 12.
   Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
 - **Seleção múltipla** em `sessionStorage` (até 5 buffets, `MAX_SELECAO`), barra fixa com o link do pedido.
-- **Perfil**: cliente mostra o cardápio da opção ligada ao pacote (`busca_pacotes.cardapio_opcao_id`) e a
-  disponibilidade; gratuito, só pacotes e "Consultar disponibilidade". JSON-LD `LocalBusiness` + `AggregateRating`.
+- **Sem preço** (decisão de 16/10/2026): nenhuma menção a preço na vitrine (card, perfil, card lateral, landings,
+  JSON-LD sem `priceRange`/`makesOffer`). Não há pacotes.
+- **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio ativas do
+  catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
+  grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
 - **Métricas**: aparições (cards exibidos), visualizações (perfil) por dia em `busca_metricas_dia`; robôs e clientes de
   linha de comando não contam (`ehRobo`).
 - **Host**: com `BUSCA_URL`, o middleware reescreve `busca.banket.com.br/x` para `/vitrine/x` (`decidirHost`), deixa
   estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
 
-### Banket Busca: área do buffet — `/busca?etapa=1..7` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
+### Banket Busca: área do buffet — `/busca?etapa=1..6` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
 - **Onboarding** = a própria página `/busca` do menu Banket Busca, dentro do `AppLayout` (faixa de situação com
   publicado/rascunho, etapas concluídas, completude e link da prévia; lista de etapas `Etapas.astro` à esquerda;
   `/busca/cadastro` redireciona 301 para `/busca`): 1 Empresa (nome, CNPJ/CPF validado, logo, WhatsApp, e-mail,
-  Instagram/site, tempo de resposta, descrição ≥ 80) · 2 Eventos e serviços (tiles; plano gratuito até 3 de cada,
-  conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região (cidade-base com autocomplete, espaço próprio
-  com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades atendidas) · 4 Capacidade (mínimo ≤ máximo,
-  eventos menores com valor mínimo) · 5 Pacotes · 6 Fotos (JPG/PNG/WebP, reduzidas no navegador, capa, ordem,
-  legenda; tags só com `busca_fotos_tags`; limite `busca_fotos`) · 7 Revisão (resumo por etapa, card da busca,
-  aceite e Publicar/Despublicar). Cada etapa grava ao salvar; em erro, o que foi digitado volta (cookie curto
-  `banket_busca_rascunho`). Publicar exige 1 a 6 (≥ 1 pacote, ≥ 3 fotos); perder uma condição despublica e avisa.
+  Instagram/site, tempo de resposta, descrição ≥ 80; empresa **PJ em plano pago** vê "Capturar dados da conta", que
+  traz nome, CNPJ, e-mail, telefone e logo do cadastro da empresa, `capturarDadosDaConta`) · 2 Eventos e serviços
+  (tiles; plano gratuito até 3 de cada, conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região
+  (cidade-base com autocomplete, espaço próprio com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades
+  atendidas) · 4 Capacidade (mínimo ≤ máximo, aceita eventos menores sob consulta) · 5 Fotos (JPG/PNG/WebP, reduzidas
+  no navegador, capa, ordem, legenda; gratuito: 5 fotos gerais; planos pagos: sem limite e com **grupos** por evento
+  (`busca_fotos_tags`; campo Grupo no envio e por foto, galeria agrupada)) · 6 Revisão (resumo por etapa, card da
+  busca, aceite e Publicar/Despublicar). Sem pacotes nem preço. Cada etapa grava ao salvar; em erro, o que foi digitado
+  volta (cookie curto `banket_busca_rascunho`). Publicar exige 1 a 5 (≥ 3 fotos); perder uma condição despublica e
+  avisa. Endereços antigos com `?etapa=7` caem na revisão.
   "Cardápios" e "Disponibilidade" aparecem na lista como "Exclusivo Banket" (cadeado + upsell no gratuito).
 - **Prévia**: `/vitrine/buffet/<slug>?previa=1` mostra o perfil ainda não publicado só para quem está logado na empresa
   dona (`private, no-store`, `noindex`); fica no host do app.

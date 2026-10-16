@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PESOS_PADRAO, fatores, lerPesos, ordenar, pontuar, type Rankeavel } from './ranking';
 
 const r = (id: string, extra: Partial<Rankeavel> = {}): Rankeavel => ({
-  id, nome: id, prioridade: false, completude: 80, notaMedia: 4.5, totalAvaliacoes: 10, taxaResposta: 0.8, distanciaKm: 5, precoMin: 100, ...extra,
+  id, nome: id, prioridade: false, completude: 80, notaMedia: 4.5, totalAvaliacoes: 10, taxaResposta: 0.8, distanciaKm: 5, ...extra,
 });
 
 describe('pesos', () => {
@@ -42,10 +42,9 @@ describe('ordenar', () => {
     expect(ordenar(lista, 'avaliacao').map((x) => x.id)).toEqual(['cliente-fraco', 'gratis-otimo']);
   });
 
-  it('dentro do grupo: relevância, preço, distância e avaliação; nulos no fim', () => {
-    const lista = [r('caro', { precoMin: 200, distanciaKm: 1 }), r('barato', { precoMin: 80, distanciaKm: 9 }), r('sem-preco', { precoMin: null, distanciaKm: null })];
-    expect(ordenar(lista, 'preco').map((x) => x.id)).toEqual(['barato', 'caro', 'sem-preco']);
-    expect(ordenar(lista, 'distancia').map((x) => x.id)).toEqual(['caro', 'barato', 'sem-preco']);
+  it('dentro do grupo: relevância, distância e avaliação; nulos no fim', () => {
+    const lista = [r('perto', { distanciaKm: 1 }), r('longe', { distanciaKm: 9 }), r('sem-local', { distanciaKm: null })];
+    expect(ordenar(lista, 'distancia').map((x) => x.id)).toEqual(['perto', 'longe', 'sem-local']);
     const notas = [r('a', { notaMedia: 4 }), r('b', { notaMedia: 4.9 }), r('c', { notaMedia: null })];
     expect(ordenar(notas, 'avaliacao').map((x) => x.id)).toEqual(['b', 'a', 'c']);
   });
