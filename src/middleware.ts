@@ -16,7 +16,8 @@ iniciarAgendador();
 // /api/hwesta/* é chamado pelo Manager Hwesta (HCP): a autenticação é por Bearer nas próprias rotas (lib/hwesta)
 // /api/webhooks/* recebe os webhooks do Resend (assinatura Svix conferida na própria rota)
 // /p/* é a pesquisa de satisfação respondida pelo cliente (link com token)
-const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image'];
+// /busca-media/* serve só as fotos públicas do Banket Busca; /api/vitrine/* é a API pública da vitrine
+const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image', '/busca-media/', '/api/vitrine/', '/vitrine'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
 // Rotas restritas a owner/admin (inclui a aba Finanças do evento)

@@ -13,6 +13,7 @@ import { escolherExcedentes } from '../lib/planos/excedentes';
 import { avisoDoDia, deveRebaixar, emSaoPaulo, fimDoTrial, recusaVigente, type AvisoTrial } from '../lib/planos/trial';
 import type { HwestaEntitlements } from '../lib/hwesta/types';
 import { emailLayout } from './emails';
+import { aplicarExcedentesBusca, sincronizarNivel } from './busca/perfil';
 
 export interface Plano {
   id: string;
@@ -127,6 +128,7 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
     [tenantId, de, paraPlanoId, meta.motivo, meta.origem, meta.usuarioId ?? null, JSON.stringify(meta.dados ?? {})]
   );
   invalidar(tenantId);
+  await sincronizarNivel(db, tenantId, destino.gratuito ? 'gratuito' : 'cliente');
   if (destino.gratuito) await aplicarExcedentes(db, tenantId);
   else if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
   return { de, para: paraPlanoId };
@@ -135,7 +137,7 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
 /**
  * Excedentes do plano atual (rebaixamento): usuários além do limite ficam com o vínculo desativado e marcados
  * com bloqueado_plano_em (o proprietário mais antigo nunca sai; ficam os mais recentes). Nada é apagado.
- * Itens do Banket Busca (fotos, tipos) entram aqui nas fases 4–5.
+ * Itens do Banket Busca (fotos além do limite, tipos de evento e de serviço além do limite): aplicarExcedentesBusca.
  */
 export async function aplicarExcedentes(db: Db, tenantId: string): Promise<{ usuariosBloqueados: string[] }> {
   const ent = await entitlements(tenantId, db);
@@ -167,6 +169,7 @@ export async function aplicarExcedentes(db: Db, tenantId: string): Promise<{ usu
     );
   }
   invalidateTenant(tenantId);
+  await aplicarExcedentesBusca(db, tenantId);
   return { usuariosBloqueados: escolha.bloquear };
 }
 
@@ -177,6 +180,16 @@ export async function restaurarAposUpgrade(db: Db, tenantId: string): Promise<vo
     [tenantId]
   );
   await db.query('UPDATE tenants SET plano_rebaixado_em = NULL WHERE id = $1', [tenantId]);
+  // Banket Busca: fotos voltam ao perfil e os tipos guardados voltam aos arrays
+  await db.query('UPDATE busca_fotos SET bloqueado_plano_em = NULL WHERE tenant_id = $1 AND bloqueado_plano_em IS NOT NULL', [tenantId]);
+  await db.query(
+    `UPDATE busca_perfis
+        SET tipos_evento = ARRAY(SELECT DISTINCT unnest(tipos_evento || COALESCE(ARRAY(SELECT jsonb_array_elements_text(excedentes -> 'tipos_evento')), '{}'))),
+            tipos_servico = ARRAY(SELECT DISTINCT unnest(tipos_servico || COALESCE(ARRAY(SELECT jsonb_array_elements_text(excedentes -> 'tipos_servico')), '{}'))),
+            excedentes = '{}'::jsonb, updated_at = now()
+      WHERE tenant_id = $1 AND excedentes <> '{}'::jsonb`,
+    [tenantId]
+  );
   invalidateTenant(tenantId);
 }
 

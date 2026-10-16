@@ -1,0 +1,32 @@
+---
+// Vitrine do Banket Busca — página provisória da fase 2 (estrutura e layout). A home completa chega na fase 3.
+import VitrineLayout from '../../layouts/VitrineLayout.astro';
+import { leituraPublica, PERFIL_VISIVEL } from '../../server/busca/publico';
+
+const total = await leituraPublica(async (db) => {
+  const { rows } = await db.query<{ n: number }>(`SELECT count(*) AS n FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id WHERE ${PERFIL_VISIVEL}`);
+  return Number(rows[0]?.n ?? 0);
+});
+---
+
+<VitrineLayout title="Encontre o buffet certo para o seu evento" description="Buffets e catering para eventos sociais e corporativos em São Paulo e região." canonical="/" noindex>
+  <section class="vitrine-secao">
+    <p class="eyebrow">Buffets e catering · social e corporativo</p>
+    <h1 class="vitrine-provisorio-titulo">Encontre o buffet certo para o seu evento</h1>
+    <p class="vitrine-provisorio-texto tabular">A vitrine está em construção. {total} buffets já publicaram o perfil.</p>
+  </section>
+</VitrineLayout>
+
+<style>
+  .vitrine-provisorio-titulo {
+    margin: 12px 0;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: var(--fw-medium);
+    letter-spacing: -0.03em;
+    color: var(--text-strong);
+  }
+
+  .vitrine-provisorio-texto {
+    color: var(--text-secondary);
+  }
+</style>

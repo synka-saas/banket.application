@@ -1,0 +1,43 @@
+---
+// Marca do Banket Busca: logotipo + pílula "busca" (layout-busca/BuscaHeader). tom "claro" para fundo escuro.
+interface Props {
+  tom?: 'escuro' | 'claro';
+  altura?: number;
+  href?: string;
+}
+const { tom = 'escuro', altura = 26, href } = Astro.props;
+const Tag = href ? 'a' : 'span';
+---
+
+<Tag href={href} class="marca-busca" aria-label="Banket Busca">
+  <img src={tom === 'claro' ? '/logo-light.png' : '/logo-dark.png'} alt="Banket" style={`height:${altura}px`} />
+  <span class="marca-busca-pill" style={`height:${Math.round(altura * 0.85)}px;font-size:${Math.round(altura * 0.5)}px`}>busca</span>
+</Tag>
+
+<style>
+  .marca-busca {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+    text-decoration: none;
+  }
+
+  .marca-busca img {
+    width: auto;
+    display: block;
+  }
+
+  .marca-busca-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px;
+    margin-top: 3px;
+    border-radius: 6px;
+    background: var(--terracotta-500);
+    color: var(--text-on-accent);
+    font-weight: var(--fw-medium);
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+</style>

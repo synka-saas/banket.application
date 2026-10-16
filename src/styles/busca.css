@@ -1,0 +1,164 @@
+/* Banket Busca — páginas públicas (vitrine). Tokens do design system; mobile-first: o desktop entra por media query.
+   Referência visual: layout-busca/ (BuscaHeader, BuscaFooter, BuscaHome, BuscaResultados, BuscaPerfil). */
+
+body.vitrine {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+}
+
+.vitrine-pular {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.vitrine-pular:focus {
+  left: 16px;
+}
+
+.vitrine-topo {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: 60px;
+  padding: 0 16px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.vitrine-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.vitrine-nav-link {
+  display: none;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+  text-decoration: none;
+}
+
+.vitrine-nav-link:hover {
+  color: var(--text-link);
+}
+
+.vitrine-conteudo {
+  flex: 1;
+  width: 100%;
+}
+
+/* Seções com largura máxima e respiro lateral de 16px no celular */
+.vitrine-secao {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-10, 40px) 16px;
+  box-sizing: border-box;
+}
+
+.vitrine-rodape {
+  background: var(--clay-900);
+  color: var(--clay-300);
+  padding: 48px 16px 24px;
+}
+
+.vitrine-rodape-grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.vitrine-rodape-marca p {
+  margin: 14px 0 0;
+  max-width: 32ch;
+  font-size: var(--fs-13);
+  line-height: 1.55;
+  color: var(--clay-400);
+}
+
+.vitrine-rodape-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vitrine-rodape-col .eyebrow {
+  color: var(--clay-500);
+}
+
+.vitrine-rodape-col a {
+  font-size: var(--fs-14);
+  color: var(--clay-200);
+  text-decoration: none;
+}
+
+.vitrine-rodape-col a:hover,
+.vitrine-rodape-legal a:hover {
+  color: var(--text-on-accent);
+  text-decoration: underline;
+}
+
+.vitrine-rodape-base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 20px;
+  max-width: 1280px;
+  margin: 40px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--clay-800);
+  font-size: var(--fs-12);
+  color: var(--clay-500);
+}
+
+.vitrine-rodape-legal {
+  display: flex;
+  gap: 20px;
+}
+
+.vitrine-rodape-legal a {
+  color: var(--clay-400);
+  text-decoration: none;
+}
+
+/* Tablet e desktop */
+@media (min-width: 769px) {
+  .vitrine-topo {
+    height: 68px;
+    padding: 0 clamp(24px, 4.4vw, 64px);
+  }
+
+  .vitrine-nav-link {
+    display: inline;
+  }
+
+  .vitrine-secao {
+    padding: 56px clamp(24px, 4.4vw, 64px);
+  }
+
+  .vitrine-rodape {
+    padding: 56px clamp(24px, 4.4vw, 64px) 28px;
+  }
+
+  .vitrine-rodape-grade {
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+  }
+}

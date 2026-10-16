@@ -89,6 +89,8 @@ src/
     senha.ts           política de senha
     estoqueRazoes.ts   motivos das movimentações de estoque e os campos que cada um exige (puro)
     financeiro.ts      rótulos, situação da conta (vencida é calculada) e geração das parcelas do plano de pagamento (puro)
+    busca/             Banket Busca (puro): catalogos.ts (tipos de evento e de serviço globais, restrições), geo.ts
+                       (distância, slugs, CEP), url.ts (BUSCA_URL: endereços da vitrine)
     planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
@@ -129,6 +131,9 @@ src/
     pesquisas.ts       pesquisa de satisfação: questionário, envio pelo Inbox, página pública (token), indicadores
     planos.ts          planos da empresa: único dono de tenants.plano_id (trocarPlano), teste grátis, rebaixamento para o
                        plano Busca, excedentes, push do Manager, eventos de upsell, e-mails do teste, contagens dos limites
+    busca/             Banket Busca: perfil.ts (perfil da empresa, pré-preenchimento, nível pelo plano, excedentes,
+                       urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: conexão de sistema READ ONLY, só perfis
+                       publicados de empresas ativas; cidades)
     agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
@@ -463,6 +468,22 @@ trial_recusado, assinatura_concluida, rebaixado), `recurso`, `dados`.
 **`hwesta_entitlements`** passou a ser **override** por empresa (`capabilities` sobrepõe `planos.recursos`) e espelho
 do último push; a verdade do plano é `tenants.plano_id`.
 
+### Banket Busca (marketplace)
+
+Tabelas da migration `032` (todas com RLS por empresa, exceto `busca_cidades`):
+**`busca_cidades`** — municípios do IBGE com centroide (`ibge`, `nome`, `uf`, `slug` `campinas-sp`, `lat`, `lng`,
+`capital`; migration `033`, 5.571 registros); índice GiST `ll_to_earth` e trigram em `busca_sem_acento(nome)`; leitura
+liberada a todos. **`busca_perfis`** — um por empresa: `slug` (UNIQUE global), dados públicos, `tipos_evento`/
+`tipos_servico`/`restricoes` (slugs de `lib/busca/catalogos.ts`), região (`atende_domicilio`, `raio_km`, `espaco_proprio`,
+endereço, `cidade_id`, `lat/lng`), capacidade, `etapa_concluida`, `publicado`, `completude`, `nivel` (`gratuito | cliente`,
+sincronizado pelo `trocarPlano`), `nota_media`/`total_avaliacoes`/`taxa_resposta`, `excedentes` (tipos guardados no
+rebaixamento). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** (`preco_pessoa`, faixa de convidados,
+`inclui`, `cardapio_opcao_id` → cardápio detalhado do cliente Banket), **`busca_fotos`** (`path` do storage `busca/…` ou
+estático `/busca-demo/…`, `tags`, `capa`, `bloqueado_plano_em`), **`busca_bloqueios`** (datas indisponíveis),
+**`busca_pedidos`** (um por buffet escolhido; `grupo_id` junta o mesmo pedido; `evento_id`, `cliente_id`, `conversa_id`),
+**`busca_avaliacoes`** (uma por pedido, link com `token_hash`), **`busca_metricas_dia`** (aparições, visualizações,
+cliques por dia). `eventos.origem` aceita `busca`. Extensões: `cube`, `earthdistance`, `unaccent`, `pg_trgm`.
+
 ### Pesquisa de satisfação
 
 **`pesquisa_config`** — PK `tenant_id`: `titulo`, `introducao`, `agradecimento` (página pública), `email_assunto`,
@@ -527,6 +548,8 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `028_financeiro` | `fin_categorias`, `fin_contas` (RLS), `aplicar_padroes_financeiro` (backfill em toda empresa), `aplicar_padroes_tenant_completo` com 6 chamadas |
 | `029_pesquisas` | `pesquisa_config`, `pesquisa_perguntas`, `pesquisa_envios`, `pesquisa_respostas` (RLS), `aplicar_padroes_pesquisa` (backfill), `aplicar_padroes_tenant_completo` com 7 chamadas |
 | `031_planos` | catálogo `planos` (Busca, Essencial, Profissional, Prime, Completo), plano e teste em `tenants`, `tenant_plano_historico`, `plano_avisos`, `busca_upsell_eventos`, `fn_tenant_*`; backfill de todas as empresas no Completo |
+| `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
+| `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
 ### Seeds (somente dev, `--seed`)
@@ -535,7 +558,10 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 `004` catálogo e opções a partir de `public/ref` · `005` staff e profissionais · `006` eventos demo · `007` template e
 blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario) · `009` espaço de terceiro "Sede
 TechCorp" ligado ao evento corporativo · `010` empresa "Buffet Gratuito Demo" no plano Busca
-(`gratuito@buffetgratis.com.br`, owner). `_legacy_*` são ignorados.
+(`gratuito@buffetgratis.com.br`, owner) · `011` Banket Busca: 10 buffets fictícios em SP, Campinas, Santo André e ABC
+(4 clientes, um em teste; 5 gratuitos publicados; 1 incompleto), com pacotes, fotos de `public/busca-demo`, avaliações,
+métricas, pedidos e cardápios ligados aos pacotes dos clientes (usuários `contato@<buffet>.test`, senha `Banket.2026`).
+`_legacy_*` são ignorados.
 
 ---
 
@@ -550,7 +576,8 @@ TechCorp" ligado ao evento corporativo · `010` empresa "Buffet Gratuito Demo" n
 - Usuário com várias empresas troca a ativa por `POST /api/sessao/empresa` (reemite o JWT); lista em `empresasDoUsuario`.
 
 ### Middleware (`src/middleware.ts`)
-- Públicas: `/auth/*`, `/f/*`, `/p/*` (pesquisa de satisfação pelo token), `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
+- Públicas: `/auth/*`, `/f/*`, `/p/*` (pesquisa de satisfação pelo token), `/vitrine*` (páginas públicas do Banket
+  Busca), `/api/vitrine/*` (API pública da vitrine), `/busca-media/*` (fotos do Busca: só `busca/<uuid>.png|jpg|webp`), `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
   Svix do Resend conferida na rota), `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e estáticos
   de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
@@ -1137,13 +1164,15 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   No frontmatter, não quebre linha dentro de `${ … }` de um `html``…`` com outro `html``…`` aninhado: o compilador do
   Astro perde o fim do frontmatter ("CompilerError: Unexpected token"); extraia para uma função auxiliar.
 - Listagens: `pageParams`/`pageInfo`/`searchTerm` (`?q=&page=`, 20 por página).
+- Vitrine do Banket Busca (`VitrineLayout`, `styles/busca.css`) é **mobile-first** (desktop por `@media (min-width: 769px)`);
+  é a exceção à regra "mobile só em max-width", que vale para o app.
 - Interface nova segue o [design system](#design-system-interface): só tokens de `tokens.css` (nada de hex, cinza frio,
   peso 600/700 ou caixa alta fora de eyebrow), componentes de `components/ui` antes de CSS novo e ícones Tabler.
 - Funções puras que rodam no navegador (cálculo, modelo de formulário, money) não podem importar `db` nem Node.
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
   (agenda-dashboard, autoatendimento, cardápio, conta, drawer, estoque, eventos, financeiro, formulários, listas, mobile,
-  orçamento, pesquisas, planos, segurança, staff, templates).
+  orçamento, pesquisas, planos, busca-estrutura, segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
@@ -1166,6 +1195,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `UPLOAD_DIR` | uploads e PDFs (`/data/uploads` no contêiner) |
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
+| `BUSCA_URL` | endereço público da vitrine (`https://busca.banket.com.br`); sem ela, a vitrine fica em `APP_URL/vitrine` (`lib/busca/url.ts`) |
 | `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |
 

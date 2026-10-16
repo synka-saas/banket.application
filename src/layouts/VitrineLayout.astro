@@ -1,0 +1,98 @@
+---
+// Casca das páginas públicas do Banket Busca (busca.banket.com.br): cabeçalho e rodapé do layout exportado
+// (layout-busca/BuscaHeader e BuscaFooter), metadados de SEO (title, description, canonical, Open Graph, JSON-LD)
+// e nada de sessão. Mobile-first; o desktop entra por media query.
+import '../styles/global.css';
+import '../styles/busca.css';
+import MarcaBusca from '../components/busca/MarcaBusca.astro';
+import Icon from '../components/ui/Icon.astro';
+import { appUrl } from '../lib/mail';
+import { buscaUrl, caminhoVitrine } from '../lib/busca/url';
+import { TIPOS_EVENTO } from '../lib/busca/catalogos';
+
+interface Props {
+  /** Título da página (sem o sufixo da marca) */
+  title: string;
+  description: string;
+  /** Caminho canônico na vitrine ("/buffet/sabor-de-festa") */
+  canonical?: string;
+  imagem?: string;
+  /** Objetos schema.org serializados como JSON-LD */
+  jsonLd?: Record<string, unknown>[];
+  noindex?: boolean;
+}
+
+const { title, description, canonical, imagem, jsonLd = [], noindex = false } = Astro.props;
+const url = canonical ? buscaUrl(canonical) : null;
+const og = imagem ? (imagem.startsWith('http') ? imagem : buscaUrl(imagem)) : buscaUrl('/logo-dark.png');
+const tituloCompleto = `${title} · Banket Busca`;
+const v = caminhoVitrine;
+const colunas = [
+  { titulo: 'Eventos', links: TIPOS_EVENTO.slice(0, 5).map((t) => ({ rotulo: t.rotulo, href: v(`/buscar?tipo=${t.slug}`) })) },
+  { titulo: 'Para buffets', links: [
+    { rotulo: 'Cadastrar meu buffet', href: appUrl('/auth/cadastro?plano=busca') },
+    { rotulo: 'Entrar', href: appUrl('/auth/login?next=%2Fbusca') },
+    { rotulo: 'Gratuito ou Banket', href: v('/para-buffets') },
+  ] },
+  { titulo: 'Banket', links: [
+    { rotulo: 'Sistema de gestão para buffets', href: 'https://banket.com.br' },
+    { rotulo: 'Como funciona', href: `${v('/')}#como-funciona` },
+  ] },
+];
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{tituloCompleto}</title>
+    <meta name="description" content={description} />
+    {url && <link rel="canonical" href={url} />}
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Banket Busca" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content={tituloCompleto} />
+    <meta property="og:description" content={description} />
+    {url && <meta property="og:url" content={url} />}
+    <meta property="og:image" content={og} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {jsonLd.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj).replace(/</g, '\\u003c')} />)}
+  </head>
+  <body class="vitrine">
+    <a class="vitrine-pular" href="#conteudo">Pular para o conteúdo</a>
+    <header class="vitrine-topo">
+      <MarcaBusca href={v('/')} />
+      <nav class="vitrine-nav" aria-label="Navegação">
+        <a href={`${v('/')}#como-funciona`} class="vitrine-nav-link">Como funciona</a>
+        <a href={v('/para-buffets')} class="vitrine-nav-link">Para buffets</a>
+        <a href={appUrl('/auth/login?next=%2Fbusca')} class="btn btn-outline btn-sm"><Icon name="user" size={15} /> Entrar</a>
+      </nav>
+    </header>
+
+    <main id="conteudo" class="vitrine-conteudo">
+      <slot />
+    </main>
+
+    <footer class="vitrine-rodape">
+      <div class="vitrine-rodape-grade">
+        <div class="vitrine-rodape-marca">
+          <MarcaBusca tom="claro" altura={24} />
+          <p>Buffets e catering para eventos sociais e corporativos em São Paulo e região.</p>
+        </div>
+        {colunas.map((c) => (
+          <div class="vitrine-rodape-col">
+            <span class="eyebrow">{c.titulo}</span>
+            {c.links.map((l) => <a href={l.href}>{l.rotulo}</a>)}
+          </div>
+        ))}
+      </div>
+      <div class="vitrine-rodape-base">
+        <span>© {new Date().getFullYear()} Banket</span>
+        <span class="vitrine-rodape-legal"><a href={appUrl('/termos')}>Termos de uso</a><a href={appUrl('/privacidade')}>Privacidade</a></span>
+      </div>
+    </footer>
+  </body>
+</html>
