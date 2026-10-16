@@ -16,6 +16,9 @@ export const hostVitrine = (): string | null => {
   }
 };
 
+/** BUSCA_URL sem barra no fim, ou null. */
+export const urlVitrine = (): string | null => env('BUSCA_URL')?.replace(/\/$/, '') || null;
+
 /** URL absoluta de uma página da vitrine. */
 export function buscaUrl(path = '/'): string {
   const base = env('BUSCA_URL')?.replace(/\/$/, '');

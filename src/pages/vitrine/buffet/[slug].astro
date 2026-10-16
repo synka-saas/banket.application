@@ -1,0 +1,212 @@
+---
+// Perfil público do buffet (layout-busca/BuscaPerfil). Cliente Banket: selo, cardápio detalhado de cada pacote (direto
+// do catálogo do app) e disponibilidade pela agenda. Gratuito: pacotes sem cardápio e "Consultar disponibilidade".
+import VitrineLayout from '../../../layouts/VitrineLayout.astro';
+import Estrelas from '../../../components/busca/Estrelas.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import { brl } from '../../../lib/forms';
+import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../../lib/busca/catalogos';
+import { buscaUrl, caminhoVitrine } from '../../../lib/busca/url';
+import { queryDaBusca } from '../../../lib/busca/filtros';
+import { jsonLdPerfil } from '../../../lib/busca/seo';
+import { hojeSaoPaulo } from '../../../lib/datas';
+import { perfilCompleto, registrarMetrica } from '../../../server/busca/publico';
+import { cachePublico, criteriosDaUrl } from '../../../server/busca/vitrine';
+
+const criterios = criteriosDaUrl(Astro.url);
+const p = await perfilCompleto(Astro.params.slug ?? '', criterios.data);
+if (!p) return new Response(null, { status: 404 });
+cachePublico(Astro.response.headers);
+await registrarMetrica([p.id], 'visualizacoes', Astro.request.headers.get('user-agent'));
+
+const v = caminhoVitrine;
+const busca = queryDaBusca({ tipo: criterios.tipo, cidade: criterios.cidade, data: criterios.data, convidados: criterios.convidados });
+const nota = p.nota_media?.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const local = [p.bairro, p.cidade].filter(Boolean).join(', ');
+const atendimento = p.espaco_proprio && p.atende_domicilio ? 'Espaço próprio e em domicílio' : p.espaco_proprio ? 'Espaço próprio' : p.atende_domicilio ? 'Em domicílio' : null;
+const capacidade = p.capacidade_min && p.capacidade_max ? `${p.capacidade_min} a ${p.capacidade_max} convidados` : p.capacidade_max ? `Até ${p.capacidade_max} convidados` : null;
+const dataBR = criterios.data?.split('-').reverse().join('/');
+const fotos = p.fotos;
+const extras = fotos.slice(1, 5);
+const estimativa = criterios.convidados && p.precoMin != null ? criterios.convidados * p.precoMin : null;
+const tipoInicial = criterios.tipo && p.tipos_evento.includes(criterios.tipo) ? criterios.tipo : p.tipos_evento[0];
+const totalAv = Object.values(p.distribuicao).reduce((a, b) => a + b, 0);
+const fatos = [
+  capacidade && { icone: 'users', rotulo: 'Capacidade', valor: capacidade },
+  atendimento && { icone: p.espaco_proprio ? 'building' : 'home', rotulo: 'Atendimento', valor: atendimento },
+  p.tempo_resposta_texto && { icone: 'clock', rotulo: 'Resposta', valor: p.tempo_resposta_texto },
+  p.tipos_servico.length > 0 && { icone: 'tools-kitchen-2', rotulo: 'Serviços', valor: p.tipos_servico.map(rotuloServico).join(', ') },
+].filter(Boolean) as { icone: string; rotulo: string; valor: string }[];
+const ld = jsonLdPerfil({
+  nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
+  fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
+  totalAvaliacoes: p.total_avaliacoes, precoMin: p.precoMin, pacotes: p.pacotes, avaliacoes: p.avaliacoes,
+});
+const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
+const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
+---
+
+<VitrineLayout title={`${p.nome}${p.cidade ? ` · Buffet em ${p.cidade}` : ''}`} description={descricaoSeo} canonical={`/buffet/${p.slug}`} imagem={fotos[0]?.url} jsonLd={[ld]}>
+  <div class="vitrine-secao" style="padding-top:16px">
+    <a class="voltar" href={v('/buscar') + busca}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
+
+    {fotos.length > 0 && (
+      <div class="vp-galeria">
+        <div class="vp-galeria-principal"><img src={fotos[0].url} alt={fotos[0].legenda ?? `Foto de ${p.nome}`} width="900" height="675" /></div>
+        {extras.map((f) => <div class="vp-galeria-extra"><img src={f.url} alt={f.legenda ?? ''} loading="lazy" width="450" height="200" /></div>)}
+      </div>
+    )}
+
+    <header class="vp-cabeca">
+      <h1 class="vp-nome">
+        {p.nome}
+        {p.selo && <span class="bcard-selo" title="Usa o Banket para gerenciar eventos e orçamentos"><img src="/logo-mark.png" alt="" width="14" height="14" />Cliente Banket</span>}
+      </h1>
+      <p class="vp-meta">
+        {nota ? <span class="bcard-nota"><Icon name="star" size={16} class="bcard-estrela" />{nota}</span> : null}
+        {p.total_avaliacoes > 0 ? <a href="#avaliacoes">{p.total_avaliacoes} {p.total_avaliacoes === 1 ? 'avaliação' : 'avaliações'}</a> : <span>Sem avaliações</span>}
+        {local && <><span class="bcard-sep" aria-hidden="true">·</span><span>{local}</span></>}
+        {atendimento && <><span class="bcard-sep" aria-hidden="true">·</span><span>{atendimento}</span></>}
+      </p>
+    </header>
+
+    <div class="vp-layout">
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+        <section class="vp-secao" aria-labelledby="h-sobre">
+          <h2 id="h-sobre">Sobre o buffet</h2>
+          {p.descricao && <p>{p.descricao}</p>}
+          {fatos.length > 0 && (
+            <ul class="vp-fatos">
+              {fatos.map((f) => <li class="vp-fato"><span class="vp-fato-ico"><Icon name={f.icone} size={18} /></span><span><small>{f.rotulo}</small>{f.valor}</span></li>)}
+            </ul>
+          )}
+        </section>
+
+        <section class="vp-secao" aria-labelledby="h-eventos">
+          <h2 id="h-eventos">Tipos de evento atendidos</h2>
+          <ul class="vp-tags">{p.tipos_evento.map((t) => <li class="tag">{rotuloEvento(t)}</li>)}</ul>
+          {p.restricoes.length > 0 && (
+            <>
+              <h2 style="margin-top:16px;font-size:var(--fs-15)">Opções de cardápio</h2>
+              <ul class="vp-tags">{p.restricoes.map((r) => <li class="tag tag-sage">{rotuloRestricao(r)}</li>)}</ul>
+            </>
+          )}
+        </section>
+
+        {p.pacotes.length > 0 && (
+          <section class="vp-secao" aria-labelledby="h-pacotes">
+            <h2 id="h-pacotes">{p.mostraCardapio ? 'Cardápios e pacotes' : 'Pacotes'}</h2>
+            <p style="margin-bottom:12px;color:var(--text-secondary)">Preço por pessoa.</p>
+            <ul class="vp-pacotes">
+              {p.pacotes.map((k) => {
+                const cardapio = k.cardapio_opcao_id ? p.cardapios[k.cardapio_opcao_id] : undefined;
+                const faixa = k.convidados_min && k.convidados_max ? `${k.convidados_min} a ${k.convidados_max} convidados` : null;
+                return (
+                  <li class="vp-pacote">
+                    <div class="vp-pacote-cabeca">
+                      <h3>{k.nome}</h3>
+                      {k.preco_pessoa != null && <span class="vp-pacote-preco tabular">{brl(k.preco_pessoa)} <small>por pessoa</small></span>}
+                    </div>
+                    {k.descricao && <p>{k.descricao}</p>}
+                    {faixa && <p class="bcard-cap"><Icon name="users" size={14} />{faixa}</p>}
+                    {k.inclui.length > 0 && <ul class="vp-inclui">{k.inclui.map((i) => <li><Icon name="check" size={14} />{i}</li>)}</ul>}
+                    {cardapio && cardapio.length > 0 && (
+                      <details class="vp-cardapio">
+                        <summary>Ver cardápio</summary>
+                        {cardapio.map((s) => (
+                          <>
+                            <h4>{s.titulo}{s.escolha ? ` · escolha ${s.escolha}` : ''}</h4>
+                            <ul>{s.itens.map((i) => <li>{i.nome}{i.restricoes.length ? ` (${i.restricoes.map(rotuloRestricao).join(', ').toLowerCase()})` : ''}</li>)}</ul>
+                          </>
+                        ))}
+                      </details>
+                    )}
+                    <a class="btn btn-outline btn-sm" style="align-self:flex-start" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}&pacote=${encodeURIComponent(k.nome)}`}>Pedir este pacote</a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <section class="vp-secao" aria-labelledby="h-area">
+          <h2 id="h-area">Área de atendimento</h2>
+          <ul class="vp-fatos" style="margin-top:0">
+            {p.espaco_proprio && (
+              <li class="vp-fato"><span class="vp-fato-ico"><Icon name="building" size={18} /></span><span>Espaço próprio<small>{[p.logradouro && `${p.logradouro}${p.numero ? `, ${p.numero}` : ''}`, local].filter(Boolean).join(' · ')}</small></span></li>
+            )}
+            {p.atende_domicilio && (
+              <li class="vp-fato"><span class="vp-fato-ico"><Icon name="home" size={18} /></span><span>Em domicílio{p.raio_km ? ` · até ${p.raio_km} km` : ''}<small>{p.capacidade_min ? `A partir de ${p.capacidade_min} convidados` : `A partir de ${p.cidade ?? 'sua cidade'}`}</small></span></li>
+            )}
+          </ul>
+          {p.cidadesAtendidas.length > 0 && <ul class="vp-tags" style="margin-top:12px">{p.cidadesAtendidas.map((c) => <li class="tag"><Icon name="map-pin" size={13} />{c}</li>)}</ul>}
+        </section>
+
+        {fotos.length > 5 && (
+          <section class="vp-secao" aria-labelledby="h-fotos" id="fotos">
+            <h2 id="h-fotos">Fotos</h2>
+            <ul class="vh-grade-cards" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+              {fotos.slice(5).map((f) => <li><img src={f.url} alt={f.legenda ?? ''} loading="lazy" width="320" height="240" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--radius-md)" /></li>)}
+            </ul>
+          </section>
+        )}
+
+        <section class="vp-secao" id="avaliacoes" aria-labelledby="h-avaliacoes">
+          <h2 id="h-avaliacoes">Avaliações</h2>
+          {totalAv === 0 ? (
+            <p style="color:var(--text-secondary)">Este buffet ainda não recebeu avaliações. Só quem pediu orçamento pelo Banket Busca pode avaliar.</p>
+          ) : (
+            <div class="vp-avaliacoes">
+              <div class="vp-resumo-nota">
+                <span class="vp-nota-grande tabular">{nota}</span>
+                <Estrelas nota={p.nota_media} tamanho={16} />
+                <span class="vr-meta">de 5 · {p.total_avaliacoes} {p.total_avaliacoes === 1 ? 'avaliação' : 'avaliações'}</span>
+                {([5, 4, 3, 2, 1] as const).map((n) => (
+                  <div class="vp-barra" aria-label={`${p.distribuicao[n]} avaliações com nota ${n}`}>
+                    <span>{n}</span><span class="vp-barra-trilho"><span style={`width:${totalAv ? (p.distribuicao[n] / totalAv) * 100 : 0}%`}></span></span><span class="tabular">{p.distribuicao[n]}</span>
+                  </div>
+                ))}
+              </div>
+              <ul class="vp-lista-av">
+                {p.avaliacoes.map((a) => (
+                  <li class="vp-av">
+                    <div class="vp-av-cabeca"><span><strong>{a.nome}</strong> · {rotuloEvento(a.tipoEvento)} · {fmtData(a.data)}</span><Estrelas nota={a.nota} tamanho={13} /></div>
+                    {a.texto && <p>{a.texto}</p>}
+                    {a.resposta && <div class="vp-av-resposta"><strong>Resposta do buffet · </strong>{a.resposta}</div>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <aside class="vp-aside" aria-label="Pedir orçamento">
+        {p.precoMin != null && <div class="vp-aside-preco"><small>a partir de</small><span><strong class="tabular">{brl(p.precoMin).replace(',00', '')}</strong> por pessoa</span></div>}
+        {p.disponibilidade === 'disponivel' && <span class="badge badge-success vp-disp"><span class="bcard-ponto" aria-hidden="true"></span>Disponível em {dataBR}</span>}
+        {p.disponibilidade === 'indisponivel' && <span class="badge badge-warning vp-disp">Data ocupada na agenda em {dataBR}</span>}
+        {p.disponibilidade === 'consultar' && <span class="badge vp-disp">Consultar disponibilidade</span>}
+        <form method="get" action={v('/orcamento')} class="fbusca" style="gap:12px">
+          <input type="hidden" name="buffets" value={p.slug} />
+          {criterios.cidade && <input type="hidden" name="cidade" value={criterios.cidade} />}
+          <div class="field">
+            <label for="vp-tipo">Tipo de evento</label>
+            <select id="vp-tipo" name="tipo">{p.tipos_evento.map((t) => <option value={t} selected={t === tipoInicial}>{rotuloEvento(t)}</option>)}</select>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label for="vp-data">Data</label><input id="vp-data" name="data" type="date" min={hojeSaoPaulo()} value={criterios.data ?? ''} /></div>
+            <div class="field"><label for="vp-conv">Convidados</label><input id="vp-conv" name="convidados" type="number" inputmode="numeric" min="1" max="5000" value={criterios.convidados ?? ''} /></div>
+          </div>
+          {estimativa != null && <div class="vp-estimativa"><span>Estimativa para {criterios.convidados} convidados</span><strong class="tabular">{brl(estimativa)}</strong></div>}
+          <button type="submit" class="btn btn-primary btn-large btn-block">Pedir orçamento</button>
+        </form>
+        <span class="vp-aside-nota">Grátis e sem compromisso{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
+      </aside>
+    </div>
+  </div>
+
+  <div class="vp-movel">
+    {p.precoMin != null ? <span class="vp-aside-preco"><small>a partir de</small><span><strong class="tabular" style="font-size:var(--fs-20)">{brl(p.precoMin).replace(',00', '')}</strong> por pessoa</span></span> : <span></span>}
+    <a class="btn btn-primary btn-large" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}`}>Pedir orçamento</a>
+  </div>
+</VitrineLayout>

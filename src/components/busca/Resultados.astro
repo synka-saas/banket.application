@@ -1,0 +1,217 @@
+---
+// Lista de resultados (busca e landings): título com a contagem, ordenação, filtros (lateral no desktop, gaveta no
+// celular), chips removíveis, cards, "Mostrar mais", estado vazio com sugestões reais e seleção múltipla.
+import Icon from '../ui/Icon.astro';
+import BuffetCard from './BuffetCard.astro';
+import Filtros from './Filtros.astro';
+import { ORDENS, POR_PAGINA, chipsDosFiltros, queryDaBusca, semFiltrosSecundarios, temFiltrosSecundarios, type Criterios } from '../../lib/busca/filtros';
+import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../lib/busca/catalogos';
+import { caminhoVitrine } from '../../lib/busca/url';
+import { MAX_SELECAO } from '../../server/busca/vitrine';
+import type { ResultadoBusca } from '../../server/busca/publico';
+
+interface Props {
+  resultado: ResultadoBusca;
+  criterios: Criterios;
+  /** Título principal (h1) */
+  titulo?: string;
+}
+const { resultado: r, criterios: c, titulo } = Astro.props;
+const url = (crit: Criterios) => caminhoVitrine('/buscar') + queryDaBusca(crit);
+const chips = chipsDosFiltros(c, { servico: rotuloServico, restricao: rotuloRestricao });
+const dataBR = c.data ? c.data.split('-').reverse().join('/') : null;
+const contagem = r.total === 0 ? 'Nenhum buffet encontrado' : r.total === 1 ? '1 buffet encontrado' : `${r.total} buffets encontrados`;
+const resumo = [
+  c.tipo ? rotuloEvento(c.tipo) : null,
+  r.cidade ? `${r.cidade.nome} · ${r.cidade.uf}` : null,
+  dataBR,
+  c.convidados ? `${c.convidados} convidados` : null,
+].filter(Boolean).join(' · ');
+const nFiltros = chips.length;
+const SUGESTOES: Record<string, { rotulo: string; icone: string; crit: Criterios }> = {
+  filtros: { rotulo: 'Sem os filtros escolhidos', icone: 'adjustments-horizontal', crit: semFiltrosSecundarios(c) },
+  data: { rotulo: 'Em qualquer data', icone: 'calendar', crit: { ...semFiltrosSecundarios(c), data: null } },
+  convidados: { rotulo: 'Sem o número de convidados', icone: 'users', crit: { ...semFiltrosSecundarios(c), convidados: null } },
+  raio: { rotulo: 'Até 50 km da cidade', icone: 'map-pin', crit: { ...semFiltrosSecundarios(c), raio: 50 } },
+};
+const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${c.convidados ? ` atende ${c.convidados} convidados` : ' atende'}${c.tipo ? ` para ${rotuloEvento(c.tipo).toLowerCase()}` : ''}${dataBR ? ` em ${dataBR}` : ''} com esses filtros.`;
+---
+
+<div class="vr" data-resultados data-max={MAX_SELECAO} data-base-orcamento={caminhoVitrine('/orcamento')} data-query={queryDaBusca({ tipo: c.tipo, cidade: c.cidade, data: c.data, convidados: c.convidados })}>
+  <div class="vr-cabeca">
+    <div>
+      <h1 class="vr-titulo">{titulo ?? contagem}</h1>
+      <p class="vr-meta">{titulo ? `${contagem}${resumo ? ` · ${resumo}` : ''}` : resumo || 'Todos os buffets publicados'}. Clientes Banket aparecem primeiro.</p>
+    </div>
+    <form class="vr-ordem" method="get" action={caminhoVitrine('/buscar')} data-ordem>
+      {[...new URLSearchParams(queryDaBusca({ ...c, ordem: 'relevancia', pagina: 1 }).slice(1))].map(([k, v]) => <input type="hidden" name={k} value={v} />)}
+      <label for="vr-ordem">Ordenar por</label>
+      <div class="field"><select id="vr-ordem" name="ordem">{ORDENS.map((o) => <option value={o.valor} selected={c.ordem === o.valor}>{o.rotulo}</option>)}</select></div>
+      <button type="submit" class="btn btn-outline btn-sm" data-sem-js>Ordenar</button>
+    </form>
+  </div>
+
+  <div class="vr-barra-movel">
+    <button type="button" class="btn btn-outline btn-md" data-abrir-filtros><Icon name="adjustments-horizontal" size={16} /> Filtros{nFiltros ? ` (${nFiltros})` : ''}</button>
+  </div>
+
+  {chips.length > 0 && (
+    <ul class="vr-chips" aria-label="Filtros aplicados">
+      {chips.map((ch) => <li><a class="vr-chip" href={url(ch.sem)} aria-label={`Remover filtro ${ch.rotulo}`}>{ch.rotulo}<Icon name="x" size={14} /></a></li>)}
+      <li><a class="vr-chip" href={url(semFiltrosSecundarios(c))}>Limpar filtros</a></li>
+    </ul>
+  )}
+
+  <div class="vr-layout">
+    <aside class="vr-lateral" aria-label="Filtros">
+      <Filtros criterios={c} facetas={r.facetas} id="fl" temCidade={Boolean(r.cidade)} />
+    </aside>
+
+    <div>
+      {r.itens.length > 0 ? (
+        <>
+          <ul class="vh-grade-cards vr-grade">
+            {r.itens.map((item, i) => <li><BuffetCard item={item} criterios={c} primeiro={i < 2} /></li>)}
+          </ul>
+          {r.temMais && (
+            <div class="vr-mais">
+              <a class="btn btn-outline btn-md" href={url({ ...c, pagina: c.pagina + 1 })} rel="next">
+                <Icon name="chevron-down" size={16} /> Mostrar mais {Math.min(POR_PAGINA, r.total - r.itens.length)} buffets
+              </a>
+            </div>
+          )}
+        </>
+      ) : (
+        <div class="vr-vazio">
+          <span class="vh-categoria-ico"><Icon name="search" size={22} /></span>
+          <h2 class="vr-titulo">Nenhum buffet encontrado para essa busca</h2>
+          <p class="vr-meta">{descricaoVazio}</p>
+          {r.sugestoes.length > 0 && (
+            <>
+              <p class="eyebrow">Tente ampliar a busca</p>
+              <ul class="vr-sugestoes">
+                {r.sugestoes.map((s) => (
+                  <li><a class="vr-sugestao" href={url(SUGESTOES[s.chave].crit)}><span><Icon name={SUGESTOES[s.chave].icone} size={18} /> {SUGESTOES[s.chave].rotulo}</span><span class="tag tag-sage tag-sm tabular">{s.total}</span></a></li>
+                ))}
+              </ul>
+            </>
+          )}
+          {(temFiltrosSecundarios(c) || c.data || c.convidados || c.tipo) && (
+            <a class="btn btn-outline btn-md" href={caminhoVitrine('/buscar') + queryDaBusca({ cidade: c.cidade })}><Icon name="refresh" size={16} /> Limpar todos os filtros</a>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+
+  <dialog class="vf-gaveta" aria-labelledby="vf-gaveta-titulo" data-gaveta-filtros>
+    <div class="vf-gaveta-cabeca">
+      <span id="vf-gaveta-titulo">Filtros</span>
+      <button type="button" class="btn btn-ghost btn-sm" data-fechar-filtros aria-label="Fechar"><Icon name="x" size={18} /></button>
+    </div>
+    <div class="vf-gaveta-corpo">
+      <Filtros criterios={c} facetas={r.facetas} id="fg" temCidade={Boolean(r.cidade)} />
+    </div>
+    <div class="vf-gaveta-rodape">
+      <a class="btn btn-outline btn-large" href={url(semFiltrosSecundarios(c))}>Limpar</a>
+      <button type="button" class="btn btn-primary btn-large" data-aplicar-gaveta>Ver buffets</button>
+    </div>
+  </dialog>
+
+  <div class="vsel" hidden data-barra-selecao role="region" aria-label="Buffets selecionados">
+    <span class="vsel-texto" data-selecao-texto aria-live="polite"></span>
+    <div class="vsel-acoes">
+      <button type="button" class="btn btn-ghost btn-md" data-limpar-selecao>Limpar</button>
+      <a class="btn btn-primary btn-md" href="#" data-pedir-selecao><Icon name="send" size={16} /> <span data-pedir-texto>Pedir orçamento</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { toast } from '../../lib/ui';
+
+  const raiz = document.querySelector<HTMLElement>('[data-resultados]');
+  if (raiz) {
+    // Com JavaScript, filtros e ordenação aplicam na hora (o botão fica para quem não tem JS)
+    raiz.querySelectorAll<HTMLElement>('[data-sem-js]').forEach((el) => (el.hidden = true));
+    const enviar = (form: HTMLFormElement) => {
+      const dados = new FormData(form);
+      const p = new URLSearchParams();
+      for (const [k, v] of dados) if (typeof v === 'string' && v !== '') p.append(k, v);
+      window.location.assign(`${form.action}${p.toString() ? `?${p}` : ''}`);
+    };
+    raiz.querySelectorAll<HTMLFormElement>('.vr-lateral [data-filtros], [data-ordem]').forEach((form) => {
+      form.addEventListener('change', () => enviar(form));
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviar(form);
+      });
+    });
+
+    // Gaveta de filtros (celular)
+    const gaveta = raiz.querySelector<HTMLDialogElement>('[data-gaveta-filtros]')!;
+    raiz.querySelector('[data-abrir-filtros]')?.addEventListener('click', () => gaveta.showModal());
+    raiz.querySelector('[data-fechar-filtros]')?.addEventListener('click', () => gaveta.close());
+    raiz.querySelector('[data-aplicar-gaveta]')?.addEventListener('click', () => enviar(gaveta.querySelector('form')!));
+
+    // Seleção múltipla: guarda na sessão do navegador (sobrevive a "Mostrar mais" e à troca de filtros)
+    const CHAVE = 'banket-busca-selecao';
+    const max = Number(raiz.dataset.max ?? 5);
+    const barra = raiz.querySelector<HTMLElement>('[data-barra-selecao]')!;
+    const texto = raiz.querySelector<HTMLElement>('[data-selecao-texto]')!;
+    const pedir = raiz.querySelector<HTMLAnchorElement>('[data-pedir-selecao]')!;
+    const pedirTexto = raiz.querySelector<HTMLElement>('[data-pedir-texto]')!;
+    const ler = (): { slug: string; nome: string }[] => {
+      try {
+        return JSON.parse(sessionStorage.getItem(CHAVE) ?? '[]');
+      } catch {
+        return [];
+      }
+    };
+    const gravar = (lista: { slug: string; nome: string }[]) => {
+      try {
+        sessionStorage.setItem(CHAVE, JSON.stringify(lista));
+      } catch {
+        /* navegação privada: a seleção vale só nesta página */
+      }
+    };
+    let selecao = ler();
+    const atualizar = () => {
+      for (const card of raiz.querySelectorAll<HTMLElement>('[data-buffet]')) {
+        const marcado = selecao.some((s) => s.slug === card.dataset.buffet);
+        card.classList.toggle('selecionado', marcado);
+        const caixa = card.querySelector<HTMLInputElement>('[data-selecionar]');
+        if (caixa) caixa.checked = marcado;
+      }
+      barra.hidden = selecao.length === 0;
+      texto.textContent = selecao.length === 1 ? '1 buffet selecionado' : `${selecao.length} buffets selecionados`;
+      pedirTexto.textContent = selecao.length > 1 ? `Pedir orçamento para ${selecao.length}` : 'Pedir orçamento';
+      const q = raiz.dataset.query ?? '';
+      pedir.href = `${raiz.dataset.baseOrcamento}${q ? `${q}&` : '?'}buffets=${selecao.map((s) => s.slug).join(',')}`;
+    };
+    raiz.addEventListener('change', (e) => {
+      const caixa = e.target as HTMLInputElement;
+      if (!caixa.matches('[data-selecionar]')) return;
+      const card = caixa.closest<HTMLElement>('[data-buffet]')!;
+      const slug = card.dataset.buffet!;
+      if (caixa.checked) {
+        if (selecao.length >= max) {
+          caixa.checked = false;
+          toast(`Você pode pedir orçamento para até ${max} buffets de uma vez.`, 'info');
+          return;
+        }
+        selecao = [...selecao.filter((s) => s.slug !== slug), { slug, nome: card.dataset.nome ?? slug }];
+      } else {
+        selecao = selecao.filter((s) => s.slug !== slug);
+      }
+      gravar(selecao);
+      atualizar();
+    });
+    raiz.querySelector('[data-limpar-selecao]')?.addEventListener('click', () => {
+      selecao = [];
+      gravar(selecao);
+      atualizar();
+    });
+    atualizar();
+  }
+</script>

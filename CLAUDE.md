@@ -89,8 +89,10 @@ src/
     senha.ts           política de senha
     estoqueRazoes.ts   motivos das movimentações de estoque e os campos que cada um exige (puro)
     financeiro.ts      rótulos, situação da conta (vencida é calculada) e geração das parcelas do plano de pagamento (puro)
-    busca/             Banket Busca (puro): catalogos.ts (tipos de evento e de serviço globais, restrições), geo.ts
-                       (distância, slugs, CEP), url.ts (BUSCA_URL: endereços da vitrine)
+    busca/             Banket Busca (puro, testado): catalogos.ts (tipos de evento e de serviço, restrições), geo.ts
+                       (distância, slugs, CEP), url.ts (BUSCA_URL), filtros.ts (critérios ↔ query string, chips),
+                       matching.ts (compatibilidade eliminatória e disponibilidade), ranking.ts (grupo + pontuação com
+                       pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host da vitrine)
     planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
@@ -132,11 +134,14 @@ src/
     planos.ts          planos da empresa: único dono de tenants.plano_id (trocarPlano), teste grátis, rebaixamento para o
                        plano Busca, excedentes, push do Manager, eventos de upsell, e-mails do teste, contagens dos limites
     busca/             Banket Busca: perfil.ts (perfil da empresa, pré-preenchimento, nível pelo plano, excedentes,
-                       urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: conexão de sistema READ ONLY, só perfis
-                       publicados de empresas ativas; cidades)
+                       urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: pool da vitrine READ ONLY, só perfis
+                       publicados de empresas ativas; cidades, busca, destaques, depoimentos, perfil completo, métricas),
+                       vitrine.ts (critérios da URL, cidade digitada, cache público)
     agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
+  pages/vitrine/       páginas públicas do Banket Busca (home, buscar, buffet/[slug], buffet/[tipo]/[cidade], orcamento);
+                       no host BUSCA_URL são servidas sem o prefixo /vitrine (middleware)
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
   components/          ui/ (Button, Table, Drawer, Toast…), ilhas Preact (orcamento/ — inclui ListaCompras —, cardapio/,
                        formularios/), reunioes/ReuniaoDrawer.astro (agendar/editar reunião),
@@ -1037,6 +1042,24 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   9h por e-mail para owner/admin.
 - **Conversão** (sem Stripe por enquanto): o Manager troca o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.
 
+### Banket Busca: vitrine pública — `/vitrine/*` (em produção, `busca.banket.com.br/*`)
+- **Rotas**: `/` (buscador, tipos com contagem, serviços, como funciona, destaques, depoimentos, chamada para buffets),
+  `/buscar` (filtros na URL, `noindex`), `/buffet/[slug]` (perfil), `/buffet/[tipo]/[cidade]` (landing de SEO; cidade
+  no slug curto, `campinas`; o longo `campinas-sp` dá 301), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
+- **Busca** (`buscarBuffets`): pré-filtro SQL largo (tipo, 200 km da cidade) → `compativel` (tipo, local, capacidade e,
+  só para cliente Banket com agenda, data ocupada por evento aprovado ou bloqueio) → `passaFiltros` (serviço, restrição,
+  preço, atendimento, nota, raio) → `ordenar` (clientes com `busca_prioridade` sempre antes; depois completude 30%,
+  avaliação 30%, taxa de resposta 20%, distância 20%; `BUSCA_RANKING_PESOS` sobrescreve) → "Mostrar mais" de 12 em 12.
+  Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
+- **Seleção múltipla** em `sessionStorage` (até 5 buffets, `MAX_SELECAO`), barra fixa com o link do pedido.
+- **Perfil**: cliente mostra o cardápio da opção ligada ao pacote (`busca_pacotes.cardapio_opcao_id`) e a
+  disponibilidade; gratuito, só pacotes e "Consultar disponibilidade". JSON-LD `LocalBusiness` + `AggregateRating`.
+- **Métricas**: aparições (cards exibidos), visualizações (perfil) por dia em `busca_metricas_dia`; robôs e clientes de
+  linha de comando não contam (`ehRobo`).
+- **Host**: com `BUSCA_URL`, o middleware reescreve `busca.banket.com.br/x` para `/vitrine/x` (`decidirHost`), deixa
+  estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
+  da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
+
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
@@ -1172,7 +1195,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
   (agenda-dashboard, autoatendimento, cardápio, conta, drawer, estoque, eventos, financeiro, formulários, listas, mobile,
-  orçamento, pesquisas, planos, busca-estrutura, segurança, staff, templates).
+  orçamento, pesquisas, planos, busca-estrutura, busca-vitrine, segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
@@ -1196,6 +1219,8 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
 | `BUSCA_URL` | endereço público da vitrine (`https://busca.banket.com.br`); sem ela, a vitrine fica em `APP_URL/vitrine` (`lib/busca/url.ts`) |
+| `BUSCA_RANKING_PESOS` | JSON parcial com os pesos do ranking (`{"avaliacao":0.4}`), normalizado para somar 1 |
+| `DB_POOL_VITRINE` | conexões do pool de leitura pública da vitrine (padrão 6) |
 | `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |
 
@@ -1271,6 +1296,10 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   (`removerEventoBanco` em `tests/e2e/helpers.ts`).
 - O plano fica 15 s em cache por processo: uma troca feita pelo Manager ou direto no banco demora até 15 s para valer na
   outra cor do blue-green (e nos e2e). Toda troca passa por `trocarPlano`, que invalida o cache do próprio processo.
+- Num mesmo client do `pg` as consultas são em sequência: `Promise.all` de várias `db.query` no mesmo `db` gera aviso e
+  será erro no pg 9. Paralelismo só entre transações diferentes.
+- `:global()` só existe dentro de `<style>` de componente Astro; num `.css` comum o seletor é inválido e a regra inteira
+  some (aconteceu em `busca.css`).
 - `registrarUpsell` usa SAVEPOINT: evento de funil nunca aborta a transação de quem chama.
 - O link da pesquisa (`/p/<token>`) é a credencial do cliente: não exponha o token fora das telas da empresa.
 - A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

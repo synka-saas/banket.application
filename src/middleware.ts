@@ -7,6 +7,8 @@ import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
 import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
 import { verificarTrialVencido } from './server/planos';
 import { iniciarAgendador } from './server/agendador';
+import { decidirHost } from './lib/busca/host';
+import { hostVitrine, urlVitrine } from './lib/busca/url';
 
 // Agendador do app (trials): um por processo, iniciado junto com o middleware
 iniciarAgendador();
@@ -17,7 +19,7 @@ iniciarAgendador();
 // /api/webhooks/* recebe os webhooks do Resend (assinatura Svix conferida na própria rota)
 // /p/* é a pesquisa de satisfação respondida pelo cliente (link com token)
 // /busca-media/* serve só as fotos públicas do Banket Busca; /api/vitrine/* é a API pública da vitrine
-const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image', '/busca-media/', '/api/vitrine/', '/vitrine'];
+const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image', '/busca-media/', '/api/vitrine/'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
 
 // Rotas restritas a owner/admin (inclui a aba Finanças do evento)
@@ -57,13 +59,26 @@ function comCabecalhos(response: Response, pathname: string): Response {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Banket Busca: no host da vitrine (BUSCA_URL), as páginas públicas são servidas por /vitrine/* com a URL limpa
+  const host = decidirHost(context.url.host, context.url.pathname, context.url.search, hostVitrine(), urlVitrine());
+  if (host.acao === 'redirecionar') return comCabecalhos(context.redirect(host.url, 301), context.url.pathname);
+  if (host.acao === 'reescrever') {
+    context.locals.flash = null;
+    context.locals.plano = null;
+    return comCabecalhos(await next(new URL(host.caminho, context.url)), host.caminho);
+  }
   return comCabecalhos(await autorizar(context, next), context.url.pathname);
 });
 
 async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname } = context.url;
-  context.locals.flash = consumeFlash(context.cookies);
   context.locals.plano = null;
+  // Vitrine: páginas cacheáveis, sem cookie de flash (consumi-lo poria Set-Cookie numa resposta pública)
+  if (pathname === '/vitrine' || pathname.startsWith('/vitrine/')) {
+    context.locals.flash = null;
+    return next();
+  }
+  context.locals.flash = consumeFlash(context.cookies);
 
   if (isPublic(pathname)) return next();
 

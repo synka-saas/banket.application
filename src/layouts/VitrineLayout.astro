@@ -6,6 +6,7 @@ import '../styles/global.css';
 import '../styles/busca.css';
 import MarcaBusca from '../components/busca/MarcaBusca.astro';
 import Icon from '../components/ui/Icon.astro';
+import Toast from '../components/ui/Toast.astro';
 import { appUrl } from '../lib/mail';
 import { buscaUrl, caminhoVitrine } from '../lib/busca/url';
 import { TIPOS_EVENTO } from '../lib/busca/catalogos';
@@ -32,7 +33,7 @@ const colunas = [
   { titulo: 'Para buffets', links: [
     { rotulo: 'Cadastrar meu buffet', href: appUrl('/auth/cadastro?plano=busca') },
     { rotulo: 'Entrar', href: appUrl('/auth/login?next=%2Fbusca') },
-    { rotulo: 'Gratuito ou Banket', href: v('/para-buffets') },
+    { rotulo: 'Por que cadastrar', href: `${v('/')}#para-buffets` },
   ] },
   { titulo: 'Banket', links: [
     { rotulo: 'Sistema de gestão para buffets', href: 'https://banket.com.br' },
@@ -67,7 +68,7 @@ const colunas = [
       <MarcaBusca href={v('/')} />
       <nav class="vitrine-nav" aria-label="Navegação">
         <a href={`${v('/')}#como-funciona`} class="vitrine-nav-link">Como funciona</a>
-        <a href={v('/para-buffets')} class="vitrine-nav-link">Para buffets</a>
+        <a href={`${v('/')}#para-buffets`} class="vitrine-nav-link">Para buffets</a>
         <a href={appUrl('/auth/login?next=%2Fbusca')} class="btn btn-outline btn-sm"><Icon name="user" size={15} /> Entrar</a>
       </nav>
     </header>
@@ -94,5 +95,6 @@ const colunas = [
         <span class="vitrine-rodape-legal"><a href={appUrl('/termos')}>Termos de uso</a><a href={appUrl('/privacidade')}>Privacidade</a></span>
       </div>
     </footer>
+    <Toast flash={null} />
   </body>
 </html>

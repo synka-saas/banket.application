@@ -1,0 +1,28 @@
+---
+// Nota em estrelas (0 a 5, meia estrela arredondada para baixo). Acessível: o texto da nota vai para leitores de tela.
+import Icon from '../ui/Icon.astro';
+interface Props {
+  nota: number | null;
+  tamanho?: number;
+}
+const { nota, tamanho = 14 } = Astro.props;
+const cheias = nota ? Math.round(nota) : 0;
+---
+
+<span class="estrelas" role="img" aria-label={nota ? `Nota ${nota.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} de 5` : 'Sem avaliações'}>
+  {[1, 2, 3, 4, 5].map((i) => <Icon name="star" size={tamanho} class:list={['estrela', { 'estrela--cheia': i <= cheias }]} aria-hidden="true" />)}
+</span>
+
+<style>
+  .estrelas {
+    display: inline-flex;
+    gap: 1px;
+    color: var(--clay-300);
+    vertical-align: -2px;
+  }
+
+  .estrelas :global(.estrela--cheia) {
+    color: var(--ochre-500);
+    fill: currentColor;
+  }
+</style>

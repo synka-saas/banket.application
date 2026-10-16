@@ -1,0 +1,23 @@
+---
+// Pedido de orçamento: o envio chega na fase 6 (PLANO.md §9). Por enquanto mostra os buffets escolhidos e o caminho
+// para falar com cada um pelo perfil. noindex.
+import VitrineLayout from '../../layouts/VitrineLayout.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { caminhoVitrine } from '../../lib/busca/url';
+import { perfilPublico } from '../../server/busca/publico';
+import { MAX_SELECAO } from '../../server/busca/vitrine';
+
+const slugs = [...new Set((Astro.url.searchParams.get('buffets') ?? '').split(',').map((s) => s.trim()).filter(Boolean))].slice(0, MAX_SELECAO);
+const perfis = (await Promise.all(slugs.map((s) => perfilPublico(s)))).filter((p) => p != null);
+---
+
+<VitrineLayout title="Pedir orçamento" description="Peça orçamento grátis aos buffets escolhidos." noindex>
+  <section class="vitrine-secao" style="max-width:720px">
+    <a class="voltar" href={caminhoVitrine('/buscar') + Astro.url.search.replace(/[?&]buffets=[^&]*/, '').replace(/^&/, '?')}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
+    <h1 class="vr-titulo" style="margin-top:16px">Pedir orçamento</h1>
+    <p class="vr-meta">O envio do pedido pelo Banket Busca chega em breve. Buffets escolhidos:</p>
+    <ul class="vp-pacotes" style="margin-top:16px">
+      {perfis.map((p) => <li class="vp-pacote"><h3><a href={caminhoVitrine(`/buffet/${p!.slug}`)}>{p!.nome}</a></h3><p>{[p!.bairro, p!.cidade].filter(Boolean).join(', ')}</p></li>)}
+    </ul>
+  </section>
+</VitrineLayout>

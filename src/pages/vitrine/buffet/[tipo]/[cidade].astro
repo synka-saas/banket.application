@@ -1,0 +1,94 @@
+---
+// Landing de SEO: /buffet/[tipo-de-evento]/[cidade] (ex.: /buffet/casamento/campinas). Texto e perguntas com os números
+// reais, os resultados compatíveis e links para cidades e tipos vizinhos. 404 sem tipo/cidade válidos.
+import VitrineLayout from '../../../../layouts/VitrineLayout.astro';
+import FormBusca from '../../../../components/busca/FormBusca.astro';
+import Icon from '../../../../components/ui/Icon.astro';
+import Resultados from '../../../../components/busca/Resultados.astro';
+import { hojeSaoPaulo } from '../../../../lib/datas';
+import { buscaUrl, caminhoVitrine } from '../../../../lib/busca/url';
+import { jsonLdLista, jsonLdPerguntas, textoLanding } from '../../../../lib/busca/seo';
+import { rotuloEvento } from '../../../../lib/busca/catalogos';
+import { distanciaKm } from '../../../../lib/busca/geo';
+import { lerCriterios, tipoDaUrl, urlDoTipo } from '../../../../lib/busca/filtros';
+import { buscarBuffets, combinacoesLanding, registrarMetrica, resolverCidade, slugCurtoDaCidade } from '../../../../server/busca/publico';
+import { cachePublico } from '../../../../server/busca/vitrine';
+
+const tipo = tipoDaUrl(Astro.params.tipo ?? '');
+const cidade = tipo ? await resolverCidade(Astro.params.cidade ?? null) : null;
+if (!tipo || !cidade) {
+  return new Response(null, { status: 404 });
+}
+const curto = await slugCurtoDaCidade(cidade);
+if (Astro.params.cidade !== curto || Astro.params.tipo !== urlDoTipo(tipo)) {
+  return Astro.redirect(caminhoVitrine(`/buffet/${urlDoTipo(tipo)}/${curto}`) + Astro.url.search, 301);
+}
+cachePublico(Astro.response.headers);
+
+const params = new URLSearchParams(Astro.url.search);
+params.set('tipo', tipo);
+params.set('cidade', cidade.slug);
+const criterios = lerCriterios(params, hojeSaoPaulo());
+const resultado = await buscarBuffets(criterios);
+await registrarMetrica(resultado.itens.slice(-12).map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
+const precos = resultado.itens.map((i) => i.precoMin).filter((p): p is number => p != null);
+const texto = textoLanding(tipo, cidade.nome, resultado.total, precos.length ? Math.min(...precos) : null);
+const canonical = `/buffet/${urlDoTipo(tipo)}/${curto}`;
+// Links internos: o mesmo evento em cidades próximas e outros eventos na mesma cidade (só onde há buffets)
+const combos = await combinacoesLanding();
+const vizinhas = combos
+  .filter((x) => x.tipo === tipo && x.cidade.id !== cidade.id)
+  .map((x) => ({ ...x, d: distanciaKm(x.cidade, cidade) }))
+  .filter((x) => x.d <= 80)
+  .sort((a, b) => a.d - b.d)
+  .slice(0, 6);
+const outrosTipos = combos.filter((x) => x.cidade.id === cidade.id && x.tipo !== tipo).slice(0, 8);
+const links = await Promise.all([
+  ...vizinhas.map(async (x) => ({ rotulo: `${rotuloEvento(tipo)} em ${x.cidade.nome}`, href: caminhoVitrine(`/buffet/${urlDoTipo(tipo)}/${await slugCurtoDaCidade(x.cidade)}`) })),
+  ...outrosTipos.map(async (x) => ({ rotulo: `${rotuloEvento(x.tipo)} em ${cidade.nome}`, href: caminhoVitrine(`/buffet/${urlDoTipo(x.tipo)}/${curto}`) })),
+]);
+---
+
+<VitrineLayout
+  title={texto.titulo}
+  description={texto.descricao}
+  canonical={canonical}
+  noindex={resultado.total === 0 || criterios.pagina > 1}
+  jsonLd={[
+    ...(resultado.itens.length ? [jsonLdLista(resultado.itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []),
+    jsonLdPerguntas(texto.perguntas),
+  ]}
+>
+  <div class="vitrine-secao" style="padding-top:20px">
+    <p class="vr-meta" style="margin-bottom:12px">{texto.descricao}</p>
+    <div class="vr-resumo" data-resumo-busca>
+      <button type="button" class="vr-resumo-botao" aria-expanded="false" data-resumo-botao>
+        <span class="vh-categoria-ico"><Icon name="search" size={18} /></span>
+        <span class="vr-resumo-texto"><strong>{criterios.tipo ? rotuloEvento(criterios.tipo) : 'Todos os eventos'}</strong><span>{[resultado.cidade ? `${resultado.cidade.nome} · ${resultado.cidade.uf}` : 'Qualquer cidade', criterios.data ? criterios.data.split('-').reverse().join('/') : null, criterios.convidados ? `${criterios.convidados} convidados` : null].filter(Boolean).join(' · ')}</span></span>
+        <Icon name="pencil" size={16} />
+      </button>
+      <FormBusca criterios={criterios} cidade={resultado.cidade} variante="barra" hoje={hojeSaoPaulo()} />
+    </div>
+    <div style="margin-top:24px">
+      <Resultados resultado={resultado} criterios={criterios} titulo={texto.titulo} />
+    </div>
+  </div>
+
+  <section class="vitrine-secao" aria-labelledby="h-perguntas">
+    <h2 id="h-perguntas" class="vh-secao-titulo">Perguntas frequentes</h2>
+    <div class="vp-secao" style="margin-top:16px">
+      {texto.perguntas.map((q) => (
+        <details class="vp-cardapio">
+          <summary>{q.pergunta}</summary>
+          <p style="margin:8px 0 4px;color:var(--text-body);line-height:1.6">{q.resposta}</p>
+        </details>
+      ))}
+    </div>
+    {links.length > 0 && (
+      <>
+        <h2 class="vh-secao-titulo" style="margin-top:32px">Veja também</h2>
+        <ul class="vp-tags" style="margin-top:12px">{links.map((l) => <li><a class="tag" href={l.href}>{l.rotulo}</a></li>)}</ul>
+      </>
+    )}
+  </section>
+</VitrineLayout>

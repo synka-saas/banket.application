@@ -1,0 +1,42 @@
+---
+// Resultados da busca (layout-busca/BuscaResultados). Filtros na URL; noindex (as páginas para buscadores são as
+// landings /buffet/[tipo]/[cidade]); conta uma aparição para cada buffet exibido.
+import VitrineLayout from '../../layouts/VitrineLayout.astro';
+import FormBusca from '../../components/busca/FormBusca.astro';
+import Icon from '../../components/ui/Icon.astro';
+import Resultados from '../../components/busca/Resultados.astro';
+import { hojeSaoPaulo } from '../../lib/datas';
+import { buscaUrl } from '../../lib/busca/url';
+import { jsonLdLista } from '../../lib/busca/seo';
+import { rotuloEvento } from '../../lib/busca/catalogos';
+import { buscarBuffets, registrarMetrica } from '../../server/busca/publico';
+import { cachePublico, criteriosDaUrl } from '../../server/busca/vitrine';
+
+cachePublico(Astro.response.headers, 120);
+const criterios = criteriosDaUrl(Astro.url);
+const resultado = await buscarBuffets(criterios);
+await registrarMetrica(resultado.itens.slice(-12).map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
+const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toLowerCase()}` : 'Buffets', resultado.cidade ? `em ${resultado.cidade.nome}` : null]
+  .filter(Boolean).join(' ');
+---
+
+<VitrineLayout
+  title={titulo}
+  description={`${resultado.total} buffets compatíveis com o seu evento. Compare pacotes, fotos e avaliações e peça orçamento grátis.`}
+  noindex
+  jsonLd={resultado.itens.length ? [jsonLdLista(resultado.itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []}
+>
+  <div class="vitrine-secao" style="padding-top:20px">
+    <div class="vr-resumo" data-resumo-busca>
+      <button type="button" class="vr-resumo-botao" aria-expanded="false" data-resumo-botao>
+        <span class="vh-categoria-ico"><Icon name="search" size={18} /></span>
+        <span class="vr-resumo-texto"><strong>{criterios.tipo ? rotuloEvento(criterios.tipo) : 'Todos os eventos'}</strong><span>{[resultado.cidade ? `${resultado.cidade.nome} · ${resultado.cidade.uf}` : 'Qualquer cidade', criterios.data ? criterios.data.split('-').reverse().join('/') : null, criterios.convidados ? `${criterios.convidados} convidados` : null].filter(Boolean).join(' · ')}</span></span>
+        <Icon name="pencil" size={16} />
+      </button>
+      <FormBusca criterios={criterios} cidade={resultado.cidade} variante="barra" hoje={hojeSaoPaulo()} />
+    </div>
+    <div style="margin-top:24px">
+      <Resultados resultado={resultado} criterios={criterios} />
+    </div>
+  </div>
+</VitrineLayout>

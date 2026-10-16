@@ -16,6 +16,7 @@ export default defineConfig({
     // Sem isso o app vê "http://" (proxy → container) e o checkOrigin rejeita o POST vindo de "https://".
     allowedDomains: [
       { protocol: 'https', hostname: 'app.banket.com.br' },
+      { protocol: 'https', hostname: 'busca.banket.com.br' },
       { hostname: 'localhost' },
     ],
   },

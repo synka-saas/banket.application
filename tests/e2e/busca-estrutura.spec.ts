@@ -28,12 +28,11 @@ test.describe('Banket Busca: estrutura', () => {
   test('layout da vitrine: público, com metadados e marca', async ({ page }) => {
     const res = await page.goto('/vitrine');
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveTitle('Encontre o buffet certo para o seu evento · Banket Busca');
-    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Buffets e catering/);
+    await expect(page).toHaveTitle('Buffets e catering para o seu evento · Banket Busca');
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /Encontre buffets/);
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /Banket Busca/);
     await expect(page.locator('.vitrine-topo .marca-busca-pill')).toHaveText('busca');
     await expect(page.locator('.vitrine-rodape')).toContainText('Cadastrar meu buffet');
-    await expect(page.locator('main')).toContainText('9 buffets já publicaram o perfil');
   });
 
   test('perfil acompanha o plano: nível e excedentes de fotos e tipos, restaurados no upgrade', async ({ page }) => {

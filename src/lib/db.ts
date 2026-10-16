@@ -19,6 +19,13 @@ const systemPool = new pg.Pool({
   max: 3,
 });
 
+// Leituras públicas da vitrine (Banket Busca): mesma credencial de sistema, pool separado para o tráfego público e de
+// robôs não disputar as 3 conexões de login/cadastro. Só server/busca/publico.ts usa, sempre em transação READ ONLY.
+const publicPool = new pg.Pool({
+  connectionString: env('DATABASE_URL_SYSTEM') ?? env('DATABASE_URL'),
+  max: Number(env('DB_POOL_VITRINE') ?? 6),
+});
+
 export type Db = pg.PoolClient;
 
 async function transaction<T>(pool: pg.Pool, fn: (db: Db) => Promise<T>, tenantId?: string): Promise<T> {
@@ -64,4 +71,12 @@ export async function systemQuery<R extends pg.QueryResultRow = any>(
   params?: unknown[]
 ): Promise<pg.QueryResult<R>> {
   return systemPool.query<R>(text, params);
+}
+
+/** Transação somente leitura no pool da vitrine (sem RLS: o chamador filtra o que é público). */
+export function withLeituraPublica<T>(fn: (db: Db) => Promise<T>): Promise<T> {
+  return transaction(publicPool, async (db) => {
+    await db.query('SET TRANSACTION READ ONLY');
+    return fn(db);
+  });
 }

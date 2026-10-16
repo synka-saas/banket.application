@@ -1,32 +1,159 @@
 ---
-// Vitrine do Banket Busca — página provisória da fase 2 (estrutura e layout). A home completa chega na fase 3.
+// Home do Banket Busca (layout-busca/BuscaHome): buscador guiado, tipos de evento com a contagem real, tipos de
+// serviço, como funciona, destaques (ranking), depoimentos (avaliações publicadas) e chamada para buffets.
 import VitrineLayout from '../../layouts/VitrineLayout.astro';
-import { leituraPublica, PERFIL_VISIVEL } from '../../server/busca/publico';
+import FormBusca from '../../components/busca/FormBusca.astro';
+import BuffetCard from '../../components/busca/BuffetCard.astro';
+import Estrelas from '../../components/busca/Estrelas.astro';
+import Icon from '../../components/ui/Icon.astro';
+import { hojeSaoPaulo } from '../../lib/datas';
+import { appUrl } from '../../lib/mail';
+import { TIPOS_EVENTO, TIPOS_SERVICO, rotuloEvento } from '../../lib/busca/catalogos';
+import { buscaUrl, caminhoVitrine } from '../../lib/busca/url';
+import { jsonLdSite } from '../../lib/busca/seo';
+import { depoimentos, destaques, registrarMetrica, totaisPorTipo } from '../../server/busca/publico';
+import { cachePublico } from '../../server/busca/vitrine';
 
-const total = await leituraPublica(async (db) => {
-  const { rows } = await db.query<{ n: number }>(`SELECT count(*) AS n FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id WHERE ${PERFIL_VISIVEL}`);
-  return Number(rows[0]?.n ?? 0);
-});
+cachePublico(Astro.response.headers);
+const [lista, totais, falas] = await Promise.all([destaques(6), totaisPorTipo(), depoimentos(3)]);
+await registrarMetrica(lista.map((b) => b.id), 'aparicoes', Astro.request.headers.get('user-agent'));
+const hoje = hojeSaoPaulo();
+const v = caminhoVitrine;
+const mosaico = lista.filter((b) => b.foto).slice(0, 3);
+const PASSOS = [
+  { n: '01', titulo: 'Conte sobre o evento', texto: 'Tipo de festa, data, local e número de convidados. Leva menos de um minuto.' },
+  { n: '02', titulo: 'Receba buffets compatíveis', texto: 'Mostramos só quem atende a sua região e comporta o seu evento. Clientes Banket mostram a data livre.' },
+  { n: '03', titulo: 'Peça orçamentos e escolha', texto: 'Envie o pedido para vários buffets de uma vez e compare as propostas com calma.' },
+];
+const DESCRICAO_SERVICO: Record<string, string> = {
+  buffet_completo: 'Cardápio, equipe e estrutura do início ao fim.',
+  finger_food: 'Volantes e porções servidas em pé.',
+  coquetel: 'Salgados e drinks circulando entre os convidados.',
+  empratado: 'Jantar servido à mesa, em tempos.',
+  churrasco: 'Churrasqueiro, carnes e acompanhamentos.',
+  food_truck: 'Lanches, pizzas e doces sobre rodas.',
+  coffee_break: 'Para reuniões, cursos e treinamentos.',
+  doces_bolo: 'Bolo, docinhos e mesa de sobremesas.',
+  bar_bebidas: 'Drinks, chope e serviço de bar.',
+  kids: 'Cardápio pensado para as crianças.',
+};
 ---
 
-<VitrineLayout title="Encontre o buffet certo para o seu evento" description="Buffets e catering para eventos sociais e corporativos em São Paulo e região." canonical="/" noindex>
-  <section class="vitrine-secao">
-    <p class="eyebrow">Buffets e catering · social e corporativo</p>
-    <h1 class="vitrine-provisorio-titulo">Encontre o buffet certo para o seu evento</h1>
-    <p class="vitrine-provisorio-texto tabular">A vitrine está em construção. {total} buffets já publicaram o perfil.</p>
+<VitrineLayout
+  title="Buffets e catering para o seu evento"
+  description="Encontre buffets para casamento, aniversário, festa infantil e eventos corporativos em São Paulo e região. Compare pacotes, fotos e avaliações e peça orçamento grátis para vários de uma vez."
+  canonical="/"
+  jsonLd={[jsonLdSite(buscaUrl('/'), buscaUrl('/buscar'))]}
+>
+  <section class="vitrine-secao vh-hero">
+    <div class="vh-hero-texto">
+      <p class="eyebrow" style="color:var(--terracotta-700)">Buffets e catering · social e corporativo</p>
+      <h1 class="vh-titulo">Encontre o <em>buffet certo</em> para o seu evento</h1>
+      <p class="vh-sub">Conte como vai ser a festa e veja os buffets que atendem a sua região e comportam os seus convidados.</p>
+      <FormBusca hoje={hoje} />
+      <ul class="vh-garantias">
+        <li><Icon name="circle-check" size={16} /> Grátis e sem compromisso</li>
+        <li><Icon name="circle-check" size={16} /> Peça para vários buffets de uma vez</li>
+      </ul>
+    </div>
+    {mosaico.length > 0 && (
+      <div class="vh-mosaico" aria-hidden="true">
+        {mosaico.map((b, i) => (
+          <figure>
+            <img src={b.foto!} alt="" loading={i === 0 ? 'eager' : 'lazy'} width="640" height="480" />
+            {i === 0 && <figcaption>{b.nome}<small>{[b.bairro, b.cidade].filter(Boolean).join(', ')}</small></figcaption>}
+          </figure>
+        ))}
+      </div>
+    )}
+  </section>
+
+  <section class="vitrine-secao" aria-labelledby="h-eventos">
+    <h2 id="h-eventos" class="vh-secao-titulo">Que evento você vai fazer?</h2>
+    <p class="vh-secao-sub">Comece pelo tipo de festa: mostramos os buffets especializados nela.</p>
+    <ul class="vh-categorias">
+      {TIPOS_EVENTO.map((t) => (
+        <li>
+          <a class="vh-categoria" href={v(`/buscar?tipo=${t.slug}`)}>
+            <span class="vh-categoria-ico"><Icon name={t.icone} size={20} /></span>
+            <span class="vh-categoria-texto">{t.rotulo}<span class="vh-categoria-qtd tabular">{totais[t.slug] ? `${totais[t.slug]} ${totais[t.slug] === 1 ? 'buffet' : 'buffets'}` : 'Em breve'}</span></span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="vitrine-secao" aria-labelledby="h-servicos">
+    <h2 id="h-servicos" class="vh-secao-titulo">Tipos de serviço</h2>
+    <p class="vh-secao-sub">Do buffet completo ao food truck no quintal.</p>
+    <ul class="vh-categorias">
+      {TIPOS_SERVICO.map((s) => (
+        <li>
+          <a class="vh-categoria" href={v(`/buscar?servico=${s.slug}`)}>
+            <span class="vh-categoria-ico"><Icon name={s.icone} size={20} /></span>
+            <span class="vh-categoria-texto">{s.rotulo}<span class="vh-categoria-qtd">{DESCRICAO_SERVICO[s.slug]}</span></span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="vitrine-secao" id="como-funciona" aria-labelledby="h-como">
+    <p class="eyebrow" style="color:var(--terracotta-700)">Como funciona</p>
+    <h2 id="h-como" class="vh-secao-titulo">Do pedido ao buffet contratado em três passos</h2>
+    <ol class="vh-passos">
+      {PASSOS.map((p) => (
+        <li class="vh-passo"><span class="vh-passo-n tabular">{p.n}</span><h3>{p.titulo}</h3><p>{p.texto}</p></li>
+      ))}
+    </ol>
+  </section>
+
+  {lista.length > 0 && (
+    <section class="vitrine-secao" aria-labelledby="h-destaques">
+      <div class="vh-cabeca-secao">
+        <div>
+          <h2 id="h-destaques" class="vh-secao-titulo">Buffets em destaque</h2>
+          <p class="vh-secao-sub">Bem avaliados por quem já fez festa com eles.</p>
+        </div>
+        <a class="btn btn-text btn-md" href={v('/buscar')}>Ver todos <Icon name="arrow-right" size={16} /></a>
+      </div>
+      <ul class="vh-grade-cards">
+        {lista.map((b) => <li><BuffetCard item={b} compacto /></li>)}
+      </ul>
+    </section>
+  )}
+
+  {falas.length > 0 && (
+    <section class="vitrine-secao" aria-labelledby="h-depoimentos">
+      <h2 id="h-depoimentos" class="vh-secao-titulo">Quem já fez festa conta</h2>
+      <p class="vh-secao-sub">Avaliações de clientes que pediram orçamento pelo Banket Busca.</p>
+      <ul class="vh-depoimentos">
+        {falas.map((d) => (
+          <li>
+            <figure class="vh-depoimento">
+              <Estrelas nota={d.nota} tamanho={16} />
+              <blockquote>“{d.texto}”</blockquote>
+              <figcaption><strong>{d.nome}</strong>{rotuloEvento(d.tipoEvento)} · <a href={v(`/buffet/${d.slug}`)}>{d.buffet}</a></figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="vitrine-secao" id="para-buffets" aria-labelledby="h-buffets">
+    <div class="vh-buffets">
+      <div>
+        <p class="eyebrow">Para buffets</p>
+        <h2 id="h-buffets">Tem um buffet? Receba pedidos de orçamento</h2>
+        <p>Cadastre seu buffet de graça, mostre pacotes e fotos e receba pedidos de clientes da sua região, já com data, local e número de convidados.</p>
+        <ul class="vh-vantagens">
+          <li><Icon name="check" size={18} />Pedidos com data, local e número de convidados</li>
+          <li><Icon name="check" size={18} />Perfil com pacotes, fotos e avaliações</li>
+          <li><Icon name="check" size={18} />Clientes Banket aparecem primeiro, com cardápios e agenda sincronizados</li>
+        </ul>
+        <a class="btn btn-secondary btn-large" href={appUrl('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
+      </div>
+    </div>
   </section>
 </VitrineLayout>
-
-<style>
-  .vitrine-provisorio-titulo {
-    margin: 12px 0;
-    font-size: clamp(28px, 6vw, 48px);
-    font-weight: var(--fw-medium);
-    letter-spacing: -0.03em;
-    color: var(--text-strong);
-  }
-
-  .vitrine-provisorio-texto {
-    color: var(--text-secondary);
-  }
-</style>

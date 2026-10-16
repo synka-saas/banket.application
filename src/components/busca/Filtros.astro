@@ -1,0 +1,82 @@
+---
+// Filtros secundários da busca (layout-busca/BuscaFiltros). Formulário GET: aplica na hora com JavaScript (mudança
+// de campo envia) e com o botão "Aplicar" sem JavaScript. Leva junto tipo, cidade, data, convidados e ordem.
+import { RAIOS, type Criterios } from '../../lib/busca/filtros';
+import { caminhoVitrine } from '../../lib/busca/url';
+import type { ResultadoBusca } from '../../server/busca/publico';
+
+interface Props {
+  criterios: Criterios;
+  facetas: ResultadoBusca['facetas'];
+  id: string;
+  /** A cidade da busca (o filtro de distância só faz sentido com ela) */
+  temCidade: boolean;
+}
+const { criterios: c, facetas, id, temCidade } = Astro.props;
+---
+
+<form class="vf" method="get" action={caminhoVitrine('/buscar')} data-filtros>
+  {c.tipo && <input type="hidden" name="tipo" value={c.tipo} />}
+  {c.cidade && <input type="hidden" name="cidade" value={c.cidade} />}
+  {c.data && <input type="hidden" name="data" value={c.data} />}
+  {c.convidados && <input type="hidden" name="convidados" value={c.convidados} />}
+  {c.ordem !== 'relevancia' && <input type="hidden" name="ordem" value={c.ordem} />}
+
+  <fieldset class="vf-grupo">
+    <legend>Preço por pessoa</legend>
+    <div class="vf-preco">
+      <div class="field"><label class="sr-only" for={`${id}-pmin`}>Mínimo (R$)</label><input id={`${id}-pmin`} name="preco_min" type="number" inputmode="numeric" min="0" step="1" placeholder="R$ mín." value={c.precoMin ?? ''} /></div>
+      <span aria-hidden="true">–</span>
+      <div class="field"><label class="sr-only" for={`${id}-pmax`}>Máximo (R$)</label><input id={`${id}-pmax`} name="preco_max" type="number" inputmode="numeric" min="0" step="1" placeholder="R$ máx." value={c.precoMax ?? ''} /></div>
+    </div>
+  </fieldset>
+
+  {facetas.servicos.length > 0 && (
+    <fieldset class="vf-grupo">
+      <legend>Tipo de serviço</legend>
+      {facetas.servicos.map((f) => (
+        <label class="vf-opcao"><span><input type="checkbox" name="servico" value={f.valor} checked={c.servicos.includes(f.valor)} />{f.rotulo}</span><span class="vf-qtd tabular">{f.total}</span></label>
+      ))}
+    </fieldset>
+  )}
+
+  <fieldset class="vf-grupo">
+    <legend>Atendimento</legend>
+    <label class="vf-opcao"><span><input type="radio" name="local" value="" checked={!c.local} />Tanto faz</span></label>
+    {facetas.local.map((f) => (
+      <label class="vf-opcao"><span><input type="radio" name="local" value={f.valor} checked={c.local === f.valor} />{f.rotulo}</span><span class="vf-qtd tabular">{f.total}</span></label>
+    ))}
+  </fieldset>
+
+  {facetas.restricoes.length > 0 && (
+    <fieldset class="vf-grupo">
+      <legend>Opções de cardápio</legend>
+      {facetas.restricoes.map((f) => (
+        <label class="vf-opcao"><span><input type="checkbox" name="restricao" value={f.valor} checked={c.restricoes.includes(f.valor)} />{f.rotulo}</span><span class="vf-qtd tabular">{f.total}</span></label>
+      ))}
+    </fieldset>
+  )}
+
+  <fieldset class="vf-grupo">
+    <legend>Avaliação mínima</legend>
+    <div class="segmented" role="radiogroup">
+      {[{ v: '', r: 'Todas' }, { v: '4', r: '4+' }, { v: '4.5', r: '4,5+' }].map((o) => (
+        <label class="segmented-item"><input type="radio" name="avaliacao" value={o.v} checked={String(c.avaliacao ?? '') === o.v} /><span>{o.r}</span></label>
+      ))}
+    </div>
+  </fieldset>
+
+  {temCidade && (
+    <div class="field">
+      <label for={`${id}-raio`} class="vf-titulo">Distância</label>
+      <select id={`${id}-raio`} name="raio">
+        <option value="">Qualquer distância</option>
+        {RAIOS.map((r) => <option value={r} selected={c.raio === r}>Até {r} km</option>)}
+      </select>
+    </div>
+  )}
+
+  <div class="vf-acoes" data-sem-js>
+    <button type="submit" class="btn btn-outline btn-md">Aplicar filtros</button>
+  </div>
+</form>
