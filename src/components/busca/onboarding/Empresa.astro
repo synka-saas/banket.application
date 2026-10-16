@@ -1,0 +1,46 @@
+---
+// Etapa 1: dados da empresa (nome, CNPJ/CPF validado, logo, contato, descrição).
+import FileUpload from '../../ui/FileUpload.astro';
+import Acoes from './Acoes.astro';
+import { formatarDocumento } from '../../../lib/documento';
+import { mascararTelefone } from '../../../lib/mascaras';
+import { urlMidia, type PerfilBusca } from '../../../server/busca/perfil';
+interface Props {
+  perfil: PerfilBusca;
+  editor: boolean;
+}
+const { perfil: p, editor } = Astro.props;
+const logo = urlMidia(p.tenant_id, p.logo_path);
+---
+
+<form method="post" enctype="multipart/form-data" data-form-sujo>
+  <input type="hidden" name="_etapa" value="1" />
+  <fieldset disabled={!editor} style="border:0;margin:0;padding:0;display:contents">
+    <section class="onb-cartao">
+      <div class="field">
+        <span class="field-label">Logotipo</span>
+        <FileUpload name="logo" accept="image/png,image/jpeg,image/webp" formatos="PNG, JPG ou WebP quadrado · mínimo 400 × 400 px" atualUrl={logo} removerName="remover_logo" comprimirKb={600} compacto />
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="e-nome">Nome do buffet<span class="obrigatorio">*</span></label><input id="e-nome" name="nome" required maxlength="120" value={p.nome} /><span class="field-hint">Como aparece na busca</span></div>
+        <div class="field"><label for="e-doc">CNPJ (ou CPF)<span class="obrigatorio">*</span></label><input id="e-doc" name="documento" required inputmode="numeric" value={formatarDocumento(p.documento)} /><span class="field-hint">Não aparece no perfil</span></div>
+        <div class="field"><label for="e-whats">WhatsApp para pedidos</label><input id="e-whats" name="whatsapp" data-mascara="telefone" inputmode="tel" value={p.whatsapp ? mascararTelefone(p.whatsapp) : ''} /></div>
+        <div class="field"><label for="e-email">E-mail comercial<span class="obrigatorio">*</span></label><input id="e-email" name="email_contato" type="email" required value={p.email_contato ?? ''} /></div>
+        <div class="field"><label for="e-insta">Instagram</label><input id="e-insta" name="instagram" placeholder="@seubuffet" value={p.instagram ?? ''} /></div>
+        <div class="field"><label for="e-site">Site</label><input id="e-site" name="site" placeholder="www.seubuffet.com.br" value={p.site ?? ''} /></div>
+        <div class="field"><label for="e-tel">Telefone fixo</label><input id="e-tel" name="telefone" data-mascara="telefone" inputmode="tel" value={p.telefone ? mascararTelefone(p.telefone) : ''} /></div>
+        <div class="field"><label for="e-tempo">Tempo de resposta</label>
+          <select id="e-tempo" name="tempo_resposta_texto">
+            {['', 'Responde em até 2 horas', 'Responde no mesmo dia', 'Responde em até 1 dia'].map((o) => <option value={o} selected={(p.tempo_resposta_texto ?? '') === o}>{o || 'Não informar'}</option>)}
+          </select>
+        </div>
+        <div class="field span-2">
+          <label for="e-desc">Descrição<span class="obrigatorio">*</span></label>
+          <textarea id="e-desc" name="descricao" rows="6" minlength="80" maxlength="1200" required placeholder="Há quantos anos atende, o espaço, a cozinha, o que torna o seu buffet especial.">{p.descricao ?? ''}</textarea>
+          <span class="field-hint" data-contador>De 80 a 1.200 caracteres. Descrições com mais de 300 caracteres ajudam no ranking.</span>
+        </div>
+      </div>
+    </section>
+  </fieldset>
+  <Acoes etapa={1} editor={editor} />
+</form>

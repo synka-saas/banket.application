@@ -12,12 +12,22 @@ import { jsonLdPerfil } from '../../../lib/busca/seo';
 import { hojeSaoPaulo } from '../../../lib/datas';
 import { perfilCompleto, registrarMetrica } from '../../../server/busca/publico';
 import { cachePublico, criteriosDaUrl } from '../../../server/busca/vitrine';
+import { lerTokenSessao, verifySession } from '../../../lib/auth';
+import { getMembership } from '../../../lib/membership';
 
 const criterios = criteriosDaUrl(Astro.url);
-const p = await perfilCompleto(Astro.params.slug ?? '', criterios.data);
+// Prévia (?previa=1): só para quem está logado na empresa dona do perfil; sem cache e fora do índice
+let previaDoTenant: string | null = null;
+if (Astro.url.searchParams.get('previa') === '1') {
+  const sessao = await verifySession(lerTokenSessao(Astro.cookies));
+  if (sessao && (await getMembership(sessao.id, sessao.tenantId))) previaDoTenant = sessao.tenantId;
+}
+const p = await perfilCompleto(Astro.params.slug ?? '', criterios.data, previaDoTenant);
 if (!p) return new Response(null, { status: 404 });
-cachePublico(Astro.response.headers);
-await registrarMetrica([p.id], 'visualizacoes', Astro.request.headers.get('user-agent'));
+const emPrevia = previaDoTenant != null && p.tenantId === previaDoTenant;
+if (emPrevia) Astro.response.headers.set('Cache-Control', 'private, no-store');
+else cachePublico(Astro.response.headers);
+if (!emPrevia) await registrarMetrica([p.id], 'visualizacoes', Astro.request.headers.get('user-agent'));
 
 const v = caminhoVitrine;
 const busca = queryDaBusca({ tipo: criterios.tipo, cidade: criterios.cidade, data: criterios.data, convidados: criterios.convidados });
@@ -46,7 +56,13 @@ const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
 const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 ---
 
-<VitrineLayout title={`${p.nome}${p.cidade ? ` · Buffet em ${p.cidade}` : ''}`} description={descricaoSeo} canonical={`/buffet/${p.slug}`} imagem={fotos[0]?.url} jsonLd={[ld]}>
+<VitrineLayout title={`${p.nome}${p.cidade ? ` · Buffet em ${p.cidade}` : ''}`} description={descricaoSeo} canonical={`/buffet/${p.slug}`} imagem={fotos[0]?.url} jsonLd={emPrevia ? [] : [ld]} noindex={emPrevia}>
+  {emPrevia && (
+    <div class="vp-previa" role="status">
+      <Icon name="eye" size={16} /> <span>Prévia do seu perfil{p.publicado ? '' : ' · ainda não publicado, só você vê esta página'}.</span>
+      <a href="/busca/cadastro?etapa=7">Voltar ao cadastro</a>
+    </div>
+  )}
   <div class="vitrine-secao" style="padding-top:16px">
     <a class="voltar" href={v('/buscar') + busca}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
 

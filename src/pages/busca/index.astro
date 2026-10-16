@@ -1,29 +1,63 @@
 ---
-// Banket Busca — área do buffet (fase 1: página inicial provisória; o painel completo chega nas fases 4–6).
+// Banket Busca — início da área do buffet: situação do perfil (rascunho/publicado), etapas que faltam, completude,
+// prévia e o plano. Métricas e pedidos chegam na fase 6.
 import AppLayout from '../../layouts/AppLayout.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
+import Icon from '../../components/ui/Icon.astro';
 import { isAdmin } from '../../lib/auth';
+import { withTenant } from '../../lib/db';
+import { appUrl } from '../../lib/mail';
+import { buscaUrl } from '../../lib/busca/url';
+import { ETAPAS, etapasConcluidas, pendentesParaPublicar, proximaEtapa } from '../../lib/busca/onboarding';
+import { garantirPerfil } from '../../server/busca/perfil';
+import { contagens } from '../../server/busca/onboarding';
 import { ofertaDeTrial } from '../../server/planos';
 
+const user = Astro.locals.user;
 const plano = Astro.locals.plano;
 const oferta = ofertaDeTrial(plano);
-const admin = isAdmin(Astro.locals.user);
+const admin = isAdmin(user);
+const { perfil, c } = await withTenant(user.tenantId, async (db) => {
+  const perfil = await garantirPerfil(db, user.tenantId);
+  return { perfil, c: await contagens(db, perfil.id) };
+});
+const ok = etapasConcluidas(perfil, c);
+const faltam = pendentesParaPublicar(perfil, c);
+const feitas = ETAPAS.filter((e) => e.n <= 6 && ok.has(e.n)).length;
+const proxima = proximaEtapa(perfil, c);
+const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUrl(`/vitrine/buffet/${perfil.slug}?previa=1`);
 ---
 
 <AppLayout title="Banket Busca">
   <div class="busca-inicio">
-    <SectionCard title="Seu perfil no Banket Busca" description="O marketplace que conecta clientes a buffets. O cadastro do perfil público chega em breve." icon="building-store">
-      <p class="busca-texto">
-        Em breve você vai cadastrar aqui o perfil do seu buffet (dados, eventos atendidos, região, capacidade, pacotes e fotos)
-        e receber pedidos de orçamento de clientes da sua região.
-      </p>
+    <SectionCard title="Seu perfil no Banket Busca" description={perfil.publicado ? 'Publicado: aparece nas buscas compatíveis com o seu buffet.' : 'Rascunho: complete as etapas e publique para aparecer na busca.'} icon="building-store">
+      <div class="busca-status">
+        <span class:list={['badge', perfil.publicado ? 'badge-success' : 'badge-warning']}>{perfil.publicado ? 'Publicado' : 'Rascunho'}</span>
+        <span class="tabular">{feitas} de 6 etapas concluídas</span>
+        <span class="tabular">Completude {perfil.completude}%</span>
+      </div>
+      <div class="busca-barra" role="progressbar" aria-label="Completude do perfil" aria-valuemin="0" aria-valuemax="100" aria-valuenow={perfil.completude}><span style={`width:${perfil.completude}%`}></span></div>
+      {faltam.length > 0 && (
+        <ul class="busca-pendentes">
+          {faltam.map((e) => <li><a href={`/busca/cadastro?etapa=${e.n}`}><Icon name="circle-plus" size={16} /> {e.titulo}</a><span>{e.sub}</span></li>)}
+        </ul>
+      )}
+      <div class="busca-acoes">
+        {admin && (
+          <a href={`/busca/cadastro?etapa=${perfil.publicado ? 1 : proxima}`} class="btn btn-primary btn-md">
+            {perfil.publicado ? 'Editar perfil' : feitas === 0 ? 'Começar o cadastro' : faltam.length ? 'Continuar o cadastro' : 'Revisar e publicar'}
+          </a>
+        )}
+        <a href={publicoUrl} target="_blank" rel="noopener" class="btn btn-outline btn-md"><Icon name="eye" size={16} /> {perfil.publicado ? 'Ver perfil público' : 'Ver prévia'}</a>
+      </div>
     </SectionCard>
 
     {plano?.gratuito && (
       <SectionCard title="Seu plano" description="Plano Busca · gratuito" icon="sparkles">
         <p class="busca-texto">
-          O Plano Busca inclui o perfil público, os pacotes, as fotos e os pedidos de orçamento. Os planos pagos liberam o Painel
-          de Propostas, orçamentos em PDF, Inbox, financeiro e tudo o mais do Banket, além de prioridade nos resultados.
+          O Plano Busca inclui o perfil público, os pacotes, até 5 fotos e os pedidos de orçamento. Clientes Banket aparecem
+          primeiro nos resultados, com selo, cardápios detalhados e disponibilidade pela agenda, além do Painel de Propostas,
+          orçamentos em PDF, Inbox e financeiro.
         </p>
         <div class="busca-acoes">
           {oferta === 'disponivel' && admin && <a href="/planos?teste=1" class="btn btn-primary btn-md">Iniciar teste grátis de 30 dias</a>}
@@ -46,6 +80,57 @@ const admin = isAdmin(Astro.locals.user);
     font-size: var(--fs-14);
     line-height: 1.5;
     color: var(--text-secondary);
+  }
+
+  .busca-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .busca-barra {
+    height: 6px;
+    margin-top: var(--space-3);
+    border-radius: var(--radius-full);
+    background: var(--clay-100);
+    overflow: hidden;
+  }
+
+  .busca-barra span {
+    display: block;
+    height: 100%;
+    background: var(--terracotta-500);
+  }
+
+  .busca-pendentes {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .busca-pendentes li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    align-items: center;
+    font-size: var(--fs-14);
+  }
+
+  .busca-pendentes a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: var(--fw-medium);
+  }
+
+  .busca-pendentes span {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
   }
 
   .busca-acoes {

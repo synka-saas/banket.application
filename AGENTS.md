@@ -92,7 +92,8 @@ src/
     busca/             Banket Busca (puro, testado): catalogos.ts (tipos de evento e de serviço, restrições), geo.ts
                        (distância, slugs, CEP), url.ts (BUSCA_URL), filtros.ts (critérios ↔ query string, chips),
                        matching.ts (compatibilidade eliminatória e disponibilidade), ranking.ts (grupo + pontuação com
-                       pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host da vitrine)
+                       pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host do Busca),
+                       onboarding.ts (as 7 etapas, conclusão, publicação e completude)
     planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
@@ -136,7 +137,8 @@ src/
     busca/             Banket Busca: perfil.ts (perfil da empresa, pré-preenchimento, nível pelo plano, excedentes,
                        urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: pool da vitrine READ ONLY, só perfis
                        publicados de empresas ativas; cidades, busca, destaques, depoimentos, perfil completo, métricas),
-                       vitrine.ts (critérios da URL, cidade digitada, cache público)
+                       vitrine.ts (critérios da URL, cidade digitada, cache público), onboarding.ts (etapas do cadastro do
+                       perfil: validação, pacotes, fotos com limite do plano, cidades atendidas, publicar/despublicar)
     agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
@@ -573,7 +575,8 @@ métricas, pedidos e cardápios ligados aos pacotes dos clientes (usuários `con
 ## Autenticação, sessão e autorização
 
 ### Sessão
-- Cookie `banket_session` (httpOnly, `sameSite=lax`, `secure` em produção), JWT HS256 de **7 dias** com
+- Cookie `banket_session` (ou `banket_sessao` no domínio de `COOKIE_DOMAIN`, para valer também no host do Busca;
+  leitura sempre por `lerTokenSessao`) (httpOnly, `sameSite=lax`, `secure` em produção), JWT HS256 de **7 dias** com
   `sub`, `nome`, `email`, `tenant_id`, `role`. `JWT_SECRET` obrigatório, mínimo 32 caracteres.
 - A cada requisição o middleware chama `getMembership(usuario, tenant)` (conexão de sistema, cache de 30 s): se o vínculo
   foi desativado/removido, a sessão cai na hora; o papel e o nome vêm do banco, não do JWT. Após mudar papel/ativo,
@@ -1060,6 +1063,26 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
 
+### Banket Busca: área do buffet — `/busca`, `/busca/cadastro?etapa=1..7` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `layouts/OnboardingLayout.astro`)
+- **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
+  empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
+- **Onboarding** (tela própria, `OnboardingLayout`): 1 Empresa (nome, CNPJ/CPF validado, logo, WhatsApp, e-mail,
+  Instagram/site, tempo de resposta, descrição ≥ 80) · 2 Eventos e serviços (tiles; plano gratuito até 3 de cada,
+  conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região (cidade-base com autocomplete, espaço próprio
+  com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades atendidas) · 4 Capacidade (mínimo ≤ máximo,
+  eventos menores com valor mínimo) · 5 Pacotes · 6 Fotos (JPG/PNG/WebP, reduzidas no navegador, capa, ordem,
+  legenda; tags só com `busca_fotos_tags`; limite `busca_fotos`) · 7 Revisão (resumo por etapa, card da busca,
+  aceite e Publicar/Despublicar). Cada etapa grava ao salvar; em erro, o que foi digitado volta (cookie curto
+  `banket_busca_rascunho`). Publicar exige 1 a 6 (≥ 1 pacote, ≥ 3 fotos); perder uma condição despublica e avisa.
+  "Cardápios" e "Disponibilidade" aparecem na lista como "Exclusivo Banket" (cadeado + upsell no gratuito).
+- **Prévia**: `/vitrine/buffet/<slug>?previa=1` mostra o perfil ainda não publicado só para quem está logado na empresa
+  dona (`private, no-store`, `noindex`); fica no host do app.
+- **Host do Busca**: com `BUSCA_URL`, a área (`/busca`, `/planos`, `/auth`, `/conta`, `/suporte` e APIs) também responde em
+  `busca.banket.com.br`; outras rotas do app redirecionam (302) para o host do app. Com `COOKIE_DOMAIN=.banket.com.br`
+  a sessão (`banket_sessao`) vale nos dois hosts; o cookie antigo `banket_session` (só do app) continua aceito e sai
+  no próximo login. Quem entra pelo host do Busca vai para `/busca`; o e-mail de confirmação de quem veio da vitrine
+  aponta para o host do Busca. O item "Banket Busca" do menu abre a área no host do Busca.
+
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
@@ -1195,7 +1218,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - Toda ação relevante sobre um evento registra na timeline (`registrarTimeline`).
 - Unitários ficam ao lado do código (`*.test.ts`); fluxos de ponta a ponta em `tests/e2e/*.spec.ts`
   (agenda-dashboard, autoatendimento, cardápio, conta, drawer, estoque, eventos, financeiro, formulários, listas, mobile,
-  orçamento, pesquisas, planos, busca-estrutura, busca-vitrine, segurança, staff, templates).
+  orçamento, pesquisas, planos, busca-estrutura, busca-vitrine, busca-onboarding, segurança, staff, templates).
   Os e2e usam os seeds, rodam em série (`workers: 1`) e limpam o que criam. Contra a VPS:
   `APP_URL=https://app.banket.com.br E2E_CONTAINER=banket-webapp_$(cat .deploy-ativo)-1 E2E_DB_CONTAINER=banket-postgres-1
   npx playwright test` (e-mails de teste sempre em `@example.com`).
@@ -1219,6 +1242,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `APP_PORT_BLUE` / `APP_PORT_GREEN` | portas do host em produção (5168 / 5169) |
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
 | `BUSCA_URL` | endereço público da vitrine (`https://busca.banket.com.br`); sem ela, a vitrine fica em `APP_URL/vitrine` (`lib/busca/url.ts`) |
+| `COOKIE_DOMAIN` | domínio dos cookies de sessão e onboarding (`.banket.com.br`): a sessão vale no app e no Busca; vazio = só o host atual |
 | `BUSCA_RANKING_PESOS` | JSON parcial com os pesos do ranking (`{"avaliacao":0.4}`), normalizado para somar 1 |
 | `DB_POOL_VITRINE` | conexões do pool de leitura pública da vitrine (padrão 6) |
 | `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |
@@ -1300,6 +1324,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   será erro no pg 9. Paralelismo só entre transações diferentes.
 - `:global()` só existe dentro de `<style>` de componente Astro; num `.css` comum o seletor é inválido e a regra inteira
   some (aconteceu em `busca.css`).
+- Telas com barra de ações fixa no rodapé (onboarding) precisam subir o `.toast-root`, senão um erro cobre o botão.
 - `registrarUpsell` usa SAVEPOINT: evento de funil nunca aborta a transação de quem chama.
 - O link da pesquisa (`/p/<token>`) é a credencial do cliente: não exponha o token fora das telas da empresa.
 - A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

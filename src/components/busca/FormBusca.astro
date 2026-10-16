@@ -2,6 +2,7 @@
 // Buscador guiado (home e resumo dos resultados): tipo de evento, cidade (autocomplete em /api/vitrine/cidades),
 // data e convidados. GET para /buscar: funciona sem JavaScript (a cidade digitada é resolvida no servidor).
 import Icon from '../ui/Icon.astro';
+import CampoCidade from './CampoCidade.astro';
 import { TIPOS_EVENTO } from '../../lib/busca/catalogos';
 import { caminhoVitrine } from '../../lib/busca/url';
 import type { Criterios } from '../../lib/busca/filtros';
@@ -29,19 +30,7 @@ const id = `fb-${variante}`;
         </select>
       </div>
     </div>
-    <div class="field fbusca-cidade" data-cidade>
-      <label for={`${id}-cidade`}>Cidade</label>
-      <div class="campo-icone">
-        <Icon name="map-pin" size={18} class="campo-icone-ico" />
-        <input
-          id={`${id}-cidade`} name="cidade_texto" type="text" autocomplete="off" placeholder="Ex.: Santo André"
-          value={cidade ? `${cidade.nome} · ${cidade.uf}` : ''} role="combobox" aria-autocomplete="list" aria-expanded="false"
-          aria-controls={`${id}-cidades`} data-cidade-texto
-        />
-        <input type="hidden" name="cidade" value={cidade?.slug ?? ''} data-cidade-slug />
-      </div>
-      <ul id={`${id}-cidades`} class="fbusca-sugestoes" role="listbox" hidden data-cidade-lista></ul>
-    </div>
+    <CampoCidade id={`${id}-cidade`} rotulo="Cidade" nameSlug="cidade" nameTexto="cidade_texto" cidade={cidade} />
     <div class="field">
       <label for={`${id}-data`}>Data do evento</label>
       <div class="campo-icone">
@@ -59,85 +48,6 @@ const id = `fb-${variante}`;
   </div>
   <button type="submit" class="btn btn-primary btn-large fbusca-enviar"><Icon name="search" size={16} /> Buscar buffets</button>
 </form>
-
-<script>
-  // Autocomplete de cidade: lista acessível (combobox + listbox), setas e Enter; sem JS, o texto vai como cidade_texto.
-  for (const raiz of document.querySelectorAll<HTMLElement>('[data-cidade]')) {
-    const texto = raiz.querySelector<HTMLInputElement>('[data-cidade-texto]')!;
-    const slug = raiz.querySelector<HTMLInputElement>('[data-cidade-slug]')!;
-    const lista = raiz.querySelector<HTMLUListElement>('[data-cidade-lista]')!;
-    let itens: { nome: string; uf: string; slug: string }[] = [];
-    let ativo = -1;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const fechar = () => {
-      lista.hidden = true;
-      texto.setAttribute('aria-expanded', 'false');
-      texto.removeAttribute('aria-activedescendant');
-      ativo = -1;
-    };
-    const escolher = (i: number) => {
-      const c = itens[i];
-      if (!c) return;
-      texto.value = `${c.nome} · ${c.uf}`;
-      slug.value = c.slug;
-      fechar();
-    };
-    const desenhar = () => {
-      lista.replaceChildren(
-        ...itens.map((c, i) => {
-          const li = document.createElement('li');
-          li.id = `${lista.id}-${i}`;
-          li.role = 'option';
-          li.className = 'fbusca-sugestao' + (i === ativo ? ' ativa' : '');
-          li.setAttribute('aria-selected', String(i === ativo));
-          li.textContent = `${c.nome} · ${c.uf}`;
-          li.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            escolher(i);
-          });
-          return li;
-        })
-      );
-      lista.hidden = itens.length === 0;
-      texto.setAttribute('aria-expanded', String(itens.length > 0));
-      if (ativo >= 0) texto.setAttribute('aria-activedescendant', `${lista.id}-${ativo}`);
-    };
-    texto.addEventListener('input', () => {
-      slug.value = '';
-      clearTimeout(timer);
-      const q = texto.value.trim();
-      if (q.length < 2) {
-        itens = [];
-        return desenhar();
-      }
-      timer = setTimeout(async () => {
-        try {
-          const r = await fetch(`/api/vitrine/cidades?q=${encodeURIComponent(q)}`);
-          itens = r.ok ? await r.json() : [];
-        } catch {
-          itens = [];
-        }
-        ativo = itens.length ? 0 : -1;
-        desenhar();
-      }, 180);
-    });
-    texto.addEventListener('keydown', (e) => {
-      if (lista.hidden) return;
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        ativo = (ativo + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length;
-        desenhar();
-      } else if (e.key === 'Enter' && ativo >= 0) {
-        e.preventDefault();
-        escolher(ativo);
-      } else if (e.key === 'Escape') {
-        fechar();
-      }
-    });
-    texto.addEventListener('blur', () => setTimeout(fechar, 120));
-  }
-</script>
 
 <script>
   // Resultados no celular: a busca fica recolhida num resumo tocável (sem JavaScript, o formulário fica aberto)

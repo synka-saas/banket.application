@@ -1,0 +1,501 @@
+/* Cadastro do perfil no Banket Busca (layout-busca/BuffetOnboarding). Tela própria, fora da casca do app. */
+.onb {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+}
+
+.onb-topo {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 60px;
+  padding: 0 var(--space-6);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.onb-topo-titulo {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border-default);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.onb-topo-etapa {
+  display: none;
+  margin-left: auto;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.onb-sair {
+  margin-left: auto;
+}
+
+.onb-progresso {
+  height: 4px;
+  background: var(--clay-100);
+}
+
+.onb-progresso span {
+  display: block;
+  height: 100%;
+  background: var(--terracotta-500);
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.onb-corpo {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--space-8, 32px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8, 32px) var(--space-6) 120px;
+  box-sizing: border-box;
+}
+
+.onb-etapas {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.onb-etapas ol,
+.onb-etapas ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onb-exclusivos-titulo {
+  margin: var(--space-5) 0 var(--space-1);
+}
+
+.onb-etapa {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  color: var(--text-body);
+  text-decoration: none;
+}
+
+a.onb-etapa:hover {
+  background: var(--clay-100);
+}
+
+.onb-etapa-n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+}
+
+.onb-etapa-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+}
+
+.onb-etapa-texto small {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+  color: var(--text-muted);
+}
+
+.onb-etapa--atual {
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs), 0 0 0 1px var(--border-default);
+}
+
+.onb-etapa--atual .onb-etapa-n {
+  border-color: var(--terracotta-600);
+  background: var(--terracotta-600);
+  color: var(--text-on-accent);
+}
+
+.onb-etapa--feita .onb-etapa-n {
+  border-color: var(--sage-500);
+  background: var(--success-bg);
+  color: var(--sage-700);
+}
+
+.onb-etapa--bloqueada {
+  color: var(--text-muted);
+}
+
+.onb-etapa--bloqueada .onb-etapa-n {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.onb-etapa--livre .onb-etapa-n {
+  border-color: var(--sage-500);
+  color: var(--sage-700);
+}
+
+.onb-principal {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.onb-cabeca h1 {
+  margin: 6px 0 6px;
+  font-size: var(--fs-24);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-snug);
+  color: var(--text-strong);
+}
+
+.onb-cabeca p {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.onb-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.onb-cartao h2 {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  color: var(--text-strong);
+}
+
+.onb-cartao > p {
+  margin: -8px 0 0;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.onb-acoes {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 12px var(--space-6) calc(12px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border-default);
+}
+
+.onb-acoes .onb-voltar {
+  margin-right: auto;
+}
+
+/* Tiles de seleção (tipos de evento e de serviço) */
+.onb-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+
+.onb-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  cursor: pointer;
+  font-size: var(--fs-14);
+  color: var(--text-body);
+}
+
+.onb-tile:hover {
+  border-color: var(--border-strong);
+}
+
+.onb-tile input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.onb-tile-ico {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--clay-25);
+  color: var(--clay-600);
+}
+
+.onb-tile small {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.onb-tile:has(input:checked) {
+  border-color: var(--terracotta-500);
+  background: var(--bg-accent-subtle);
+  color: var(--text-strong);
+}
+
+.onb-tile:has(input:checked) .onb-tile-ico {
+  background: var(--terracotta-600);
+  color: var(--text-on-accent);
+}
+
+.onb-tile:has(input:focus-visible) {
+  box-shadow: var(--focus-ring-forte);
+}
+
+.onb-tile:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.onb-limite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+/* Pacotes, fotos e revisão */
+.onb-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.onb-item-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-14);
+  font-weight: var(--fw-medium);
+  color: var(--text-strong);
+}
+
+.onb-item-texto small {
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.onb-item-acoes {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.onb-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onb-foto {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.onb-foto--bloqueada {
+  opacity: 0.55;
+}
+
+.onb-foto-img {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--clay-100);
+}
+
+.onb-foto-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.onb-foto-img .badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+}
+
+.onb-foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.onb-revisao-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.onb-ok {
+  color: var(--sage-700);
+}
+
+.onb-falta {
+  color: var(--warning);
+}
+
+.onb-aviso {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-accent-subtle);
+  font-size: var(--fs-13);
+  color: var(--text-body);
+}
+
+@media (max-width: 1024px) {
+  .onb-revisao-grade {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .onb-topo {
+    padding: 0 16px;
+  }
+
+  .onb-topo-titulo,
+  .onb-sair {
+    display: none;
+  }
+
+  .onb-topo-etapa {
+    display: inline;
+  }
+
+  .onb-corpo {
+    grid-template-columns: 1fr;
+    padding: 20px 16px 120px;
+  }
+
+  .onb-etapas {
+    display: none;
+  }
+
+  .onb-cartao {
+    padding: var(--space-4);
+  }
+
+  .onb-acoes {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .onb-acoes .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .onb-acoes .onb-voltar {
+    flex: 0 0 auto;
+  }
+}
+
+/* Os avisos sobem acima da barra de ações fixa (senão um erro cobre o "Continuar") */
+body:has(.onb-acoes) .toast-root {
+  bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Os cartões de cada etapa ficam dentro do <form>: o espaçamento vem dele */
+.onb-principal > form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+@media (max-width: 768px) {
+  .onb-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .onb-tile {
+    min-height: 48px;
+    padding: 8px 10px;
+    font-size: var(--fs-13);
+  }
+
+  .onb-tile-ico {
+    width: 28px;
+    height: 28px;
+  }
+}

@@ -79,20 +79,24 @@ export interface PerfilPublico {
   fotos: { url: string; legenda: string | null; tags: string[] }[];
   pacotes: { nome: string; descricao: string | null; inclui: string[]; preco_pessoa: number | null; convidados_min: number | null; convidados_max: number | null; cardapio_opcao_id: string | null }[];
   atualizado_em: Date;
+  publicado: boolean;
 }
 
-/** Perfil publicado pelo slug (null se não existe, não publicado ou empresa suspensa). Detalhes completos na fase 3. */
-export async function perfilPublico(slug: string): Promise<PerfilPublico | null> {
+/**
+ * Perfil publicado pelo slug (null se não existe, não publicado ou empresa suspensa). `previaDoTenant`: o dono logado vê
+ * o próprio perfil ainda não publicado (prévia); nunca o de outra empresa.
+ */
+export async function perfilPublico(slug: string, previaDoTenant: string | null = null): Promise<PerfilPublico | null> {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return null;
   return leituraPublica(async (db) => {
     const { rows } = await db.query(
       `SELECT p.id, p.tenant_id, p.slug, p.nome, p.descricao, p.logo_path, c.nome AS cidade, c.uf, p.bairro,
               p.tipos_evento, p.tipos_servico, p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio,
               p.capacidade_min, p.capacidade_max, p.nivel, p.nota_media, p.total_avaliacoes, p.tempo_resposta_texto,
-              p.instagram, p.site, p.updated_at
+              p.instagram, p.site, p.updated_at, p.publicado
          FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id LEFT JOIN busca_cidades c ON c.id = p.cidade_id
-        WHERE p.slug = $1 AND ${PERFIL_VISIVEL}`,
-      [slug]
+        WHERE p.slug = $1 AND (${PERFIL_VISIVEL} OR (p.tenant_id = $2::uuid AND t.status = 'active'))`,
+      [slug, previaDoTenant]
     );
     const p = rows[0];
     if (!p) return null;
@@ -112,6 +116,7 @@ export async function perfilPublico(slug: string): Promise<PerfilPublico | null>
       fotos: fotos.rows.map((f) => ({ url: urlMidia(p.tenant_id, f.path)!, legenda: f.legenda, tags: f.tags })),
       pacotes: pacotes.rows,
       atualizado_em: p.updated_at,
+      publicado: p.publicado,
     };
   });
 }
@@ -342,8 +347,8 @@ export interface PerfilCompleto extends PerfilPublico {
 }
 
 /** Perfil completo para a página pública: avaliações, cardápios (cliente) e disponibilidade na data pedida. */
-export async function perfilCompleto(slug: string, data: string | null): Promise<PerfilCompleto | null> {
-  const base = await perfilPublico(slug);
+export async function perfilCompleto(slug: string, data: string | null, previaDoTenant: string | null = null): Promise<PerfilCompleto | null> {
+  const base = await perfilPublico(slug, previaDoTenant);
   if (!base) return null;
   return leituraPublica(async (db) => {
     const { rows: [p] } = await db.query(

@@ -1,6 +1,6 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
-import { SESSION_COOKIE, clearSessionCookie, isAdmin, verifySession } from './lib/auth';
+import { lerTokenSessao, clearSessionCookie, isAdmin, verifySession } from './lib/auth';
 import { consumeFlash, setFlash } from './lib/flash';
 import { getMembership } from './lib/membership';
 import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
@@ -8,6 +8,7 @@ import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
 import { verificarTrialVencido } from './server/planos';
 import { iniciarAgendador } from './server/agendador';
 import { decidirHost } from './lib/busca/host';
+import { appUrl } from './lib/mail';
 import { hostVitrine, urlVitrine } from './lib/busca/url';
 
 // Agendador do app (trials): um por processo, iniciado junto com o middleware
@@ -60,8 +61,8 @@ function comCabecalhos(response: Response, pathname: string): Response {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // Banket Busca: no host da vitrine (BUSCA_URL), as páginas públicas são servidas por /vitrine/* com a URL limpa
-  const host = decidirHost(context.url.host, context.url.pathname, context.url.search, hostVitrine(), urlVitrine());
-  if (host.acao === 'redirecionar') return comCabecalhos(context.redirect(host.url, 301), context.url.pathname);
+  const host = decidirHost(context.url.host, context.url.pathname, context.url.search, hostVitrine(), urlVitrine(), appUrl(''));
+  if (host.acao === 'redirecionar') return comCabecalhos(context.redirect(host.url, host.status), context.url.pathname);
   if (host.acao === 'reescrever') {
     context.locals.flash = null;
     context.locals.plano = null;
@@ -82,7 +83,7 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
 
   if (isPublic(pathname)) return next();
 
-  const session = await verifySession(context.cookies.get(SESSION_COOKIE)?.value);
+  const session = await verifySession(lerTokenSessao(context.cookies));
   const membership = session ? await getMembership(session.id, session.tenantId) : null;
   const user = session && membership ? { ...session, role: membership.role, nome: membership.nome } : null;
   if (session && !membership) {

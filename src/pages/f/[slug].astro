@@ -6,11 +6,11 @@ import FormularioLayout from '../../layouts/FormularioLayout.astro';
 import { contentTypeFor, readFile } from '../../lib/storage';
 import { formularioPublico } from '../../server/formularios';
 import { perguntaExibida } from '../../lib/formularios/modelo';
-import { SESSION_COOKIE, verifySession } from '../../lib/auth';
+import { lerTokenSessao, verifySession } from '../../lib/auth';
 
 // Prévia para o dono (UX-076): com sessão da mesma empresa, mostra também formulário inativo, sem aceitar envio.
 // A rota é pública, então a sessão é lida direto do cookie (sem exigir login).
-const sessao = Astro.url.searchParams.get('previa') === '1' ? await verifySession(Astro.cookies.get(SESSION_COOKIE)?.value) : null;
+const sessao = Astro.url.searchParams.get('previa') === '1' ? await verifySession(lerTokenSessao(Astro.cookies)) : null;
 let formulario = await formularioPublico(Astro.params.slug ?? '', Boolean(sessao)).catch(() => null);
 const previa = Boolean(sessao && formulario && sessao.tenantId === formulario.tenantId);
 if (formulario && sessao && !previa) formulario = await formularioPublico(Astro.params.slug ?? '').catch(() => null);

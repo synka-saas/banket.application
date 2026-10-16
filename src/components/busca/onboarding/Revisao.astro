@@ -1,0 +1,79 @@
+---
+// Etapa 7: revisão (o que foi preenchido em cada etapa, com "Editar"), o card como aparece na busca, aceite dos termos
+// para buffets e Publicar / Despublicar. Publicar exige as etapas 1 a 6.
+import Icon from '../../ui/Icon.astro';
+import BuffetCard from '../BuffetCard.astro';
+import { ETAPAS, pendentesParaPublicar, resumoEtapas, etapasConcluidas, type Contagens } from '../../../lib/busca/onboarding';
+import { appUrl } from '../../../lib/mail';
+import { urlMidia, type PerfilBusca } from '../../../server/busca/perfil';
+import type { Foto, Pacote } from '../../../server/busca/onboarding';
+import type { ItemResultado } from '../../../server/busca/publico';
+interface Props {
+  perfil: PerfilBusca;
+  contagens: Contagens;
+  pacotes: Pacote[];
+  fotos: Foto[];
+  cidade: { nome: string; uf: string } | null;
+  editor: boolean;
+}
+const { perfil: p, contagens: c, pacotes, fotos, cidade, editor } = Astro.props;
+const ok = etapasConcluidas(p, c);
+const faltam = pendentesParaPublicar(p, c);
+const precos = pacotes.filter((k) => k.ativo && k.preco_pessoa != null).map((k) => k.preco_pessoa!);
+const precoMin = precos.length ? Math.min(...precos) : null;
+const resumo = resumoEtapas(p, c, { cidade: cidade ? `${cidade.nome} · ${cidade.uf}` : null, precoMin });
+const capa = fotos.find((f) => f.capa && !f.bloqueado_plano_em) ?? fotos.find((f) => !f.bloqueado_plano_em);
+const card: ItemResultado = {
+  id: p.id, tenantId: p.tenant_id, slug: p.slug, nome: p.nome, bairro: p.bairro, cidade: cidade?.nome ?? null, uf: cidade?.uf ?? null,
+  cidadeId: p.cidade_id, cidadesAtendidas: [], tiposEvento: p.tipos_evento, tiposServico: p.tipos_servico, restricoes: p.restricoes,
+  atendeDomicilio: p.atende_domicilio, raioKm: p.raio_km, espacoProprio: p.espaco_proprio, capacidadeMin: p.capacidade_min,
+  capacidadeMax: p.capacidade_max, aceitaMenor: p.aceita_menor, distanciaKm: null, precoMin, notaMedia: p.nota_media,
+  totalAvaliacoes: p.total_avaliacoes, taxaResposta: p.taxa_resposta, completude: p.completude, prioridade: p.nivel === 'cliente',
+  selo: p.nivel === 'cliente', usaAgenda: false, ocupado: false, foto: capa ? urlMidia(p.tenant_id, capa.path) : null, disponibilidade: null,
+};
+const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa=1'}`);
+---
+
+<div class="onb-revisao-grade">
+  <section class="onb-cartao">
+    <h2>O que você preencheu</h2>
+    <ul class="onb-lista">
+      {ETAPAS.filter((e) => e.n <= 6).map((e) => (
+        <li class="onb-item">
+          <span class:list={[ok.has(e.n) ? 'onb-ok' : 'onb-falta']}><Icon name={ok.has(e.n) ? 'circle-check' : 'alert-circle'} size={20} /></span>
+          <span class="onb-item-texto">{e.titulo}<small>{resumo[e.n]}</small></span>
+          <a class="btn btn-text btn-sm" href={`/busca/cadastro?etapa=${e.n}`}>Editar</a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <section class="onb-cartao">
+    <h2>Como o seu buffet aparece na busca</h2>
+    <div style="pointer-events:none"><BuffetCard item={card} compacto /></div>
+    <a class="btn btn-outline btn-sm" href={perfilUrl} target="_blank" rel="noopener"><Icon name="eye" size={16} /> {p.publicado ? 'Ver perfil público' : 'Ver prévia do perfil'}</a>
+    <span class="field-hint">Completude do perfil: <strong class="tabular">{p.completude}%</strong>. Perfis mais completos sobem no ranking.</span>
+  </section>
+</div>
+
+{editor && (
+  <form method="post" class="onb-cartao">
+    <input type="hidden" name="_etapa" value="7" />
+    {p.publicado ? (
+      <>
+        <div class="onb-aviso"><Icon name="circle-check" size={20} class="onb-ok" /> <span>Seu perfil está publicado{p.publicado_em ? ` desde ${new Date(p.publicado_em).toLocaleDateString('pt-BR')}` : ''} e aparece nas buscas compatíveis.</span></div>
+        <div><button type="submit" name="_acao" value="despublicar" class="btn btn-outline btn-md" data-confirm="Despublicar o perfil?" data-confirm-texto="Ele deixa de aparecer na busca até você publicar de novo. Nada é apagado." data-confirm-rotulo="Despublicar">Despublicar perfil</button></div>
+      </>
+    ) : faltam.length ? (
+      <div class="onb-aviso"><Icon name="alert-circle" size={20} class="onb-falta" /> <span>Para publicar, conclua: {faltam.map((e, i) => <>{i > 0 && ', '}<a href={`/busca/cadastro?etapa=${e.n}`}>{e.titulo.toLowerCase()}</a></>)}.</span></div>
+    ) : (
+      <>
+        <label class="vf-opcao" style="justify-content:flex-start"><span><input type="checkbox" name="aceite" required /> Li e aceito os <a href={appUrl('/termos')} target="_blank" rel="noopener">termos de uso</a> para buffets</span></label>
+        <div><button type="submit" name="_acao" value="publicar" class="btn btn-primary btn-large" data-carregando="Publicando…"><Icon name="send" size={16} /> Publicar perfil</button></div>
+      </>
+    )}
+  </form>
+)}
+<div class="onb-acoes">
+  <a class="btn btn-ghost btn-md onb-voltar" href="/busca/cadastro?etapa=6"><Icon name="arrow-left" size={16} /> Voltar</a>
+  <a class="btn btn-outline btn-md" href="/busca">Ir para o painel</a>
+</div>

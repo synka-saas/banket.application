@@ -1,0 +1,73 @@
+---
+// Etapa 2: tipos de evento, tipos de serviço e restrições atendidas. No plano gratuito, até 3 de cada (limite do plano;
+// o servidor confere de novo). O que passa do limite abre o painel de upsell.
+import Icon from '../../ui/Icon.astro';
+import Acoes from './Acoes.astro';
+import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO } from '../../../lib/busca/catalogos';
+import type { PerfilBusca } from '../../../server/busca/perfil';
+interface Props {
+  perfil: PerfilBusca;
+  editor: boolean;
+  maxEventos: number;
+  maxServicos: number;
+}
+const { perfil: p, editor, maxEventos, maxServicos } = Astro.props;
+const lim = (n: number) => (Number.isFinite(n) ? n : null);
+const grupos = [
+  { titulo: 'Tipos de evento atendidos', nome: 'tipos_evento', itens: TIPOS_EVENTO, marcados: p.tipos_evento, max: lim(maxEventos), recurso: 'busca_tipos_evento' },
+  { titulo: 'Tipos de serviço', nome: 'tipos_servico', itens: TIPOS_SERVICO, marcados: p.tipos_servico, max: lim(maxServicos), recurso: 'busca_tipos_servico' },
+];
+---
+
+<form method="post" data-form-sujo data-limites>
+  <input type="hidden" name="_etapa" value="2" />
+  <fieldset disabled={!editor} style="border:0;margin:0;padding:0;display:contents">
+    {grupos.map((g) => (
+      <section class="onb-cartao" data-grupo={g.nome} data-max={g.max ?? ''} data-recurso={g.recurso}>
+        <h2>{g.titulo}</h2>
+        {g.max != null && (
+          <p class="onb-limite">
+            <span class="tabular" data-uso>{g.marcados.length} de {g.max}</span> no plano gratuito.
+            <a href={`/busca/cadastro?etapa=2&bloqueado=${g.recurso}`} data-bloqueado={g.recurso}>Atender mais tipos</a>
+          </p>
+        )}
+        <div class="onb-tiles">
+          {g.itens.map((t) => (
+            <label class="onb-tile">
+              <input type="checkbox" name={g.nome} value={t.slug} checked={g.marcados.includes(t.slug)} />
+              <span class="onb-tile-ico"><Icon name={t.icone} size={18} /></span>
+              <span>{t.rotulo}</span>
+            </label>
+          ))}
+        </div>
+      </section>
+    ))}
+    <section class="onb-cartao">
+      <h2>Opções de cardápio</h2>
+      <p>Restrições alimentares que você atende. Aparecem como filtro na busca.</p>
+      <div class="onb-tiles">
+        {RESTRICOES.map((r) => (
+          <label class="onb-tile"><input type="checkbox" name="restricoes" value={r.slug} checked={p.restricoes.includes(r.slug)} /><span class="onb-tile-ico"><Icon name="check" size={16} /></span><span>{r.rotulo}</span></label>
+        ))}
+      </div>
+    </section>
+  </fieldset>
+  <Acoes etapa={2} editor={editor} />
+</form>
+
+<script>
+  // Limite do plano gratuito: ao atingir o máximo, as demais opções do grupo ficam indisponíveis (o servidor confere)
+  for (const grupo of document.querySelectorAll<HTMLElement>('[data-grupo][data-max]')) {
+    const max = Number(grupo.dataset.max);
+    if (!max) continue;
+    const caixas = [...grupo.querySelectorAll<HTMLInputElement>('input[type=checkbox]')];
+    const uso = grupo.querySelector<HTMLElement>('[data-uso]');
+    const atualizar = () => {
+      const n = caixas.filter((c) => c.checked).length;
+      if (uso) uso.textContent = `${n} de ${max}`;
+      for (const c of caixas) if (!c.checked) c.disabled = n >= max;
+    };
+    grupo.addEventListener('change', atualizar);
+    atualizar();
+  }
+</script>

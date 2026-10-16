@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { setFlash } from '../../lib/flash';
+import { inicioAposLogin } from '../../lib/busca/url';
 import { setOnboardingCookie, setSessionCookie, signOnboarding, signSession } from '../../lib/auth';
 import { sessaoDoUsuario, verificarEmail } from '../../server/autoatendimento';
 
@@ -14,7 +15,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const sessao = await sessaoDoUsuario(usuario.id);
   if (sessao) {
     setSessionCookie(cookies, await signSession(sessao));
-    return redirect('/dashboard');
+    return redirect(inicioAposLogin(url));
   }
   setOnboardingCookie(cookies, await signOnboarding(usuario));
   return redirect('/auth/cadastro-complemento?validado=1');

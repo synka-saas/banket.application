@@ -31,3 +31,21 @@ export function caminhoVitrine(path = '/'): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   return env('BUSCA_URL') ? p : `/vitrine${p === '/' ? '' : p}`;
 }
+
+/**
+ * Página da área do buffet / autenticação: no host do Busca quando ele existe (BUSCA_URL), senão no app.
+ * Ex.: urlArea('/auth/cadastro?plano=busca').
+ */
+export function urlArea(path: string): string {
+  const base = env('BUSCA_URL')?.replace(/\/$/, '');
+  return base ? `${base}${path}` : appUrl(path);
+}
+
+/** A requisição chegou pelo host do Busca? */
+export const noHostBusca = (url: URL): boolean => {
+  const h = hostVitrine();
+  return Boolean(h) && url.host.toLowerCase() === h!.toLowerCase();
+};
+
+/** Para onde vai quem acabou de entrar: a área do Busca no host do Busca, o dashboard no app. */
+export const inicioAposLogin = (url: URL): string => (noHostBusca(url) ? '/busca' : '/dashboard');

@@ -1,0 +1,104 @@
+---
+// Etapa 3: região de atendimento — espaço próprio (endereço com CEP, preenchido pelo ViaCEP) e/ou domicílio (raio a
+// partir da cidade) e cidades atendidas além do raio. A cidade-base dá a posição do perfil nas buscas por distância.
+import Icon from '../../ui/Icon.astro';
+import CampoCidade from '../CampoCidade.astro';
+import Acoes from './Acoes.astro';
+import { mascararCep } from '../../../lib/mascaras';
+import type { PerfilBusca } from '../../../server/busca/perfil';
+interface CidadeValor {
+  nome: string;
+  uf: string;
+  slug: string;
+}
+interface Props {
+  perfil: PerfilBusca;
+  editor: boolean;
+  cidadeBase: CidadeValor | null;
+  extras: CidadeValor[];
+}
+const { perfil: p, editor, cidadeBase, extras } = Astro.props;
+const RAIOS = [10, 25, 50, 100];
+---
+
+<form method="post" data-form-sujo data-regiao>
+  <input type="hidden" name="_etapa" value="3" />
+  <fieldset disabled={!editor} style="border:0;margin:0;padding:0;display:contents">
+    <section class="onb-cartao">
+      <h2>Cidade do buffet</h2>
+      <p>Base para as buscas por distância e para o raio de atendimento em domicílio.</p>
+      <CampoCidade id="r-cidade" rotulo="Cidade" nameSlug="cidade" cidade={cidadeBase} obrigatorio />
+    </section>
+
+    <section class="onb-cartao">
+      <div class="bloco-titulo"><Icon name="building" size={18} /> <h2>Espaço próprio</h2></div>
+      <p>Os clientes vão até o seu salão.</p>
+      <label class="switch"><input type="checkbox" name="espaco_proprio" checked={p.espaco_proprio} data-alterna="espaco" /><span>Tenho espaço próprio para eventos</span></label>
+      <div class="form-grid" data-bloco="espaco">
+        <div class="field"><label for="r-cep">CEP</label><input id="r-cep" name="cep" inputmode="numeric" data-mascara="cep" value={p.cep ? mascararCep(p.cep) : ''} data-cep /><span class="field-hint" data-cep-status>Preenche o endereço automaticamente.</span></div>
+        <div class="field"><label for="r-bairro">Bairro</label><input id="r-bairro" name="bairro" value={p.bairro ?? ''} data-cep-bairro /></div>
+        <div class="field"><label for="r-log">Endereço</label><input id="r-log" name="logradouro" value={p.logradouro ?? ''} data-cep-logradouro /></div>
+        <div class="field"><label for="r-num">Número</label><input id="r-num" name="numero" value={p.numero ?? ''} /></div>
+      </div>
+    </section>
+
+    <section class="onb-cartao">
+      <div class="bloco-titulo"><Icon name="home" size={18} /> <h2>Atendimento em domicílio</h2></div>
+      <p>Sua equipe vai até a casa, o salão de condomínio ou a empresa do cliente.</p>
+      <label class="switch"><input type="checkbox" name="atende_domicilio" checked={p.atende_domicilio} data-alterna="domicilio" /><span>Atendo em domicílio</span></label>
+      <div data-bloco="domicilio" style="display:flex;flex-direction:column;gap:16px">
+        <fieldset class="vf-grupo">
+          <legend>Raio de atendimento a partir da cidade</legend>
+          <div class="segmented" role="radiogroup" style="display:flex;max-width:420px">
+            {RAIOS.map((r) => <label class="segmented-item"><input type="radio" name="raio_km" value={r} checked={p.raio_km === r} /><span>{r} km</span></label>)}
+          </div>
+          <span class="field-hint">Pedidos fora do raio não chegam até você.</span>
+        </fieldset>
+        <CampoCidade id="r-extras" rotulo="Outras cidades atendidas" nameSlug="cidades" cidades={extras} modo="lista" placeholder="Adicionar cidade" dica="Cidades fora do raio onde você também atende." />
+      </div>
+    </section>
+  </fieldset>
+  <Acoes etapa={3} editor={editor} />
+</form>
+
+<script>
+  import { slugCidade } from '../../../lib/busca/geo';
+
+  const form = document.querySelector<HTMLFormElement>('[data-regiao]');
+  if (form) {
+    // Blocos ligados aos switches
+    for (const sw of form.querySelectorAll<HTMLInputElement>('[data-alterna]')) {
+      const bloco = form.querySelector<HTMLElement>(`[data-bloco="${sw.dataset.alterna}"]`);
+      const aplicar = () => bloco && (bloco.hidden = !sw.checked);
+      sw.addEventListener('change', aplicar);
+      aplicar();
+    }
+    // CEP → ViaCEP: endereço, bairro e cidade (a cidade só é aceita se existir na base do Busca)
+    const cep = form.querySelector<HTMLInputElement>('[data-cep]');
+    const status = form.querySelector<HTMLElement>('[data-cep-status]');
+    cep?.addEventListener('blur', async () => {
+      const d = cep.value.replace(/\D/g, '');
+      if (d.length !== 8) return;
+      try {
+        const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+        const j = await r.json();
+        if (j.erro) throw new Error();
+        const set = (sel: string, v: string) => {
+          const el = form.querySelector<HTMLInputElement>(sel);
+          if (el && v && !el.value) el.value = v;
+        };
+        set('[data-cep-logradouro]', j.logradouro);
+        set('[data-cep-bairro]', j.bairro);
+        const texto = form.querySelector<HTMLInputElement>('#r-cidade');
+        const slug = form.querySelector<HTMLInputElement>('[name="cidade"]');
+        if (texto && slug && j.localidade && j.uf) {
+          texto.value = `${j.localidade} · ${j.uf}`;
+          slug.value = slugCidade(j.localidade, j.uf);
+        }
+        if (status) status.textContent = 'Endereço encontrado. Confira o número.';
+      } catch {
+        if (status) status.textContent = 'CEP não encontrado. Preencha o endereço à mão.';
+      }
+    });
+  }
+</script>

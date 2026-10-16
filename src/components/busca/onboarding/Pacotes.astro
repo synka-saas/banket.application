@@ -1,0 +1,81 @@
+---
+// Etapa 5: pacotes (nome, descrição, o que inclui, preço por pessoa, faixa de convidados), sem cardápio detalhado.
+// Cliente Banket: o cardápio de cada pacote vem do Banket (ligação na fase 5); gratuito vê o aviso do recurso exclusivo.
+import Icon from '../../ui/Icon.astro';
+import Acoes from './Acoes.astro';
+import { brl } from '../../../lib/forms';
+import type { Pacote } from '../../../server/busca/onboarding';
+interface Props {
+  pacotes: Pacote[];
+  editor: boolean;
+  editarId: string | null;
+  /** busca_cardapios liberado (cliente Banket) */
+  cliente: boolean;
+}
+const { pacotes, editor, editarId, cliente } = Astro.props;
+const editando = pacotes.find((k) => k.id === editarId) ?? null;
+const v = editando;
+---
+
+{cliente ? (
+  <div class="onb-aviso"><img src="/logo-mark.png" alt="" width="24" height="24" /> <span><strong>Cliente Banket:</strong> o cardápio detalhado de cada pacote virá direto das suas opções de cardápio do Banket.</span></div>
+) : (
+  <div class="onb-aviso">
+    <img src="/logo-mark.png" alt="" width="24" height="24" />
+    <span><strong>Cardápios detalhados são exclusivos para clientes Banket.</strong> No plano gratuito, os pacotes mostram nome, descrição, preço e faixa de convidados.</span>
+    <a class="btn btn-outline btn-sm" href="/busca/cadastro?etapa=5&bloqueado=busca_cardapios" data-bloqueado="busca_cardapios">Conhecer</a>
+  </div>
+)}
+
+{pacotes.length > 0 && (
+  <section class="onb-cartao">
+    <h2>Pacotes cadastrados</h2>
+    <ul class="onb-lista">
+      {pacotes.map((k) => (
+        <li class="onb-item">
+          <span class="onb-tile-ico"><Icon name="tools-kitchen-2" size={18} /></span>
+          <span class="onb-item-texto">
+            {k.nome}{!k.ativo && <span class="badge" style="margin-left:6px">Inativo</span>}
+            <small>{[k.convidados_min && k.convidados_max ? `${k.convidados_min} a ${k.convidados_max} convidados` : null, k.inclui.slice(0, 3).join(', ') || null].filter(Boolean).join(' · ') || 'Sem detalhes'}</small>
+          </span>
+          <span class="tabular" style="font-weight:var(--fw-medium);color:var(--text-strong)">{k.preco_pessoa != null ? brl(k.preco_pessoa) : '—'}</span>
+          {editor && (
+            <span class="onb-item-acoes">
+              <a class="btn btn-ghost btn-sm" href={`/busca/cadastro?etapa=5&pacote=${k.id}#pacote`} aria-label={`Editar ${k.nome}`}><Icon name="pencil" size={16} /></a>
+              <form method="post">
+                <input type="hidden" name="_etapa" value="5" /><input type="hidden" name="id" value={k.id} />
+                <button type="submit" name="_acao" value="excluir" class="btn btn-ghost btn-sm" aria-label={`Excluir ${k.nome}`} data-confirm={`Excluir o pacote "${k.nome}"?`}><Icon name="trash" size={16} /></button>
+              </form>
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  </section>
+)}
+
+{editor && (
+  <form method="post" id="pacote" class="onb-cartao" data-form-sujo>
+    <input type="hidden" name="_etapa" value="5" />
+    {v && <input type="hidden" name="id" value={v.id} />}
+    <h2>{v ? `Editar "${v.nome}"` : pacotes.length ? 'Novo pacote' : 'Seu primeiro pacote'}</h2>
+    <div class="form-grid">
+      <div class="field"><label for="k-nome">Nome do pacote<span class="obrigatorio">*</span></label><input id="k-nome" name="nome" required maxlength="120" value={v?.nome ?? ''} placeholder="Ex.: Festa completa" /></div>
+      <div class="field"><label for="k-preco">Preço por pessoa (R$)<span class="obrigatorio">*</span></label><input id="k-preco" name="preco_pessoa" required data-mascara="dinheiro" inputmode="decimal" value={v?.preco_pessoa != null ? v.preco_pessoa.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''} /></div>
+      <div class="field"><label for="k-min">Mínimo de convidados</label><input id="k-min" name="convidados_min" type="number" min="1" inputmode="numeric" value={v?.convidados_min ?? ''} /></div>
+      <div class="field"><label for="k-max">Máximo de convidados</label><input id="k-max" name="convidados_max" type="number" min="1" inputmode="numeric" value={v?.convidados_max ?? ''} /></div>
+      <div class="field span-2"><label for="k-desc">Descrição</label><textarea id="k-desc" name="descricao" rows="3" maxlength="600" placeholder="Para que tipo de festa, duração do serviço.">{v?.descricao ?? ''}</textarea></div>
+      <div class="field span-2"><label for="k-inclui">O que inclui</label><textarea id="k-inclui" name="inclui" rows="4" placeholder={'Um item por linha. Ex.:\n8 tipos de salgado\nBolo e doces\nBebidas não alcoólicas'}>{v?.inclui.join('\n') ?? ''}</textarea><span class="field-hint">Um item por linha, até 12.</span></div>
+    </div>
+    <label class="switch"><input type="checkbox" name="ativo" checked={v ? v.ativo : true} /><span>Pacote ativo (aparece no perfil)</span></label>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      {v && <a class="btn btn-ghost btn-md" href="/busca/cadastro?etapa=5">Cancelar</a>}
+      <button type="submit" name="_acao" value="pacote" class="btn btn-soft btn-md" data-carregando="Salvando…"><Icon name="check" size={16} /> {v ? 'Salvar pacote' : 'Incluir pacote'}</button>
+    </div>
+  </form>
+)}
+
+<form method="post">
+  <input type="hidden" name="_etapa" value="5" />
+  <Acoes etapa={5} editor={editor} soContinuar />
+</form>

@@ -6,6 +6,7 @@ import { isAdmin } from '../lib/auth';
 import { itensDoMenu, linkBloqueado, navAtiva, type BadgesNavegacao, type ItemNavegacao } from '../lib/nav';
 import { podeUsarEm } from '../lib/planos/gating';
 import { inicioDoPlano } from '../lib/planos/rotas';
+import { urlArea } from '../lib/busca/url';
 import { ofertaDeTrial } from '../server/planos';
 
 interface Props {
@@ -38,7 +39,7 @@ const cardTrial = admin && plano?.trial != null;
   <nav class="sidebar-nav" aria-label="Navegação principal">
     {navItems.map((item) => (
       <a
-        href={item.bloqueado ? linkBloqueado(item.bloqueado, inicio) : item.href}
+        href={item.bloqueado ? linkBloqueado(item.bloqueado, inicio) : item.marca === 'busca' ? urlArea(item.href) : item.href}
         class:list={['nav-item', { active: navAtiva(pathname, item.match) && !item.bloqueado, 'nav-item--bloqueado': item.bloqueado, 'nav-item--marca': item.marca }]}
         aria-current={navAtiva(pathname, item.match) && !item.bloqueado ? 'page' : undefined}
         data-bloqueado={item.bloqueado || undefined}

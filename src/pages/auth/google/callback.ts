@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { SESSION_COOKIE, setOnboardingCookie, setSessionCookie, signOnboarding, signSession, verifySession } from '../../../lib/auth';
+import { lerTokenSessao, setOnboardingCookie, setSessionCookie, signOnboarding, signSession, verifySession } from '../../../lib/auth';
 import { setFlash } from '../../../lib/flash';
 import { userMessage } from '../../../lib/forms';
 import { trocarCodigo, verificarEstado } from '../../../lib/google';
@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     const tokens = await trocarCodigo(code);
 
     if (estado.modo === 'vincular') {
-      const sessao = await verifySession(cookies.get(SESSION_COOKIE)?.value);
+      const sessao = await verifySession(lerTokenSessao(cookies));
       if (!sessao || sessao.id !== estado.usuarioId) {
         setFlash(cookies, 'error', 'Entre na sua conta para vincular o Google.');
         return redirect('/auth/login?next=%2Fconta');

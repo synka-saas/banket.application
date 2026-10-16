@@ -1,0 +1,159 @@
+---
+// Campo de cidade com autocomplete (/api/vitrine/cidades), acessível (combobox + listbox, setas, Enter, Esc).
+// modo "unico": guarda o slug escolhido num hidden (`nameSlug`); sem JavaScript o texto vai em `nameTexto`.
+// modo "lista": cada cidade escolhida vira um chip removível com hidden `nameSlug` (várias cidades).
+import Icon from '../ui/Icon.astro';
+
+interface CidadeValor {
+  nome: string;
+  uf: string;
+  slug: string;
+}
+interface Props {
+  id: string;
+  rotulo: string;
+  nameSlug: string;
+  nameTexto?: string;
+  cidade?: CidadeValor | null;
+  cidades?: CidadeValor[];
+  modo?: 'unico' | 'lista';
+  placeholder?: string;
+  dica?: string;
+  obrigatorio?: boolean;
+}
+const { id, rotulo, nameSlug, nameTexto, cidade = null, cidades = [], modo = 'unico', placeholder = 'Ex.: Santo André', dica, obrigatorio = false } = Astro.props;
+---
+
+<div class="field campo-cidade fbusca-cidade" data-cidade data-modo={modo} data-name={nameSlug}>
+  <label for={id}>{rotulo}{obrigatorio && <span class="obrigatorio">*</span>}</label>
+  {modo === 'lista' && (
+    <ul class="campo-cidade-chips" data-cidade-chips>
+      {cidades.map((c) => (
+        <li class="vr-chip">{c.nome} · {c.uf}<input type="hidden" name={nameSlug} value={c.slug} /><button type="button" class="campo-cidade-remover" aria-label={`Remover ${c.nome}`} data-remover><Icon name="x" size={14} /></button></li>
+      ))}
+    </ul>
+  )}
+  <div class="campo-icone">
+    <Icon name={modo === 'lista' ? 'circle-plus' : 'map-pin'} size={18} class="campo-icone-ico" />
+    <input
+      id={id} name={nameTexto} type="text" autocomplete="off" placeholder={placeholder}
+      value={modo === 'unico' && cidade ? `${cidade.nome} · ${cidade.uf}` : ''} role="combobox" aria-autocomplete="list"
+      aria-expanded="false" aria-controls={`${id}-lista`} data-cidade-texto
+    />
+    {modo === 'unico' && <input type="hidden" name={nameSlug} value={cidade?.slug ?? ''} data-cidade-slug />}
+  </div>
+  <ul id={`${id}-lista`} class="fbusca-sugestoes" role="listbox" hidden data-cidade-lista></ul>
+  {dica && <span class="field-hint">{dica}</span>}
+</div>
+
+<script>
+  import { svgIcone } from '../../lib/icones';
+
+  for (const raiz of document.querySelectorAll<HTMLElement>('[data-cidade]')) {
+    if (raiz.dataset.pronto) continue;
+    raiz.dataset.pronto = '1';
+    const lista_ = raiz.dataset.modo === 'lista';
+    const texto = raiz.querySelector<HTMLInputElement>('[data-cidade-texto]')!;
+    const slug = raiz.querySelector<HTMLInputElement>('[data-cidade-slug]');
+    const chips = raiz.querySelector<HTMLUListElement>('[data-cidade-chips]');
+    const lista = raiz.querySelector<HTMLUListElement>('[data-cidade-lista]')!;
+    let itens: { nome: string; uf: string; slug: string }[] = [];
+    let ativo = -1;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const fechar = () => {
+      lista.hidden = true;
+      texto.setAttribute('aria-expanded', 'false');
+      texto.removeAttribute('aria-activedescendant');
+      ativo = -1;
+    };
+    const escolher = (i: number) => {
+      const c = itens[i];
+      if (!c) return;
+      if (lista_ && chips) {
+        if (!chips.querySelector(`input[value="${c.slug}"]`)) {
+          const li = document.createElement('li');
+          li.className = 'vr-chip';
+          li.append(`${c.nome} · ${c.uf}`);
+          const h = document.createElement('input');
+          h.type = 'hidden';
+          h.name = raiz.dataset.name!;
+          h.value = c.slug;
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'campo-cidade-remover';
+          b.dataset.remover = '';
+          b.setAttribute('aria-label', `Remover ${c.nome}`);
+          b.innerHTML = svgIcone('x', 14);
+          li.append(h, b);
+          chips.append(li);
+          li.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        texto.value = '';
+      } else if (slug) {
+        texto.value = `${c.nome} · ${c.uf}`;
+        slug.value = c.slug;
+        slug.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      fechar();
+    };
+    chips?.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('[data-remover]');
+      if (b) b.closest('li')?.remove();
+    });
+    const desenhar = () => {
+      lista.replaceChildren(
+        ...itens.map((c, i) => {
+          const li = document.createElement('li');
+          li.id = `${lista.id}-${i}`;
+          li.setAttribute('role', 'option');
+          li.className = 'fbusca-sugestao' + (i === ativo ? ' ativa' : '');
+          li.setAttribute('aria-selected', String(i === ativo));
+          li.textContent = `${c.nome} · ${c.uf}`;
+          li.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            escolher(i);
+          });
+          return li;
+        })
+      );
+      lista.hidden = itens.length === 0;
+      texto.setAttribute('aria-expanded', String(itens.length > 0));
+      if (ativo >= 0) texto.setAttribute('aria-activedescendant', `${lista.id}-${ativo}`);
+    };
+    texto.addEventListener('input', () => {
+      if (slug) slug.value = '';
+      clearTimeout(timer);
+      const q = texto.value.trim();
+      if (q.length < 2) {
+        itens = [];
+        return desenhar();
+      }
+      timer = setTimeout(async () => {
+        try {
+          const r = await fetch(`/api/vitrine/cidades?q=${encodeURIComponent(q)}`);
+          itens = r.ok ? await r.json() : [];
+        } catch {
+          itens = [];
+        }
+        ativo = itens.length ? 0 : -1;
+        desenhar();
+      }, 180);
+    });
+    texto.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && lista.hidden && lista_) e.preventDefault();
+      if (lista.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        ativo = (ativo + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length;
+        desenhar();
+      } else if (e.key === 'Enter' && ativo >= 0) {
+        e.preventDefault();
+        escolher(ativo);
+      } else if (e.key === 'Escape') {
+        fechar();
+      }
+    });
+    texto.addEventListener('blur', () => setTimeout(fechar, 120));
+  }
+</script>

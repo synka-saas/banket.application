@@ -8,7 +8,7 @@ import MarcaBusca from '../components/busca/MarcaBusca.astro';
 import Icon from '../components/ui/Icon.astro';
 import Toast from '../components/ui/Toast.astro';
 import { appUrl } from '../lib/mail';
-import { buscaUrl, caminhoVitrine } from '../lib/busca/url';
+import { buscaUrl, caminhoVitrine, urlArea } from '../lib/busca/url';
 import { TIPOS_EVENTO } from '../lib/busca/catalogos';
 
 interface Props {
@@ -31,8 +31,8 @@ const v = caminhoVitrine;
 const colunas = [
   { titulo: 'Eventos', links: TIPOS_EVENTO.slice(0, 5).map((t) => ({ rotulo: t.rotulo, href: v(`/buscar?tipo=${t.slug}`) })) },
   { titulo: 'Para buffets', links: [
-    { rotulo: 'Cadastrar meu buffet', href: appUrl('/auth/cadastro?plano=busca') },
-    { rotulo: 'Entrar', href: appUrl('/auth/login?next=%2Fbusca') },
+    { rotulo: 'Cadastrar meu buffet', href: urlArea('/auth/cadastro?plano=busca') },
+    { rotulo: 'Entrar', href: urlArea('/auth/login?next=%2Fbusca') },
     { rotulo: 'Por que cadastrar', href: `${v('/')}#para-buffets` },
   ] },
   { titulo: 'Banket', links: [
@@ -69,7 +69,7 @@ const colunas = [
       <nav class="vitrine-nav" aria-label="Navegação">
         <a href={`${v('/')}#como-funciona`} class="vitrine-nav-link">Como funciona</a>
         <a href={`${v('/')}#para-buffets`} class="vitrine-nav-link">Para buffets</a>
-        <a href={appUrl('/auth/login?next=%2Fbusca')} class="btn btn-outline btn-sm"><Icon name="user" size={15} /> Entrar</a>
+        <a href={urlArea('/auth/login?next=%2Fbusca')} class="btn btn-outline btn-sm"><Icon name="user" size={15} /> Entrar</a>
       </nav>
     </header>
 

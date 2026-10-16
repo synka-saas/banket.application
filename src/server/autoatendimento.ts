@@ -10,6 +10,7 @@ import { generateToken, hashToken } from '../lib/tokens';
 import { cnpjValido, cpfValido, somenteDigitos } from '../lib/documento';
 import { appUrl, sendMail } from '../lib/mail';
 import { emailLayout } from './emails';
+import { urlArea } from '../lib/busca/url';
 import { cadastroInicial } from './planos';
 
 /** De onde veio o cadastro: pelo site (teste do plano Profissional) ou pela vitrine do Banket Busca (plano gratuito). */
@@ -51,7 +52,7 @@ async function consumirToken(db: Db, tipo: TipoToken, token: string | null) {
   return rows[0] ?? null;
 }
 
-async function enviarVerificacao(nome: string, email: string, token: string) {
+async function enviarVerificacao(nome: string, email: string, token: string, origem: OrigemCadastro = 'site') {
   const { html, text } = emailLayout({
     titulo: 'Confirme seu e-mail',
     paragrafos: [
@@ -59,7 +60,7 @@ async function enviarVerificacao(nome: string, email: string, token: string) {
       'Falta pouco para começar a usar o Banket. Confirme seu e-mail para ativar a conta e cadastrar sua empresa.',
       'O link vale por 24 horas.',
     ],
-    cta: { texto: 'Confirmar e-mail', url: appUrl(`/auth/verificar?token=${token}`) },
+    cta: { texto: 'Confirmar e-mail', url: (origem === 'busca' ? urlArea : appUrl)(`/auth/verificar?token=${token}`) },
     rodape: 'Se você não criou uma conta no Banket, ignore este e-mail.',
   });
   await sendMail({ to: email, subject: 'Confirme seu e-mail no Banket', html, text });
@@ -109,20 +110,20 @@ export async function cadastrarConta(input: z.infer<typeof cadastroSchema>, orig
     }
     return { usuario: { id, nome: input.nome, email: input.email }, token: await emitirToken(db, 'verificacao_email', id, input.email) };
   });
-  await enviarVerificacao(usuario.nome, usuario.email, token);
+  await enviarVerificacao(usuario.nome, usuario.email, token, origem);
 }
 
 /** Reenvia a confirmação. Não revela se o e-mail existe. */
 export async function reenviarVerificacao(email: string): Promise<void> {
   const dados = await withSystem(async (db) => {
-    const { rows } = await db.query<{ id: string; nome: string; email: string }>(
-      'SELECT id, nome, email FROM usuarios WHERE lower(email) = lower($1) AND email_verificado_em IS NULL',
+    const { rows } = await db.query<{ id: string; nome: string; email: string; origem_cadastro: string }>(
+      'SELECT id, nome, email, origem_cadastro FROM usuarios WHERE lower(email) = lower($1) AND email_verificado_em IS NULL',
       [email.trim()]
     );
     if (!rows[0]) return null;
     return { ...rows[0], token: await emitirToken(db, 'verificacao_email', rows[0].id, rows[0].email) };
   });
-  if (dados) await enviarVerificacao(dados.nome, dados.email, dados.token);
+  if (dados) await enviarVerificacao(dados.nome, dados.email, dados.token, origemCadastro(dados.origem_cadastro));
 }
 
 /** Confirma o e-mail pelo link. Devolve o usuário para seguir ao onboarding (ou null se o link não vale). */

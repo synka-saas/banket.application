@@ -1686,3 +1686,43 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
     margin-top: 8px;
   }
 }
+
+/* Campo de cidade em lista (chips) */
+.campo-cidade-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.campo-cidade-chips:empty {
+  display: none;
+}
+
+.campo-cidade-remover {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Faixa da prévia do perfil (dono logado) */
+.vp-previa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--clay-900);
+  color: var(--clay-100);
+  font-size: var(--fs-13);
+}
+
+.vp-previa a {
+  color: var(--terracotta-300);
+}

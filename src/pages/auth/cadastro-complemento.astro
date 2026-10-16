@@ -7,6 +7,7 @@ import { ONBOARDING_COOKIE, clearOnboardingCookie, setSessionCookie, signSession
 import { setFlash } from '../../lib/flash';
 import { formToObject, userMessage } from '../../lib/forms';
 import { criarEmpresa, empresaNovaSchema } from '../../server/autoatendimento';
+import { inicioAposLogin } from '../../lib/busca/url';
 
 // Cadastro complementar (frame "Login - Cadastro Complemento"): dados da empresa → cria o tenant com os padrões.
 const usuario = await verifyOnboarding(Astro.cookies.get(ONBOARDING_COOKIE)?.value);
@@ -24,7 +25,7 @@ if (Astro.request.method === 'POST') {
     clearOnboardingCookie(Astro.cookies);
     Astro.cookies.delete(RASCUNHO, { path: '/auth' });
     setSessionCookie(Astro.cookies, await signSession(sessao));
-    return Astro.redirect('/dashboard');
+    return Astro.redirect(inicioAposLogin(Astro.url));
   } catch (err) {
     setFlash(Astro.cookies, 'error', userMessage(err, 'Não foi possível cadastrar a empresa. Tente novamente.'));
     // Guarda o que foi digitado (sem dados sensíveis além dos da própria empresa) por alguns minutos

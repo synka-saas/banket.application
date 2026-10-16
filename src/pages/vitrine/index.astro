@@ -7,9 +7,8 @@ import BuffetCard from '../../components/busca/BuffetCard.astro';
 import Estrelas from '../../components/busca/Estrelas.astro';
 import Icon from '../../components/ui/Icon.astro';
 import { hojeSaoPaulo } from '../../lib/datas';
-import { appUrl } from '../../lib/mail';
 import { TIPOS_EVENTO, TIPOS_SERVICO, rotuloEvento } from '../../lib/busca/catalogos';
-import { buscaUrl, caminhoVitrine } from '../../lib/busca/url';
+import { buscaUrl, caminhoVitrine, urlArea } from '../../lib/busca/url';
 import { jsonLdSite } from '../../lib/busca/seo';
 import { depoimentos, destaques, registrarMetrica, totaisPorTipo } from '../../server/busca/publico';
 import { cachePublico } from '../../server/busca/vitrine';
@@ -152,7 +151,7 @@ const DESCRICAO_SERVICO: Record<string, string> = {
           <li><Icon name="check" size={18} />Perfil com pacotes, fotos e avaliações</li>
           <li><Icon name="check" size={18} />Clientes Banket aparecem primeiro, com cardápios e agenda sincronizados</li>
         </ul>
-        <a class="btn btn-secondary btn-large" href={appUrl('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
+        <a class="btn btn-secondary btn-large" href={urlArea('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
       </div>
     </div>
   </section>

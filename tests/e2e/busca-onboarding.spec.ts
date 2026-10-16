@@ -1,0 +1,201 @@
+import { expect, test, type Page } from '@playwright/test';
+import { psql } from './helpers';
+
+// Banket Busca, fase 4: cadastro gratuito pela vitrine e onboarding do perfil em 7 etapas. Cria uma empresa nova no
+// plano Busca (e-mail @example.com: nada é enviado) e a remove no fim.
+
+const ts = Date.now();
+const EMAIL = `e2e.busca.${ts}@example.com`;
+const SENHA = 'Banket.2026!';
+const NOME = `E2E Buffet Onboarding ${ts}`;
+const TENANT = `(SELECT tenant_id FROM tenant_usuarios WHERE usuario_id = (SELECT id FROM usuarios WHERE email = '${EMAIL}'))`;
+
+/** CNPJ válido a partir de 12 dígitos */
+function cnpj(base: string): string {
+  const d = base.split('').map(Number);
+  const dv = (pesos: number[]) => {
+    const s = d.reduce((a, n, i) => a + n * pesos[i], 0) % 11;
+    return s < 2 ? 0 : 11 - s;
+  };
+  d.push(dv([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]));
+  d.push(dv([6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]));
+  return d.join('');
+}
+const CNPJ = cnpj(String(ts).slice(-12).padStart(12, '7'));
+
+// PNG 2×2 válido (as fotos do teste)
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP8z8DwnwEJMDHgAkwMDAAZnwIHxkmEJwAAAABJRU5ErkJggg==', 'base64');
+const foto = (n: number) => ({ name: `foto-${n}.png`, mimeType: 'image/png', buffer: PNG });
+
+async function etapa(page: Page, n: number) {
+  await page.goto(`/busca/cadastro?etapa=${n}`);
+}
+async function continuar(page: Page) {
+  await page.getByRole('button', { name: /Continuar/ }).click();
+}
+
+test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
+  test.afterAll(() => {
+    psql(`DELETE FROM tenants WHERE id = ${TENANT}; DELETE FROM usuarios WHERE email = '${EMAIL}';`);
+  });
+
+  test('cadastro pela vitrine nasce no plano Busca e cai no Banket Busca', async ({ page }) => {
+    await page.goto('/auth/cadastro?plano=busca');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Banket Busca');
+    await page.fill('#nome', 'Bruna Onboarding');
+    await page.fill('#email', EMAIL);
+    await page.fill('#senha', SENHA);
+    await page.fill('#confirma_senha', SENHA);
+    await page.locator('#termos').evaluate((el: HTMLInputElement) => { el.checked = true; });
+    await page.getByRole('button', { name: 'Criar conta' }).click();
+    await page.waitForURL(/\/auth\/validacao/);
+    expect(psql(`SELECT origem_cadastro FROM usuarios WHERE email = '${EMAIL}'`)).toBe('busca');
+
+    // Confirmação do e-mail (o link fica no log do contêiner; aqui marcamos direto no banco)
+    psql(`UPDATE usuarios SET email_verificado_em = now() WHERE email = '${EMAIL}'`);
+    await page.goto('/auth/login');
+    await page.fill('#email', EMAIL);
+    await page.fill('#senha', SENHA);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.waitForURL(/cadastro-complemento/);
+    await page.getByText('Pessoa jurídica').click();
+    await page.fill('#celular', '11987654321');
+    await page.fill('#razao_social', `${NOME} Ltda`);
+    await page.fill('#cnpj', CNPJ);
+    await page.fill('#nome_empresa', NOME);
+    await page.fill('#endereco', 'Rua das Figueiras, 1240, Santo André - SP');
+    await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
+    await page.waitForURL(/\/busca$/);
+    expect(psql(`SELECT p.slug || '|' || t.origem_cadastro FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT}`)).toBe('busca|busca');
+    await expect(page.locator('.busca-status')).toContainText('Rascunho');
+    await expect(page.locator('.busca-status')).toContainText('0 de 6 etapas');
+  });
+
+  test('etapas 1 a 4 com validação e o limite de 3 tipos no plano gratuito', async ({ page }) => {
+    await page.goto('/auth/login');
+    await page.fill('#email', EMAIL);
+    await page.fill('#senha', SENHA);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.waitForURL(/\/busca/);
+
+    // Etapa 1: CNPJ inválido é recusado
+    await etapa(page, 1);
+    await expect(page.locator('#e-nome')).toHaveValue(NOME);
+    await page.fill('#e-doc', '11.111.111/1111-11');
+    await page.fill('#e-whats', '11987654321');
+    await page.fill('#e-email', 'contato@example.com');
+    await page.fill('#e-desc', 'Buffet de teste com salão próprio no ABC, cozinha própria e equipe treinada para festas de todos os tamanhos.');
+    await continuar(page);
+    await expect(page.locator('.toast').first()).toContainText('CNPJ');
+    await page.fill('#e-doc', CNPJ);
+    await continuar(page);
+    await page.waitForURL(/etapa=2/);
+
+    // Etapa 2: no gratuito, o 4º tipo fica indisponível; forçar pelo servidor dá erro de plano
+    const eventos = page.locator('[data-grupo="tipos_evento"]');
+    for (const t of ['casamento', 'aniversario', 'infantil']) await eventos.locator(`label.onb-tile:has(input[value="${t}"])`).click();
+    await expect(eventos.locator('input[value="formatura"]')).toBeDisabled();
+    await expect(eventos.locator('[data-uso]')).toHaveText('3 de 3');
+    await page.locator('[data-grupo="tipos_servico"] label.onb-tile:has(input[value="buffet_completo"])').click();
+    await continuar(page);
+    await page.waitForURL(/etapa=3/);
+
+    // Etapa 3: cidade + espaço próprio
+    await page.fill('#r-cidade', 'santo andre');
+    await page.locator('.fbusca-sugestao', { hasText: 'Santo André · SP' }).click();
+    await page.locator('input[name="espaco_proprio"]').check();
+    await page.fill('#r-log', 'Rua das Figueiras');
+    await page.fill('#r-num', '1240');
+    await page.fill('#r-bairro', 'Vila Assunção');
+    await continuar(page);
+    await page.waitForURL(/etapa=4/);
+
+    // Etapa 4: mínimo maior que o máximo é recusado
+    await page.fill('#c-min', '300');
+    await page.fill('#c-max', '200');
+    await continuar(page);
+    await expect(page.locator('.toast').first()).toContainText('mínimo não pode passar do máximo');
+    await page.fill('#c-min', '40');
+    await page.fill('#c-max', '250');
+    await continuar(page);
+    await page.waitForURL(/etapa=5/);
+    expect(psql(`SELECT etapa_concluida FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('4');
+  });
+
+  test('limite de tipos conferido no servidor', async ({ page }) => {
+    await page.goto('/auth/login');
+    await page.fill('#email', EMAIL);
+    await page.fill('#senha', SENHA);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.waitForURL(/\/busca/);
+    await etapa(page, 2);
+    // Habilita à força a 4ª opção no navegador e envia: o servidor recusa e abre o upsell
+    await page.locator('input[value="formatura"]').evaluate((el: HTMLInputElement) => { el.disabled = false; el.checked = true; });
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('dialog[data-upsell]')).toBeVisible();
+    await expect(page.locator('dialog[data-upsell]')).toContainText('Apareça em mais buscas');
+    await expect(page.locator('.toast').first()).toContainText('até 3 tipos de evento');
+    expect(psql(`SELECT array_length(tipos_evento, 1) FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('3');
+  });
+
+  test('pacotes, fotos com limite, prévia só para o dono e publicação', async ({ page, browser }) => {
+    test.setTimeout(60_000);
+    await page.goto('/auth/login');
+    await page.fill('#email', EMAIL);
+    await page.fill('#senha', SENHA);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.waitForURL(/\/busca/);
+
+    // Cardápios e Disponibilidade com cadeado no plano gratuito
+    await etapa(page, 5);
+    await page.locator('.onb-etapas [data-bloqueado="busca_cardapios"]').click();
+    await expect(page.locator('dialog[data-upsell]')).toContainText('Cardápios detalhados no seu perfil');
+    await page.locator('dialog[data-upsell]').getByRole('button', { name: 'Fechar' }).click();
+
+    // Etapa 5: um pacote
+    await page.fill('#k-nome', 'Festa completa');
+    await page.fill('#k-preco', '129,00');
+    await page.fill('#k-inclui', '8 tipos de salgado\nBolo e doces');
+    await page.getByRole('button', { name: 'Incluir pacote' }).click();
+    await expect(page.locator('.onb-item', { hasText: 'Festa completa' })).toContainText('R$ 129,00');
+    await page.getByRole('button', { name: /Continuar/ }).click();
+    await page.waitForURL(/etapa=6/);
+
+    // Etapa 6: 6 fotos de uma vez → só 5 cabem (o navegador corta; o servidor confere)
+    await page.locator('[data-fotos-input]').setInputFiles([1, 2, 3, 4, 5, 6].map(foto));
+    await expect(page.locator('[data-fotos-status]')).toContainText('Só 5 cabem');
+    await page.getByRole('button', { name: 'Enviar fotos' }).click();
+    await expect(page.locator('.onb-foto')).toHaveCount(5);
+    await expect(page.locator('.onb-foto').first()).toContainText('Capa');
+    await expect(page.locator('[data-fotos-form]')).toContainText('limite de fotos');
+
+    // Prévia antes de publicar: o dono vê; anônimo recebe 404
+    const slug = psql(`SELECT slug FROM busca_perfis WHERE tenant_id = ${TENANT}`);
+    await page.goto(`/vitrine/buffet/${slug}?previa=1`);
+    await expect(page.locator('.vp-previa')).toContainText('ainda não publicado');
+    const anonimo = await browser.newContext();
+    expect((await anonimo.request.get(`${new URL(page.url()).origin}/vitrine/buffet/${slug}?previa=1`)).status()).toBe(404);
+    await anonimo.close();
+
+    // Etapa 7: publicar exige o aceite
+    await etapa(page, 7);
+    await expect(page.locator('.onb-item .onb-falta')).toHaveCount(0);
+    await page.getByLabel(/termos de uso/).check();
+    await page.getByRole('button', { name: 'Publicar perfil' }).click();
+    await page.waitForURL(/\/busca$/);
+    await expect(page.locator('.busca-status')).toContainText('Publicado');
+    await page.goto(`/vitrine/buscar?tipo=infantil&cidade=santo-andre-sp&convidados=80`);
+    await expect(page.locator(`[data-buffet="${slug}"]`)).toBeVisible();
+    await expect(page.locator(`[data-buffet="${slug}"]`)).not.toContainText('Cliente Banket');
+
+    // Excluir fotos até ficar abaixo do mínimo despublica o perfil
+    await etapa(page, 6);
+    for (let i = 0; i < 3; i++) {
+      await page.locator('.onb-foto').last().getByRole('button', { name: 'Excluir foto' }).click();
+      await page.locator('dialog.confirmar[open] [data-confirmar-ok]').click();
+      await expect(page.locator('.onb-foto')).toHaveCount(4 - i);
+    }
+    await expect(page.locator('.toast').last()).toContainText('voltou a rascunho');
+    expect(psql(`SELECT publicado::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('false');
+  });
+});

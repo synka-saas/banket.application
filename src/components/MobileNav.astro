@@ -6,6 +6,7 @@ import { isAdmin } from '../lib/auth';
 import { itensDoMenu, linkBloqueado, navAtiva, type BadgesNavegacao, type ItemNavegacao } from '../lib/nav';
 import { podeUsarEm } from '../lib/planos/gating';
 import { inicioDoPlano } from '../lib/planos/rotas';
+import { urlArea } from '../lib/busca/url';
 
 interface Props {
   badges?: BadgesNavegacao;
@@ -22,7 +23,7 @@ const inicio = inicioDoPlano(podeUsarEm(plano, 'propostas'));
 // Na barra inferior entram os itens liberados; no plano gratuito, o Banket Busca ocupa o lugar do Dashboard
 const naBarra = itens.filter((i) => (i.barra && !i.bloqueado) || (i.marca === 'busca' && !podeUsarEm(plano, 'propostas')));
 const noPainel = itens.filter((i) => !naBarra.includes(i));
-const href = (i: (typeof itens)[number]) => (i.bloqueado ? linkBloqueado(i.bloqueado, inicio) : i.href);
+const href = (i: (typeof itens)[number]) => (i.bloqueado ? linkBloqueado(i.bloqueado, inicio) : i.marca === 'busca' ? urlArea(i.href) : i.href);
 const painelAtivo = noPainel.some((i) => navAtiva(pathname, i.match));
 const badgePainel = noPainel.reduce((n, i) => n + (badges[i.href] ?? 0), 0);
 ---
