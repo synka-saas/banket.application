@@ -125,3 +125,14 @@ dc ps
 dc logs -f webapp_$(cat .deploy-ativo)
 dc exec postgres psql -U banket_user banket_db
 ```
+
+## Banket Busca (busca.banket.com.br)
+
+Mesmo app e mesmo upstream (`banket_app`): o host do Busca serve só a vitrine pública; as telas internas e de cadastro
+ficam em `app.banket.com.br` (no host do Busca, o middleware redireciona para o app).
+
+- DNS: registro `busca` no Cloudflare (proxy ligado).
+- Nginx: `/etc/nginx/sites-enabled/busca.banket.com.br.conf` (mesmo `location /` do app, proxy para `banket_app`);
+  HTTPS pelo Certbot (`certbot --nginx -d busca.banket.com.br`).
+- `.env`: `BUSCA_URL=https://busca.banket.com.br` e `COOKIE_DOMAIN=.banket.com.br` (a sessão vale nos dois hosts).
+  Mudou o `.env`? `make deploy` recria os contêineres (um `docker restart` não relê as variáveis).

@@ -23,7 +23,7 @@ const v = editando;
   <div class="onb-aviso">
     <img src="/logo-mark.png" alt="" width="24" height="24" />
     <span><strong>Cardápios detalhados são exclusivos para clientes Banket.</strong> No plano gratuito, os pacotes mostram nome, descrição, preço e faixa de convidados.</span>
-    <a class="btn btn-outline btn-sm" href="/busca/cadastro?etapa=5&bloqueado=busca_cardapios" data-bloqueado="busca_cardapios">Conhecer</a>
+    <a class="btn btn-outline btn-sm" href="/busca?etapa=5&bloqueado=busca_cardapios" data-bloqueado="busca_cardapios">Conhecer</a>
   </div>
 )}
 
@@ -41,7 +41,7 @@ const v = editando;
           <span class="tabular" style="font-weight:var(--fw-medium);color:var(--text-strong)">{k.preco_pessoa != null ? brl(k.preco_pessoa) : '—'}</span>
           {editor && (
             <span class="onb-item-acoes">
-              <a class="btn btn-ghost btn-sm" href={`/busca/cadastro?etapa=5&pacote=${k.id}#pacote`} aria-label={`Editar ${k.nome}`}><Icon name="pencil" size={16} /></a>
+              <a class="btn btn-ghost btn-sm" href={`/busca?etapa=5&pacote=${k.id}#pacote`} aria-label={`Editar ${k.nome}`}><Icon name="pencil" size={16} /></a>
               <form method="post">
                 <input type="hidden" name="_etapa" value="5" /><input type="hidden" name="id" value={k.id} />
                 <button type="submit" name="_acao" value="excluir" class="btn btn-ghost btn-sm" aria-label={`Excluir ${k.nome}`} data-confirm={`Excluir o pacote "${k.nome}"?`}><Icon name="trash" size={16} /></button>
@@ -69,7 +69,7 @@ const v = editando;
     </div>
     <label class="switch"><input type="checkbox" name="ativo" checked={v ? v.ativo : true} /><span>Pacote ativo (aparece no perfil)</span></label>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      {v && <a class="btn btn-ghost btn-md" href="/busca/cadastro?etapa=5">Cancelar</a>}
+      {v && <a class="btn btn-ghost btn-md" href="/busca?etapa=5">Cancelar</a>}
       <button type="submit" name="_acao" value="pacote" class="btn btn-soft btn-md" data-carregando="Salvando…"><Icon name="check" size={16} /> {v ? 'Salvar pacote' : 'Incluir pacote'}</button>
     </div>
   </form>

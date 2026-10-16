@@ -24,7 +24,7 @@ const restam = limitado ? Math.max(0, maxFotos - visiveis.length) : 20;
     <input type="hidden" name="_etapa" value="6" />
     <h2>Enviar fotos</h2>
     <p class="onb-limite">
-      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no plano gratuito. <a href="/busca/cadastro?etapa=6&bloqueado=busca_fotos" data-bloqueado="busca_fotos">Galeria sem limite</a></> : <span class="tabular">{visiveis.length} fotos</span>}
+      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no plano gratuito. <a href="/busca?etapa=6&bloqueado=busca_fotos" data-bloqueado="busca_fotos">Galeria sem limite</a></> : <span class="tabular">{visiveis.length} fotos</span>}
     </p>
     {restam > 0 ? (
       <>
@@ -68,7 +68,7 @@ const restam = limitado ? Math.max(0, maxFotos - visiveis.length) : 20;
                 {tags ? (
                   <div class="field"><label class="sr-only" for={`f-tags-${f.id}`}>Tags</label><input id={`f-tags-${f.id}`} name="tags" placeholder="Tags: salão, doces" value={f.tags.join(', ')} /></div>
                 ) : (
-                  <a class="field-hint" href="/busca/cadastro?etapa=6&bloqueado=busca_fotos_tags" data-bloqueado="busca_fotos_tags"><Icon name="lock" size={12} /> Tags nas fotos: exclusivo Banket</a>
+                  <a class="field-hint" href="/busca?etapa=6&bloqueado=busca_fotos_tags" data-bloqueado="busca_fotos_tags"><Icon name="lock" size={12} /> Tags nas fotos: exclusivo Banket</a>
                 )}
                 <button type="submit" name="_acao" value="foto" class="btn btn-outline btn-sm">Salvar legenda</button>
               </form>

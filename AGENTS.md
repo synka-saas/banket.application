@@ -1063,10 +1063,12 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
 
-### Banket Busca: área do buffet — `/busca`, `/busca/cadastro?etapa=1..7` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `layouts/OnboardingLayout.astro`)
+### Banket Busca: área do buffet — `/busca?etapa=1..7` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
-- **Onboarding** (tela própria, `OnboardingLayout`): 1 Empresa (nome, CNPJ/CPF validado, logo, WhatsApp, e-mail,
+- **Onboarding** = a própria página `/busca` do menu Banket Busca, dentro do `AppLayout` (faixa de situação com
+  publicado/rascunho, etapas concluídas, completude e link da prévia; lista de etapas `Etapas.astro` à esquerda;
+  `/busca/cadastro` redireciona 301 para `/busca`): 1 Empresa (nome, CNPJ/CPF validado, logo, WhatsApp, e-mail,
   Instagram/site, tempo de resposta, descrição ≥ 80) · 2 Eventos e serviços (tiles; plano gratuito até 3 de cada,
   conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região (cidade-base com autocomplete, espaço próprio
   com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades atendidas) · 4 Capacidade (mínimo ≤ máximo,
@@ -1077,11 +1079,11 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   "Cardápios" e "Disponibilidade" aparecem na lista como "Exclusivo Banket" (cadeado + upsell no gratuito).
 - **Prévia**: `/vitrine/buffet/<slug>?previa=1` mostra o perfil ainda não publicado só para quem está logado na empresa
   dona (`private, no-store`, `noindex`); fica no host do app.
-- **Host do Busca**: com `BUSCA_URL`, a área (`/busca`, `/planos`, `/auth`, `/conta`, `/suporte` e APIs) também responde em
-  `busca.banket.com.br`; outras rotas do app redirecionam (302) para o host do app. Com `COOKIE_DOMAIN=.banket.com.br`
-  a sessão (`banket_sessao`) vale nos dois hosts; o cookie antigo `banket_session` (só do app) continua aceito e sai
-  no próximo login. Quem entra pelo host do Busca vai para `/busca`; o e-mail de confirmação de quem veio da vitrine
-  aponta para o host do Busca. O item "Banket Busca" do menu abre a área no host do Busca.
+- **Host do Busca**: `busca.banket.com.br` serve **só a vitrine pública**. Toda tela interna e de cadastro (`/busca`,
+  `/planos`, `/auth`, `/conta`…) fica em `app.banket.com.br`: no host do Busca elas redirecionam (302) para o app
+  (`AREA_NO_HOST_BUSCA` vazio em `lib/busca/host.ts`; `urlArea` sempre aponta para o app). Com
+  `COOKIE_DOMAIN=.banket.com.br` a sessão (`banket_sessao`) vale nos dois hosts; o cookie antigo `banket_session` (só
+  do app) continua aceito e sai no próximo login.
 
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).

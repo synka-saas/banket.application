@@ -20,11 +20,17 @@ describe('decidirHost', () => {
     expect(d(HV, '/robots.txt')).toEqual({ acao: 'reescrever', caminho: '/vitrine/robots.txt' });
   });
 
-  it('no host do Busca, a área do buffet, a autenticação e os estáticos seguem direto', () => {
-    for (const p of ['/busca', '/busca/cadastro', '/planos', '/auth/login', '/auth/cadastro', '/conta', '/suporte', '/api/busca/x', '/api/planos/trial',
-      '/api/sessao/empresa', '/_astro/x.js', '/busca-media/t/busca/a.png', '/busca-demo/mesa-1.svg', '/api/vitrine/cidades', '/logo-dark.png', '/uploads/t/x.png']) {
+  it('no host do Busca, só estáticos, fotos e a API da vitrine seguem direto', () => {
+    for (const p of ['/_astro/x.js', '/busca-media/t/busca/a.png', '/busca-demo/mesa-1.svg', '/api/vitrine/cidades', '/logo-dark.png']) {
       expect(d(HV, p), p).toEqual({ acao: 'seguir' });
     }
+  });
+
+  it('no host do Busca, a área do buffet e o login ficam no app', () => {
+    expect(d(HV, '/busca')).toEqual({ acao: 'redirecionar', url: 'https://app.banket.com.br/busca', status: 302 });
+    expect(d(HV, '/busca', '?etapa=2')).toEqual({ acao: 'redirecionar', url: 'https://app.banket.com.br/busca?etapa=2', status: 302 });
+    expect(d(HV, '/auth/login', '?next=%2Fbusca')).toEqual({ acao: 'redirecionar', url: 'https://app.banket.com.br/auth/login?next=%2Fbusca', status: 302 });
+    expect(d(HV, '/planos')).toEqual({ acao: 'redirecionar', url: 'https://app.banket.com.br/planos', status: 302 });
   });
 
   it('no host do Busca, outras rotas do app vão para o host do app', () => {

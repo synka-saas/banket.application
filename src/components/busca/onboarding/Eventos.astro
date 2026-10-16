@@ -28,7 +28,7 @@ const grupos = [
         {g.max != null && (
           <p class="onb-limite">
             <span class="tabular" data-uso>{g.marcados.length} de {g.max}</span> no plano gratuito.
-            <a href={`/busca/cadastro?etapa=2&bloqueado=${g.recurso}`} data-bloqueado={g.recurso}>Atender mais tipos</a>
+            <a href={`/busca?etapa=2&bloqueado=${g.recurso}`} data-bloqueado={g.recurso}>Atender mais tipos</a>
           </p>
         )}
         <div class="onb-tiles">

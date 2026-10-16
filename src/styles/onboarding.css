@@ -1,71 +1,54 @@
-/* Cadastro do perfil no Banket Busca (layout-busca/BuffetOnboarding). Tela própria, fora da casca do app. */
-.onb {
-  min-height: 100vh;
+/* Cadastro do perfil no Banket Busca (layout-busca/BuffetOnboarding), dentro do app: página /busca do menu Banket Busca. */
+
+
+
+
+
+
+
+.onb-corpo {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--space-8, 32px);
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-app);
+  max-width: 1180px;
 }
 
-.onb-topo {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+/* Situação do perfil no topo da página */
+.onb-situacao {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
-  height: 60px;
-  padding: 0 var(--space-6);
+  gap: var(--space-2) var(--space-4);
+  max-width: 1180px;
+  margin-bottom: var(--space-6);
+  padding: 12px 16px;
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.onb-topo-titulo {
-  padding-left: var(--space-4);
-  border-left: 1px solid var(--border-default);
-  font-size: var(--fs-14);
-  font-weight: var(--fw-medium);
-  color: var(--text-heading);
-}
-
-.onb-topo-etapa {
-  display: none;
-  margin-left: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
   font-size: var(--fs-13);
   color: var(--text-secondary);
 }
 
-.onb-sair {
-  margin-left: auto;
-}
-
-.onb-progresso {
-  height: 4px;
+.onb-situacao-barra {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  border-radius: var(--radius-full);
   background: var(--clay-100);
+  overflow: hidden;
 }
 
-.onb-progresso span {
+.onb-situacao-barra span {
   display: block;
   height: 100%;
   background: var(--terracotta-500);
-  transition: width var(--dur-base) var(--ease-out);
-}
-
-.onb-corpo {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: var(--space-8, 32px);
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-8, 32px) var(--space-6) 120px;
-  box-sizing: border-box;
 }
 
 .onb-etapas {
   position: sticky;
-  top: 88px;
+  top: 0;
   align-self: start;
   display: flex;
   flex-direction: column;
@@ -207,19 +190,20 @@ a.onb-etapa:hover {
 }
 
 .onb-acoes {
-  position: fixed;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
   z-index: 15;
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  padding: 12px var(--space-6) calc(12px + env(safe-area-inset-bottom));
+  margin-top: var(--space-2);
+  padding: 12px 16px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid var(--border-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .onb-acoes .onb-voltar {
@@ -431,22 +415,12 @@ a.onb-etapa:hover {
 }
 
 @media (max-width: 768px) {
-  .onb-topo {
-    padding: 0 16px;
-  }
-
-  .onb-topo-titulo,
-  .onb-sair {
-    display: none;
-  }
-
-  .onb-topo-etapa {
-    display: inline;
-  }
-
   .onb-corpo {
     grid-template-columns: 1fr;
-    padding: 20px 16px 120px;
+  }
+
+  .onb-situacao-barra {
+    flex-basis: 100%;
   }
 
   .onb-etapas {
@@ -458,7 +432,7 @@ a.onb-etapa:hover {
   }
 
   .onb-acoes {
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    padding: 10px 12px;
   }
 
   .onb-acoes .btn {
@@ -471,9 +445,9 @@ a.onb-etapa:hover {
   }
 }
 
-/* Os avisos sobem acima da barra de ações fixa (senão um erro cobre o "Continuar") */
+/* Os avisos sobem acima da barra de ações (senão um erro cobre o "Continuar") */
 body:has(.onb-acoes) .toast-root {
-  bottom: calc(84px + env(safe-area-inset-bottom)) !important;
+  bottom: calc(96px + env(safe-area-inset-bottom)) !important;
 }
 
 /* Os cartões de cada etapa ficam dentro do <form>: o espaçamento vem dele */

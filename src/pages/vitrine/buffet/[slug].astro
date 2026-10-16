@@ -60,7 +60,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
   {emPrevia && (
     <div class="vp-previa" role="status">
       <Icon name="eye" size={16} /> <span>Prévia do seu perfil{p.publicado ? '' : ' · ainda não publicado, só você vê esta página'}.</span>
-      <a href="/busca/cadastro?etapa=7">Voltar ao cadastro</a>
+      <a href="/busca?etapa=7">Voltar ao cadastro</a>
     </div>
   )}
   <div class="vitrine-secao" style="padding-top:16px">

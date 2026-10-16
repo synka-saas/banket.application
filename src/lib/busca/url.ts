@@ -33,12 +33,11 @@ export function caminhoVitrine(path = '/'): string {
 }
 
 /**
- * Página da área do buffet / autenticação: no host do Busca quando ele existe (BUSCA_URL), senão no app.
+ * Página da área do buffet / autenticação: sempre no app (app.banket.com.br, menu Banket Busca).
  * Ex.: urlArea('/auth/cadastro?plano=busca').
  */
 export function urlArea(path: string): string {
-  const base = env('BUSCA_URL')?.replace(/\/$/, '');
-  return base ? `${base}${path}` : appUrl(path);
+  return appUrl(path);
 }
 
 /** A requisição chegou pelo host do Busca? */

@@ -1,0 +1,54 @@
+---
+// Lista das etapas do cadastro do perfil (concluída / atual / a fazer) e os recursos "Exclusivo Banket" (Cardápios,
+// Disponibilidade) com cadeado no plano gratuito. Fica na coluna da esquerda da página /busca (dentro do app).
+import Icon from '../../ui/Icon.astro';
+import { ETAPAS, EXCLUSIVOS } from '../../../lib/busca/onboarding';
+
+interface Props {
+  etapa: number;
+  concluidas: number[];
+  /** Recursos exclusivos liberados pelo plano (busca_cardapios, busca_disponibilidade) */
+  liberados: string[];
+}
+const { etapa, concluidas, liberados } = Astro.props;
+const feitas = new Set(concluidas);
+---
+
+<nav class="onb-etapas" aria-label="Etapas do cadastro">
+  <span class="eyebrow">Etapa {etapa} de {ETAPAS.length}</span>
+  <ol>
+    {ETAPAS.map((e) => {
+      const estado = e.n === etapa ? 'atual' : feitas.has(e.n) ? 'feita' : 'afazer';
+      return (
+        <li>
+          <a href={`/busca?etapa=${e.n}`} class:list={['onb-etapa', `onb-etapa--${estado}`]} aria-current={estado === 'atual' ? 'step' : undefined}>
+            <span class="onb-etapa-n">{estado === 'feita' ? <Icon name="check" size={16} /> : e.n}</span>
+            <span class="onb-etapa-texto"><span>{e.titulo}</span><small>{e.sub}</small></span>
+          </a>
+        </li>
+      );
+    })}
+  </ol>
+  <p class="eyebrow onb-exclusivos-titulo">Exclusivo Banket</p>
+  <ul>
+    {EXCLUSIVOS.map((x) => {
+      const livre = liberados.includes(x.recurso);
+      return (
+        <li>
+          {livre ? (
+            <span class="onb-etapa onb-etapa--livre">
+              <span class="onb-etapa-n"><Icon name="circle-check" size={16} /></span>
+              <span class="onb-etapa-texto"><span>{x.titulo}</span><small>Incluído no seu plano · vem do Banket</small></span>
+            </span>
+          ) : (
+            <a href={`/busca?bloqueado=${x.recurso}`} class="onb-etapa onb-etapa--bloqueada" data-bloqueado={x.recurso}>
+              <span class="onb-etapa-n"><Icon name="lock" size={15} /></span>
+              <span class="onb-etapa-texto"><span>{x.titulo}</span><small>{x.sub}</small></span>
+              <span class="sr-only">(exclusivo para clientes Banket)</span>
+            </a>
+          )}
+        </li>
+      );
+    })}
+  </ul>
+</nav>

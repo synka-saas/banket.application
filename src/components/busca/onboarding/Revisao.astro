@@ -42,7 +42,7 @@ const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa
         <li class="onb-item">
           <span class:list={[ok.has(e.n) ? 'onb-ok' : 'onb-falta']}><Icon name={ok.has(e.n) ? 'circle-check' : 'alert-circle'} size={20} /></span>
           <span class="onb-item-texto">{e.titulo}<small>{resumo[e.n]}</small></span>
-          <a class="btn btn-text btn-sm" href={`/busca/cadastro?etapa=${e.n}`}>Editar</a>
+          <a class="btn btn-text btn-sm" href={`/busca?etapa=${e.n}`}>Editar</a>
         </li>
       ))}
     </ul>
@@ -64,7 +64,7 @@ const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa
         <div><button type="submit" name="_acao" value="despublicar" class="btn btn-outline btn-md" data-confirm="Despublicar o perfil?" data-confirm-texto="Ele deixa de aparecer na busca até você publicar de novo. Nada é apagado." data-confirm-rotulo="Despublicar">Despublicar perfil</button></div>
       </>
     ) : faltam.length ? (
-      <div class="onb-aviso"><Icon name="alert-circle" size={20} class="onb-falta" /> <span>Para publicar, conclua: {faltam.map((e, i) => <>{i > 0 && ', '}<a href={`/busca/cadastro?etapa=${e.n}`}>{e.titulo.toLowerCase()}</a></>)}.</span></div>
+      <div class="onb-aviso"><Icon name="alert-circle" size={20} class="onb-falta" /> <span>Para publicar, conclua: {faltam.map((e, i) => <>{i > 0 && ', '}<a href={`/busca?etapa=${e.n}`}>{e.titulo.toLowerCase()}</a></>)}.</span></div>
     ) : (
       <>
         <label class="vf-opcao" style="justify-content:flex-start"><span><input type="checkbox" name="aceite" required /> Li e aceito os <a href={appUrl('/termos')} target="_blank" rel="noopener">termos de uso</a> para buffets</span></label>
@@ -74,6 +74,5 @@ const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa
   </form>
 )}
 <div class="onb-acoes">
-  <a class="btn btn-ghost btn-md onb-voltar" href="/busca/cadastro?etapa=6"><Icon name="arrow-left" size={16} /> Voltar</a>
-  <a class="btn btn-outline btn-md" href="/busca">Ir para o painel</a>
+  <a class="btn btn-ghost btn-md onb-voltar" href="/busca?etapa=6"><Icon name="arrow-left" size={16} /> Voltar</a>
 </div>

@@ -28,7 +28,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR
 const foto = (n: number) => ({ name: `foto-${n}.png`, mimeType: 'image/png', buffer: PNG });
 
 async function etapa(page: Page, n: number) {
-  await page.goto(`/busca/cadastro?etapa=${n}`);
+  await page.goto(`/busca?etapa=${n}`);
 }
 async function continuar(page: Page) {
   await page.getByRole('button', { name: /Continuar/ }).click();
@@ -66,9 +66,10 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await page.fill('#endereco', 'Rua das Figueiras, 1240, Santo André - SP');
     await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     await page.waitForURL(/\/busca$/);
+    await expect(page.locator('.onb-principal form').first()).toBeVisible(); // o formulário é a própria página
     expect(psql(`SELECT p.slug || '|' || t.origem_cadastro FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT}`)).toBe('busca|busca');
-    await expect(page.locator('.busca-status')).toContainText('Rascunho');
-    await expect(page.locator('.busca-status')).toContainText('0 de 6 etapas');
+    await expect(page.locator('[data-situacao]')).toContainText('Rascunho');
+    await expect(page.locator('[data-situacao]')).toContainText('0 de 6 etapas');
   });
 
   test('etapas 1 a 4 com validação e o limite de 3 tipos no plano gratuito', async ({ page }) => {
@@ -182,8 +183,8 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await expect(page.locator('.onb-item .onb-falta')).toHaveCount(0);
     await page.getByLabel(/termos de uso/).check();
     await page.getByRole('button', { name: 'Publicar perfil' }).click();
-    await page.waitForURL(/\/busca$/);
-    await expect(page.locator('.busca-status')).toContainText('Publicado');
+    await page.waitForURL(/\/busca\?etapa=7/);
+    await expect(page.locator('[data-situacao]')).toContainText('Publicado');
     await page.goto(`/vitrine/buscar?tipo=infantil&cidade=santo-andre-sp&convidados=80`);
     await expect(page.locator(`[data-buffet="${slug}"]`)).toBeVisible();
     await expect(page.locator(`[data-buffet="${slug}"]`)).not.toContainText('Cliente Banket');
