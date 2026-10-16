@@ -652,7 +652,7 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 
 Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban), Inbox (com o contador de não lidas,
 calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, **Financeiro** (só admin), Estoque, Staff, Espaços,
-Templates, Documentos, **Pesquisas**, Configurações (só admin), Suporte.
+Templates, Documentos, **Pesquisas**, Banket Busca, Configurações (só admin), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -1035,7 +1035,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   ativos: criar ativo ou reativar ocupa vaga), análises de IA e fundos de template por mês (fuso SP).
 - **Menu**: itens fora do plano ficam com cadeado (`nav-item--bloqueado`, `data-bloqueado`); o clique abre o painel
   (`components/planos/Upsell.astro`, no `AppLayout`), que também abre com `?bloqueado=` e com qualquer `fetch` 403 de
-  plano. Item "Banket Busca" com a marca (logo + pílula "busca"). Card do plano no rodapé da sidebar (owner/admin).
+  plano. Item "Banket Busca" depois de Pesquisas, com o ícone `banket` (símbolo do logo no traço dos ícones; a pílula "busca" fica só no cabeçalho da vitrine). Card do plano no rodapé da sidebar (owner/admin).
 - **Teste grátis**: a partir do plano gratuito, owner/admin, uma vez por empresa (`trial_usado_em`), 30 dias
   (`/planos` ou `POST /api/planos/trial {plano_id}`; `DELETE` = "não tenho interesse", some por 30 dias).
   Cadastro pelo site já nasce no teste do Profissional; `?plano=busca` em `/auth/cadastro` nasce no plano Busca.

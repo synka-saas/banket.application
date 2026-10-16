@@ -15,14 +15,13 @@ export interface ItemNavegacao {
   barra?: boolean;
   /** Recurso do plano que libera o item (lib/planos); fora do plano, o item aparece com cadeado */
   recurso?: Modulo;
-  /** Item com a marca própria (Banket Busca): ícone é o símbolo do logo com a pílula "busca" */
+  /** Item do Banket Busca: o link abre a área pelo urlArea */
   marca?: 'busca';
 }
 
 // Uma só lista para a sidebar (desktop) e a barra inferior + painel "Mais" (celular)
 export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard', match: ['/dashboard'], barra: true, recurso: 'propostas' },
-  { label: 'Banket Busca', icon: 'building-store', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
   { label: ROTULOS.funil, icon: 'layout-kanban', href: '/eventos', match: ['/eventos'], barra: true, recurso: 'propostas' },
   { label: 'Inbox', icon: 'mail', href: '/inbox', match: ['/inbox'], recurso: 'inbox' },
   { label: 'Cardápios', icon: 'tools-kitchen-2', href: '/cardapio/secoes', match: ['/cardapio'], recurso: 'cardapios' },
@@ -36,6 +35,7 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Templates', icon: 'file-text', href: '/templates', match: ['/templates'], recurso: 'templates' },
   { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'], recurso: 'documentos' },
   { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'], recurso: 'pesquisas' },
+  { label: 'Banket Busca', icon: 'banket', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes' },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];

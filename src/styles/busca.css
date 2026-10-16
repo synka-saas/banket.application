@@ -30,6 +30,8 @@ body.vitrine {
   position: sticky;
   top: 0;
   z-index: 40;
+  /* Item da coluna flex do body: sem flex none, encolhia até a altura do conteúdo (~33px) */
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -73,6 +75,7 @@ body.vitrine {
 }
 
 .vitrine-rodape {
+  flex: none;
   background: var(--clay-900);
   color: var(--clay-300);
   padding: 48px 16px 24px;
@@ -139,11 +142,12 @@ body.vitrine {
   text-decoration: none;
 }
 
-/* Tablet e desktop */
+/* Tablet e desktop: cabeçalho e rodapé alinhados à mesma coluna das seções (1280 px menos o respiro lateral) */
 @media (min-width: 769px) {
   .vitrine-topo {
+    --respiro: clamp(24px, 4.4vw, 64px);
     height: 68px;
-    padding: 0 clamp(24px, 4.4vw, 64px);
+    padding: 0 max(var(--respiro), calc((100% - 1280px) / 2 + var(--respiro)));
   }
 
   .vitrine-nav-link {
@@ -160,6 +164,11 @@ body.vitrine {
 
   .vitrine-rodape-grade {
     grid-template-columns: 1.4fr repeat(3, 1fr);
+  }
+
+  .vitrine-rodape-grade,
+  .vitrine-rodape-base {
+    max-width: calc(1280px - 2 * clamp(24px, 4.4vw, 64px));
   }
 }
 

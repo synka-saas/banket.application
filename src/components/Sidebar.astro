@@ -40,16 +40,12 @@ const cardTrial = admin && plano?.trial != null;
     {navItems.map((item) => (
       <a
         href={item.bloqueado ? linkBloqueado(item.bloqueado, inicio) : item.marca === 'busca' ? urlArea(item.href) : item.href}
-        class:list={['nav-item', { active: navAtiva(pathname, item.match) && !item.bloqueado, 'nav-item--bloqueado': item.bloqueado, 'nav-item--marca': item.marca }]}
+        class:list={['nav-item', { active: navAtiva(pathname, item.match) && !item.bloqueado, 'nav-item--bloqueado': item.bloqueado }]}
         aria-current={navAtiva(pathname, item.match) && !item.bloqueado ? 'page' : undefined}
         data-bloqueado={item.bloqueado || undefined}
         title={item.bloqueado ? `${item.label} · não incluído no seu plano` : undefined}
       >
-        {item.marca === 'busca' ? (
-          <span class="nav-marca" aria-hidden="true"><img src="/logo-mark.png" alt="" class="nav-marca-img" /><span class="nav-marca-pill">busca</span></span>
-        ) : (
-          <Icon name={item.icon} size={20} class="nav-icon" />
-        )}
+        <Icon name={item.icon} size={20} class="nav-icon" />
         <span class="nav-label">{item.label}</span>
         {badges[item.href] ? <span class="nav-badge tabular" aria-label={`${badges[item.href]} não lidas`}>{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
         {item.bloqueado && <Icon name="lock" size={14} class="nav-cadeado" />}
@@ -168,8 +164,7 @@ const cardTrial = admin && plano?.trial != null;
     color: var(--text-muted);
   }
 
-  .nav-item--bloqueado :global(.nav-icon),
-  .nav-item--bloqueado .nav-marca-img {
+  .nav-item--bloqueado :global(.nav-icon) {
     opacity: 0.55;
   }
 
@@ -181,33 +176,6 @@ const cardTrial = admin && plano?.trial != null;
   .nav-item :global(.nav-cadeado) {
     flex: none;
     color: var(--text-muted);
-  }
-
-  /* Banket Busca: símbolo do logo + pílula "busca" no lugar do ícone */
-  .nav-marca {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    flex: none;
-  }
-
-  .nav-marca-img {
-    width: 20px;
-    height: 20px;
-    border-radius: 5px;
-  }
-
-  .nav-marca-pill {
-    display: inline-flex;
-    align-items: center;
-    height: 16px;
-    padding: 0 5px;
-    border-radius: 5px;
-    background: var(--terracotta-500);
-    color: var(--text-on-accent);
-    font-size: 10px;
-    font-weight: var(--fw-medium);
-    line-height: 1;
   }
 
   /* Card do plano no rodapé do menu */
@@ -302,7 +270,6 @@ const cardTrial = admin && plano?.trial != null;
       font-size: 10px;
     }
 
-    .nav-marca-pill,
     .nav-item :global(.nav-cadeado),
     .sidebar-plano {
       display: none;
