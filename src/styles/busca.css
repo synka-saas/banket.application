@@ -1150,6 +1150,10 @@ body.vitrine {
   align-items: flex-start;
 }
 
+.vp-fato--largo {
+  grid-column: 1 / -1;
+}
+
 .vp-fato-ico {
   flex: none;
   width: 36px;

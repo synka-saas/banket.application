@@ -57,8 +57,9 @@ const fatos = [
   capacidade && { icone: 'users', rotulo: 'Capacidade', valor: capacidade },
   atendimento && { icone: p.espaco_proprio ? 'building' : 'home', rotulo: 'Atendimento', valor: atendimento },
   p.tempo_resposta_texto && { icone: 'clock', rotulo: 'Resposta', valor: p.tempo_resposta_texto },
-  p.tipos_servico.length > 0 && { icone: 'tools-kitchen-2', rotulo: 'Serviços', valor: p.tipos_servico.map(rotuloServico).join(', ') },
-].filter(Boolean) as { icone: string; rotulo: string; valor: string }[];
+  // Serviços numa linha própria: a lista costuma ser longa e espremia a coluna
+  p.tipos_servico.length > 0 && { icone: 'tools-kitchen-2', rotulo: 'Serviços', valor: p.tipos_servico.map(rotuloServico).join(', '), largo: true },
+].filter(Boolean) as { icone: string; rotulo: string; valor: string; largo?: boolean }[];
 const ld = jsonLdPerfil({
   nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
   fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
@@ -109,7 +110,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
           {p.descricao && <p>{p.descricao}</p>}
           {fatos.length > 0 && (
             <ul class="vp-fatos">
-              {fatos.map((f) => <li class="vp-fato"><span class="vp-fato-ico"><Icon name={f.icone} size={18} /></span><span><small>{f.rotulo}</small>{f.valor}</span></li>)}
+              {fatos.map((f) => <li class:list={['vp-fato', { 'vp-fato--largo': f.largo }]}><span class="vp-fato-ico"><Icon name={f.icone} size={18} /></span><span><small>{f.rotulo}</small>{f.valor}</span></li>)}
             </ul>
           )}
         </section>
