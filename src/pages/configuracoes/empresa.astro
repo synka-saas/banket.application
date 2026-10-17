@@ -65,16 +65,8 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
           <p class="field-hint" id="emp-tenant-ajuda">Identificador único da sua conta no Banket. Informe-o ao suporte quando precisar; não pode ser alterado.</p>
         </div>
         <div class="field">
-          <label for="emp-nome">Nome fantasia<span class="obrigatorio">*</span></label>
-          <input id="emp-nome" name="nome" required maxlength="255" value={empresa.nome} />
-        </div>
-        <div class="field">
-          <label for="emp-razao">Razão social</label>
-          <input id="emp-razao" name="razao_social" maxlength="255" value={empresa.razao_social ?? ''} />
-        </div>
-        <div class="field">
           <label for="emp-tipo">Tipo</label>
-          <select id="emp-tipo" name="tipo_pessoa">
+          <select id="emp-tipo" name="tipo_pessoa" data-tipo-pessoa>
             <option value="PJ" selected={empresa.tipo_pessoa === 'PJ'}>Pessoa jurídica</option>
             <option value="PF" selected={empresa.tipo_pessoa === 'PF'}>Pessoa física</option>
           </select>
@@ -82,6 +74,14 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
         <div class="field">
           <label for="emp-doc" data-rotulo-documento>{empresa.tipo_pessoa === 'PF' ? 'CPF' : 'CNPJ'}</label>
           <input id="emp-doc" name="documento" inputmode="numeric" value={formatarDocumento(empresa.documento)} data-mascara="documento" data-mascara-tipo="emp-tipo" />
+        </div>
+        <div class="field">
+          <label for="emp-nome">Nome fantasia<span class="obrigatorio">*</span></label>
+          <input id="emp-nome" name="nome" required maxlength="255" value={empresa.nome} />
+        </div>
+        <div class="field" data-so-pj hidden={empresa.tipo_pessoa === 'PF'}>
+          <label for="emp-razao">Razão social</label>
+          <input id="emp-razao" name="razao_social" maxlength="255" value={empresa.razao_social ?? ''} disabled={empresa.tipo_pessoa === 'PF'} />
         </div>
         <div class="field">
           <label for="emp-email">E-mail</label>
@@ -237,6 +237,17 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
     }
   }
   cep?.addEventListener('input', consultar);
+
+  // Razão social só para pessoa jurídica (escondida e fora do envio em pessoa física)
+  const tipo = document.querySelector<HTMLSelectElement>('[data-tipo-pessoa]');
+  const soPj = document.querySelector<HTMLElement>('[data-so-pj]');
+  tipo?.addEventListener('change', () => {
+    if (!soPj) return;
+    const pj = tipo.value === 'PJ';
+    soPj.hidden = !pj;
+    const campo = soPj.querySelector<HTMLInputElement>('input');
+    if (campo) campo.disabled = !pj;
+  });
   cep?.addEventListener('blur', consultar);
 
   document.querySelector<HTMLButtonElement>('[data-copiar-tenant]')?.addEventListener('click', async (ev) => {

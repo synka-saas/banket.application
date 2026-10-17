@@ -29,7 +29,8 @@ export const empresaSchema = z
     assinatura_cargo: optionalText(255),
     assinatura_telefone: optionalText(30),
   })
-  .transform((e) => ({ ...e, documento: e.documento ? somenteDigitos(e.documento) : null }))
+  // Razão social só existe para pessoa jurídica
+  .transform((e) => ({ ...e, documento: e.documento ? somenteDigitos(e.documento) : null, razao_social: e.tipo_pessoa === 'PJ' ? e.razao_social : null }))
   .refine((e) => !e.documento || (e.tipo_pessoa === 'PF' ? cpfValido(e.documento) : cnpjValido(e.documento)), {
     message: 'CPF/CNPJ inválido.',
     path: ['documento'],
