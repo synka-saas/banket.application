@@ -63,10 +63,10 @@ const links = await Promise.all([
     <div class="vr-resumo" data-resumo-busca>
       <button type="button" class="vr-resumo-botao" aria-expanded="false" data-resumo-botao>
         <span class="vh-categoria-ico"><Icon name="search" size={18} /></span>
-        <span class="vr-resumo-texto"><strong>{criterios.tipo ? rotuloEvento(criterios.tipo) : 'Todos os eventos'}</strong><span>{[resultado.cidade ? `${resultado.cidade.nome} · ${resultado.cidade.uf}` : 'Qualquer cidade', criterios.data ? criterios.data.split('-').reverse().join('/') : null, criterios.convidados ? `${criterios.convidados} convidados` : null].filter(Boolean).join(' · ')}</span></span>
+        <span class="vr-resumo-texto"><strong>{criterios.tipo ? rotuloEvento(criterios.tipo) : 'Todos os eventos'}</strong><span>{[resultado.cidade ? `${resultado.cidade.nome} · ${resultado.cidade.uf}` : 'Qualquer cidade', criterios.nome ? `“${criterios.nome}”` : null, criterios.convidados ? `${criterios.convidados} convidados` : null].filter(Boolean).join(' · ')}</span></span>
         <Icon name="pencil" size={16} />
       </button>
-      <FormBusca criterios={criterios} cidade={resultado.cidade} variante="barra" hoje={hojeSaoPaulo()} />
+      <FormBusca criterios={criterios} cidade={resultado.cidade} variante="barra" />
     </div>
     <div style="margin-top:24px">
       <Resultados resultado={resultado} criterios={criterios} titulo={texto.titulo} />

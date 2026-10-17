@@ -6,6 +6,8 @@ export type Ordem = 'relevancia' | 'avaliacao' | 'distancia';
 export type ModoLocal = 'domicilio' | 'espaco';
 
 export interface Criterios {
+  /** Parte do nome do buffet (?q=), sem diferenciar acentos e maiúsculas */
+  nome: string | null;
   tipo: string | null;
   /** Slug da cidade (busca_cidades.slug, "santo-andre-sp") */
   cidade: string | null;
@@ -38,6 +40,15 @@ const inteiro = (v: string | null, min: number, max: number): number | null => {
   return Number.isInteger(n) && n >= min && n <= max ? n : null;
 };
 
+export const NOME_MIN = 2;
+export const NOME_MAX = 80;
+
+/** Nome digitado: espaços normalizados; curto ou vazio vira null. */
+export function nomeValido(v: string | null): string | null {
+  const t = (v ?? '').replace(/\s+/g, ' ').trim().slice(0, NOME_MAX);
+  return t.length >= NOME_MIN ? t : null;
+}
+
 /** Data "YYYY-MM-DD" ou "dd/mm/aaaa" válida e a partir de `hoje`. */
 export function dataValida(v: string | null, hoje: string): string | null {
   if (!v) return null;
@@ -59,6 +70,7 @@ export function lerCriterios(params: URLSearchParams, hoje: string): Criterios {
   const raio = Number(params.get('raio'));
   const ordem = params.get('ordem') as Ordem;
   return {
+    nome: nomeValido(params.get('q')),
     tipo: ehTipoEvento(tipo) ? tipo : null,
     cidade: /^[a-z0-9-]{3,140}$/.test(cidade) ? cidade : null,
     data: dataValida(params.get('data'), hoje),
@@ -76,6 +88,7 @@ export function lerCriterios(params: URLSearchParams, hoje: string): Criterios {
 /** Query string de uma busca (só o que está preenchido), na ordem estável dos campos. */
 export function queryDaBusca(c: Partial<Criterios>): string {
   const p = new URLSearchParams();
+  if (c.nome) p.set('q', c.nome);
   if (c.tipo) p.set('tipo', c.tipo);
   if (c.cidade) p.set('cidade', c.cidade);
   if (c.data) p.set('data', c.data);
@@ -104,6 +117,7 @@ export const semFiltrosSecundarios = (c: Criterios): Criterios => ({
 export function chipsDosFiltros(c: Criterios, rotulos: { servico: (s: string) => string; restricao: (s: string) => string }): { rotulo: string; sem: Criterios }[] {
   const chips: { rotulo: string; sem: Criterios }[] = [];
   const base = { ...c, pagina: 1 };
+  if (c.nome) chips.push({ rotulo: `Nome: ${c.nome}`, sem: { ...base, nome: null } });
   for (const s of c.servicos) chips.push({ rotulo: rotulos.servico(s), sem: { ...base, servicos: c.servicos.filter((x) => x !== s) } });
   for (const r of c.restricoes) chips.push({ rotulo: rotulos.restricao(r), sem: { ...base, restricoes: c.restricoes.filter((x) => x !== r) } });
   if (c.local) chips.push({ rotulo: c.local === 'espaco' ? 'Espaço próprio' : 'Em domicílio', sem: { ...base, local: null } });

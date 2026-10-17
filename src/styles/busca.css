@@ -243,6 +243,17 @@ body.vitrine {
   cursor: pointer;
 }
 
+.fbusca-sugestao-nome {
+  display: block;
+  color: var(--text-strong);
+}
+
+.fbusca-sugestao-sub {
+  display: block;
+  font-size: var(--fs-12);
+  color: var(--text-secondary);
+}
+
 .fbusca-sugestao.ativa,
 .fbusca-sugestao:hover {
   background: var(--bg-accent-subtle);
@@ -1437,7 +1448,7 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
 
   .fbusca--barra .fbusca-campos {
     flex: 1;
-    grid-template-columns: 1.2fr 1.2fr 1fr 0.8fr;
+    grid-template-columns: 1.3fr 1.1fr 1.1fr 0.7fr;
   }
 
   .fbusca--barra .fbusca-enviar {

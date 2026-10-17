@@ -1,8 +1,9 @@
 ---
-// Buscador guiado (home e resumo dos resultados): tipo de evento, cidade (autocomplete em /api/vitrine/cidades),
-// data e convidados. GET para /buscar: funciona sem JavaScript (a cidade digitada é resolvida no servidor).
+// Buscador guiado (home e resumo dos resultados): nome do buffet (instant search em /api/vitrine/buffets), tipo de
+// evento, cidade (autocomplete em /api/vitrine/cidades) e convidados. GET para /buscar: funciona sem JavaScript (a cidade digitada é resolvida no servidor).
 import Icon from '../ui/Icon.astro';
 import CampoCidade from './CampoCidade.astro';
+import CampoNome from './CampoNome.astro';
 import { TIPOS_EVENTO } from '../../lib/busca/catalogos';
 import { caminhoVitrine } from '../../lib/busca/url';
 import type { Criterios } from '../../lib/busca/filtros';
@@ -12,14 +13,14 @@ interface Props {
   criterios?: Partial<Criterios>;
   cidade?: Cidade | null;
   variante?: 'destaque' | 'barra';
-  hoje: string;
 }
-const { criterios = {}, cidade = null, variante = 'destaque', hoje } = Astro.props;
+const { criterios = {}, cidade = null, variante = 'destaque' } = Astro.props;
 const id = `fb-${variante}`;
 ---
 
 <form class:list={['fbusca', `fbusca--${variante}`]} method="get" action={caminhoVitrine('/buscar')} role="search" aria-label="Buscar buffets">
   <div class="fbusca-campos">
+    <CampoNome id={`${id}-nome`} valor={criterios.nome} />
     <div class="field">
       <label for={`${id}-tipo`}>Tipo de evento</label>
       <div class="campo-icone">
@@ -31,13 +32,6 @@ const id = `fb-${variante}`;
       </div>
     </div>
     <CampoCidade id={`${id}-cidade`} rotulo="Cidade" nameSlug="cidade" nameTexto="cidade_texto" cidade={cidade} />
-    <div class="field">
-      <label for={`${id}-data`}>Data do evento</label>
-      <div class="campo-icone">
-        <Icon name="calendar" size={18} class="campo-icone-ico" />
-        <input id={`${id}-data`} name="data" type="date" min={hoje} value={criterios.data ?? ''} />
-      </div>
-    </div>
     <div class="field">
       <label for={`${id}-conv`}>Convidados</label>
       <div class="campo-icone">

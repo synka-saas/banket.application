@@ -15,6 +15,16 @@ describe('lerCriterios', () => {
     });
   });
 
+  it('nome do buffet: espaços normalizados, mínimo de 2 caracteres, vai na URL como q', () => {
+    expect(ler('q=%20%20Buffet%20%20Mediterr%C3%A2neo%20').nome).toBe('Buffet Mediterrâneo');
+    expect(ler('q=a').nome).toBeNull();
+    expect(ler('').nome).toBeNull();
+    expect(queryDaBusca({ nome: 'Bisutti', cidade: 'sao-paulo-sp' })).toBe('?q=Bisutti&cidade=sao-paulo-sp');
+    const chips = chipsDosFiltros(ler('q=Bisutti&raio=10'), { servico: (x) => x, restricao: (x) => x });
+    expect(chips.map((c) => c.rotulo)).toEqual(['Nome: Bisutti', 'Até 10 km']);
+    expect(chips[0].sem.nome).toBeNull();
+  });
+
   it('data no passado é descartada; aceita dd/mm/aaaa', () => {
     expect(dataValida('2026-10-15', HOJE)).toBeNull();
     expect(dataValida('16/10/2026', HOJE)).toBe('2026-10-16');

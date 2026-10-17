@@ -191,6 +191,7 @@ const SQL_CANDIDATOS = `
     LEFT JOIN busca_cidades c ON c.id = p.cidade_id
    WHERE ${PERFIL_VISIVEL}
      AND ($4::text IS NULL OR $4 = ANY(p.tipos_evento))
+     AND ($6::text IS NULL OR strpos(busca_sem_acento(p.nome), busca_sem_acento($6)) > 0)
      AND ($1::float8 IS NULL OR p.cidade_id = $3
           OR EXISTS (SELECT 1 FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id AND pc.cidade_id = $3)
           OR (p.lat IS NOT NULL AND earth_box(ll_to_earth($1, $2), ${RAIO_PREFILTRO_M}) @> ll_to_earth(p.lat, p.lng)))
@@ -212,8 +213,8 @@ function paraItem(r: any, data: string | null): ItemResultado {
   return item;
 }
 
-async function candidatos(db: Db, crit: Pick<Criterios, 'tipo' | 'data'>, cidade: Cidade | null): Promise<ItemResultado[]> {
-  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data]);
+async function candidatos(db: Db, crit: Pick<Criterios, 'tipo' | 'data' | 'nome'>, cidade: Cidade | null): Promise<ItemResultado[]> {
+  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data, crit.nome]);
   return rows.map((r) => paraItem(r, crit.data));
 }
 
@@ -271,8 +272,39 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
 /** Destaques da home: os mais bem colocados no ranking geral (clientes Banket primeiro). */
 export async function destaques(limite = 6): Promise<ItemResultado[]> {
   return leituraPublica(async (db) => {
-    const lista = await candidatos(db, { tipo: null, data: null }, null);
+    const lista = await candidatos(db, { tipo: null, data: null, nome: null }, null);
     return ordenar(lista.filter((c) => c.foto), 'relevancia', lerPesos(env('BUSCA_RANKING_PESOS'))).slice(0, limite);
+  });
+}
+
+export interface SugestaoBuffet {
+  slug: string;
+  nome: string;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+}
+
+/**
+ * Instant search da barra de busca: buffets publicados cujo nome contém o texto (sem acento), os que começam com ele
+ * primeiro; sem nenhum, os de nome parecido (trigrama, tolera erro de digitação).
+ */
+export async function buffetsPorNome(termo: string, limite = 6): Promise<SugestaoBuffet[]> {
+  const q = termo.replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (q.length < 2) return [];
+  return leituraPublica(async (db) => {
+    const { rows } = await db.query<SugestaoBuffet>(
+      `WITH termo AS (SELECT busca_sem_acento($1) AS q)
+       SELECT p.slug, p.nome, p.bairro, c.nome AS cidade, c.uf
+         FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id LEFT JOIN busca_cidades c ON c.id = p.cidade_id, termo
+        WHERE ${PERFIL_VISIVEL}
+          AND (strpos(busca_sem_acento(p.nome), termo.q) > 0 OR word_similarity(termo.q, busca_sem_acento(p.nome)) >= 0.5)
+        ORDER BY (strpos(busca_sem_acento(p.nome), termo.q) = 1) DESC, (strpos(busca_sem_acento(p.nome), termo.q) > 0) DESC,
+                 word_similarity(termo.q, busca_sem_acento(p.nome)) DESC, p.completude DESC, p.nome
+        LIMIT $2`,
+      [q, Math.min(Math.max(limite, 1), 10)]
+    );
+    return rows;
   });
 }
 
