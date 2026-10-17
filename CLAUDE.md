@@ -1063,7 +1063,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio ativas do
   catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
   grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
-- **Sem fotos**: card e perfil usam a imagem padrão `public/thumb-buffet.webp` (`FOTO_PADRAO` em `lib/busca/url.ts`),
+- **Sem fotos**: card e perfil usam a imagem padrão `public/thumb-buffet.webp` (`FOTO_PADRAO` em `lib/busca/url.ts`, com
+  `?v=` = 8 primeiros caracteres do md5sum: ao trocar a imagem, atualize o `?v=` para furar o cache de 4 h do Cloudflare),
   também como `og:image`; o JSON-LD não a declara como foto do buffet (nem quando ela está gravada como foto, caso dos
   perfis de demonstração desde a migration 035).
 - **Métricas**: aparições (cards exibidos), visualizações (perfil) por dia em `busca_metricas_dia`; robôs e clientes de

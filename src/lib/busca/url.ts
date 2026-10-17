@@ -49,5 +49,10 @@ export const noHostBusca = (url: URL): boolean => {
 /** Para onde vai quem acabou de entrar: a área do Busca no host do Busca, o dashboard no app. */
 export const inicioAposLogin = (url: URL): string => (noHostBusca(url) ? '/busca' : '/dashboard');
 
-/** Foto mostrada no card e no perfil dos buffets que ainda não enviaram nenhuma foto (public/thumb-buffet.webp). */
-export const FOTO_PADRAO = '/thumb-buffet.webp';
+/** Arquivo da imagem padrão dos buffets (public/thumb-buffet.webp); é o `path` gravado nas fotos de demonstração. */
+export const ARQUIVO_FOTO_PADRAO = '/thumb-buffet.webp';
+/**
+ * URL da imagem padrão (card, perfil e og:image dos buffets sem foto própria). O `?v=` muda quando a imagem é
+ * trocada, para o navegador e o Cloudflare (cache de 4 h) buscarem a nova: use os 8 primeiros caracteres do md5sum.
+ */
+export const FOTO_PADRAO = `${ARQUIVO_FOTO_PADRAO}?v=f5784750`;

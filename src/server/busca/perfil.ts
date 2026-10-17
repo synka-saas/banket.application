@@ -3,6 +3,7 @@
 // O onboarding e a edição chegam na fase 4. Recebe `db` dentro de withTenant (RLS da própria empresa).
 import { systemQuery, type Db } from '../../lib/db';
 import { slugTexto } from '../../lib/busca/geo';
+import { ARQUIVO_FOTO_PADRAO, FOTO_PADRAO } from '../../lib/busca/url';
 import { entitlements, limiteEm, nivelEm } from '../../lib/planos/gating';
 
 export interface PerfilBusca {
@@ -140,6 +141,7 @@ export async function aplicarExcedentesBusca(db: Db, tenantId: string): Promise<
 /** URL pública de uma foto ou logo do perfil: estáticos (seed) começam com "/"; o resto vem do storage. */
 export function urlMidia(tenantId: string, path: string | null | undefined): string | null {
   if (!path) return null;
+  if (path === ARQUIVO_FOTO_PADRAO) return FOTO_PADRAO;
   if (path.startsWith('/')) return path;
   return `/busca-media/${tenantId}/${path}`;
 }
