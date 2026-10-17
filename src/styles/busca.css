@@ -805,10 +805,20 @@ body.vitrine {
 .vr-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  min-height: 30px;
   margin: 0 0 16px;
   padding: 0;
   list-style: none;
+}
+
+.vr-chips-vazio {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  font-size: var(--fs-13);
+  color: var(--text-muted);
 }
 
 .vr-chip {
@@ -1541,14 +1551,32 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
     display: block !important;
   }
 
-  /* Perfil sem fotos: só a imagem padrão, na largura toda */
-  .vp-galeria--padrao {
+  /* Galeria do topo conforme a quantidade de fotos (classe vp-galeria--N, N = 1 a 5): sem foto ou com uma, a imagem
+     ocupa o topo sozinha; da 2ª em diante entram as miniaturas, sem espaço vazio na grade */
+  .vp-galeria--1 {
     grid-template-columns: 1fr;
     grid-template-rows: 408px;
   }
 
-  .vp-galeria--padrao .vp-galeria-principal {
+  .vp-galeria--1 .vp-galeria-principal {
     grid-row: auto;
+  }
+
+  .vp-galeria--2 {
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 408px;
+  }
+
+  .vp-galeria--2 .vp-galeria-principal {
+    grid-row: auto;
+  }
+
+  .vp-galeria--3 {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .vp-galeria--4 .vp-galeria-extra:nth-child(2) {
+    grid-row: 1 / 3;
   }
 
   .vp-layout {

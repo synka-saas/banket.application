@@ -125,3 +125,33 @@ export function resumoEtapas(p: EstadoPerfil, c: Contagens, rotulos: { cidade: s
     5: `${c.fotos} ${c.fotos === 1 ? 'foto' : 'fotos'}${c.fotos < MIN_FOTOS_PUBLICAR ? ` · mínimo de ${MIN_FOTOS_PUBLICAR} para publicar` : ' · capa definida'}`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Endereço do perfil (/buffet/<slug>): UUID do perfil por padrão; endereço próprio só com o recurso busca_slug
+// ---------------------------------------------------------------------------
+export const SLUG_MIN = 3;
+export const SLUG_MAX = 60;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const ehUuid = (v: string | null | undefined) => Boolean(v && UUID.test(v));
+
+/** Normaliza o que foi digitado ("Buffet São João!" → "buffet-sao-joao"). */
+export function normalizarSlug(v: string): string {
+  return v
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, SLUG_MAX)
+    .replace(/-+$/g, '');
+}
+
+/** Motivo pelo qual o endereço não pode ser usado (null = válido). Não confere se já está em uso. */
+export function problemaNoSlug(slug: string): string | null {
+  if (slug.length < SLUG_MIN) return `Use ao menos ${SLUG_MIN} letras ou números no endereço.`;
+  if (slug.length > SLUG_MAX) return `O endereço pode ter até ${SLUG_MAX} caracteres.`;
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use só letras minúsculas, números e hífens no endereço.';
+  if (ehUuid(slug)) return 'Escolha um endereço com o nome do buffet.';
+  return null;
+}

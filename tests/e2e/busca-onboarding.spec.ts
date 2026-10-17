@@ -71,6 +71,9 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     expect(psql(`SELECT p.slug || '|' || t.origem_cadastro FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT}`)).toBe('busca|busca');
     await expect(page.locator('[data-situacao]')).toContainText('Rascunho');
     await expect(page.locator('[data-situacao]')).toContainText('0 de 5 etapas');
+    // Plano gratuito: endereço = id do perfil, sem campo para trocar
+    await expect(page.locator('#e-endereco')).toHaveCount(0);
+    expect(psql(`SELECT (slug = id::text)::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('true');
     // Empresa PJ no plano gratuito: sem a captura dos dados da conta e sem a etapa de pacotes
     await expect(page.locator('[data-capturar-conta]')).toHaveCount(0);
     await expect(page.locator('.onb-etapas')).not.toContainText('Pacotes');
@@ -213,6 +216,23 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await expect(page.locator('.toast').first()).toContainText('Dados da conta trazidos');
     await expect(page.locator('#e-email')).toHaveValue('contato@mesaposta.test');
     await expect(page.locator('#e-doc')).toHaveValue('41.111.111/0001-03');
+
+    // Endereço próprio (plano pago): inválido é recusado; o novo vale e o anterior redireciona
+    // (o CNPJ de demonstração do seed não é válido: usa um válido e restaura no fim)
+    await page.fill('#e-doc', cnpj('112223330001'));
+    await page.fill('#e-endereco', 'ab');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('.toast').first()).toContainText('ao menos 3');
+    await page.fill('#e-endereco', `Mesa Posta E2E ${ts}`);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('#e-endereco')).toHaveValue(`mesa-posta-e2e-${ts}`);
+    const r1 = await page.request.get(`/vitrine/buffet/mesa-posta-catering`, { maxRedirects: 0 });
+    expect(r1.status()).toBe(301);
+    expect(r1.headers().location).toContain(`/buffet/mesa-posta-e2e-${ts}`);
+    await page.fill('#e-endereco', 'mesa-posta-catering');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('#e-endereco')).toHaveValue('mesa-posta-catering');
+    psql(`UPDATE busca_perfis SET documento = '41111111000103', slugs_antigos = array_remove(slugs_antigos, 'mesa-posta-e2e-${ts}') WHERE tenant_id = ${MESA}`);
 
     // Fotos: sem limite e com grupo; no perfil público o grupo aparece separado
     await etapa(page, 5);

@@ -147,6 +147,8 @@ function comRascunho<T extends Record<string, any>>(p: T, r: Record<string, stri
     else if (typeof p[k] === 'number' || p[k] === null) out[k] = typeof v === 'string' && v !== '' && /^\d+$/.test(v) ? Number(v) : v || null;
     else out[k] = v;
   }
+  // O endereço digitado fica no campo `endereco` (no perfil é o `slug`)
+  if (typeof r.endereco === 'string' && 'slug' in p) out.slug = r.endereco || (p as any).id;
   // checkbox desmarcado não vai no POST
   for (const k of ['espaco_proprio', 'atende_domicilio', 'aceita_menor']) if (k in p && !(k in r)) out[k] = false;
   for (const k of ['tipos_evento', 'tipos_servico', 'restricoes']) if (k in p && !(k in r) && Number(r._etapa) === 2) out[k] = [];
@@ -175,7 +177,7 @@ const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUr
   </div>
   {!editor && <div class="onb-aviso">Só proprietários e administradores editam o perfil. Você pode consultar as etapas.</div>}
 
-  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} conta={dados.conta} />}
+  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} conta={dados.conta} endereco={recursos.endereco} />}
   {etapa === 2 && <Eventos perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} maxEventos={recursos.maxEventos} maxServicos={recursos.maxServicos} />}
   {etapa === 3 && <Regiao perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} cidadeBase={cidadeBase} extras={extras} />}
   {etapa === 4 && <Capacidade perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} />}

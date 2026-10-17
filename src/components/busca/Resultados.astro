@@ -55,12 +55,17 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
     <button type="button" class="btn btn-outline btn-md" data-abrir-filtros><Icon name="adjustments-horizontal" size={16} /> Filtros{nFiltros ? ` (${nFiltros})` : ''}</button>
   </div>
 
-  {chips.length > 0 && (
-    <ul class="vr-chips" aria-label="Filtros aplicados">
-      {chips.map((ch) => <li><a class="vr-chip" href={url(ch.sem)} aria-label={`Remover filtro ${ch.rotulo}`}>{ch.rotulo}<Icon name="x" size={14} /></a></li>)}
-      <li><a class="vr-chip" href={url(semFiltrosSecundarios(c))}>Limpar filtros</a></li>
-    </ul>
-  )}
+  {/* A faixa dos filtros sempre ocupa o espaço (sem salto na tela ao escolher ou limpar um filtro) */}
+  <ul class="vr-chips" aria-label="Filtros aplicados">
+    {chips.length > 0 ? (
+      <>
+        {chips.map((ch) => <li><a class="vr-chip" href={url(ch.sem)} aria-label={`Remover filtro ${ch.rotulo}`}>{ch.rotulo}<Icon name="x" size={14} /></a></li>)}
+        <li><a class="vr-chip" href={url(semFiltrosSecundarios(c))}>Limpar filtros</a></li>
+      </>
+    ) : (
+      <li class="vr-chips-vazio">Nenhum filtro selecionado</li>
+    )}
+  </ul>
 
   <div class="vr-layout">
     <aside class="vr-lateral" aria-label="Filtros">

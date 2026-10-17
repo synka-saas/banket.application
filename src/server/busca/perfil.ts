@@ -2,14 +2,17 @@
 // espaço padrão, nível (gratuito/cliente) sincronizado com o plano, excedentes do plano gratuito e URLs das fotos.
 // O onboarding e a edição chegam na fase 4. Recebe `db` dentro de withTenant (RLS da própria empresa).
 import { systemQuery, type Db } from '../../lib/db';
-import { slugTexto } from '../../lib/busca/geo';
 import { ARQUIVO_FOTO_PADRAO, FOTO_PADRAO } from '../../lib/busca/url';
-import { entitlements, limiteEm, nivelEm } from '../../lib/planos/gating';
+import { randomUUID } from 'node:crypto';
+import { entitlements, limiteEm, nivelEm, podeUsarEm } from '../../lib/planos/gating';
 
 export interface PerfilBusca {
   id: string;
   tenant_id: string;
+  /** Endereço público (/buffet/<slug>): o próprio id por padrão; endereço escolhido só com o recurso busca_slug */
   slug: string;
+  /** Endereços anteriores: redirecionam (301) para o atual */
+  slugs_antigos: string[];
   nome: string;
   documento: string | null;
   descricao: string | null;
@@ -55,17 +58,16 @@ export async function carregarPerfil(db: Db): Promise<PerfilBusca | null> {
   return rows[0] ?? null;
 }
 
-/** Slug disponível no Busca inteiro (busca na conexão de sistema: a RLS esconde os perfis das outras empresas). */
-export async function slugDisponivel(base: string, ignorarTenant: string | null = null): Promise<string> {
-  const raiz = slugTexto(base, 70);
-  const { rows } = await systemQuery<{ slug: string }>(
-    `SELECT slug FROM busca_perfis WHERE (slug = $1 OR slug LIKE $1 || '-%') AND ($2::uuid IS NULL OR tenant_id <> $2)`,
-    [raiz, ignorarTenant]
+/**
+ * O endereço está livre no Busca inteiro? Não pode ser o endereço atual nem um endereço antigo de outro perfil (os
+ * antigos continuam redirecionando). Conexão de sistema: a RLS esconde os perfis das outras empresas.
+ */
+export async function slugLivre(slug: string, perfilId: string): Promise<boolean> {
+  const { rows } = await systemQuery(
+    'SELECT 1 FROM busca_perfis WHERE id <> $2 AND (slug = $1 OR $1 = ANY(slugs_antigos)) LIMIT 1',
+    [slug, perfilId]
   );
-  const usados = new Set(rows.map((r) => r.slug));
-  let slug = raiz;
-  for (let i = 2; usados.has(slug); i++) slug = `${raiz}-${i}`;
-  return slug;
+  return rows.length === 0;
 }
 
 /** Perfil da empresa; cria o rascunho (não publicado) com os dados da empresa e do espaço padrão na primeira vez. */
@@ -84,17 +86,18 @@ export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBu
       WHERE e.tipo = 'proprio' AND e.ativo ORDER BY (c.tenant_id IS NOT NULL) DESC, e.ordem LIMIT 1`
   );
   const ent = await entitlements(tenantId, db);
-  const slug = await slugDisponivel(t[0].nome, tenantId);
+  // O endereço nasce como o próprio id do perfil; planos pagos podem trocar por um nome na etapa 1
+  const id = randomUUID();
   const min = esp[0]?.capacidade_min ?? null;
   const max = esp[0]?.capacidade_max ?? null;
   const { rows } = await db.query<PerfilBusca>(
-    `INSERT INTO busca_perfis (tenant_id, slug, nome, documento, email_contato, telefone, logo_path, espaco_proprio,
+    `INSERT INTO busca_perfis (id, tenant_id, slug, nome, documento, email_contato, telefone, logo_path, espaco_proprio,
                                capacidade_min, capacidade_max, nivel)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     VALUES ($12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      ON CONFLICT (tenant_id) DO UPDATE SET updated_at = busca_perfis.updated_at
      RETURNING *`,
-    [tenantId, slug, t[0].nome, t[0].documento, t[0].email, t[0].telefone, t[0].logo_path, Boolean(esp[0]),
-     min, max != null && min != null && max < min ? min : max, nivelEm(ent)]
+    [tenantId, id, t[0].nome, t[0].documento, t[0].email, t[0].telefone, t[0].logo_path, Boolean(esp[0]),
+     min, max != null && min != null && max < min ? min : max, nivelEm(ent), id]
   );
   return rows[0];
 }
@@ -110,6 +113,16 @@ export async function sincronizarNivel(db: Db, tenantId: string, nivel: 'gratuit
  */
 export async function aplicarExcedentesBusca(db: Db, tenantId: string): Promise<void> {
   const ent = await entitlements(tenantId, db);
+  // Endereço próprio é recurso pago: sem ele, volta para o id do perfil (o antigo segue redirecionando)
+  if (!podeUsarEm(ent, 'busca_slug')) {
+    await db.query(
+      `UPDATE busca_perfis
+          SET slugs_antigos = CASE WHEN slug = ANY(slugs_antigos) THEN slugs_antigos ELSE array_append(slugs_antigos, slug) END,
+              slug = id::text, updated_at = now()
+        WHERE tenant_id = $1 AND slug <> id::text`,
+      [tenantId]
+    );
+  }
   const maxFotos = limiteEm(ent, 'busca_fotos');
   if (Number.isFinite(maxFotos)) {
     await db.query(

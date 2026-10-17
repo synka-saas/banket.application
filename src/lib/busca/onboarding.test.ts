@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completude, etapasConcluidas, pendentesParaPublicar, podePublicar, proximaEtapa, type EstadoPerfil } from './onboarding';
+import { completude, ehUuid, etapasConcluidas, normalizarSlug, pendentesParaPublicar, podePublicar, problemaNoSlug, proximaEtapa, type EstadoPerfil } from './onboarding';
 
 const vazio: EstadoPerfil = {
   nome: 'Buffet', documento: null, descricao: null, logo_path: null, telefone: null, whatsapp: null, email_contato: null,
@@ -45,5 +45,22 @@ describe('completude', () => {
     expect(completude(completo, { fotos: 5 })).toBe(100);
     expect(completude(completo, { fotos: 3 })).toBe(90);
     expect(completude({ ...completo, descricao: 'x'.repeat(100) }, { fotos: 5 })).toBe(93);
+  });
+});
+
+describe('endereço do perfil', () => {
+  it('normaliza o que foi digitado', () => {
+    expect(normalizarSlug('  Buffet São João!! ')).toBe('buffet-sao-joao');
+    expect(normalizarSlug('---Casa   & Jardim---')).toBe('casa-jardim');
+  });
+
+  it('recusa curto, longo, caracteres inválidos e UUID', () => {
+    expect(problemaNoSlug('ab')).toContain('ao menos 3');
+    expect(problemaNoSlug('a'.repeat(61))).toContain('até 60');
+    expect(problemaNoSlug('Buffet_X')).toContain('minúsculas');
+    expect(problemaNoSlug('3f2b8c1e-0a4d-4c55-9b1a-2d8e5f6a7b9c')).toContain('nome do buffet');
+    expect(problemaNoSlug('buffet-sabor-de-festa')).toBeNull();
+    expect(ehUuid('3f2b8c1e-0a4d-4c55-9b1a-2d8e5f6a7b9c')).toBe(true);
+    expect(ehUuid('buffet')).toBe(false);
   });
 });

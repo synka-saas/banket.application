@@ -485,7 +485,7 @@ liberada a todos. **`busca_perfis`** — um por empresa: `slug` (UNIQUE global),
 `tipos_servico`/`restricoes` (slugs de `lib/busca/catalogos.ts`), região (`atende_domicilio`, `raio_km`, `espaco_proprio`,
 endereço, `cidade_id`, `lat/lng`), capacidade, `etapa_concluida`, `publicado`, `completude`, `nivel` (`gratuito | cliente`,
 sincronizado pelo `trocarPlano`), `nota_media`/`total_avaliacoes`/`taxa_resposta`, `excedentes` (tipos guardados no
-rebaixamento). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** e `busca_perfis.valor_minimo` (**sem uso**
+rebaixamento), `slugs_antigos` (endereços anteriores, redirecionam 301; migration 036). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** e `busca_perfis.valor_minimo` (**sem uso**
 desde a migration 034: o Busca não tem pacotes nem divulga preço; remover num deploy futuro), **`busca_fotos`** (`path` do
 storage `busca/…` ou estático `/busca-demo/…`, `tags` = grupos de fotos por evento, `capa`, `bloqueado_plano_em`), **`busca_bloqueios`** (datas indisponíveis),
 **`busca_pedidos`** (um por buffet escolhido; `grupo_id` junta o mesmo pedido; `evento_id`, `cliente_id`, `conversa_id`),
@@ -559,6 +559,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `036_busca_endereco_perfil` | endereço do perfil = id (UUID) sem o recurso `busca_slug`; `busca_perfis.slugs_antigos` para os redirecionamentos 301 |
 | `035_busca_fotos_thumb` | fotos de demonstração (`/busca-demo/*.svg`) viram a imagem padrão `/thumb-buffet.webp` |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
@@ -1063,6 +1064,12 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio ativas do
   catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
   grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
+- **Endereço do perfil**: `/buffet/<id do perfil>` (UUID); só planos pagos (recurso `busca_slug`) escolhem um endereço
+  com o nome na etapa 1 (`problemaNoSlug`, único também entre os `slugs_antigos`). O perfil é achado pelo endereço atual,
+  pelo id ou por um antigo, e a página faz 301 para o atual. Perder o plano pago volta o endereço para o id.
+- **Galeria do topo** (`vp-galeria--N`): conta só fotos reais (a imagem padrão não conta); sem foto, a imagem padrão
+  sozinha; 1 foto, ela sozinha; da 2ª em diante, miniaturas (até 4) sem espaço vazio na grade.
+- **Busca**: a faixa dos filtros aplicados sempre ocupa o espaço ("Nenhum filtro selecionado" quando vazia), sem salto.
 - **Sem fotos**: card e perfil usam a imagem padrão `public/thumb-buffet.webp` (`FOTO_PADRAO` em `lib/busca/url.ts`, com
   `?v=` = 8 primeiros caracteres do md5sum: ao trocar a imagem, atualize o `?v=` para furar o cache de 4 h do Cloudflare),
   também como `og:image`; o JSON-LD não a declara como foto do buffet (nem quando ela está gravada como foto, caso dos
@@ -1090,6 +1097,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   volta (cookie curto `banket_busca_rascunho`). Publicar exige 1 a 5 (≥ 3 fotos); perder uma condição despublica e
   avisa. Endereços antigos com `?etapa=7` caem na revisão.
   "Cardápios" e "Disponibilidade" aparecem na lista como "Exclusivo Banket" (cadeado + upsell no gratuito).
+  Planos pagos ainda têm o campo "Endereço do perfil" na etapa 1 (gratuito vê o endereço com o id e o cadeado).
 - **Prévia**: `/vitrine/buffet/<slug>?previa=1` mostra o perfil ainda não publicado só para quem está logado na empresa
   dona (`private, no-store`, `noindex`); fica no host do app.
 - **Host do Busca**: `busca.banket.com.br` serve **só a vitrine pública**. Toda tela interna e de cadastro (`/busca`,

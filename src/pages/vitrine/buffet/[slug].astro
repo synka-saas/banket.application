@@ -24,6 +24,12 @@ if (Astro.url.searchParams.get('previa') === '1') {
 }
 const p = await perfilCompleto(Astro.params.slug ?? '', criterios.data, previaDoTenant);
 if (!p) return new Response(null, { status: 404 });
+// Endereço antigo ou o id do perfil com endereço próprio: 301 para o endereço atual (mantém a busca e a prévia)
+if (p.slug !== Astro.params.slug) {
+  // A prévia fica no app (/vitrine/…); o perfil público, no endereço da vitrine
+  const destino = previaDoTenant ? `/vitrine/buffet/${p.slug}` : buscaUrl(`/buffet/${p.slug}`);
+  return Astro.redirect(`${destino}${Astro.url.search}`, 301);
+}
 const emPrevia = previaDoTenant != null && p.tenantId === previaDoTenant;
 if (emPrevia) Astro.response.headers.set('Cache-Control', 'private, no-store');
 else cachePublico(Astro.response.headers);
@@ -36,7 +42,9 @@ const local = [p.bairro, p.cidade].filter(Boolean).join(', ');
 const atendimento = p.espaco_proprio && p.atende_domicilio ? 'Espaço próprio e em domicílio' : p.espaco_proprio ? 'Espaço próprio' : p.atende_domicilio ? 'Em domicílio' : null;
 const capacidade = p.capacidade_min && p.capacidade_max ? `${p.capacidade_min} a ${p.capacidade_max} convidados` : p.capacidade_max ? `Até ${p.capacidade_max} convidados` : null;
 const dataBR = criterios.data?.split('-').reverse().join('/');
-const fotos = p.fotos;
+// Só fotos reais: a imagem padrão (fotos de demonstração) não conta como foto do buffet
+const fotos = p.fotos.filter((f) => f.url !== FOTO_PADRAO);
+// Galeria do topo: sem foto → imagem padrão sozinha; 1 foto → ela sozinha; da 2ª em diante, miniaturas (até 4)
 const extras = fotos.slice(1, 5);
 // Grupos de fotos (o primeiro grupo de cada foto); fotos sem grupo ficam em "Mais fotos"
 const nomesGrupos = [...new Set(fotos.flatMap((f) => f.tags.slice(0, 1)))];
@@ -53,7 +61,7 @@ const fatos = [
 ].filter(Boolean) as { icone: string; rotulo: string; valor: string }[];
 const ld = jsonLdPerfil({
   nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
-  fotos: fotos.filter((f) => f.url !== FOTO_PADRAO).map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
+  fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
   totalAvaliacoes: p.total_avaliacoes, avaliacoes: p.avaliacoes,
 });
 const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
@@ -71,12 +79,12 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
     <a class="voltar" href={v('/buscar') + busca}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
 
     {fotos.length > 0 ? (
-      <div class="vp-galeria">
+      <div class={`vp-galeria vp-galeria--${Math.min(fotos.length, 5)}`}>
         <div class="vp-galeria-principal"><img src={fotos[0].url} alt={fotos[0].legenda ?? `Foto de ${p.nome}`} width="900" height="675" /></div>
         {extras.map((f) => <div class="vp-galeria-extra"><img src={f.url} alt={f.legenda ?? ''} loading="lazy" width="450" height="200" /></div>)}
       </div>
     ) : (
-      <div class="vp-galeria vp-galeria--padrao">
+      <div class="vp-galeria vp-galeria--1">
         <div class="vp-galeria-principal"><img src={FOTO_PADRAO} alt="" width="1200" height="900" /></div>
       </div>
     )}

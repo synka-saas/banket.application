@@ -9,10 +9,10 @@ import { UserError, checkbox, optionalInt, optionalText, requiredText } from '..
 import { cnpjValido, cpfValido, somenteDigitos } from '../../lib/documento';
 import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO, filtrarSlugs } from '../../lib/busca/catalogos';
 import { cepValido } from '../../lib/busca/geo';
-import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, completude, etapasConcluidas, podePublicar, pendentesParaPublicar, type Contagens } from '../../lib/busca/onboarding';
+import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, completude, ehUuid, etapasConcluidas, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, type Contagens } from '../../lib/busca/onboarding';
 import { ErroPlano, entitlements, exigir, limite, podeUsar } from '../../lib/planos/gating';
 import { copiarArquivo, removeFile, saveUpload } from '../../lib/storage';
-import { garantirPerfil, type PerfilBusca } from './perfil';
+import { garantirPerfil, slugLivre, type PerfilBusca } from './perfil';
 
 export const TIPOS_FOTO = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
@@ -61,6 +61,8 @@ export const empresaSchema = z
     site: optionalText(255),
     tempo_resposta_texto: optionalText(60),
     descricao: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().min(80, 'Escreva ao menos 80 caracteres na descrição.').max(1200, 'A descrição pode ter até 1.200 caracteres.')),
+    // Endereço do perfil (só planos pagos mostram o campo): ausente = não mexe; vazio = volta para o id do perfil
+    endereco: z.preprocess((v) => (typeof v === 'string' ? normalizarSlug(v) : undefined), z.string().optional()),
   })
   .superRefine((d, ctx) => {
     if (!(d.documento.length === 14 ? cnpjValido(d.documento) : d.documento.length === 11 ? cpfValido(d.documento) : false)) {
@@ -80,6 +82,7 @@ export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<ty
   } else if (removerLogo) {
     logoPath = null;
   }
+  await salvarEndereco(db, user.tenantId, p, input.endereco);
   const instagram = input.instagram ? (input.instagram.startsWith('@') || input.instagram.includes('/') ? input.instagram : `@${input.instagram}`) : null;
   await db.query(
     `UPDATE busca_perfis SET nome = $2, documento = $3, whatsapp = $4, telefone = $5, email_contato = $6, instagram = $7, site = $8,
@@ -88,6 +91,25 @@ export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<ty
   );
   if (p.logo_path && p.logo_path !== logoPath && p.logo_path.startsWith('busca/')) await removeFile(user.tenantId, p.logo_path).catch(() => undefined);
   return recalcular(db, p.id);
+}
+
+/**
+ * Troca o endereço público do perfil. Endereço próprio exige o recurso busca_slug (planos pagos) e não pode estar em
+ * uso por outro perfil, nem como endereço antigo. O endereço anterior vai para slugs_antigos e redireciona (o id do
+ * perfil sempre resolve, então não precisa ser guardado).
+ */
+async function salvarEndereco(db: Db, tenantId: string, p: PerfilBusca, endereco: string | undefined) {
+  if (endereco === undefined) return;
+  const novo = endereco || p.id;
+  if (novo === p.slug) return;
+  if (novo !== p.id) {
+    await exigir(tenantId, 'busca_slug', 'Endereço personalizado do perfil');
+    const problema = problemaNoSlug(novo);
+    if (problema) throw new UserError(problema, 'endereco');
+    if (!(await slugLivre(novo, p.id))) throw new UserError('Esse endereço já está em uso. Escolha outro.', 'endereco');
+  }
+  const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== novo);
+  await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, updated_at = now() WHERE id = $1', [p.id, novo, antigos]);
 }
 
 export const eventosSchema = z.object({
@@ -357,9 +379,10 @@ export async function capturarDadosDaConta(db: Db, user: SessionUser) {
 
 /** Recursos do plano que a interface do onboarding precisa (espelho; a regra vale no servidor). */
 export async function recursosOnboarding(tenantId: string) {
-  const [maxEventos, maxServicos, maxFotos, tags, cardapios, agenda] = await Promise.all([
+  const [maxEventos, maxServicos, maxFotos, tags, cardapios, agenda, endereco] = await Promise.all([
     limite(tenantId, 'busca_tipos_evento'), limite(tenantId, 'busca_tipos_servico'), limite(tenantId, 'busca_fotos'),
     podeUsar(tenantId, 'busca_fotos_tags'), podeUsar(tenantId, 'busca_cardapios'), podeUsar(tenantId, 'busca_disponibilidade'),
+    podeUsar(tenantId, 'busca_slug'),
   ]);
-  return { maxEventos, maxServicos, maxFotos, tags, cardapios, agenda };
+  return { maxEventos, maxServicos, maxFotos, tags, cardapios, agenda, endereco };
 }

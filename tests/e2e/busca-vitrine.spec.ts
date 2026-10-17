@@ -5,6 +5,8 @@ import { psql } from './helpers';
 // Jardim, Mesa Posta, Villa Toscana; gratuitos: Brasa & Cia, Doce Encanto, Food Truck, Ateliê, Recanto; não
 // publicado: Sabores do ABC). Em dev a vitrine fica em /vitrine; com BUSCA_URL, use VITRINE=<url da vitrine>.
 const V = process.env.VITRINE ?? '/vitrine';
+// Perfis gratuitos usam o id do perfil no endereço (migration 036); o nome antigo fica em slugs_antigos
+const slugDe = (antigo: string) => psql(`SELECT slug FROM busca_perfis WHERE slug = '${antigo}' OR '${antigo}' = ANY(slugs_antigos)`);
 const nomes = async (page: import('@playwright/test').Page) => page.locator('[data-buffet]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.nome));
 
 test.describe('Banket Busca: vitrine', () => {
@@ -31,7 +33,7 @@ test.describe('Banket Busca: vitrine', () => {
     const sabor = page.locator('[data-buffet="buffet-sabor-de-festa"]');
     await expect(sabor).toContainText('Cliente Banket');
     await expect(sabor).toContainText('Disponível na data');
-    const brasa = page.locator('[data-buffet="brasa-e-cia-churrasco"]');
+    const brasa = page.locator(`[data-buffet="${slugDe('brasa-e-cia-churrasco')}"]`);
     await expect(brasa).not.toContainText('Cliente Banket');
     await expect(brasa).toContainText('Consultar disponibilidade');
   });
@@ -95,6 +97,43 @@ test.describe('Banket Busca: vitrine', () => {
     await expect(page.locator('#h-cardapios')).toHaveCount(0);
     await expect(page.getByText('Ver cardápio')).toHaveCount(0);
     await expect(page.locator('.vp-aside')).toContainText('Consultar disponibilidade');
+  });
+
+  test('endereço do perfil: gratuito usa o id; nome antigo e id do cliente redirecionam (301)', async ({ page, request }) => {
+    const id = slugDe('brasa-e-cia-churrasco');
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    const antigo = await request.get(`${V}/buffet/brasa-e-cia-churrasco?convidados=50`, { maxRedirects: 0 });
+    expect(antigo.status()).toBe(301);
+    expect(antigo.headers().location).toMatch(new RegExp(`/buffet/${id}\\?convidados=50$`));
+    await page.goto(`${V}/buffet/${id}`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Brasa');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', new RegExp(`/buffet/${id}$`));
+    // Cliente Banket com endereço próprio: o id leva ao endereço com o nome
+    const idCliente = psql(`SELECT id FROM busca_perfis WHERE slug = 'buffet-sabor-de-festa'`);
+    const res = await request.get(`${V}/buffet/${idCliente}`, { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toMatch(/\/buffet\/buffet-sabor-de-festa$/);
+  });
+
+  test('galeria do topo: sem foto real só a imagem padrão; 1 foto sozinha; miniaturas a partir da 2ª', async ({ page }) => {
+    const brasa = slugDe('brasa-e-cia-churrasco');
+    await page.goto(`${V}/buffet/${brasa}`);
+    await expect(page.locator('.vp-galeria img')).toHaveCount(1);
+    await expect(page.locator('.vp-galeria-extra')).toHaveCount(0);
+    const perfil = `(SELECT id FROM busca_perfis WHERE slug = '${brasa}')`;
+    try {
+      psql(`INSERT INTO busca_fotos (tenant_id, perfil_id, path, ordem, capa) SELECT tenant_id, id, '/busca-demo/mesa-1.svg', 90, false FROM busca_perfis WHERE id = ${perfil}`);
+      await page.goto(`${V}/buffet/${brasa}?x=1`);
+      await expect(page.locator('.vp-galeria')).toHaveClass(/vp-galeria--1/);
+      await expect(page.locator('.vp-galeria-principal img')).toHaveAttribute('src', '/busca-demo/mesa-1.svg');
+      await expect(page.locator('.vp-galeria-extra')).toHaveCount(0);
+      psql(`INSERT INTO busca_fotos (tenant_id, perfil_id, path, ordem, capa) SELECT tenant_id, id, '/busca-demo/salao-1.svg', 91, false FROM busca_perfis WHERE id = ${perfil}`);
+      await page.goto(`${V}/buffet/${brasa}?x=2`);
+      await expect(page.locator('.vp-galeria')).toHaveClass(/vp-galeria--2/);
+      await expect(page.locator('.vp-galeria-extra')).toHaveCount(1);
+    } finally {
+      psql(`DELETE FROM busca_fotos WHERE perfil_id = ${perfil} AND path LIKE '/busca-demo/%'`);
+    }
   });
 
   test('landing por tipo e cidade: título, perguntas, forma curta da URL e 404', async ({ page, request }) => {

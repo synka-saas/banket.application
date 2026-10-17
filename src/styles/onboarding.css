@@ -408,6 +408,65 @@ a.onb-etapa:hover {
   color: var(--text-body);
 }
 
+/* Etapa 1: endereço do perfil (prefixo fixo + campo) */
+.onb-endereco {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.onb-endereco:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.onb-endereco-base {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  padding: 0 10px 0 12px;
+  background: var(--clay-25);
+  border-right: 1px solid var(--border-subtle);
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.onb-endereco input {
+  flex: 1;
+  min-width: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.onb-endereco--fixo {
+  align-items: center;
+  min-height: var(--control-h-md);
+  background: var(--bg-subtle);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+.onb-endereco--fixo > span:last-child {
+  padding: 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .onb-endereco-base {
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 /* Etapa 1: capturar os dados da conta (PJ em plano pago) */
 .onb-cartao.onb-conta {
   flex-direction: row;

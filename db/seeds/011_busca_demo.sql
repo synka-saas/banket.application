@@ -50,6 +50,10 @@ BEGIN
           CASE WHEN p_publicado THEN 70 + (random() * 30)::int ELSE 35 END,
           CASE WHEN v_cliente THEN 'cliente' ELSE 'gratuito' END, round((0.6 + random() * 0.4)::numeric, 4))
   RETURNING id INTO v_p;
+  -- Plano gratuito: endereço = id do perfil; o nome antigo segue redirecionando (migration 036)
+  IF NOT v_cliente THEN
+    UPDATE busca_perfis SET slugs_antigos = ARRAY[slug], slug = id::text WHERE id = v_p;
+  END IF;
 
   FOREACH v_foto IN ARRAY p_fotos LOOP
     INSERT INTO busca_fotos (tenant_id, perfil_id, path, legenda, ordem, capa)

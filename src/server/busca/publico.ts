@@ -82,7 +82,8 @@ export interface PerfilPublico {
 }
 
 /**
- * Perfil publicado pelo slug (null se não existe, não publicado ou empresa suspensa). `previaDoTenant`: o dono logado vê
+ * Perfil publicado pelo endereço (null se não existe, não publicado ou empresa suspensa). Aceita o endereço atual, o id
+ * do perfil e endereços antigos (slugs_antigos); quem chama redireciona quando `slug` ≠ o pedido. `previaDoTenant`: o dono logado vê
  * o próprio perfil ainda não publicado (prévia); nunca o de outra empresa.
  */
 export async function perfilPublico(slug: string, previaDoTenant: string | null = null): Promise<PerfilPublico | null> {
@@ -94,7 +95,10 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
               p.capacidade_min, p.capacidade_max, p.nivel, p.nota_media, p.total_avaliacoes, p.tempo_resposta_texto,
               p.instagram, p.site, p.updated_at, p.publicado
          FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id LEFT JOIN busca_cidades c ON c.id = p.cidade_id
-        WHERE p.slug = $1 AND (${PERFIL_VISIVEL} OR (p.tenant_id = $2::uuid AND t.status = 'active'))`,
+        WHERE (p.slug = $1 OR p.id::text = $1 OR $1 = ANY(p.slugs_antigos))
+          AND (${PERFIL_VISIVEL} OR (p.tenant_id = $2::uuid AND t.status = 'active'))
+        ORDER BY (p.slug = $1) DESC, (p.id::text = $1) DESC
+        LIMIT 1`,
       [slug, previaDoTenant]
     );
     const p = rows[0];
@@ -352,7 +356,7 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
               fn_tenant_pode(p.tenant_id, 'busca_cardapios') AS cardapios,
               ARRAY(SELECT c.nome FROM busca_perfil_cidades pc JOIN busca_cidades c ON c.id = pc.cidade_id WHERE pc.perfil_id = p.id ORDER BY c.nome) AS cidades
          FROM busca_perfis p WHERE p.slug = $1`,
-      [slug]
+      [base.slug]
     );
     const usaAgenda = p.agenda === true && p.sincronizar_agenda;
     const avs = await db.query<AvaliacaoPublica>(
