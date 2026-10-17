@@ -158,7 +158,8 @@ src/
                        financeiro.css (indicadores, listas de contas e barras; usado também pelas Pesquisas)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
-scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs
+scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
+                       buffets → Busca; simula por padrão, --gravar grava, --remover-testes apaga as empresas de demonstração)
 tests/e2e/             Playwright (helpers.ts: login, leitura de links de e-mail no log do contêiner)
 public/ref/            PDFs de cardápios de referência (Brunch, Buffet, Boteco, Empratado) que originaram os seeds
 public/fonts/          General Sans (woff2, pesos 300–700 + itálicos); logos em public/logo-{dark,light,mark}.png
@@ -481,11 +482,18 @@ do último push; a verdade do plano é `tenants.plano_id`.
 Tabelas da migration `032` (todas com RLS por empresa, exceto `busca_cidades`):
 **`busca_cidades`** — municípios do IBGE com centroide (`ibge`, `nome`, `uf`, `slug` `campinas-sp`, `lat`, `lng`,
 `capital`; migration `033`, 5.571 registros); índice GiST `ll_to_earth` e trigram em `busca_sem_acento(nome)`; leitura
-liberada a todos. **`busca_perfis`** — um por empresa: `slug` (UNIQUE global), dados públicos, `tipos_evento`/
+liberada a todos. **`busca_perfis`** — um por unidade (ver abaixo): `slug` (UNIQUE global), dados públicos, `tipos_evento`/
 `tipos_servico`/`restricoes` (slugs de `lib/busca/catalogos.ts`), região (`atende_domicilio`, `raio_km`, `espaco_proprio`,
 endereço, `cidade_id`, `lat/lng`), capacidade, `etapa_concluida`, `publicado`, `completude`, `nivel` (`gratuito | cliente`,
 sincronizado pelo `trocarPlano`), `nota_media`/`total_avaliacoes`/`taxa_resposta`, `excedentes` (tipos guardados no
-rebaixamento), `slugs_antigos` (endereços anteriores, redirecionam 301; migration 036). **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** e `busca_perfis.valor_minimo` (**sem uso**
+rebaixamento), `slugs_antigos` (endereços anteriores, redirecionam 301; migration 036), `espaco_id` (→ `espacos`, SET NULL:
+espaço da unidade). **Um perfil por unidade** desde a migration 037: a conta (tenant) é a empresa e cada filial tem o seu
+perfil, ligado ao espaço da unidade (quem só atende em domicílio fica sem espaço); empresa comum tem um só. A tela `/busca`
+ainda edita o primeiro perfil (`carregarPerfil` por `created_at`); limites do plano (fotos, tipos) valem por empresa.
+**`busca_importacao`** — perfis vindos da importação (`scripts/importar-busca.mjs`): `perfil_id` (UNIQUE), `place_id`
+(Google Maps, UNIQUE: reimportar não duplica), `lote` (arquivo), `dados` (linha original, sem nota/avaliações do Google).
+Empresas importadas têm `tenants.origem_cadastro = 'importacao'`, plano Busca, **nenhum usuário** e nenhum padrão
+(`aplicar_padroes_*`) até serem reivindicadas. **`busca_perfil_cidades`** (cidades atendidas), **`busca_pacotes`** e `busca_perfis.valor_minimo` (**sem uso**
 desde a migration 034: o Busca não tem pacotes nem divulga preço; remover num deploy futuro), **`busca_fotos`** (`path` do
 storage `busca/…` ou estático `/busca-demo/…`, `tags` = grupos de fotos por evento, `capa`, `bloqueado_plano_em`), **`busca_bloqueios`** (datas indisponíveis),
 **`busca_pedidos`** (um por buffet escolhido; `grupo_id` junta o mesmo pedido; `evento_id`, `cliente_id`, `conversa_id`),
@@ -559,6 +567,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `037_busca_unidades_importacao` | `busca_perfis` sem unicidade por empresa (um perfil por unidade) + `espaco_id`; `tenants.origem_cadastro` aceita `importacao`; tabela `busca_importacao` |
 | `036_busca_endereco_perfil` | endereço do perfil = id (UUID) sem o recurso `busca_slug`; `busca_perfis.slugs_antigos` para os redirecionamentos 301 |
 | `035_busca_fotos_thumb` | fotos de demonstração (`/busca-demo/*.svg`) viram a imagem padrão `/thumb-buffet.webp` |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
@@ -1080,6 +1089,20 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
 
+### Banket Busca: importação da base — `scripts/importar-busca.mjs`
+- Entrada: CSV com `;` da coleta (Google Maps + sites; `base/` fica fora do git). Ajustes manuais opcionais em
+  `base/revisao/` (`removidos_categoria.csv` reincluir, `mantidos_categoria_limitrofe.csv` remover, `redes_propostas.csv`
+  `manter_no_grupo`/`nome_conta`); relatório em `base/revisao/simulacao.csv`. Conexão `DATABASE_URL_SYSTEM`.
+- **Entra**: `relevante = sim`, IA não recusou, categoria do ramo (buffet/catering; limítrofes como salão ou cerimonial só
+  com sinal de buffet no nome ou confirmação da IA), nome e **ao menos um contato válido**. Contatos só das colunas
+  `*_valido` (sem e-mails setoriais como compras@/rh@, WhatsApp só celular, site só domínio próprio que respondeu).
+- **Redes**: unidades que compartilham e-mail, Instagram, CNPJ ou domínio do site são uma empresa (telefone não conta);
+  nome da conta = prefixo comum dos nomes (ou o informado na revisão); o perfil mantém o nome da unidade.
+- **Caracterização**: tipos de evento da coluna `tipos_evento` (15 anos → debutante, aniversário adulto → aniversário…)
+  e da categoria; serviços pelos termos, categoria e nome, **sem** "buffet" e "catering" (genéricos); espaço próprio e
+  domicílio pela coluna ou pela categoria/nome, domicílio com raio de 25 km; descrição neutra montada só com esses dados.
+  Perfis publicados direto (etapa 6), completude calculada como em `lib/busca/onboarding.ts`; nota do Google não entra.
+
 ### Banket Busca: área do buffet — `/busca?etapa=1..6` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
@@ -1318,6 +1341,9 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 ---
 
 ## Armadilhas conhecidas
+
+- Desde a migration 037 uma empresa pode ter **vários perfis** no Busca (unidades): nada de `SELECT … FROM busca_perfis
+  WHERE tenant_id = … ` esperando uma linha só; laço por perfil. Empresas `origem_cadastro = 'importacao'` não têm usuário.
 
 - Esquecer `withTenant` (ou usar `systemQuery` em fluxo com empresa) quebra o isolamento: o papel de sistema ignora RLS.
 - IDs vindos do cliente em FKs precisam ser validados no tenant (FK não respeita RLS).

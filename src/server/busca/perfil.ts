@@ -1,4 +1,5 @@
-// Perfil do buffet no Banket Busca (1 por empresa). Fase 2: criação com pré-preenchimento a partir da empresa e do
+// Perfil do buffet no Banket Busca: um por unidade (migration 037), ligado ao espaço da unidade; a empresa comum tem
+// um só. A tela /busca ainda edita o primeiro perfil da empresa (a escolha da unidade chega com a reivindicação). Fase 2: criação com pré-preenchimento a partir da empresa e do
 // espaço padrão, nível (gratuito/cliente) sincronizado com o plano, excedentes do plano gratuito e URLs das fotos.
 // O onboarding e a edição chegam na fase 4. Recebe `db` dentro de withTenant (RLS da própria empresa).
 import { systemQuery, type Db } from '../../lib/db';
@@ -9,6 +10,8 @@ import { entitlements, limiteEm, nivelEm, podeUsarEm } from '../../lib/planos/ga
 export interface PerfilBusca {
   id: string;
   tenant_id: string;
+  /** Espaço da unidade (redes: um perfil por unidade); null em quem só atende em domicílio */
+  espaco_id: string | null;
   /** Endereço público (/buffet/<slug>): o próprio id por padrão; endereço escolhido só com o recurso busca_slug */
   slug: string;
   /** Endereços anteriores: redirecionam (301) para o atual */
@@ -54,7 +57,7 @@ export interface PerfilBusca {
 }
 
 export async function carregarPerfil(db: Db): Promise<PerfilBusca | null> {
-  const { rows } = await db.query<PerfilBusca>('SELECT * FROM busca_perfis LIMIT 1');
+  const { rows } = await db.query<PerfilBusca>('SELECT * FROM busca_perfis ORDER BY created_at, id LIMIT 1');
   return rows[0] ?? null;
 }
 
@@ -74,6 +77,10 @@ export async function slugLivre(slug: string, perfilId: string): Promise<boolean
 export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBusca> {
   const atual = await carregarPerfil(db);
   if (atual) return atual;
+  // Sem índice único por empresa (unidades): o lock da transação evita dois rascunhos em pedidos simultâneos
+  await db.query("SELECT pg_advisory_xact_lock(hashtext('busca_perfil:' || $1))", [tenantId]);
+  const criado = await carregarPerfil(db);
+  if (criado) return criado;
   const { rows: t } = await db.query<{ nome: string; documento: string | null; email: string | null; telefone: string | null; logo_path: string | null }>(
     'SELECT nome, documento, email, telefone, logo_path FROM tenants WHERE id = $1',
     [tenantId]
@@ -94,7 +101,6 @@ export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBu
     `INSERT INTO busca_perfis (id, tenant_id, slug, nome, documento, email_contato, telefone, logo_path, espaco_proprio,
                                capacidade_min, capacidade_max, nivel)
      VALUES ($12, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     ON CONFLICT (tenant_id) DO UPDATE SET updated_at = busca_perfis.updated_at
      RETURNING *`,
     [tenantId, id, t[0].nome, t[0].documento, t[0].email, t[0].telefone, t[0].logo_path, Boolean(esp[0]),
      min, max != null && min != null && max < min ? min : max, nivelEm(ent), id]
@@ -134,21 +140,23 @@ export async function aplicarExcedentesBusca(db: Db, tenantId: string): Promise<
       [tenantId, maxFotos]
     );
   }
-  const { rows } = await db.query<{ tipos_evento: string[]; tipos_servico: string[]; excedentes: PerfilBusca['excedentes'] }>(
-    'SELECT tipos_evento, tipos_servico, excedentes FROM busca_perfis WHERE tenant_id = $1 FOR UPDATE',
+  const { rows } = await db.query<{ id: string; tipos_evento: string[]; tipos_servico: string[]; excedentes: PerfilBusca['excedentes'] }>(
+    'SELECT id, tipos_evento, tipos_servico, excedentes FROM busca_perfis WHERE tenant_id = $1 ORDER BY created_at, id FOR UPDATE',
     [tenantId]
   );
-  if (!rows[0]) return;
   const cortar = (lista: string[], guardados: string[] | undefined, max: number) => {
     const todos = [...lista, ...(guardados ?? []).filter((s) => !lista.includes(s))];
     return Number.isFinite(max) ? { ficam: todos.slice(0, max), saem: todos.slice(max) } : { ficam: todos, saem: [] };
   };
-  const ev = cortar(rows[0].tipos_evento, rows[0].excedentes?.tipos_evento, limiteEm(ent, 'busca_tipos_evento'));
-  const sv = cortar(rows[0].tipos_servico, rows[0].excedentes?.tipos_servico, limiteEm(ent, 'busca_tipos_servico'));
-  await db.query(
-    `UPDATE busca_perfis SET tipos_evento = $2, tipos_servico = $3, excedentes = $4::jsonb, updated_at = now() WHERE tenant_id = $1`,
-    [tenantId, ev.ficam, sv.ficam, JSON.stringify({ tipos_evento: ev.saem, tipos_servico: sv.saem })]
-  );
+  // Uma unidade por vez (redes têm vários perfis); um client do pg faz uma consulta por vez
+  for (const p of rows) {
+    const ev = cortar(p.tipos_evento, p.excedentes?.tipos_evento, limiteEm(ent, 'busca_tipos_evento'));
+    const sv = cortar(p.tipos_servico, p.excedentes?.tipos_servico, limiteEm(ent, 'busca_tipos_servico'));
+    await db.query(
+      `UPDATE busca_perfis SET tipos_evento = $2, tipos_servico = $3, excedentes = $4::jsonb, updated_at = now() WHERE id = $1`,
+      [p.id, ev.ficam, sv.ficam, JSON.stringify({ tipos_evento: ev.saem, tipos_servico: sv.saem })]
+    );
+  }
 }
 
 /** URL pública de uma foto ou logo do perfil: estáticos (seed) começam com "/"; o resto vem do storage. */

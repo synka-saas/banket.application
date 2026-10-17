@@ -124,6 +124,8 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
 
 /** Até onde o pré-filtro SQL olha em volta da cidade (a decisão fina é de lib/busca/matching). */
 const RAIO_PREFILTRO_M = 200_000;
+/** Teto de candidatos antes do ranking: acima da base importada de São Paulo (~1.500 perfis) com folga. */
+const MAX_CANDIDATOS = 5000;
 
 export interface ItemResultado extends CandidatoBusca, Rankeavel {
   tenantId: string;
@@ -166,6 +168,8 @@ export async function slugCurtoDaCidade(c: Cidade): Promise<string> {
   return r?.id === c.id ? curto : c.slug;
 }
 
+// Recursos do plano só para clientes: no plano gratuito (nivel = 'gratuito', sincronizado pelo trocarPlano) os três são
+// falsos, e fn_tenant_pode por linha custava ~0,4 ms × milhares de perfis importados em cada busca.
 const SQL_CANDIDATOS = `
   SELECT p.id, p.tenant_id, p.slug, p.nome, p.bairro, c.nome AS cidade, c.uf, p.cidade_id, p.tipos_evento, p.tipos_servico,
          p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio, p.capacidade_min, p.capacidade_max, p.aceita_menor,
@@ -174,9 +178,9 @@ const SQL_CANDIDATOS = `
               ELSE earth_distance(ll_to_earth(p.lat, p.lng), ll_to_earth($1, $2)) / 1000 END AS distancia_km,
          ARRAY(SELECT pc.cidade_id FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id) AS cidades,
          (SELECT f.path FROM busca_fotos f WHERE f.perfil_id = p.id AND f.bloqueado_plano_em IS NULL ORDER BY f.capa DESC, f.ordem LIMIT 1) AS foto,
-         fn_tenant_pode(p.tenant_id, 'busca_prioridade') AS prioridade,
-         fn_tenant_pode(p.tenant_id, 'busca_selo') AS selo,
-         fn_tenant_pode(p.tenant_id, 'busca_disponibilidade') AS agenda,
+         p.nivel = 'cliente' AND fn_tenant_pode(p.tenant_id, 'busca_prioridade') AS prioridade,
+         p.nivel = 'cliente' AND fn_tenant_pode(p.tenant_id, 'busca_selo') AS selo,
+         p.nivel = 'cliente' AND fn_tenant_pode(p.tenant_id, 'busca_disponibilidade') AS agenda,
          CASE WHEN $5::date IS NULL THEN false ELSE (
            EXISTS (SELECT 1 FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
                     WHERE e.tenant_id = p.tenant_id AND e.data_evento = $5::date AND s.variante = 'aprovado')
@@ -190,7 +194,7 @@ const SQL_CANDIDATOS = `
      AND ($1::float8 IS NULL OR p.cidade_id = $3
           OR EXISTS (SELECT 1 FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id AND pc.cidade_id = $3)
           OR (p.lat IS NOT NULL AND earth_box(ll_to_earth($1, $2), ${RAIO_PREFILTRO_M}) @> ll_to_earth(p.lat, p.lng)))
-   LIMIT 1000`;
+   LIMIT ${MAX_CANDIDATOS}`;
 
 function paraItem(r: any, data: string | null): ItemResultado {
   const item: ItemResultado = {
