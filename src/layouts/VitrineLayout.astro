@@ -25,7 +25,7 @@ interface Props {
 
 const { title, description, canonical, imagem, jsonLd = [], noindex = false } = Astro.props;
 const url = canonical ? buscaUrl(canonical) : null;
-const og = imagem ? (imagem.startsWith('http') ? imagem : buscaUrl(imagem)) : buscaUrl('/logo-dark.png');
+const og = imagem ? (imagem.startsWith('http') ? imagem : buscaUrl(imagem)) : buscaUrl('/busca/og-banket-busca.jpg');
 const tituloCompleto = `${title} · Banket Busca`;
 const v = caminhoVitrine;
 const colunas = [

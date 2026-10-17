@@ -16,7 +16,10 @@ cachePublico(Astro.response.headers);
 const [lista, totais, falas] = await Promise.all([destaques(6), totaisPorTipo(), depoimentos(3)]);
 await registrarMetrica(lista.map((b) => b.id), 'aparicoes', Astro.request.headers.get('user-agent'));
 const v = caminhoVitrine;
-const mosaico = lista.filter((b) => b.foto).slice(0, 3);
+// Ilustrações do topo: fotos genéricas do Busca (public/busca), nunca a de um buffet cadastrado (neutralidade)
+const ilustracao = (nome: string) => ({ src: (w: number) => `/busca/${nome}-${w}.webp` });
+const ILUSTRACOES = [ilustracao('mesa-decorada'), ilustracao('salao-buffet')];
+const fotoBuffets = ilustracao('convidados-buffet');
 const PASSOS = [
   { n: '01', titulo: 'Conte sobre o evento', texto: 'Tipo de festa, data, local e número de convidados. Leva menos de um minuto.' },
   { n: '02', titulo: 'Receba buffets compatíveis', texto: 'Mostramos só quem atende a sua região e comporta o seu evento. Clientes Banket mostram a data livre.' },
@@ -59,16 +62,13 @@ const DESCRICAO_SERVICO: Record<string, string> = {
         <li><Icon name="circle-check" size={16} /> Peça para vários buffets de uma vez</li>
       </ul>
     </div>
-    {mosaico.length > 0 && (
-      <div class="vh-mosaico" aria-hidden="true">
-        {mosaico.map((b, i) => (
-          <figure>
-            <img src={b.foto!} alt="" loading={i === 0 ? 'eager' : 'lazy'} width="640" height="480" />
-            {i === 0 && <figcaption>{b.nome}<small>{[b.bairro, b.cidade].filter(Boolean).join(', ')}</small></figcaption>}
-          </figure>
-        ))}
-      </div>
-    )}
+    <div class="vh-mosaico vh-mosaico--2" aria-hidden="true">
+      {ILUSTRACOES.map((f, i) => (
+        <figure>
+          <img src={f.src(1280)} srcset={`${f.src(640)} 640w, ${f.src(1280)} 1280w`} sizes="(min-width: 1200px) 320px, 30vw" alt="" loading={i === 0 ? 'eager' : 'lazy'} width="1280" height="720" />
+        </figure>
+      ))}
+    </div>
   </section>
 
   <section class="vitrine-secao" aria-labelledby="h-eventos">
@@ -157,6 +157,9 @@ const DESCRICAO_SERVICO: Record<string, string> = {
         </ul>
         <a class="btn btn-secondary btn-large" href={urlArea('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
       </div>
+      <figure class="vh-buffets-foto" aria-hidden="true">
+        <img src={fotoBuffets.src(1280)} srcset={`${fotoBuffets.src(640)} 640w, ${fotoBuffets.src(1280)} 1280w`} sizes="(min-width: 769px) 45vw, 100vw" alt="" loading="lazy" width="1280" height="714" />
+      </figure>
     </div>
   </section>
 </VitrineLayout>
