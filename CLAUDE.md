@@ -567,6 +567,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `038_busca_reivindicacao` | `auth_tokens.tipo` aceita `reivindicacao`; `busca_reivindicacoes` (fila da equipe) e `busca_exclusoes` (buffets que saíram), só conexão de sistema |
 | `037_busca_unidades_importacao` | `busca_perfis` sem unicidade por empresa (um perfil por unidade) + `espaco_id`; `tenants.origem_cadastro` aceita `importacao`; tabela `busca_importacao` |
 | `036_busca_endereco_perfil` | endereço do perfil = id (UUID) sem o recurso `busca_slug`; `busca_perfis.slugs_antigos` para os redirecionamentos 301 |
 | `035_busca_fotos_thumb` | fotos de demonstração (`/busca-demo/*.svg`) viram a imagem padrão `/thumb-buffet.webp` |
@@ -1103,6 +1104,21 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   domicílio pela coluna ou pela categoria/nome, domicílio com raio de 25 km; descrição neutra montada só com esses dados.
   Perfis publicados direto (etapa 6), completude calculada como em `lib/busca/onboarding.ts`; nota do Google não entra.
 
+### Banket Busca: reivindicação de perfil — `/para-buffets/reivindicar`, `/equipe/reivindicacoes`, `/auth/reivindicar` (`server/busca/reivindicacao.ts`)
+- Perfil **reivindicável** = empresa `origem_cadastro = 'importacao'` sem nenhum usuário. O perfil público mostra
+  "É o proprietário deste buffet?" e a home tem o botão "Meu buffet já está aqui"; os dois levam à página de
+  reivindicação (`?buffet=<id ou endereço>`), que tem busca pelo nome (instant search) e duas opções: **assumir e
+  completar o perfil** (destaque) ou **remover** o buffet. A pessoa deixa nome, cargo, e-mail e WhatsApp.
+- **A atribuição é sempre manual**: o pedido entra em `busca_reivindicacoes` (`pendente`), a equipe recebe e-mail e quem
+  pediu recebe um recibo com os canais do perfil mascarados. Em `/equipe/reivindicacoes` (só e-mails de
+  `BANKET_EQUIPE_EMAILS`; outros recebem 404) a equipe vê os canais reais do perfil, confere a posse fora do sistema e:
+  **aprova assumir** → `aprovarAssumir` envia ao e-mail conferido o link `/auth/reivindicar?token=` (auth_tokens tipo
+  `reivindicacao`, 72 h; status `aprovada`) → a pessoa cria o acesso (ou informa a senha), vira **owner da empresa
+  inteira** (todas as unidades), a empresa recebe `aplicar_padroes_tenant_completo` e cai em `/busca` (status
+  `concluida`; plano continua o Busca); **aprova remover** → `aprovarRemocao` grava `busca_exclusoes` e apaga o perfil,
+  o espaço da unidade e a empresa se não sobrar unidade; ou **recusa** com o motivo (vai por e-mail a quem pediu).
+- `scripts/importar-busca.mjs` não traz de volta quem está em `busca_exclusoes` (place_id, e-mail ou telefone).
+
 ### Banket Busca: área do buffet — `/busca?etapa=1..6` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
@@ -1291,6 +1307,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `COOKIE_DOMAIN` | domínio dos cookies de sessão e onboarding (`.banket.com.br`): a sessão vale no app e no Busca; vazio = só o host atual |
 | `BUSCA_RANKING_PESOS` | JSON parcial com os pesos do ranking (`{"avaliacao":0.4}`), normalizado para somar 1 |
 | `DB_POOL_VITRINE` | conexões do pool de leitura pública da vitrine (padrão 6) |
+| `BANKET_EQUIPE_EMAILS` | e-mails da equipe Banket (vírgula) que acessam `/equipe/reivindicacoes` e recebem os pedidos de reivindicação do Busca |
 | `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |
 | `CHROMIUM_PATH`, `PORT`, `HOST` | definidos no Dockerfile |
 

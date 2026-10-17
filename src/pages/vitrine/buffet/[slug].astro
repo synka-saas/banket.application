@@ -206,6 +206,17 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
             </div>
           )}
         </section>
+
+        {p.reivindicavel && (
+          <section class="vp-reivindicar" aria-label="Para o dono deste buffet">
+            <span class="vp-reivindicar-ico"><Icon name="building-store" size={20} /></span>
+            <div>
+              <strong>É o proprietário deste buffet?</strong>
+              <p>Este perfil foi criado com informações públicas. Reivindique a propriedade para completar fotos, serviços e capacidade e receber pedidos de orçamento — ou peça a remoção.</p>
+            </div>
+            <a class="btn btn-secondary btn-md" href={caminhoVitrine(`/para-buffets/reivindicar?buffet=${encodeURIComponent(p.slug)}`)}>Reivindicar perfil</a>
+          </section>
+        )}
       </div>
 
       <aside class="vp-aside" aria-label="Pedir orçamento">

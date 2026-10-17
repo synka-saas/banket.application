@@ -155,7 +155,11 @@ const DESCRICAO_SERVICO: Record<string, string> = {
           <li><Icon name="check" size={18} />Perfil com fotos, serviços e avaliações</li>
           <li><Icon name="check" size={18} />Clientes Banket aparecem primeiro, com cardápios e agenda sincronizados</li>
         </ul>
-        <a class="btn btn-secondary btn-large" href={urlArea('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
+        <div class="vh-buffets-acoes">
+          <a class="btn btn-secondary btn-large" href={urlArea('/auth/cadastro?plano=busca')}>Cadastrar meu buffet <Icon name="arrow-right" size={16} /></a>
+          <a class="btn btn-large vh-buffets-sec" href={v('/para-buffets/reivindicar')}>Meu buffet já está aqui: assumir o perfil</a>
+        </div>
+        <p class="vh-buffets-nota">Já aparece no Banket Busca? Assuma o perfil para completar as informações — ou peça a remoção dos dados.</p>
       </div>
       <figure class="vh-buffets-foto" aria-hidden="true">
         <img src={fotoBuffets.src(1280)} srcset={`${fotoBuffets.src(640)} 640w, ${fotoBuffets.src(1280)} 1280w`} sizes="(min-width: 769px) 45vw, 100vw" alt="" loading="lazy" width="1280" height="714" />

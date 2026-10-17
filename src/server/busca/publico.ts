@@ -79,6 +79,8 @@ export interface PerfilPublico {
   fotos: { url: string; legenda: string | null; tags: string[] }[];
   atualizado_em: Date;
   publicado: boolean;
+  /** Perfil importado ainda sem dono: mostra o convite para reivindicar */
+  reivindicavel: boolean;
 }
 
 /**
@@ -93,7 +95,8 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
       `SELECT p.id, p.tenant_id, p.slug, p.nome, p.descricao, p.logo_path, c.nome AS cidade, c.uf, p.bairro,
               p.tipos_evento, p.tipos_servico, p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio,
               p.capacidade_min, p.capacidade_max, p.nivel, p.nota_media, p.total_avaliacoes, p.tempo_resposta_texto,
-              p.instagram, p.site, p.updated_at, p.publicado
+              p.instagram, p.site, p.updated_at, p.publicado,
+              (t.origem_cadastro = 'importacao' AND NOT EXISTS (SELECT 1 FROM tenant_usuarios tu WHERE tu.tenant_id = t.id)) AS reivindicavel
          FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id LEFT JOIN busca_cidades c ON c.id = p.cidade_id
         WHERE (p.slug = $1 OR p.id::text = $1 OR $1 = ANY(p.slugs_antigos))
           AND (${PERFIL_VISIVEL} OR (p.tenant_id = $2::uuid AND t.status = 'active'))
@@ -114,6 +117,7 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
       fotos: fotos.rows.map((f) => ({ url: urlMidia(p.tenant_id, f.path)!, legenda: f.legenda, tags: f.tags })),
       atualizado_em: p.updated_at,
       publicado: p.publicado,
+      reivindicavel: p.reivindicavel,
     };
   });
 }

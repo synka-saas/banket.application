@@ -2,22 +2,26 @@
 // Nome do buffet na barra de busca, com instant search (/api/vitrine/buffets): enquanto digita, mostra os buffets
 // publicados com esse nome; escolher um abre o perfil. Enter sem escolher envia a busca filtrando pelo nome (?q=).
 // Combobox acessível (setas, Enter, Esc). Sem JavaScript, o campo só filtra a busca.
+// `destino`: prefixo do link de cada sugestão (padrão: o perfil); a reivindicação usa a própria página (?buffet=).
 import Icon from '../ui/Icon.astro';
 import { caminhoVitrine } from '../../lib/busca/url';
 
 interface Props {
   id: string;
   valor?: string | null;
+  rotulo?: string;
+  placeholder?: string;
+  destino?: string;
 }
-const { id, valor = null } = Astro.props;
+const { id, valor = null, rotulo = 'Nome do buffet', placeholder = 'Digite o nome do buffet', destino = caminhoVitrine('/buffet/') } = Astro.props;
 ---
 
-<div class="field fbusca-cidade" data-nome-buffet data-perfil={caminhoVitrine('/buffet/')}>
-  <label for={id}>Nome do buffet</label>
+<div class="field fbusca-cidade" data-nome-buffet data-perfil={destino}>
+  <label for={id}>{rotulo}</label>
   <div class="campo-icone">
     <Icon name="search" size={18} class="campo-icone-ico" />
     <input
-      id={id} name="q" type="search" autocomplete="off" maxlength="80" placeholder="Digite o nome do buffet" value={valor ?? ''}
+      id={id} name="q" type="search" autocomplete="off" maxlength="80" placeholder={placeholder} value={valor ?? ''}
       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls={`${id}-lista`} data-nome-texto
     />
   </div>

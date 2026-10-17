@@ -1,0 +1,110 @@
+---
+// Link enviado depois que a equipe confirmou a posse do buffet (server/busca/reivindicacao.aprovarAssumir): cria o
+// acesso (ou pede a senha de quem já tem conta), vincula como proprietário e leva para completar o perfil em /busca.
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Input from '../../components/ui/Input.astro';
+import Button from '../../components/ui/Button.astro';
+import Checkbox from '../../components/ui/Checkbox.astro';
+import { setSessionCookie, signSession } from '../../lib/auth';
+import { setFlash } from '../../lib/flash';
+import { invalidateMembership } from '../../lib/membership';
+import { userMessage } from '../../lib/forms';
+import { REGRA_SENHA } from '../../lib/senha';
+import { assumirPerfil, buscarReivindicacao } from '../../server/busca/reivindicacao';
+import { invalidarEmpresas } from '../../server/autoatendimento';
+
+const token = Astro.url.searchParams.get('token');
+let errorMessage = '';
+let nomeDigitado = '';
+
+if (Astro.request.method === 'POST' && token) {
+  const data = await Astro.request.formData();
+  nomeDigitado = data.get('nome')?.toString() ?? '';
+  try {
+    if (!data.get('termos') && !data.get('conta_existente')) throw new Error('termos');
+    const user = await assumirPerfil(token, {
+      nome: nomeDigitado,
+      senha: data.get('senha')?.toString() ?? '',
+      confirmacao: data.get('confirma_senha')?.toString(),
+    });
+    invalidateMembership(user.id, user.tenantId);
+    invalidarEmpresas(user.id);
+    setSessionCookie(Astro.cookies, await signSession(user));
+    setFlash(Astro.cookies, 'success', 'O perfil agora é seu. Complete as informações para aparecer melhor nas buscas.');
+    return Astro.redirect('/busca');
+  } catch (err) {
+    errorMessage = err instanceof Error && err.message === 'termos' ? 'É preciso aceitar os Termos de uso para continuar.' : userMessage(err);
+    Astro.response.status = 400;
+  }
+}
+
+const r = await buscarReivindicacao(token);
+const local = r ? [r.bairro, r.cidade].filter(Boolean).join(', ') : '';
+---
+
+<AuthLayout title="Assumir o perfil do buffet" showOverlay={true} erro={errorMessage || null}>
+  {r && r.disponivel ? (
+    <>
+      <h1 class="auth-title" style="margin-bottom: 8px;">Assuma o perfil do {r.buffet}</h1>
+      <p class="subtitle">
+        {local && <>{local}<br /></>}
+        {r.contaExistente
+          ? 'Você já tem uma conta Banket com este e-mail. Informe a sua senha para assumir o perfil.'
+          : 'Crie o seu acesso gratuito. Em seguida você completa o perfil com fotos, serviços, capacidade e região de atendimento.'}
+      </p>
+
+      <form class="auth-form" method="POST">
+        {!r.contaExistente && <Input id="nome" name="nome" label="Nome e sobrenome" placeholder="Ex.: Maria Souza" value={nomeDigitado} required />}
+        <Input id="email" name="email" type="email" label="E-mail" value={r.email} readonly required />
+        <Input id="senha" name="senha" type="password" label="Senha" autocomplete={r.contaExistente ? 'current-password' : 'new-password'} required />
+        {r.contaExistente ? (
+          <input type="hidden" name="conta_existente" value="1" />
+        ) : (
+          <>
+            <Input id="confirma_senha" name="confirma_senha" type="password" label="Confirme a senha" autocomplete="new-password" required />
+            <p class="auth-hint">{REGRA_SENHA}</p>
+            <Checkbox id="termos" name="termos" required>
+              Li e aceito os <a href="/termos" target="_blank" rel="noopener" class="link">Termos de uso</a> e a{' '}
+              <a href="/privacidade" target="_blank" rel="noopener" class="link">Política de privacidade</a>
+            </Checkbox>
+          </>
+        )}
+        <Button variant="primary" size="large" type="submit">{r.contaExistente ? 'Entrar e assumir o perfil' : 'Criar acesso e assumir o perfil'}</Button>
+      </form>
+
+      {r.contaExistente && (
+        <div class="auth-links">
+          <a href={`/auth/recuperacao?email=${encodeURIComponent(r.email)}`} target="_blank" rel="noopener">Esqueceu a senha?</a>
+        </div>
+      )}
+    </>
+  ) : r ? (
+    <>
+      <h1 class="auth-title" style="margin-bottom: 8px;">Este perfil já tem um responsável</h1>
+      <p class="subtitle">Se for você, entre na sua conta para editar o perfil.</p>
+      <div class="auth-links"><a href="/auth/login?next=/busca">Ir para o login</a></div>
+    </>
+  ) : (
+    <>
+      <h1 class="auth-title" style="margin-bottom: 8px;">Link inválido ou expirado</h1>
+      <p class="subtitle">Responda o e-mail que recebeu da nossa equipe para receber um link novo.</p>
+      <div class="auth-links"><a href="/auth/login">Ir para o login</a></div>
+    </>
+  )}
+</AuthLayout>
+
+<style>
+  .subtitle {
+    margin-bottom: var(--space-8);
+    font-size: var(--fs-14);
+    line-height: 1.55;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .auth-form :global(input[readonly]) {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    box-shadow: none;
+  }
+</style>

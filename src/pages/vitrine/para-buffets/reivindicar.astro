@@ -1,0 +1,549 @@
+---
+// Reivindicação de perfil (busca.banket.com.br/para-buffets/reivindicar[?buffet=<id ou endereço>]): o dono acha o
+// buffet e pede para assumir o perfil (foco: virar perfil administrado, com acesso ao Banket) ou para removê-lo.
+// A atribuição é sempre manual: a equipe confere a posse pelos canais reais do perfil em /equipe/reivindicacoes.
+// Regras em server/busca/reivindicacao.ts. noindex e sem cache (mostra o estado do pedido).
+import VitrineLayout from '../../../layouts/VitrineLayout.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import CampoNome from '../../../components/busca/CampoNome.astro';
+import { caminhoVitrine } from '../../../lib/busca/url';
+import { userMessage } from '../../../lib/forms';
+import { ipDaRequisicao, permitir } from '../../../lib/rateLimit';
+import { buffetsPorNome } from '../../../server/busca/publico';
+import { perfilParaReivindicar, registrarPedido, type AcaoReivindicacao } from '../../../server/busca/reivindicacao';
+
+Astro.response.headers.set('Cache-Control', 'private, no-store');
+const v = caminhoVitrine;
+const aqui = v('/para-buffets/reivindicar');
+const ref = Astro.url.searchParams.get('buffet');
+const termo = (Astro.url.searchParams.get('q') ?? '').trim();
+
+let enviado: { acao: AcaoReivindicacao; email: string } | null = null;
+let erro: string | null = null;
+let acao: AcaoReivindicacao = Astro.url.searchParams.get('acao') === 'remover' ? 'remover' : 'assumir';
+const digitado: Record<string, string> = {};
+
+if (Astro.request.method === 'POST' && ref) {
+  const f = await Astro.request.formData();
+  acao = f.get('acao') === 'remover' ? 'remover' : 'assumir';
+  for (const k of ['nome', 'cargo', 'email', 'telefone', 'mensagem']) digitado[k] = (f.get(k) ?? '').toString().trim();
+  const ip = ipDaRequisicao(Astro.request, Astro.clientAddress);
+  try {
+    if ((f.get('_website') ?? '').toString()) throw new Error('honeypot');
+    if (!f.get('aceite')) throw new Error('aceite');
+    if (digitado.nome.length < 3) throw new Error('nome');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(digitado.email)) throw new Error('email');
+    const tel = digitado.telefone.replace(/\D/g, '');
+    if (tel.length < 10) throw new Error('telefone');
+    if (!permitir(`reivindicar:ip:${ip}`, 10, 60 * 60_000) || !permitir(`reivindicar:perfil:${ref}`, 4, 24 * 60 * 60_000)) throw new Error('limite');
+    await registrarPedido(ref, acao, {
+      nome: digitado.nome.slice(0, 160), cargo: digitado.cargo.slice(0, 80) || null, email: digitado.email.slice(0, 255),
+      telefone: tel.slice(0, 13), mensagem: digitado.mensagem.slice(0, 1000) || null,
+    }, ip);
+    enviado = { acao, email: digitado.email };
+  } catch (e) {
+    const m = e instanceof Error ? e.message : '';
+    erro = ({
+      honeypot: 'Não foi possível enviar o pedido.',
+      aceite: 'Confirme que você é responsável pelo buffet.',
+      nome: 'Informe seu nome.',
+      email: 'Informe um e-mail válido.',
+      telefone: 'Informe um telefone ou WhatsApp com DDD.',
+      limite: 'Muitos pedidos em pouco tempo. Tente de novo mais tarde.',
+    } as Record<string, string>)[m] ?? userMessage(e);
+    Astro.response.status = 400;
+  }
+}
+
+const perfil = await perfilParaReivindicar(ref);
+const resultados = !perfil && termo.length >= 2 ? await buffetsPorNome(termo, 8) : [];
+const local = perfil ? [perfil.bairro, perfil.cidade && perfil.uf ? `${perfil.cidade} · ${perfil.uf}` : perfil.cidade].filter(Boolean).join(', ') : '';
+const BENEFICIOS = [
+  { icone: 'photo', texto: 'Fotos do espaço, das mesas e dos pratos' },
+  { icone: 'confetti', texto: 'Tipos de evento, serviços e capacidade sempre corretos' },
+  { icone: 'map-pin', texto: 'Região de atendimento, espaço próprio ou em domicílio' },
+  { icone: 'message-star', texto: 'Pedidos de orçamento com data, local e número de convidados' },
+];
+---
+
+<VitrineLayout
+  title="Assuma o perfil do seu buffet"
+  description="Seu buffet já aparece no Banket Busca. Assuma o perfil gratuitamente para completar as informações e receber pedidos de orçamento, ou peça a remoção."
+  noindex
+>
+  <section class="vitrine-secao rv">
+    <p class="eyebrow" style="color:var(--terracotta-700)">Para buffets</p>
+    <h1 class="rv-titulo">Seu buffet já está no Banket Busca</h1>
+    <p class="rv-sub">
+      Clientes já encontram o seu buffet por aqui. Assuma o perfil, de graça, para mostrar o seu trabalho com informações
+      completas e receber pedidos de orçamento. Se preferir não aparecer, você também pode pedir a remoção.
+    </p>
+
+    <form class="rv-busca" method="get" action={aqui} role="search" aria-label="Buscar o seu buffet">
+      <CampoNome id="rv-nome" valor={termo || null} rotulo="Encontre o seu buffet" placeholder="Digite o nome do buffet" destino={`${aqui}?buffet=`} />
+      <button type="submit" class="btn btn-secondary btn-large"><Icon name="search" size={16} /> Buscar</button>
+    </form>
+
+    {!perfil && termo.length >= 2 && (
+      resultados.length ? (
+        <ul class="rv-resultados" aria-label="Buffets encontrados">
+          {resultados.map((b) => (
+            <li><a href={`${aqui}?buffet=${encodeURIComponent(b.slug)}`}><strong>{b.nome}</strong><span>{[b.bairro, b.cidade].filter(Boolean).join(', ')}</span><Icon name="chevron-right" size={16} /></a></li>
+          ))}
+        </ul>
+      ) : (
+        <p class="rv-vazio">Nenhum buffet com esse nome no Banket Busca. Confira a grafia ou <a href={v('/') + '#para-buffets'}>cadastre o seu buffet</a>.</p>
+      )
+    )}
+
+    {ref && !perfil && <p class="rv-vazio">Não encontramos esse buffet. Busque pelo nome acima.</p>}
+
+    {perfil && (
+      <div class="rv-buffet">
+        <div class="rv-buffet-cabeca">
+          <span class="rv-buffet-ico"><Icon name="tools-kitchen-2" size={20} /></span>
+          <div>
+            <strong>{perfil.nome}</strong>
+            {local && <span>{local}</span>}
+          </div>
+          <a class="btn btn-text btn-sm" href={v(`/buffet/${perfil.slug}`)}>Ver perfil</a>
+        </div>
+
+        {enviado ? (
+          <div class="rv-ok" role="status">
+            <Icon name="circle-check" size={22} />
+            <div>
+              <strong>Pedido recebido</strong>
+              <p>
+                A nossa equipe vai confirmar que você é o responsável pelo buffet usando os contatos que já estão no
+                perfil{perfil.canais.length ? ` (${perfil.canais.join(', ')})` : ''} e responde em até 2 dias úteis em {enviado.email}.
+                {enviado.acao === 'assumir'
+                  ? ' Confirmada a posse, você recebe o link para criar o seu acesso gratuito e completar o perfil.'
+                  : ' Confirmada a posse, o perfil sai do Banket Busca.'}
+              </p>
+            </div>
+          </div>
+        ) : !perfil.reivindicavel ? (
+          <div class="rv-aviso">
+            <Icon name="lock" size={18} />
+            <p>Este perfil já é administrado pelo próprio buffet. Se você é o responsável, <a href="https://app.banket.com.br/auth/login?next=/busca">entre na sua conta</a> para editar.</p>
+          </div>
+        ) : (
+          <form method="post" class="rv-form">
+            {erro && <p class="rv-erro" role="alert">{erro}</p>}
+            {perfil.emAnalise && <p class="rv-nota-analise"><Icon name="clock" size={16} /> Já existe um pedido em análise para este buffet. Se foi você, aguarde o nosso contato.</p>}
+
+            <fieldset class="rv-opcoes">
+              <legend class="sr-only">O que você quer fazer?</legend>
+              <label class="rv-opcao rv-opcao--principal">
+                <input type="radio" name="acao" value="assumir" checked={acao === 'assumir'} />
+                <span class="rv-opcao-corpo">
+                  <span class="eyebrow">Recomendado · grátis</span>
+                  <strong>Assumir e completar o perfil</strong>
+                  <span>Com o seu acesso ao Banket, você mantém o perfil atualizado e ajuda o cliente a decidir:</span>
+                  <ul class="rv-beneficios">
+                    {BENEFICIOS.map((b) => <li><Icon name={b.icone} size={18} />{b.texto}</li>)}
+                  </ul>
+                </span>
+              </label>
+              <label class="rv-opcao">
+                <input type="radio" name="acao" value="remover" checked={acao === 'remover'} />
+                <span class="rv-opcao-corpo">
+                  <strong>Remover o buffet do Banket Busca</strong>
+                  <span>O perfil sai das buscas, os dados de contato são apagados e o buffet deixa de receber pedidos de clientes por aqui.</span>
+                </span>
+              </label>
+            </fieldset>
+
+            <div class="rv-dados">
+              <h2>Seus dados</h2>
+              <p>
+                Para proteger o seu buffet, toda mudança passa pela nossa equipe: confirmamos a posse pelos contatos que já
+                estão no perfil{perfil.canais.length ? ` (${perfil.canais.join(', ')})` : ''} antes de liberar o acesso ou remover os dados.
+              </p>
+              <input type="text" name="_website" class="rv-isca" tabindex="-1" autocomplete="off" aria-hidden="true" />
+              <div class="form-grid">
+                <div class="field"><label for="rv-m-nome">Nome e sobrenome<span class="obrigatorio">*</span></label><input id="rv-m-nome" name="nome" type="text" maxlength="160" autocomplete="name" required value={digitado.nome ?? ''} /></div>
+                <div class="field"><label for="rv-m-cargo">Cargo no buffet</label><input id="rv-m-cargo" name="cargo" type="text" maxlength="80" placeholder="Ex.: proprietário, sócio, gerente" value={digitado.cargo ?? ''} /></div>
+                <div class="field"><label for="rv-m-email">E-mail<span class="obrigatorio">*</span></label><input id="rv-m-email" name="email" type="email" maxlength="255" autocomplete="email" required value={digitado.email ?? ''} /><span class="field-hint">Use, de preferência, o e-mail do buffet.</span></div>
+                <div class="field"><label for="rv-m-tel">Celular ou WhatsApp<span class="obrigatorio">*</span></label><input id="rv-m-tel" name="telefone" type="tel" maxlength="20" autocomplete="tel" data-mascara="telefone" required value={digitado.telefone ?? ''} /></div>
+              </div>
+              <div class="field"><label for="rv-m-msg">Mensagem</label><textarea id="rv-m-msg" name="mensagem" rows="3" maxlength="1000" placeholder="Algo que ajude a confirmar, como um contato atualizado do buffet">{digitado.mensagem ?? ''}</textarea></div>
+              <label class="rv-aceite"><input type="checkbox" name="aceite" value="1" required /> Sou responsável por este buffet e autorizo o contato da equipe Banket para confirmar o pedido.</label>
+              <button type="submit" class="btn btn-primary btn-large" data-carregando="Enviando…">Enviar pedido</button>
+            </div>
+          </form>
+        )}
+      </div>
+    )}
+
+    {!perfil && !termo && !ref && (
+      <ol class="rv-passos">
+        <li><span class="tabular">01</span><div><strong>Encontre o seu buffet</strong><p>Busque pelo nome acima.</p></div></li>
+        <li><span class="tabular">02</span><div><strong>Envie o pedido</strong><p>A nossa equipe confirma que o buffet é seu pelos contatos do perfil.</p></div></li>
+        <li><span class="tabular">03</span><div><strong>Complete e receba pedidos</strong><p>Fotos, serviços, capacidade e região, no seu acesso gratuito ao Banket.</p></div></li>
+      </ol>
+    )}
+  </section>
+</VitrineLayout>
+
+<style>
+  .rv {
+    max-width: 880px;
+  }
+
+  .rv-titulo {
+    margin: 8px 0 12px;
+    font-size: clamp(28px, 5vw, 40px);
+    font-weight: var(--fw-medium);
+    letter-spacing: -0.02em;
+    color: var(--text-strong);
+  }
+
+  .rv-sub {
+    margin: 0 0 24px;
+    max-width: 62ch;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .rv-busca {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .rv-resultados {
+    margin: 16px 0 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .rv-resultados a {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    color: var(--text-strong);
+    text-decoration: none;
+  }
+
+  .rv-resultados a:hover {
+    background: var(--clay-25);
+  }
+
+  .rv-resultados strong {
+    font-weight: var(--fw-medium);
+  }
+
+  .rv-resultados span {
+    grid-column: 1;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  .rv-resultados :global(svg) {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    color: var(--text-muted);
+  }
+
+  .rv-vazio {
+    margin: 16px 0 0;
+    color: var(--text-secondary);
+  }
+
+  .rv-buffet {
+    margin-top: 24px;
+  }
+
+  .rv-buffet-cabeca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .rv-buffet-cabeca > div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .rv-buffet-cabeca strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .rv-buffet-cabeca span {
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  .rv-buffet-ico {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-accent-subtle);
+    color: var(--terracotta-600);
+  }
+
+  .rv-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .rv-opcoes {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* Cartão selecionável: o rádio fica no canto e o cartão inteiro é clicável */
+  .rv-opcao {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .rv-opcao:hover {
+    border-color: var(--border-strong);
+  }
+
+  .rv-opcao:has(input:checked) {
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-surface);
+  }
+
+  .rv-opcao--principal:has(input:checked) {
+    background: var(--bg-accent-subtle);
+  }
+
+  .rv-opcao input {
+    flex: none;
+    margin-top: 3px;
+    accent-color: var(--terracotta-600);
+  }
+
+  .rv-opcao-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .rv-opcao-corpo .eyebrow {
+    color: var(--terracotta-700);
+  }
+
+  .rv-opcao-corpo strong {
+    font-size: var(--fs-16);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .rv-beneficios {
+    display: grid;
+    gap: 8px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rv-beneficios li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    color: var(--text-body);
+  }
+
+  .rv-beneficios :global(svg) {
+    flex: none;
+    color: var(--terracotta-600);
+  }
+
+  .rv-dados {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .rv-dados h2 {
+    margin: 0;
+    font-size: var(--fs-16);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .rv-dados > p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .rv-dados .field,
+  .rv-dados .form-grid {
+    width: 100%;
+  }
+
+  .rv-aceite {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: var(--fs-13);
+    color: var(--text-body);
+  }
+
+  .rv-aceite input {
+    margin-top: 3px;
+    accent-color: var(--terracotta-600);
+  }
+
+  .rv-nota-analise {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 0;
+    color: var(--text-secondary);
+  }
+
+  .rv-ok,
+  .rv-aviso {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .rv-ok {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  .rv-ok strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .rv-ok p {
+    margin: 4px 0 0;
+    color: var(--text-body);
+    line-height: 1.55;
+  }
+
+  .rv-aviso {
+    background: var(--clay-25);
+    color: var(--text-secondary);
+  }
+
+  .rv-aviso p {
+    margin: 0;
+    color: var(--text-body);
+  }
+
+  .rv-erro {
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  .rv-isca {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .rv-passos {
+    display: grid;
+    gap: 12px;
+    margin: 32px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rv-passos li {
+    display: flex;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .rv-passos span {
+    font-size: var(--fs-20);
+    font-weight: var(--fw-medium);
+    color: var(--terracotta-600);
+  }
+
+  .rv-passos strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .rv-passos p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+  }
+
+  @media (min-width: 769px) {
+    .rv-busca {
+      flex-direction: row;
+      align-items: flex-end;
+    }
+
+    .rv-busca > :global(.field) {
+      flex: 1;
+    }
+
+    .rv-opcoes {
+      grid-template-columns: 1.4fr 1fr;
+      align-items: stretch;
+    }
+
+    .rv-passos {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>

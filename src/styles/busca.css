@@ -792,6 +792,70 @@ body.vitrine {
   color: var(--clay-300);
 }
 
+.vh-buffets-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Secundário sobre o fundo escuro da seção */
+.vh-buffets-sec {
+  justify-content: center;
+  border: 1px solid var(--clay-600);
+  background: transparent;
+  color: var(--clay-100);
+}
+
+.vh-buffets-sec:hover {
+  border-color: var(--clay-400);
+  background: var(--clay-800);
+  color: var(--text-on-accent);
+}
+
+.vh-buffets .vh-buffets-nota {
+  margin-top: 12px;
+  font-size: var(--fs-13);
+  color: var(--clay-400);
+}
+
+.vp-reivindicar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 20px;
+  background: var(--clay-25);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.vp-reivindicar > div {
+  flex: 1 1 280px;
+}
+
+.vp-reivindicar strong {
+  font-weight: var(--fw-medium);
+  color: var(--text-strong);
+}
+
+.vp-reivindicar p {
+  margin: 4px 0 0;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.vp-reivindicar-ico {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--bg-accent-subtle);
+  color: var(--terracotta-600);
+}
+
 .vh-buffets-foto {
   margin: 0;
   overflow: hidden;

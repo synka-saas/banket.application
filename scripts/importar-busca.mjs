@@ -314,13 +314,21 @@ try {
   const { rows: [cidade] } = await db.query(`SELECT id FROM busca_cidades WHERE ibge = 3550308`);
   const { rows: ja } = await db.query('SELECT place_id FROM busca_importacao');
   const importados = new Set(ja.map((r) => r.place_id));
+  // Buffets que pediram para sair (reivindicação → remoção): não voltam pela importação
+  const { rows: exc } = await db.query(
+    `SELECT to_regclass('busca_exclusoes') IS NOT NULL AS existe`).then(async (r) => (r.rows[0].existe
+      ? db.query('SELECT place_id, emails, telefones FROM busca_exclusoes') : { rows: [] }));
+  const excluidos = { places: new Set(exc.map((e) => e.place_id).filter(Boolean)), contatos: new Set(exc.flatMap((e) => [...e.emails, ...e.telefones])) };
+  const pediuExclusao = (u) => excluidos.places.has(u.x.place_id)
+    || [u.p.email_contato, u.p.telefone, u.p.whatsapp].some((c) => c && excluidos.contatos.has(c));
   const { rows: slugsT } = await db.query('SELECT slug FROM tenants');
   const usados = new Set(slugsT.map((r) => r.slug));
   const slugLivre = (nome) => { const b = slugTexto(nome, 50); let s = b; for (let n = 2; usados.has(s); n++) s = `${b}-${n}`; usados.add(s); return s; };
 
   for (const unidades of grupos.values()) {
-    const novas = unidades.filter((u) => !importados.has(u.x.place_id));
+    const novas = unidades.filter((u) => !importados.has(u.x.place_id) && !pediuExclusao(u));
     unidades.filter((u) => importados.has(u.x.place_id)).forEach((u) => { u.decisao = 'já importado'; totais.jaImportados++; });
+    unidades.filter((u) => !importados.has(u.x.place_id) && pediuExclusao(u)).forEach((u) => { u.decisao = 'fora'; u.motivo = 'pediu exclusão'; totais.excluidos = (totais.excluidos ?? 0) + 1; });
     if (!novas.length) continue;
     const nomeConta = nomeDaConta(unidades).slice(0, 120);
     const contato = novas.find((u) => u.p.email_contato) ?? novas[0];

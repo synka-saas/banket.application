@@ -18,6 +18,8 @@ x-webapp: &webapp
     - APP_URL=${APP_URL:-http://localhost:4321}
     - BUSCA_URL=${BUSCA_URL:-}
     - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+    # Equipe Banket: e-mails (separados por vírgula) que veem /equipe/reivindicacoes e recebem os pedidos do Busca
+    - BANKET_EQUIPE_EMAILS=${BANKET_EQUIPE_EMAILS:-}
     - RESEND_API_KEY=${RESEND_API_KEY:-}
     - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
     - RESEND_INBOUND_DOMAIN=${RESEND_INBOUND_DOMAIN:-}

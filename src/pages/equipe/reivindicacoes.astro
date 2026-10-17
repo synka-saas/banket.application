@@ -1,0 +1,239 @@
+---
+// Fila de reivindicações do Banket Busca (equipe Banket: e-mails em BANKET_EQUIPE_EMAILS). Cada pedido mostra quem
+// pediu e os canais reais do perfil; a equipe confere a posse fora do sistema (e-mail, WhatsApp) e decide:
+// aprovar (assumir → link de acesso no e-mail conferido; remover → o perfil sai) ou recusar com o motivo.
+import AppLayout from '../../layouts/AppLayout.astro';
+import Icon from '../../components/ui/Icon.astro';
+import EstadoVazio from '../../components/ui/EstadoVazio.astro';
+import { handleFormPost } from '../../lib/actions';
+import { dataHora } from '../../lib/datas';
+import { UserError } from '../../lib/forms';
+import { buscaUrl } from '../../lib/busca/url';
+import {
+  aprovarAssumir, aprovarRemocao, ehEquipe, listarPedidos, recusar, type StatusReivindicacao,
+} from '../../server/busca/reivindicacao';
+
+const user = Astro.locals.user;
+if (!ehEquipe(user?.email)) return new Response('Não encontrado', { status: 404 });
+
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const id = String(data.id ?? '');
+    const obs = typeof data.observacao === 'string' && data.observacao.trim() ? data.observacao.trim().slice(0, 1000) : null;
+    switch (data._action) {
+      case 'aprovar_assumir':
+        await aprovarAssumir(id, String(data.email_destino ?? ''), obs, user.id);
+        return 'Posse aprovada: o link de acesso foi enviado.';
+      case 'aprovar_remocao':
+        await aprovarRemocao(id, obs, user.id);
+        return 'Perfil removido e quem pediu foi avisado.';
+      case 'recusar':
+        await recusar(id, String(data.motivo ?? ''), user.id);
+        return 'Pedido recusado e quem pediu foi avisado.';
+      default:
+        throw new UserError('Ação desconhecida.');
+    }
+  });
+}
+
+const FILTROS: { valor: StatusReivindicacao | 'todos'; rotulo: string }[] = [
+  { valor: 'pendente', rotulo: 'Pendentes' },
+  { valor: 'aprovada', rotulo: 'Link enviado' },
+  { valor: 'concluida', rotulo: 'Concluídas' },
+  { valor: 'recusada', rotulo: 'Recusadas' },
+  { valor: 'todos', rotulo: 'Todas' },
+];
+const filtro = FILTROS.find((f) => f.valor === Astro.url.searchParams.get('status'))?.valor ?? 'pendente';
+const pedidos = await listarPedidos(filtro);
+const ROTULO_STATUS: Record<StatusReivindicacao, string> = { pendente: 'Pendente', aprovada: 'Link enviado', concluida: 'Concluída', recusada: 'Recusada' };
+const fone = (d: string | null) => (d ? d.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : null);
+const wa = (d: string) => `https://wa.me/55${d.replace(/\D/g, '')}`;
+---
+
+<AppLayout title="Reivindicações do Busca" heading="Equipe / Reivindicações do Busca">
+  <p class="eq-intro">
+    Confira a posse pelos canais do perfil (de preferência o e-mail do domínio do buffet ou o WhatsApp) antes de aprovar.
+    Aprovar "assumir" envia o link de criação do acesso para o e-mail conferido; aprovar "remover" apaga o perfil na hora.
+  </p>
+
+  <nav class="segmented eq-filtros" aria-label="Situação">
+    {FILTROS.map((f) => <a href={`?status=${f.valor}`} aria-current={f.valor === filtro ? 'page' : undefined}><span>{f.rotulo}</span></a>)}
+  </nav>
+
+  {pedidos.length === 0 ? (
+    <EstadoVazio icon="circle-check" titulo="Nenhum pedido aqui" texto="Os pedidos feitos na página de reivindicação do Banket Busca aparecem nesta fila." />
+  ) : (
+    <ul class="eq-lista">
+      {pedidos.map((r) => (
+        <li class="eq-pedido">
+          <div class="eq-cabeca">
+            <div>
+              <span class:list={['badge', r.acao === 'remover' ? 'badge-danger' : 'badge-accent']}>{r.acao === 'assumir' ? 'Assumir' : 'Remover'}</span>
+              <h2>{r.perfil_slug ? <a class="link" href={buscaUrl(`/buffet/${r.perfil_slug}`)} target="_blank" rel="noopener">{r.buffet_nome}</a> : r.buffet_nome}</h2>
+            </div>
+            <span class="eq-meta">{ROTULO_STATUS[r.status]} · {dataHora(r.created_at)}</span>
+          </div>
+
+          <div class="eq-colunas">
+            <section>
+              <p class="eyebrow">Quem pediu</p>
+              <dl class="kv">
+                <dt>Nome</dt><dd>{r.nome}{r.cargo ? ` · ${r.cargo}` : ''}</dd>
+                <dt>E-mail</dt><dd><a class="link" href={`mailto:${r.email}`}>{r.email}</a></dd>
+                <dt>Telefone</dt><dd>{r.telefone ? <a class="link" href={wa(r.telefone)} target="_blank" rel="noopener">{fone(r.telefone)}</a> : '—'}</dd>
+                {r.mensagem && <><dt>Mensagem</dt><dd>{r.mensagem}</dd></>}
+              </dl>
+            </section>
+            <section>
+              <p class="eyebrow">Canais do perfil (base)</p>
+              <dl class="kv">
+                <dt>E-mail</dt><dd>{r.perfil_email ? <a class="link" href={`mailto:${r.perfil_email}`}>{r.perfil_email}</a> : '—'}</dd>
+                <dt>WhatsApp</dt><dd>{r.perfil_whatsapp ? <a class="link" href={wa(r.perfil_whatsapp)} target="_blank" rel="noopener">{fone(r.perfil_whatsapp)}</a> : '—'}</dd>
+                <dt>Telefone</dt><dd>{fone(r.perfil_telefone) ?? '—'}</dd>
+                <dt>Instagram · site</dt><dd>{[r.perfil_instagram, r.perfil_site].filter(Boolean).join(' · ') || '—'}</dd>
+                <dt>Endereço</dt><dd>{r.perfil_endereco ?? '—'}</dd>
+              </dl>
+              {r.perfil_email && r.email && r.perfil_email.toLowerCase() === r.email.toLowerCase() && (
+                <p class="eq-confere"><Icon name="circle-check" size={16} /> O e-mail de quem pediu é o mesmo do perfil.</p>
+              )}
+            </section>
+          </div>
+
+          {(r.observacao || r.analisado_por_nome) && (
+            <p class="eq-meta">{r.analisado_por_nome ? `Analisado por ${r.analisado_por_nome}${r.analisado_em ? ` em ${dataHora(r.analisado_em)}` : ''}` : ''}{r.email_destino ? ` · link para ${r.email_destino}` : ''}{r.observacao ? ` · ${r.observacao}` : ''}</p>
+          )}
+
+          {(r.status === 'pendente' || (r.status === 'aprovada' && r.acao === 'assumir')) && (
+            r.reivindicavel ? (
+              <div class="eq-acoes">
+                {r.acao === 'assumir' ? (
+                  <form method="post" class="eq-form">
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="_action" value="aprovar_assumir" />
+                    <div class="field"><label for={`dest-${r.id}`}>E-mail conferido (recebe o link)</label><input id={`dest-${r.id}`} name="email_destino" type="email" required value={r.email_destino ?? r.email} /></div>
+                    <div class="field"><label for={`obs-${r.id}`}>Como a posse foi conferida</label><input id={`obs-${r.id}`} name="observacao" type="text" maxlength="1000" placeholder="Ex.: confirmado pelo WhatsApp do perfil" /></div>
+                    <button type="submit" class="btn btn-primary btn-md" data-carregando="Enviando…">{r.status === 'aprovada' ? 'Reenviar link de acesso' : 'Aprovar e enviar acesso'}</button>
+                  </form>
+                ) : (
+                  <form method="post" class="eq-form">
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="_action" value="aprovar_remocao" />
+                    <div class="field"><label for={`obs-${r.id}`}>Como a posse foi conferida</label><input id={`obs-${r.id}`} name="observacao" type="text" maxlength="1000" placeholder="Ex.: confirmado pelo e-mail do perfil" /></div>
+                    <button type="submit" class="btn btn-danger btn-md" data-confirm={`Remover ${r.buffet_nome} do Banket Busca?`} data-confirm-texto="O perfil e os dados de contato são apagados e a importação não o traz de volta." data-confirm-rotulo="Remover perfil">Aprovar e remover</button>
+                  </form>
+                )}
+                <form method="post" class="eq-form">
+                  <input type="hidden" name="id" value={r.id} />
+                  <input type="hidden" name="_action" value="recusar" />
+                  <div class="field"><label for={`mot-${r.id}`}>Motivo da recusa (vai para quem pediu)</label><input id={`mot-${r.id}`} name="motivo" type="text" minlength="10" maxlength="1000" required /></div>
+                  <button type="submit" class="btn btn-outline btn-md">Recusar</button>
+                </form>
+              </div>
+            ) : (
+              <p class="eq-meta">O perfil já tem responsável ou não existe mais.</p>
+            )
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+</AppLayout>
+
+<style>
+  .eq-intro {
+    margin: 0 0 16px;
+    max-width: 80ch;
+    color: var(--text-secondary);
+  }
+
+  .eq-filtros {
+    margin-bottom: 20px;
+  }
+
+  .eq-lista {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .eq-pedido {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .eq-cabeca {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .eq-cabeca > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .eq-cabeca h2 {
+    margin: 0;
+    font-size: var(--fs-15);
+    font-weight: var(--fw-medium);
+  }
+
+  .eq-meta {
+    margin: 0;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .eq-colunas {
+    display: grid;
+    gap: 16px;
+  }
+
+  .eq-colunas .eyebrow {
+    margin: 0 0 8px;
+    color: var(--text-muted);
+  }
+
+  .eq-confere {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin: 8px 0 0;
+    font-size: var(--fs-12);
+    color: var(--success);
+  }
+
+  .eq-acoes {
+    display: grid;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .eq-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .eq-form .field {
+    flex: 1 1 240px;
+  }
+
+  @media (min-width: 769px) {
+    .eq-colunas {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
