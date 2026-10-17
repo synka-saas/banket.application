@@ -6,7 +6,7 @@ import VitrineLayout from '../../../layouts/VitrineLayout.astro';
 import Estrelas from '../../../components/busca/Estrelas.astro';
 import Icon from '../../../components/ui/Icon.astro';
 import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../../lib/busca/catalogos';
-import { buscaUrl, caminhoVitrine } from '../../../lib/busca/url';
+import { FOTO_PADRAO, buscaUrl, caminhoVitrine } from '../../../lib/busca/url';
 import { queryDaBusca } from '../../../lib/busca/filtros';
 import { jsonLdPerfil } from '../../../lib/busca/seo';
 import { hojeSaoPaulo } from '../../../lib/datas';
@@ -60,7 +60,7 @@ const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
 const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 ---
 
-<VitrineLayout title={`${p.nome}${p.cidade ? ` · Buffet em ${p.cidade}` : ''}`} description={descricaoSeo} canonical={`/buffet/${p.slug}`} imagem={fotos[0]?.url} jsonLd={emPrevia ? [] : [ld]} noindex={emPrevia}>
+<VitrineLayout title={`${p.nome}${p.cidade ? ` · Buffet em ${p.cidade}` : ''}`} description={descricaoSeo} canonical={`/buffet/${p.slug}`} imagem={fotos[0]?.url ?? FOTO_PADRAO} jsonLd={emPrevia ? [] : [ld]} noindex={emPrevia}>
   {emPrevia && (
     <div class="vp-previa" role="status">
       <Icon name="eye" size={16} /> <span>Prévia do seu perfil{p.publicado ? '' : ' · ainda não publicado, só você vê esta página'}.</span>
@@ -70,10 +70,14 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
   <div class="vitrine-secao" style="padding-top:16px">
     <a class="voltar" href={v('/buscar') + busca}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
 
-    {fotos.length > 0 && (
+    {fotos.length > 0 ? (
       <div class="vp-galeria">
         <div class="vp-galeria-principal"><img src={fotos[0].url} alt={fotos[0].legenda ?? `Foto de ${p.nome}`} width="900" height="675" /></div>
         {extras.map((f) => <div class="vp-galeria-extra"><img src={f.url} alt={f.legenda ?? ''} loading="lazy" width="450" height="200" /></div>)}
+      </div>
+    ) : (
+      <div class="vp-galeria vp-galeria--padrao">
+        <div class="vp-galeria-principal"><img src={FOTO_PADRAO} alt="" width="1200" height="900" /></div>
       </div>
     )}
 

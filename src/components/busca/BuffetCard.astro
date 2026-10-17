@@ -4,7 +4,7 @@
 import Icon from '../ui/Icon.astro';
 import { formatarDistancia } from '../../lib/busca/geo';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
-import { caminhoVitrine } from '../../lib/busca/url';
+import { FOTO_PADRAO, caminhoVitrine } from '../../lib/busca/url';
 import { queryDaBusca, type Criterios } from '../../lib/busca/filtros';
 import type { ItemResultado } from '../../server/busca/publico';
 
@@ -37,11 +37,7 @@ const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1,
 
 <article class:list={['bcard', { 'bcard--compacto': compacto }]} data-buffet={item.slug} data-nome={item.nome}>
   <a href={perfilUrl} class="bcard-foto" tabindex="-1" aria-hidden="true">
-    {item.foto ? (
-      <img src={item.foto} alt="" loading={primeiro ? 'eager' : 'lazy'} decoding="async" width="560" height="420" />
-    ) : (
-      <span class="bcard-foto-vazia"><Icon name="photo" size={26} /></span>
-    )}
+    <img src={item.foto ?? FOTO_PADRAO} alt="" loading={primeiro ? 'eager' : 'lazy'} decoding="async" width="560" height="420" />
     {item.disponibilidade === 'disponivel' && <span class="bcard-disponivel"><span class="bcard-ponto" aria-hidden="true"></span>Disponível na data</span>}
   </a>
   <div class="bcard-corpo">

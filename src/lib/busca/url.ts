@@ -48,3 +48,6 @@ export const noHostBusca = (url: URL): boolean => {
 
 /** Para onde vai quem acabou de entrar: a área do Busca no host do Busca, o dashboard no app. */
 export const inicioAposLogin = (url: URL): string => (noHostBusca(url) ? '/busca' : '/dashboard');
+
+/** Foto mostrada no card e no perfil dos buffets que ainda não enviaram nenhuma foto (public/thumb-buffet.webp). */
+export const FOTO_PADRAO = '/thumb-buffet.webp';

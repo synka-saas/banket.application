@@ -300,15 +300,6 @@ body.vitrine {
   display: block;
 }
 
-.bcard-foto-vazia {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--clay-400);
-}
-
 .bcard-disponivel {
   position: absolute;
   top: 12px;
@@ -1548,6 +1539,16 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
 
   .vp-galeria-extra {
     display: block !important;
+  }
+
+  /* Perfil sem fotos: só a imagem padrão, na largura toda */
+  .vp-galeria--padrao {
+    grid-template-columns: 1fr;
+    grid-template-rows: 408px;
+  }
+
+  .vp-galeria--padrao .vp-galeria-principal {
+    grid-row: auto;
   }
 
   .vp-layout {
