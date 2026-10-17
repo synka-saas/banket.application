@@ -1,6 +1,6 @@
 ---
 // Buscador guiado (home e resumo dos resultados): nome do buffet (instant search em /api/vitrine/buffets), tipo de
-// evento, cidade (autocomplete em /api/vitrine/cidades) e convidados. GET para /buscar: funciona sem JavaScript (a cidade digitada é resolvida no servidor).
+// evento e cidade (autocomplete em /api/vitrine/cidades); convidados fica no painel de filtros. GET para /buscar: funciona sem JavaScript (a cidade digitada é resolvida no servidor).
 import Icon from '../ui/Icon.astro';
 import CampoCidade from './CampoCidade.astro';
 import CampoNome from './CampoNome.astro';
@@ -32,13 +32,7 @@ const id = `fb-${variante}`;
       </div>
     </div>
     <CampoCidade id={`${id}-cidade`} rotulo="Cidade" nameSlug="cidade" nameTexto="cidade_texto" cidade={cidade} />
-    <div class="field">
-      <label for={`${id}-conv`}>Convidados</label>
-      <div class="campo-icone">
-        <Icon name="users" size={18} class="campo-icone-ico" />
-        <input id={`${id}-conv`} name="convidados" type="number" inputmode="numeric" min="1" max="5000" placeholder="Ex.: 80" value={criterios.convidados ?? ''} />
-      </div>
-    </div>
+    {criterios.convidados && <input type="hidden" name="convidados" value={criterios.convidados} />}
   </div>
   <button type="submit" class="btn btn-primary btn-large fbusca-enviar"><Icon name="search" size={16} /> Buscar buffets</button>
 </form>

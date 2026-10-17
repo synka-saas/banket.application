@@ -9,10 +9,17 @@ import { buscaUrl } from '../../lib/busca/url';
 import { jsonLdLista } from '../../lib/busca/seo';
 import { rotuloEvento } from '../../lib/busca/catalogos';
 import { buscarBuffets, registrarMetrica } from '../../server/busca/publico';
-import { cachePublico, criteriosDaUrl } from '../../server/busca/vitrine';
+import { cachePublico, criteriosDaUrl, interpretarTermo } from '../../server/busca/vitrine';
+import { queryDaBusca } from '../../lib/busca/filtros';
+import { caminhoVitrine } from '../../lib/busca/url';
 
 cachePublico(Astro.response.headers, 120);
 const criterios = criteriosDaUrl(Astro.url);
+// Busca única da home (Enter sem escolher sugestão): o texto vira tipo, cidade ou nome e a URL fica a definitiva
+if (Astro.url.searchParams.has('termo')) {
+  const interpretado = await interpretarTermo(Astro.url.searchParams.get('termo'));
+  return Astro.redirect(caminhoVitrine('/buscar') + queryDaBusca({ ...criterios, ...Object.fromEntries(Object.entries(interpretado).filter(([, v]) => v != null)) }), 302);
+}
 const resultado = await buscarBuffets(criterios);
 await registrarMetrica(resultado.itens.slice(-12).map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
 const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toLowerCase()}` : 'Buffets', resultado.cidade ? `em ${resultado.cidade.nome}` : null]

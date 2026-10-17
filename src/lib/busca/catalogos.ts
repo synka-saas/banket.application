@@ -73,6 +73,23 @@ export const ehRestricao = (v: unknown): v is string => typeof v === 'string' &&
 /** Slug do tipo de evento do app (tipos_evento.slug, fixos desde a migration 030) para um tipo da vitrine. */
 export const naturezaDoEvento = (slug: string): 'social' | 'corporativo' => EVENTOS.get(slug)?.natureza ?? 'social';
 
+const semAcento = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+const nomesDoTipo = (t: (typeof TIPOS_EVENTO)[number]) => [t.rotulo, t.plural, t.slug].map(semAcento);
+
+/**
+ * Tipos de evento pelo texto digitado na busca única (sem acento): `exato` quando o texto é o rótulo, o plural ou o
+ * slug ("casamento", "festas infantis", "coffee break"); `parecidos` são os que contêm o texto ou cujo nome ele contém
+ * (sugestões). "Outros eventos" só aparece pelo nome exato.
+ */
+export function tiposPorTexto(texto: string): { exato: string | null; parecidos: string[] } {
+  const q = semAcento(texto);
+  if (q.length < 2) return { exato: null, parecidos: [] };
+  const exato = TIPOS_EVENTO.find((t) => nomesDoTipo(t).includes(q))?.slug ?? null;
+  const parecidos = TIPOS_EVENTO.filter((t) => t.slug !== 'outros' && nomesDoTipo(t).some((n) => n.includes(q) || (q.length >= 4 && q.includes(n))))
+    .map((t) => t.slug);
+  return { exato, parecidos: exato && !parecidos.includes(exato) ? [exato, ...parecidos] : parecidos };
+}
+
 /** Mantém só os slugs válidos, sem repetição, na ordem do catálogo. */
 export function filtrarSlugs(valores: unknown, catalogo: { slug: string }[]): string[] {
   const lista = Array.isArray(valores) ? valores : typeof valores === 'string' ? [valores] : [];

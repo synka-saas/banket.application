@@ -104,13 +104,13 @@ export function queryDaBusca(c: Partial<Criterios>): string {
   return s ? `?${s}` : '';
 }
 
-/** Tem algum filtro secundário (além de tipo, cidade, data e convidados)? Usado no estado vazio e no "Limpar". */
+/** Tem algum filtro do painel (além de nome, tipo, cidade e data)? Usado no estado vazio e no "Limpar". */
 export const temFiltrosSecundarios = (c: Criterios) =>
-  c.servicos.length > 0 || c.restricoes.length > 0 || c.local != null || c.avaliacao != null || c.raio != null;
+  c.convidados != null || c.servicos.length > 0 || c.restricoes.length > 0 || c.local != null || c.avaliacao != null || c.raio != null;
 
 /** Os mesmos critérios sem os filtros secundários. */
 export const semFiltrosSecundarios = (c: Criterios): Criterios => ({
-  ...c, servicos: [], restricoes: [], local: null, avaliacao: null, raio: null, pagina: 1,
+  ...c, convidados: null, servicos: [], restricoes: [], local: null, avaliacao: null, raio: null, pagina: 1,
 });
 
 /** Rótulo curto de cada filtro ativo (chips removíveis) com a busca sem ele. */
@@ -118,6 +118,7 @@ export function chipsDosFiltros(c: Criterios, rotulos: { servico: (s: string) =>
   const chips: { rotulo: string; sem: Criterios }[] = [];
   const base = { ...c, pagina: 1 };
   if (c.nome) chips.push({ rotulo: `Nome: ${c.nome}`, sem: { ...base, nome: null } });
+  if (c.convidados) chips.push({ rotulo: `${c.convidados} convidados`, sem: { ...base, convidados: null } });
   for (const s of c.servicos) chips.push({ rotulo: rotulos.servico(s), sem: { ...base, servicos: c.servicos.filter((x) => x !== s) } });
   for (const r of c.restricoes) chips.push({ rotulo: rotulos.restricao(r), sem: { ...base, restricoes: c.restricoes.filter((x) => x !== r) } });
   if (c.local) chips.push({ rotulo: c.local === 'espaco' ? 'Espaço próprio' : 'Em domicílio', sem: { ...base, local: null } });

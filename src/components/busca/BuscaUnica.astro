@@ -1,0 +1,155 @@
+---
+// Busca única da home: um campo para o nome do buffet, o tipo de evento ou a cidade. Enquanto digita, sugere os três
+// grupos (/api/vitrine/sugestoes); escolher abre o perfil do buffet ou a busca já filtrada. Enter sem escolher envia
+// ?termo= e o servidor decide (tipo exato → cidade → nome; server/busca/vitrine.interpretarTermo). Funciona sem
+// JavaScript (só o envio). Convidados e os demais critérios ficam no painel de filtros dos resultados.
+import Icon from '../ui/Icon.astro';
+import { caminhoVitrine } from '../../lib/busca/url';
+
+const id = 'busca-unica';
+---
+
+<form class="fbusca fbusca--destaque fbusca-unica" method="get" action={caminhoVitrine('/buscar')} role="search" aria-label="Buscar buffets"
+  data-busca-unica data-buscar={caminhoVitrine('/buscar')} data-perfil={caminhoVitrine('/buffet/')}>
+  <div class="field fbusca-cidade">
+    <label for={id} class="sr-only">Buffet, tipo de evento ou cidade</label>
+    <div class="campo-icone">
+      <Icon name="search" size={18} class="campo-icone-ico" />
+      <input
+        id={id} name="termo" type="search" autocomplete="off" maxlength="80"
+        placeholder="Digite o nome do buffet, o tipo de evento ou a cidade"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls={`${id}-lista`} data-unica-texto
+      />
+    </div>
+    <ul id={`${id}-lista`} class="fbusca-sugestoes" role="listbox" aria-label="Sugestões" hidden data-unica-lista></ul>
+  </div>
+  <button type="submit" class="btn btn-primary btn-large fbusca-enviar"><Icon name="search" size={16} /> Buscar buffets</button>
+</form>
+
+<script>
+  import { svgIcone } from '../../lib/icones';
+
+  interface Opcao {
+    grupo: string;
+    icone: string;
+    titulo: string;
+    sub: string | null;
+    href: string;
+  }
+  interface Resposta {
+    buffets: { slug: string; nome: string; bairro: string | null; cidade: string | null; uf: string | null }[];
+    tipos: { slug: string; rotulo: string; icone: string }[];
+    cidades: { nome: string; uf: string; slug: string }[];
+  }
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-busca-unica]')) {
+    if (form.dataset.pronto) continue;
+    form.dataset.pronto = '1';
+    const texto = form.querySelector<HTMLInputElement>('[data-unica-texto]')!;
+    const lista = form.querySelector<HTMLUListElement>('[data-unica-lista]')!;
+    const buscar = form.dataset.buscar!;
+    const perfil = form.dataset.perfil!;
+    let opcoes: Opcao[] = [];
+    let ativo = -1;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let pedido = 0;
+
+    const fechar = () => {
+      lista.hidden = true;
+      texto.setAttribute('aria-expanded', 'false');
+      texto.removeAttribute('aria-activedescendant');
+      ativo = -1;
+    };
+    const abrir = (i: number) => {
+      if (opcoes[i]) window.location.href = opcoes[i].href;
+    };
+    const desenhar = () => {
+      const filhos: HTMLElement[] = [];
+      let grupo = '';
+      opcoes.forEach((o, i) => {
+        if (o.grupo !== grupo) {
+          grupo = o.grupo;
+          const t = document.createElement('li');
+          t.setAttribute('role', 'presentation');
+          t.className = 'fbusca-grupo eyebrow';
+          t.textContent = grupo;
+          filhos.push(t);
+        }
+        const li = document.createElement('li');
+        li.id = `${lista.id}-${i}`;
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', String(i === ativo));
+        li.className = 'fbusca-sugestao fbusca-sugestao--icone' + (i === ativo ? ' ativa' : '');
+        const ico = document.createElement('span');
+        ico.className = 'fbusca-sugestao-ico';
+        ico.innerHTML = svgIcone(o.icone, 16);
+        const corpo = document.createElement('span');
+        const nome = document.createElement('span');
+        nome.className = 'fbusca-sugestao-nome';
+        nome.textContent = o.titulo;
+        corpo.append(nome);
+        if (o.sub) {
+          const sub = document.createElement('span');
+          sub.className = 'fbusca-sugestao-sub';
+          sub.textContent = o.sub;
+          corpo.append(sub);
+        }
+        li.append(ico, corpo);
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          abrir(i);
+        });
+        filhos.push(li);
+      });
+      lista.replaceChildren(...filhos);
+      lista.hidden = opcoes.length === 0;
+      texto.setAttribute('aria-expanded', String(opcoes.length > 0));
+      if (ativo >= 0) texto.setAttribute('aria-activedescendant', `${lista.id}-${ativo}`);
+      else texto.removeAttribute('aria-activedescendant');
+    };
+    texto.addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = texto.value.trim();
+      if (q.length < 2) {
+        opcoes = [];
+        return desenhar();
+      }
+      timer = setTimeout(async () => {
+        const n = ++pedido;
+        let r: Resposta = { buffets: [], tipos: [], cidades: [] };
+        try {
+          const resp = await fetch(`/api/vitrine/sugestoes?q=${encodeURIComponent(q)}`);
+          if (resp.ok) r = await resp.json();
+        } catch {
+          /* sem sugestões: o Enter continua buscando */
+        }
+        if (n !== pedido) return; // resposta de uma digitação anterior
+        opcoes = [
+          ...r.tipos.map((t) => ({ grupo: 'Tipos de evento', icone: t.icone, titulo: t.rotulo, sub: null, href: `${buscar}?tipo=${encodeURIComponent(t.slug)}` })),
+          ...r.cidades.map((c) => ({ grupo: 'Cidades', icone: 'map-pin', titulo: `${c.nome} · ${c.uf}`, sub: null, href: `${buscar}?cidade=${encodeURIComponent(c.slug)}` })),
+          ...r.buffets.map((b) => ({
+            grupo: 'Buffets', icone: 'tools-kitchen-2', titulo: b.nome,
+            sub: [b.bairro, b.cidade && b.uf ? `${b.cidade} · ${b.uf}` : b.cidade].filter(Boolean).join(', ') || null,
+            href: perfil + encodeURIComponent(b.slug),
+          })),
+        ];
+        ativo = -1; // Enter sem escolher envia o texto e o servidor interpreta
+        desenhar();
+      }, 150);
+    });
+    texto.addEventListener('keydown', (e) => {
+      if (lista.hidden) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        ativo = ativo < 0 ? (e.key === 'ArrowDown' ? 0 : opcoes.length - 1) : (ativo + (e.key === 'ArrowDown' ? 1 : -1) + opcoes.length) % opcoes.length;
+        desenhar();
+      } else if (e.key === 'Enter' && ativo >= 0) {
+        e.preventDefault();
+        abrir(ativo);
+      } else if (e.key === 'Escape') {
+        fechar();
+      }
+    });
+    texto.addEventListener('blur', () => setTimeout(fechar, 120));
+  }
+</script>

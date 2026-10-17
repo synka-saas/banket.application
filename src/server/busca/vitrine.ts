@@ -1,7 +1,9 @@
 // Apoio às páginas públicas da vitrine: critérios a partir da URL (inclusive a cidade digitada sem JavaScript) e
 // os cabeçalhos de cache (as páginas não dependem de sessão; o Cloudflare guarda por 5 minutos).
 import { hojeSaoPaulo } from '../../lib/datas';
-import { lerCriterios, type Criterios } from '../../lib/busca/filtros';
+import { lerCriterios, nomeValido, type Criterios } from '../../lib/busca/filtros';
+import { tiposPorTexto } from '../../lib/busca/catalogos';
+import { resolverCidade } from './publico';
 import { slugTexto } from '../../lib/busca/geo';
 
 /** "Santo André · SP" → "santo-andre-sp"; "Moema, São Paulo" → "sao-paulo"; vazio → null. */
@@ -21,6 +23,22 @@ export function criteriosDaUrl(url: URL): Criterios {
     if (digitada) p.set('cidade', digitada);
   }
   return lerCriterios(p, hojeSaoPaulo());
+}
+
+/**
+ * Texto livre da busca única da home (?termo=, Enter sem escolher sugestão): tipo de evento pelo nome exato, senão
+ * cidade, senão nome do buffet.
+ */
+export async function interpretarTermo(termo: string | null): Promise<Pick<Criterios, 'tipo' | 'cidade' | 'nome'>> {
+  const vazio = { tipo: null, cidade: null, nome: null };
+  const t = nomeValido(termo);
+  if (!t) return vazio;
+  const tipo = tiposPorTexto(t).exato;
+  if (tipo) return { ...vazio, tipo };
+  const slug = slugDaCidadeDigitada(t);
+  const cidade = slug ? await resolverCidade(slug) : null;
+  if (cidade) return { ...vazio, cidade: cidade.slug };
+  return { ...vazio, nome: t };
 }
 
 export function cachePublico(headers: Headers, segundos = 300): void {

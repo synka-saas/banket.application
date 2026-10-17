@@ -258,7 +258,6 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
       const total = (c: Criterios) => todos.filter((x) => compativel(x, c, cidade) && passaFiltros(x, c, cidade)).length;
       if (base.length) sugestoes.push({ chave: 'filtros', total: base.length });
       if (crit.data) sugestoes.push({ chave: 'data', total: total({ ...semSec, data: null }) });
-      if (crit.convidados) sugestoes.push({ chave: 'convidados', total: total({ ...semSec, convidados: null }) });
       if (cidade) sugestoes.push({ chave: 'raio', total: total({ ...semSec, raio: 50 }) });
     }
     const limite = crit.pagina * POR_PAGINA;

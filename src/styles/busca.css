@@ -254,6 +254,31 @@ body.vitrine {
   cursor: pointer;
 }
 
+.fbusca-grupo {
+  padding: 8px 10px 4px;
+  color: var(--text-muted);
+}
+
+.fbusca-sugestao--icone {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fbusca-sugestao-ico {
+  flex: none;
+  display: inline-flex;
+  color: var(--terracotta-600);
+}
+
+.fbusca-unica .campo-icone input {
+  min-height: var(--control-h-lg);
+}
+
+.fbusca-unica input::placeholder {
+  text-overflow: ellipsis;
+}
+
 .fbusca-sugestao-nome {
   display: block;
   color: var(--text-strong);
@@ -1461,9 +1486,22 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
     align-items: flex-end;
   }
 
+  .fbusca-unica {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .fbusca-unica > .field {
+    flex: 1;
+  }
+
+  .fbusca-unica .fbusca-enviar {
+    width: auto;
+  }
+
   .fbusca--barra .fbusca-campos {
     flex: 1;
-    grid-template-columns: 1.3fr 1.1fr 1.1fr 0.7fr;
+    grid-template-columns: 1.2fr 1fr 1fr;
   }
 
   .fbusca--barra .fbusca-enviar {

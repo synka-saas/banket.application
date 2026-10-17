@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TIPOS_EVENTO, TIPOS_SERVICO, ehTipoEvento, filtrarSlugs, naturezaDoEvento, rotuloEvento } from './catalogos';
+import { TIPOS_EVENTO, TIPOS_SERVICO, ehTipoEvento, filtrarSlugs, naturezaDoEvento, rotuloEvento, tiposPorTexto } from './catalogos';
 
 describe('catálogos do Banket Busca', () => {
   it('slugs únicos', () => {
@@ -18,6 +18,16 @@ describe('catálogos do Banket Busca', () => {
     expect(naturezaDoEvento('casamento')).toBe('social');
     expect(naturezaDoEvento('coffee_break')).toBe('corporativo');
     expect(naturezaDoEvento('desconhecido')).toBe('social');
+  });
+
+  it('acha tipos de evento pelo texto digitado', () => {
+    expect(tiposPorTexto('Casamento').exato).toBe('casamento');
+    expect(tiposPorTexto('festas infantis').exato).toBe('infantil');
+    expect(tiposPorTexto('coffee break').exato).toBe('coffee_break');
+    expect(tiposPorTexto('casa')).toEqual({ exato: null, parecidos: ['casamento', 'cha'] });
+    expect(tiposPorTexto('buffet para casamento').parecidos).toContain('casamento');
+    expect(tiposPorTexto('outr').parecidos).toEqual([]);
+    expect(tiposPorTexto('x').parecidos).toEqual([]);
   });
 
   it('filtra slugs válidos na ordem do catálogo, sem repetir', () => {

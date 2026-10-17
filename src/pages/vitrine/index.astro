@@ -2,7 +2,7 @@
 // Home do Banket Busca (layout-busca/BuscaHome): buscador guiado, tipos de evento com a contagem real, tipos de
 // serviço, como funciona, destaques (ranking), depoimentos (avaliações publicadas) e chamada para buffets.
 import VitrineLayout from '../../layouts/VitrineLayout.astro';
-import FormBusca from '../../components/busca/FormBusca.astro';
+import BuscaUnica from '../../components/busca/BuscaUnica.astro';
 import BuffetCard from '../../components/busca/BuffetCard.astro';
 import Estrelas from '../../components/busca/Estrelas.astro';
 import Icon from '../../components/ui/Icon.astro';
@@ -53,7 +53,7 @@ const DESCRICAO_SERVICO: Record<string, string> = {
       <p class="eyebrow" style="color:var(--terracotta-700)">Buffets e catering · social e corporativo</p>
       <h1 class="vh-titulo">Encontre o <em>buffet certo</em> para o seu evento</h1>
       <p class="vh-sub">Conte como vai ser a festa e veja os buffets que atendem a sua região e comportam os seus convidados.</p>
-      <FormBusca />
+      <BuscaUnica />
       <ul class="vh-garantias">
         <li><Icon name="circle-check" size={16} /> Grátis e sem compromisso</li>
         <li><Icon name="circle-check" size={16} /> Peça para vários buffets de uma vez</li>

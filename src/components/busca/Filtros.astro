@@ -1,6 +1,6 @@
 ---
 // Filtros secundários da busca (layout-busca/BuscaFiltros). Formulário GET: aplica na hora com JavaScript (mudança
-// de campo envia) e com o botão "Aplicar" sem JavaScript. Leva junto tipo, cidade, data, convidados e ordem.
+// de campo envia) e com o botão "Aplicar" sem JavaScript. Leva junto nome, tipo, cidade, data e ordem.
 import { RAIOS, type Criterios } from '../../lib/busca/filtros';
 import { caminhoVitrine } from '../../lib/busca/url';
 import type { ResultadoBusca } from '../../server/busca/publico';
@@ -19,8 +19,13 @@ const { criterios: c, facetas, id, temCidade } = Astro.props;
   {c.tipo && <input type="hidden" name="tipo" value={c.tipo} />}
   {c.cidade && <input type="hidden" name="cidade" value={c.cidade} />}
   {c.data && <input type="hidden" name="data" value={c.data} />}
-  {c.convidados && <input type="hidden" name="convidados" value={c.convidados} />}
+  {c.nome && <input type="hidden" name="q" value={c.nome} />}
   {c.ordem !== 'relevancia' && <input type="hidden" name="ordem" value={c.ordem} />}
+
+  <div class="field">
+    <label for={`${id}-conv`} class="vf-titulo">Convidados</label>
+    <input id={`${id}-conv`} name="convidados" type="number" inputmode="numeric" min="1" max="5000" placeholder="Ex.: 80" value={c.convidados ?? ''} />
+  </div>
 
   {facetas.servicos.length > 0 && (
     <fieldset class="vf-grupo">
