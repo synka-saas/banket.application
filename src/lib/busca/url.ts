@@ -55,4 +55,4 @@ export const ARQUIVO_FOTO_PADRAO = '/thumb-buffet.webp';
  * URL da imagem padrão (card, perfil e og:image dos buffets sem foto própria). O `?v=` muda quando a imagem é
  * trocada, para o navegador e o Cloudflare (cache de 4 h) buscarem a nova: use os 8 primeiros caracteres do md5sum.
  */
-export const FOTO_PADRAO = `${ARQUIVO_FOTO_PADRAO}?v=f5784750`;
+export const FOTO_PADRAO = `${ARQUIVO_FOTO_PADRAO}?v=0121627c`;
