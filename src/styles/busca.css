@@ -243,6 +243,17 @@ body.vitrine {
   cursor: pointer;
 }
 
+/* Limpar do campo de busca no tom do design system (o padrão do navegador é azul) */
+.fbusca input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--text-muted);
+  mask: var(--icone-x, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6l-12 12'/%3E%3Cpath d='M6 6l12 12'/%3E%3C/svg%3E")) center / contain no-repeat;
+  cursor: pointer;
+}
+
 .fbusca-sugestao-nome {
   display: block;
   color: var(--text-strong);
