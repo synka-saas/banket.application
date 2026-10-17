@@ -1,7 +1,7 @@
 -- 011_busca_demo.sql
 -- Banket Busca: buffets fictícios para a vitrine (São Paulo, Campinas, Santo André e ABC), misturando clientes
 -- Banket (planos pagos, um em teste) e perfis gratuitos (plano Busca), com pacotes, fotos ilustrativas
--- (public/busca-demo), avaliações, métricas de 60 dias, pedidos em vários status, cardápios ligados aos pacotes dos
+-- (a imagem padrão public/thumb-buffet.webp), avaliações, métricas de 60 dias, pedidos em vários status, cardápios ligados aos pacotes dos
 -- clientes e eventos aprovados (disponibilidade). Um perfil fica incompleto (não publicado).
 -- Usuários: <email abaixo>, senha Banket.2026. E-mails em .test (domínio reservado: nada é enviado).
 -- Idempotente pelo slug da empresa.
@@ -53,7 +53,7 @@ BEGIN
 
   FOREACH v_foto IN ARRAY p_fotos LOOP
     INSERT INTO busca_fotos (tenant_id, perfil_id, path, legenda, ordem, capa)
-    VALUES (v_t, v_p, '/busca-demo/' || v_foto || '.svg',
+    VALUES (v_t, v_p, '/thumb-buffet.webp',
             CASE split_part(v_foto, '-', 1) WHEN 'mesa' THEN 'Mesa posta' WHEN 'salao' THEN 'Salão montado' ELSE 'Mesa de doces' END,
             v_i, v_i = 0);
     v_i := v_i + 1;

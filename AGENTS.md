@@ -559,6 +559,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `035_busca_fotos_thumb` | fotos de demonstração (`/busca-demo/*.svg`) viram a imagem padrão `/thumb-buffet.webp` |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
 
 ### Seeds (somente dev, `--seed`)
@@ -568,7 +569,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 blocos no estilo dos PDFs de referência · `008` usuário `operacao@` (papel usuario) · `009` espaço de terceiro "Sede
 TechCorp" ligado ao evento corporativo · `010` empresa "Buffet Gratuito Demo" no plano Busca
 (`gratuito@buffetgratis.com.br`, owner) · `011` Banket Busca: 10 buffets fictícios em SP, Campinas, Santo André e ABC
-(4 clientes, um em teste; 5 gratuitos publicados; 1 incompleto), com fotos de `public/busca-demo`, avaliações,
+(4 clientes, um em teste; 5 gratuitos publicados; 1 incompleto), com fotos (todas a imagem padrão `thumb-buffet.webp`), avaliações,
 métricas, pedidos e opções de cardápio dos clientes (usuários `contato@<buffet>.test`, senha `Banket.2026`).
 `_legacy_*` são ignorados.
 
@@ -1063,7 +1064,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
   grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
 - **Sem fotos**: card e perfil usam a imagem padrão `public/thumb-buffet.webp` (`FOTO_PADRAO` em `lib/busca/url.ts`),
-  também como `og:image`; o JSON-LD não a declara como foto do buffet.
+  também como `og:image`; o JSON-LD não a declara como foto do buffet (nem quando ela está gravada como foto, caso dos
+  perfis de demonstração desde a migration 035).
 - **Métricas**: aparições (cards exibidos), visualizações (perfil) por dia em `busca_metricas_dia`; robôs e clientes de
   linha de comando não contam (`ehRobo`).
 - **Host**: com `BUSCA_URL`, o middleware reescreve `busca.banket.com.br/x` para `/vitrine/x` (`decidirHost`), deixa

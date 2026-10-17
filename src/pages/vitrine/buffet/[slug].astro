@@ -53,7 +53,7 @@ const fatos = [
 ].filter(Boolean) as { icone: string; rotulo: string; valor: string }[];
 const ld = jsonLdPerfil({
   nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
-  fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
+  fotos: fotos.filter((f) => f.url !== FOTO_PADRAO).map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
   totalAvaliacoes: p.total_avaliacoes, avaliacoes: p.avaliacoes,
 });
 const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
