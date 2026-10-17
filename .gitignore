@@ -32,7 +32,6 @@ Makefile
 
 # uploads locais
 /uploads/
-/base
 
 # testes e2e
 test-results/
