@@ -279,6 +279,13 @@ body.vitrine {
   text-overflow: ellipsis;
 }
 
+/* O placeholder orienta a busca inteira: no celular a fonte menor faz caber na largura */
+@media (max-width: 768px) {
+  .fbusca-unica input::placeholder {
+    font-size: var(--fs-12);
+  }
+}
+
 .fbusca-sugestao-nome {
   display: block;
   color: var(--text-strong);
@@ -1500,18 +1507,6 @@ body.vitrine:has(.vp-movel) .vitrine-rodape {
     align-items: flex-end;
   }
 
-  .fbusca-unica {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .fbusca-unica > .field {
-    flex: 1;
-  }
-
-  .fbusca-unica .fbusca-enviar {
-    width: auto;
-  }
 
   .fbusca--barra .fbusca-campos {
     flex: 1;
