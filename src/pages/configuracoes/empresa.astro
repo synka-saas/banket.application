@@ -205,12 +205,11 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
   import { toast } from '../../lib/ui';
   import { buscarCep } from '../../lib/endereco';
 
-  // CEP (primeiro campo do endereço) → ViaCEP: preenche rua, bairro, cidade e UF e leva ao número. Só troca o que estiver
-  // vazio ou o que a própria busca anterior preencheu (não apaga o que a pessoa digitou).
+  // CEP (primeiro campo do endereço) → ViaCEP: um CEP encontrado substitui rua, bairro, cidade e UF (são do CEP) e leva
+  // ao número; número e complemento ficam como estão. CEP geral de cidade (sem rua na ViaCEP) mantém a rua digitada.
   const bloco = document.querySelector<HTMLElement>('[data-endereco]');
   const cep = bloco?.querySelector<HTMLInputElement>('[data-cep]');
   const status = bloco?.querySelector<HTMLElement>('[data-cep-status]');
-  const preenchidos = new Map<string, string>();
   let ultimo = cep?.value.replace(/\D/g, '') ?? '';
   async function consultar() {
     if (!bloco || !cep || !status) return;
@@ -227,13 +226,9 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
       const valores: Record<string, string> = { logradouro: r.logradouro, bairro: r.bairro, cidade: r.cidade, uf: r.uf };
       for (const campo of bloco.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-cep-campo]')) {
         const novo = valores[campo.dataset.cepCampo ?? ''];
-        if (!novo) continue;
-        const atual = campo.value.trim();
-        if (!atual || atual === preenchidos.get(campo.name)) {
-          campo.value = novo;
-          preenchidos.set(campo.name, novo);
-          campo.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        if (!novo || campo.value === novo) continue;
+        campo.value = novo;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
       }
       status.textContent = 'Endereço encontrado. Confira e informe o número.';
       document.getElementById('emp-numero')?.focus();

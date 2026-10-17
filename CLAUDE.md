@@ -989,7 +989,7 @@ Modelos de e-mail (`/configuracoes/modelos-email`, `server/emailModelos.ts`: nom
 variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ativo assume) · **Empresa** (primeiro item; aberta a todo plano — no plano Busca o menu Configurações abre nela e o submenu mostra só
 Empresa e Financeiro, com os parâmetros da proposta ocultos): tenant da conta (somente leitura, com Copiar), dados
 cadastrais, endereço desmembrado com o **CEP como primeiro campo, ligado à ViaCEP** (`buscarCep`: preenche rua, bairro,
-cidade e UF sem apagar o que foi digitado e leva ao número), logo, validade da proposta, faixas de crianças, espaço
+cidade e UF — substitui o que estava; número e complemento ficam — e leva ao número), logo, validade da proposta, faixas de crianças, espaço
 padrão, assinatura. Salvar copia nome, documento, e-mail, telefone e logo para os perfis do Busca
 (`sincronizarPerfisComEmpresa`). A locação saiu daqui: fica em Espaços.
 
