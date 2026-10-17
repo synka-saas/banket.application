@@ -87,10 +87,15 @@ const adapter: HwestaAdapter = {
     }));
   },
 
+  /**
+   * Contas para o Manager. Empresas da importação do Banket Busca ainda sem usuário (perfis não reivindicados) ficam
+   * fora: não são clientes, e o Manager guarda tudo o que recebe. Entram sozinhas quando o dono é vinculado.
+   */
   async listAccounts({ page, perPage, updatedSince, q }) {
     const where = `WHERE ($1::text IS NULL OR t.nome ILIKE '%' || $1 || '%' OR t.razao_social ILIKE '%' || $1 || '%'
                           OR t.documento ILIKE '%' || $1 || '%' OR t.email ILIKE '%' || $1 || '%')
-                     AND ($2::timestamptz IS NULL OR t.updated_at >= $2::timestamptz)`;
+                     AND ($2::timestamptz IS NULL OR t.updated_at >= $2::timestamptz)
+                     AND NOT (t.origem_cadastro = 'importacao' AND NOT EXISTS (SELECT 1 FROM tenant_usuarios tu WHERE tu.tenant_id = t.id))`;
     const args = [q?.trim() || null, updatedSince || null];
     const [rows, count] = await Promise.all([
       systemQuery(`${ACCOUNT_SQL} ${where} ORDER BY t.created_at DESC LIMIT $3 OFFSET $4`, [...args, perPage, (page - 1) * perPage]),
