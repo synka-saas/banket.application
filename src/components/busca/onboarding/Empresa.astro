@@ -1,64 +1,63 @@
 ---
-// Etapa 1: dados da empresa (nome, CNPJ/CPF validado, logo, contato, descrição) e o endereço do perfil: o id do
-// perfil por padrão; endereço com o nome do buffet só nos planos pagos (recurso busca_slug). Empresa PJ em plano pago vê
-// "Capturar dados da conta": traz nome, CNPJ, e-mail, telefone e logo do cadastro do Banket (server/busca/onboarding).
-import FileUpload from '../../ui/FileUpload.astro';
+// Etapa 1: o perfil público da empresa. Os dados da empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp, logotipo)
+// são os de Configurações › Empresa, mostrados aqui só para leitura e copiados para o perfil
+// (server/busca/onboarding → sincronizarPerfisComEmpresa); aqui ficam redes, tempo de resposta, descrição e o
+// endereço do perfil (id do perfil por padrão; com o nome do buffet só nos planos pagos, recurso busca_slug).
 import Icon from '../../ui/Icon.astro';
 import Acoes from './Acoes.astro';
 import { formatarDocumento } from '../../../lib/documento';
 import { mascararTelefone } from '../../../lib/mascaras';
 import { urlMidia, type PerfilBusca } from '../../../server/busca/perfil';
-import type { DadosConta } from '../../../server/busca/onboarding';
+import type { DadosEmpresa } from '../../../server/busca/onboarding';
 import { buscaUrl } from '../../../lib/busca/url';
 import { ehUuid } from '../../../lib/busca/onboarding';
 interface Props {
   perfil: PerfilBusca;
   editor: boolean;
-  /** Cadastro da empresa no Banket (só PJ em plano pago) */
-  conta?: DadosConta | null;
+  /** Cadastro da empresa (Configurações › Empresa) */
+  empresa: DadosEmpresa | null;
+  /** O que falta no cadastro da empresa para concluir a etapa */
+  faltas: string[];
   /** Plano permite escolher o endereço do perfil */
   endereco?: boolean;
 }
-const { perfil: p, editor, conta = null, endereco = false } = Astro.props;
+const { perfil: p, editor, empresa, faltas, endereco = false } = Astro.props;
 const baseEndereco = buscaUrl('/buffet/').replace(/^https?:\/\//, '');
 const enderecoProprio = ehUuid(p.slug) ? '' : p.slug;
 const logo = urlMidia(p.tenant_id, p.logo_path);
-const daConta = conta
-  ? [conta.nome, conta.documento && formatarDocumento(conta.documento), conta.email, conta.telefone && mascararTelefone(conta.telefone), conta.logo_path && 'logotipo'].filter(Boolean).join(' · ')
-  : '';
+const fone = empresa?.telefone ? mascararTelefone(empresa.telefone) : null;
 ---
 
-{editor && conta && (
-  <form method="post" class="onb-cartao onb-conta" data-capturar-conta>
-    <input type="hidden" name="_etapa" value="1" />
-    <span class="onb-conta-ico"><Icon name="building" size={18} /></span>
-    <div class="onb-conta-texto">
-      <strong>Usar os dados da sua conta Banket</strong>
-      <span>Trazemos do cadastro da empresa: {daConta}. A descrição e as redes sociais você completa aqui.</span>
+<section class="onb-cartao onb-empresa">
+  <div class="onb-empresa-topo">
+    {logo ? <img class="onb-empresa-logo" src={logo} alt="" width="56" height="56" /> : <span class="onb-empresa-logo onb-empresa-logo--vazio"><Icon name="building" size={22} /></span>}
+    <div class="onb-empresa-texto">
+      <strong>{empresa?.nome ?? p.nome}</strong>
+      <span>Dados da empresa, como estão em Configurações › Empresa. Eles aparecem no perfil e não precisam ser digitados aqui.</span>
     </div>
-    <button type="submit" name="_acao" value="capturar" class="btn btn-secondary btn-md" data-carregando="Capturando…"
-      data-confirm="Capturar os dados da conta?" data-confirm-texto="Nome, CNPJ, e-mail, telefone e logotipo do perfil passam a ser os do cadastro da empresa. O que você digitou e ainda não salvou nesta etapa se perde." data-confirm-rotulo="Capturar dados">
-      <Icon name="download" size={16} /> Capturar dados da conta
-    </button>
-  </form>
-)}
+    {editor && <a href="/configuracoes/empresa" class="btn btn-secondary btn-md"><Icon name="pencil" size={16} /> Editar dados da empresa</a>}
+  </div>
+  <dl class="onb-empresa-dados">
+    <div><dt>CNPJ ou CPF</dt><dd>{empresa?.documento ? formatarDocumento(empresa.documento) : '—'} <span class="field-hint">Não aparece no perfil</span></dd></div>
+    <div><dt>E-mail comercial</dt><dd>{empresa?.email || '—'}</dd></div>
+    <div><dt>{empresa?.telefone && empresa.telefone.replace(/\D/g, '').length === 11 ? 'WhatsApp para pedidos' : 'Telefone'}</dt><dd>{fone || '—'}</dd></div>
+    <div><dt>Logotipo</dt><dd>{logo ? 'Do cadastro da empresa' : 'Sem logotipo (PNG, JPG ou WebP)'}</dd></div>
+  </dl>
+  {faltas.length > 0 && (
+    <p class="onb-empresa-falta">
+      <Icon name="alert-circle" size={16} />
+      <span>Para concluir esta etapa, complete no cadastro da empresa: {faltas.join(', ')}. <a href="/configuracoes/empresa">Ir para Configurações › Empresa</a></span>
+    </p>
+  )}
+</section>
 
-<form method="post" enctype="multipart/form-data" data-form-sujo>
+<form method="post" data-form-sujo>
   <input type="hidden" name="_etapa" value="1" />
   <fieldset disabled={!editor} style="border:0;margin:0;padding:0;display:contents">
     <section class="onb-cartao">
-      <div class="field">
-        <span class="field-label">Logotipo</span>
-        <FileUpload name="logo" accept="image/png,image/jpeg,image/webp" formatos="PNG, JPG ou WebP quadrado · mínimo 400 × 400 px" atualUrl={logo} removerName="remover_logo" comprimirKb={600} compacto />
-      </div>
       <div class="form-grid">
-        <div class="field"><label for="e-nome">Nome do buffet<span class="obrigatorio">*</span></label><input id="e-nome" name="nome" required maxlength="120" value={p.nome} /><span class="field-hint">Como aparece na busca</span></div>
-        <div class="field"><label for="e-doc">CNPJ (ou CPF)<span class="obrigatorio">*</span></label><input id="e-doc" name="documento" required inputmode="numeric" value={formatarDocumento(p.documento)} /><span class="field-hint">Não aparece no perfil</span></div>
-        <div class="field"><label for="e-whats">WhatsApp para pedidos</label><input id="e-whats" name="whatsapp" data-mascara="telefone" inputmode="tel" value={p.whatsapp ? mascararTelefone(p.whatsapp) : ''} /></div>
-        <div class="field"><label for="e-email">E-mail comercial<span class="obrigatorio">*</span></label><input id="e-email" name="email_contato" type="email" required value={p.email_contato ?? ''} /></div>
         <div class="field"><label for="e-insta">Instagram</label><input id="e-insta" name="instagram" placeholder="@seubuffet" value={p.instagram ?? ''} /></div>
         <div class="field"><label for="e-site">Site</label><input id="e-site" name="site" placeholder="www.seubuffet.com.br" value={p.site ?? ''} /></div>
-        <div class="field"><label for="e-tel">Telefone fixo</label><input id="e-tel" name="telefone" data-mascara="telefone" inputmode="tel" value={p.telefone ? mascararTelefone(p.telefone) : ''} /></div>
         <div class="field"><label for="e-tempo">Tempo de resposta</label>
           <select id="e-tempo" name="tempo_resposta_texto">
             {['', 'Responde em até 2 horas', 'Responde no mesmo dia', 'Responde em até 1 dia'].map((o) => <option value={o} selected={(p.tempo_resposta_texto ?? '') === o}>{o || 'Não informar'}</option>)}

@@ -52,6 +52,13 @@ export interface Cobranca {
   documento: string | null;
   email: string | null;
   endereco: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
   plano_id: string | null;
   plano_nome: string | null;
   gratuito: boolean;
@@ -79,6 +86,7 @@ export interface Cobranca {
 
 const SQL_COBRANCA = `
   SELECT t.id, t.nome, t.razao_social, t.tipo_pessoa, t.documento, t.email, t.endereco,
+         t.cep, t.logradouro, t.numero, t.complemento, t.bairro, t.cidade, t.uf,
          t.plano_id, p.nome AS plano_nome, COALESCE(p.gratuito, false) AS gratuito,
          t.plano_pendente_id, pp.nome AS plano_pendente_nome,
          to_char(t.trial_ate, 'YYYY-MM-DD') AS trial_ate,
@@ -150,6 +158,20 @@ export async function listarFaturas(db: Db, limite = 24): Promise<Fatura[]> {
   return rows;
 }
 
+/** Endereço no formato do Stripe (partes de Configurações › Empresa; sem elas, o texto montado). */
+function enderecoStripe(c: Cobranca): Stripe.AddressParam | undefined {
+  const line1 = [c.logradouro, c.numero].filter((x) => x?.trim()).join(', ') || c.endereco?.slice(0, 200) || '';
+  if (!line1) return undefined;
+  return {
+    line1,
+    line2: [c.complemento, c.bairro].filter((x) => x?.trim()).join(' – ') || undefined,
+    city: c.cidade || undefined,
+    state: c.uf || undefined,
+    postal_code: c.cep || undefined,
+    country: 'BR',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Cliente e preço
 // ---------------------------------------------------------------------------
@@ -196,7 +218,7 @@ async function obterOuCriarCliente(tenantId: string): Promise<{ clienteId: strin
     {
       name: c.razao_social || c.nome,
       email: email ?? undefined,
-      address: c.endereco ? { line1: c.endereco.slice(0, 200), country: 'BR' } : undefined,
+      address: enderecoStripe(c),
       preferred_locales: ['pt-BR'],
       metadata: { tenant_id: tenantId },
       tax_id_data: [{ type: taxId.type, value: taxId.value }],
@@ -490,7 +512,7 @@ export async function pixDaFatura(user: SessionUser, faturaId: string): Promise<
           name: c.razao_social || c.nome,
           email: c.email ?? undefined,
           ...(taxId ? { tax_id: taxId.digitos } : {}),
-          ...(c.endereco ? { address: { line1: c.endereco.slice(0, 200), country: 'BR' } } : {}),
+          ...(enderecoStripe(c) ? { address: enderecoStripe(c) } : {}),
         },
       } as Stripe.PaymentIntentConfirmParams.PaymentMethodData,
     });

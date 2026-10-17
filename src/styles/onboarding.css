@@ -467,42 +467,88 @@ a.onb-etapa:hover {
   }
 }
 
-/* Etapa 1: capturar os dados da conta (PJ em plano pago) */
-.onb-cartao.onb-conta {
-  flex-direction: row;
-  align-items: center;
+/* Etapa 1: dados da empresa (de Configurações › Empresa), só leitura */
+.onb-empresa {
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  background: var(--bg-accent-subtle);
-  border-color: var(--border-accent);
 }
 
-.onb-conta-ico {
-  display: inline-flex;
+.onb-empresa-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.onb-empresa-logo {
   flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  object-fit: contain;
+  background: var(--bg-surface);
+}
+
+.onb-empresa-logo--vazio {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--bg-accent-subtle);
   color: var(--terracotta-600);
 }
 
-.onb-conta-texto {
+.onb-empresa-texto {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
+  min-width: 200px;
   font-size: var(--fs-13);
   color: var(--text-secondary);
 }
 
-.onb-conta-texto strong {
-  font-size: var(--fs-14);
+.onb-empresa-texto strong {
+  font-size: var(--fs-15, 15px);
   font-weight: var(--fw-medium);
   color: var(--text-heading);
+}
+
+.onb-empresa-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.onb-empresa-dados dt {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.onb-empresa-dados dd {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+.onb-empresa-dados .field-hint {
+  display: block;
+}
+
+.onb-empresa-falta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  font-size: var(--fs-13);
+  color: var(--text-body);
 }
 
 /* Etapa 5: título de cada grupo de fotos */

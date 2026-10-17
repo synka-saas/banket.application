@@ -24,9 +24,9 @@ import '../../styles/busca.css';
 import '../../styles/onboarding.css';
 import { garantirPerfil } from '../../server/busca/perfil';
 import {
-  adicionarFotos, capacidadeSchema, capturarDadosDaConta, contagens, dadosDaConta, definirCapa, despublicar, empresaSchema,
+  adicionarFotos, capacidadeSchema, contagens, dadosDaEmpresa, definirCapa, despublicar, empresaSchema,
   eventosSchema, excluirFoto, fotoSchema, listarFotos, moverFoto, publicar, recursosOnboarding, regiaoSchema, salvarCapacidade,
-  salvarEmpresa, salvarEventos, salvarFoto, salvarRegiao,
+  faltasDaEmpresa, salvarEmpresa, salvarEventos, salvarFoto, salvarRegiao, sincronizarPerfisComEmpresa,
 } from '../../server/busca/onboarding';
 
 const user = Astro.locals.user;
@@ -54,9 +54,7 @@ if (Astro.request.method === 'POST') {
           // Etapas 1–4: formulário; 5: fotos; 6: revisão e publicação
           switch (`${etapa}:${acao}`) {
             case '1:salvar': case '1:continuar':
-              return seguir(await salvarEmpresa(db, user, empresaSchema.parse(data), (raw.get('logo') as File | null) ?? null, data.remover_logo === 'on'));
-            case '1:capturar':
-              return { message: com('Dados da conta trazidos para o perfil. Confira e complete o que faltar.', await capturarDadosDaConta(db, user)), redirect: aqui };
+              return seguir(await salvarEmpresa(db, user, empresaSchema.parse(data)));
             case '2:salvar': case '2:continuar':
               return seguir(await salvarEventos(db, user, eventosSchema.parse(data)));
             case '3:salvar': case '3:continuar':
@@ -108,16 +106,21 @@ if (Astro.request.method === 'POST') {
 }
 
 const dados = await withTenant(user.tenantId, async (db) => {
+  // O perfil acompanha o cadastro da empresa (Configurações › Empresa): copia antes de mostrar
+  if (isAdmin(user)) {
+    await garantirPerfil(db, user.tenantId);
+    await sincronizarPerfisComEmpresa(db, user.tenantId);
+  }
   const perfil = await garantirPerfil(db, user.tenantId);
   const c = await contagens(db, perfil.id);
   const fotos = await listarFotos(db, perfil.id);
-  const conta = await dadosDaConta(db, user.tenantId);
+  const empresa = await dadosDaEmpresa(db, user.tenantId);
   const { rows: cidades } = await db.query<{ nome: string; uf: string; slug: string; base: boolean }>(
     `SELECT c.nome, c.uf, c.slug, (c.id = $2) AS base FROM busca_cidades c
       WHERE c.id = $2 OR c.id IN (SELECT cidade_id FROM busca_perfil_cidades WHERE perfil_id = $1) ORDER BY base DESC, c.nome`,
     [perfil.id, perfil.cidade_id]
   );
-  return { perfil, c, fotos, cidades, conta };
+  return { perfil, c, fotos, cidades, empresa };
 });
 const recursos = await recursosOnboarding(user.tenantId);
 let rascunho: Record<string, string | string[]> | null = null;
@@ -177,7 +180,7 @@ const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUr
   </div>
   {!editor && <div class="onb-aviso">Só proprietários e administradores editam o perfil. Você pode consultar as etapas.</div>}
 
-  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} conta={dados.conta} endereco={recursos.endereco} />}
+  {etapa === 1 && <Empresa perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} empresa={dados.empresa} faltas={faltasDaEmpresa(dados.empresa)} endereco={recursos.endereco} />}
   {etapa === 2 && <Eventos perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} maxEventos={recursos.maxEventos} maxServicos={recursos.maxServicos} />}
   {etapa === 3 && <Regiao perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} cidadeBase={cidadeBase} extras={extras} />}
   {etapa === 4 && <Capacidade perfil={rascunho ? comRascunho(perfil, rascunho) : perfil} editor={editor} />}

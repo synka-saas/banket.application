@@ -55,49 +55,91 @@ export async function recalcular(db: Db, perfilId: string): Promise<{ despublica
 // ---------------------------------------------------------------------------
 // Etapas 1 a 4
 // ---------------------------------------------------------------------------
-const telefone = () => z.preprocess((v) => (typeof v === 'string' && v.trim() ? somenteDigitos(v) : null), z.string().regex(/^\d{10,11}$/, 'Telefone inválido: informe DDD + número.').nullable());
+/**
+ * Etapa 1 só com o que é do perfil público: redes, tempo de resposta, descrição e o endereço do perfil. Os dados da
+ * empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp, logotipo) vêm de Configurações › Empresa
+ * (sincronizarPerfisComEmpresa) e não são pedidos de novo.
+ */
+export const empresaSchema = z.object({
+  instagram: optionalText(120),
+  site: optionalText(255),
+  tempo_resposta_texto: optionalText(60),
+  descricao: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().min(80, 'Escreva ao menos 80 caracteres na descrição.').max(1200, 'A descrição pode ter até 1.200 caracteres.')),
+  // Endereço do perfil (só planos pagos mostram o campo): ausente = não mexe; vazio = volta para o id do perfil
+  endereco: z.preprocess((v) => (typeof v === 'string' ? normalizarSlug(v) : undefined), z.string().optional()),
+});
 
-export const empresaSchema = z
-  .object({
-    nome: requiredText('Informe o nome do buffet.', 120),
-    documento: z.preprocess((v) => (typeof v === 'string' ? somenteDigitos(v) : ''), z.string()),
-    whatsapp: telefone(),
-    telefone: telefone(),
-    email_contato: z.preprocess((v) => (typeof v === 'string' ? v.trim().toLowerCase() : v), z.email('Informe um e-mail comercial válido.')),
-    instagram: optionalText(120),
-    site: optionalText(255),
-    tempo_resposta_texto: optionalText(60),
-    descricao: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().min(80, 'Escreva ao menos 80 caracteres na descrição.').max(1200, 'A descrição pode ter até 1.200 caracteres.')),
-    // Endereço do perfil (só planos pagos mostram o campo): ausente = não mexe; vazio = volta para o id do perfil
-    endereco: z.preprocess((v) => (typeof v === 'string' ? normalizarSlug(v) : undefined), z.string().optional()),
-  })
-  .superRefine((d, ctx) => {
-    if (!(d.documento.length === 14 ? cnpjValido(d.documento) : d.documento.length === 11 ? cpfValido(d.documento) : false)) {
-      ctx.addIssue({ code: 'custom', message: 'Informe um CNPJ (ou CPF) válido.', path: ['documento'] });
-    }
-    if (!d.whatsapp && !d.telefone) ctx.addIssue({ code: 'custom', message: 'Informe o WhatsApp ou um telefone.', path: ['whatsapp'] });
-  });
-
-export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<typeof empresaSchema>, logo: File | null, removerLogo: boolean) {
+export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<typeof empresaSchema>) {
   exigirEditor(user);
   const p = await garantirPerfil(db, user.tenantId);
-  let logoPath = p.logo_path;
-  if (logo && logo.size > 0) {
-    logoPath = await saveUpload(user.tenantId, 'busca', logo, { allowedTypes: TIPOS_FOTO, maxBytes: 5 * 1024 * 1024 }).catch((e: Error) => {
-      throw new UserError(e.message === 'Tipo de arquivo não permitido.' ? 'O logotipo precisa ser PNG, JPG ou WebP.' : e.message, 'logo');
-    });
-  } else if (removerLogo) {
-    logoPath = null;
-  }
   await salvarEndereco(db, user.tenantId, p, input.endereco);
   const instagram = input.instagram ? (input.instagram.startsWith('@') || input.instagram.includes('/') ? input.instagram : `@${input.instagram}`) : null;
   await db.query(
-    `UPDATE busca_perfis SET nome = $2, documento = $3, whatsapp = $4, telefone = $5, email_contato = $6, instagram = $7, site = $8,
-            tempo_resposta_texto = $9, descricao = $10, logo_path = $11, updated_at = now() WHERE id = $1`,
-    [p.id, input.nome, input.documento, input.whatsapp, input.telefone, input.email_contato, instagram, input.site, input.tempo_resposta_texto, input.descricao, logoPath]
+    `UPDATE busca_perfis SET instagram = $2, site = $3, tempo_resposta_texto = $4, descricao = $5, updated_at = now() WHERE id = $1`,
+    [p.id, instagram, input.site, input.tempo_resposta_texto, input.descricao]
   );
-  if (p.logo_path && p.logo_path !== logoPath && p.logo_path.startsWith('busca/')) await removeFile(user.tenantId, p.logo_path).catch(() => undefined);
+  await sincronizarPerfisComEmpresa(db, user.tenantId);
   return recalcular(db, p.id);
+}
+
+/** Dados da empresa (Configurações › Empresa) que o perfil do Busca usa. */
+export interface DadosEmpresa {
+  nome: string;
+  documento: string | null;
+  email: string | null;
+  telefone: string | null;
+  logo_path: string | null;
+}
+
+export async function dadosDaEmpresa(db: Db, tenantId: string): Promise<DadosEmpresa | null> {
+  const { rows } = await db.query<DadosEmpresa>('SELECT nome, documento, email, telefone, logo_path FROM tenants WHERE id = $1', [tenantId]);
+  return rows[0] ?? null;
+}
+
+/** O que falta no cadastro da empresa para concluir a etapa 1 (o perfil exige CNPJ/CPF, e-mail e telefone). */
+export function faltasDaEmpresa(e: DadosEmpresa | null): string[] {
+  if (!e) return ['dados da empresa'];
+  const doc = e.documento ? somenteDigitos(e.documento) : '';
+  const falta: string[] = [];
+  if (!(doc.length === 14 ? cnpjValido(doc) : doc.length === 11 ? cpfValido(doc) : false)) falta.push('CNPJ ou CPF');
+  if (!e.email?.trim()) falta.push('e-mail');
+  const fone = e.telefone ? somenteDigitos(e.telefone) : '';
+  if (fone.length < 10) falta.push('telefone ou WhatsApp');
+  return falta;
+}
+
+/**
+ * Copia o cadastro da empresa para os perfis do Busca: CNPJ/CPF, e-mail, telefone (celular vira o WhatsApp; fixo,
+ * o telefone) e o logotipo (copiado para a pasta do Busca, que só serve PNG/JPG/WebP). O nome vai só quando a empresa
+ * tem um perfil (com várias unidades, cada perfil tem o nome da unidade). `logoAlterado`: o logo da empresa mudou
+ * (novo ou removido); sem isso, o logo só é copiado para perfis ainda sem logo do Busca.
+ */
+export async function sincronizarPerfisComEmpresa(db: Db, tenantId: string, opcoes: { logoAlterado?: boolean } = {}): Promise<void> {
+  const e = await dadosDaEmpresa(db, tenantId);
+  if (!e) return;
+  const { rows: perfis } = await db.query<{ id: string; logo_path: string | null }>('SELECT id, logo_path FROM busca_perfis WHERE tenant_id = $1', [tenantId]);
+  if (!perfis.length) return;
+  const fone = e.telefone ? somenteDigitos(e.telefone) : '';
+  const doc = e.documento ? somenteDigitos(e.documento) : null;
+  const logoValido = e.logo_path && /\.(png|jpe?g|webp)$/i.test(e.logo_path) ? e.logo_path : null;
+  let logoCopiado: string | null | undefined;
+  for (const p of perfis) {
+    let logo = p.logo_path;
+    const doBusca = Boolean(p.logo_path?.startsWith('busca/'));
+    if (opcoes.logoAlterado || !doBusca) {
+      if (logoCopiado === undefined) logoCopiado = logoValido ? await copiarArquivo(tenantId, logoValido, 'busca').catch(() => null) : null;
+      logo = logoCopiado;
+    }
+    await db.query(
+      `UPDATE busca_perfis SET documento = $2, email_contato = $3, whatsapp = $4, telefone = $5, logo_path = $6,
+              nome = CASE WHEN $7 THEN $8 ELSE nome END, updated_at = now()
+        WHERE id = $1`,
+      [p.id, doc, e.email?.trim().toLowerCase() || null, fone.length === 11 ? fone : null, fone.length === 10 ? fone : null, logo,
+       perfis.length === 1, e.nome]
+    );
+    if (doBusca && p.logo_path !== logo) await removeFile(tenantId, p.logo_path!).catch(() => undefined);
+    await recalcular(db, p.id);
+  }
 }
 
 /**
@@ -330,58 +372,6 @@ export async function despublicar(db: Db, user: SessionUser) {
   const p = await garantirPerfil(db, user.tenantId);
   await db.query('UPDATE busca_perfis SET publicado = false, updated_at = now() WHERE id = $1', [p.id]);
   await recalcular(db, p.id);
-}
-
-// ---------------------------------------------------------------------------
-// Dados da conta (etapa 1): empresa PJ em plano pago (ou em teste) traz o cadastro do Banket para o perfil
-// ---------------------------------------------------------------------------
-export interface DadosConta {
-  nome: string;
-  documento: string | null;
-  email: string | null;
-  telefone: string | null;
-  logo_path: string | null;
-}
-
-/** Cadastro da empresa no Banket, se ela puder capturá-lo: PJ e plano pago (não o gratuito). Senão null. */
-export async function dadosDaConta(db: Db, tenantId: string): Promise<DadosConta | null> {
-  // Empresa sem plano é permissiva (como no gating); o plano gratuito não captura
-  const ent = await entitlements(tenantId, db);
-  if (ent?.gratuito) return null;
-  const { rows } = await db.query<DadosConta & { tipo_pessoa: string | null }>(
-    'SELECT nome, documento, email, telefone, logo_path, tipo_pessoa FROM tenants WHERE id = $1',
-    [tenantId]
-  );
-  const t = rows[0];
-  if (!t || t.tipo_pessoa !== 'PJ') return null;
-  return { nome: t.nome, documento: t.documento, email: t.email, telefone: t.telefone, logo_path: t.logo_path };
-}
-
-/**
- * Copia para o perfil o nome, o CNPJ, o e-mail, o telefone (vira o WhatsApp quando é celular) e o logotipo do
- * cadastro da empresa. Só preenche o que a conta tem: campos vazios na conta não apagam o que já está no perfil.
- * O logo é copiado para a pasta do Busca (o do cadastro pode ser trocado ou apagado depois).
- */
-export async function capturarDadosDaConta(db: Db, user: SessionUser) {
-  exigirEditor(user);
-  const conta = await dadosDaConta(db, user.tenantId);
-  if (!conta) throw new UserError('Capturar os dados da conta é exclusivo de empresas (CNPJ) com um plano pago do Banket.');
-  const p = await garantirPerfil(db, user.tenantId);
-  const fone = conta.telefone ? somenteDigitos(conta.telefone) : null;
-  const celular = fone && fone.length === 11 ? fone : null;
-  const fixo = fone && fone.length === 10 ? fone : null;
-  let logo = p.logo_path;
-  // O endereço público das fotos do Busca só serve PNG, JPG e WebP (SVG fica de fora)
-  if (conta.logo_path && /\.(png|jpe?g|webp)$/i.test(conta.logo_path)) {
-    logo = (await copiarArquivo(user.tenantId, conta.logo_path, 'busca').catch(() => null)) ?? logo;
-  }
-  await db.query(
-    `UPDATE busca_perfis SET nome = coalesce($2, nome), documento = coalesce($3, documento), email_contato = coalesce($4, email_contato),
-            whatsapp = coalesce($5, whatsapp), telefone = coalesce($6, telefone), logo_path = $7, updated_at = now() WHERE id = $1`,
-    [p.id, conta.nome?.trim() || null, conta.documento ? somenteDigitos(conta.documento) : null, conta.email?.trim().toLowerCase() || null, celular, fixo, logo]
-  );
-  if (p.logo_path && p.logo_path !== logo && p.logo_path.startsWith('busca/')) await removeFile(user.tenantId, p.logo_path).catch(() => undefined);
-  return recalcular(db, p.id);
 }
 
 /** Recursos do plano que a interface do onboarding precisa (espelho; a regra vale no servidor). */

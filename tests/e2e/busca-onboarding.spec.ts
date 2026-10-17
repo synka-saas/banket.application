@@ -64,7 +64,6 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await page.fill('#razao_social', `${NOME} Ltda`);
     await page.fill('#cnpj', CNPJ);
     await page.fill('#nome_empresa', NOME);
-    await page.fill('#endereco', 'Rua das Figueiras, 1240, Santo André - SP');
     await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     await page.waitForURL(/\/busca$/);
     await expect(page.locator('.onb-principal form').first()).toBeVisible(); // o formulário é a própria página
@@ -74,8 +73,9 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     // Plano gratuito: endereço = id do perfil, sem campo para trocar
     await expect(page.locator('#e-endereco')).toHaveCount(0);
     expect(psql(`SELECT (slug = id::text)::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('true');
-    // Empresa PJ no plano gratuito: sem a captura dos dados da conta e sem a etapa de pacotes
-    await expect(page.locator('[data-capturar-conta]')).toHaveCount(0);
+    // Os dados da empresa vêm do cadastro (sem pedir de novo) e não há etapa de pacotes
+    await expect(page.locator('.onb-empresa')).toContainText(NOME);
+    await expect(page.locator('#e-nome, #e-doc, #e-email, #e-whats')).toHaveCount(0);
     await expect(page.locator('.onb-etapas')).not.toContainText('Pacotes');
   });
 
@@ -86,16 +86,14 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await page.getByRole('button', { name: 'Entrar' }).click();
     await page.waitForURL(/\/busca/);
 
-    // Etapa 1: CNPJ inválido é recusado
+    // Etapa 1: nome, CNPJ, e-mail e WhatsApp vêm do cadastro da empresa; aqui só a descrição (mínimo de 80)
     await etapa(page, 1);
-    await expect(page.locator('#e-nome')).toHaveValue(NOME);
-    await page.fill('#e-doc', '11.111.111/1111-11');
-    await page.fill('#e-whats', '11987654321');
-    await page.fill('#e-email', 'contato@example.com');
-    await page.fill('#e-desc', 'Buffet de teste com salão próprio no ABC, cozinha própria e equipe treinada para festas de todos os tamanhos.');
+    await expect(page.locator('.onb-empresa')).toContainText(NOME);
+    await expect(page.locator('.onb-empresa-falta')).toHaveCount(0);
+    await page.fill('#e-desc', 'Curta demais.');
     await continuar(page);
-    await expect(page.locator('.toast').first()).toContainText('CNPJ');
-    await page.fill('#e-doc', CNPJ);
+    await expect(page.locator('.toast').first()).toContainText('80 caracteres');
+    await page.fill('#e-desc', 'Buffet de teste com salão próprio no ABC, cozinha própria e equipe treinada para festas de todos os tamanhos.');
     await continuar(page);
     await page.waitForURL(/etapa=2/);
 
@@ -203,23 +201,18 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     expect(psql(`SELECT publicado::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('false');
   });
 
-  test('plano pago e PJ: captura os dados da conta e agrupa fotos por evento', async ({ page }) => {
+  test('plano pago: perfil acompanha o cadastro da empresa e agrupa fotos por evento', async ({ page }) => {
     const MESA = `(SELECT id FROM tenants WHERE nome = 'Mesa Posta Catering')`;
     const GRUPO = `E2E Casamento ${ts}`;
     await login(page, { email: 'contato@mesaposta.test', senha: 'Banket.2026' });
-    await etapa(page, 1);
-    const cartao = page.locator('[data-capturar-conta]');
-    await expect(cartao).toContainText('41.111.111/0001-03');
+    // O perfil volta a ter os dados do cadastro da empresa ao abrir a área do Busca
     psql(`UPDATE busca_perfis SET email_contato = 'outro@example.com' WHERE tenant_id = ${MESA}`);
-    await cartao.getByRole('button', { name: 'Capturar dados da conta' }).click();
-    await page.locator('dialog.confirmar[open] [data-confirmar-ok]').click();
-    await expect(page.locator('.toast').first()).toContainText('Dados da conta trazidos');
-    await expect(page.locator('#e-email')).toHaveValue('contato@mesaposta.test');
-    await expect(page.locator('#e-doc')).toHaveValue('41.111.111/0001-03');
+    await etapa(page, 1);
+    await expect(page.locator('.onb-empresa')).toContainText('41.111.111/0001-03');
+    await expect(page.locator('.onb-empresa')).toContainText('contato@mesaposta.test');
+    expect(psql(`SELECT email_contato FROM busca_perfis WHERE tenant_id = ${MESA}`)).toBe('contato@mesaposta.test');
 
     // Endereço próprio (plano pago): inválido é recusado; o novo vale e o anterior redireciona
-    // (o CNPJ de demonstração do seed não é válido: usa um válido e restaura no fim)
-    await page.fill('#e-doc', cnpj('112223330001'));
     await page.fill('#e-endereco', 'ab');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.locator('.toast').first()).toContainText('ao menos 3');
@@ -232,7 +225,7 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await page.fill('#e-endereco', 'mesa-posta-catering');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.locator('#e-endereco')).toHaveValue('mesa-posta-catering');
-    psql(`UPDATE busca_perfis SET documento = '41111111000103', slugs_antigos = array_remove(slugs_antigos, 'mesa-posta-e2e-${ts}') WHERE tenant_id = ${MESA}`);
+    psql(`UPDATE busca_perfis SET slugs_antigos = array_remove(slugs_antigos, 'mesa-posta-e2e-${ts}') WHERE tenant_id = ${MESA}`);
 
     // Fotos: sem limite e com grupo; no perfil público o grupo aparece separado
     await etapa(page, 5);

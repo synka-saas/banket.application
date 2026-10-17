@@ -29,8 +29,8 @@ if (Astro.request.method === 'POST') {
   } catch (err) {
     setFlash(Astro.cookies, 'error', userMessage(err, 'Não foi possível cadastrar a empresa. Tente novamente.'));
     // Guarda o que foi digitado (sem dados sensíveis além dos da própria empresa) por alguns minutos
-    const { tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, cep, endereco } = data;
-    Astro.cookies.set(RASCUNHO, JSON.stringify({ tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa, cep, endereco }), {
+    const { tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa } = data;
+    Astro.cookies.set(RASCUNHO, JSON.stringify({ tipo_pessoa, celular, cpf, cnpj, razao_social, nome_empresa }), {
       path: '/auth',
       httpOnly: true,
       sameSite: 'lax',
@@ -89,8 +89,6 @@ const validado = Astro.url.searchParams.has('validado');
       </div>
 
       <Input id="nome_empresa" name="nome_empresa" label="Nome do buffet" placeholder="Como aparece nas suas propostas" value={v('nome_empresa')} maxlength="255" required />
-      <Input id="cep" name="cep" label="CEP" placeholder="00000-000" value={v('cep')} inputmode="numeric" data-mascara="cep" autocomplete="postal-code" />
-      <Input id="endereco" name="endereco" label="Endereço comercial" placeholder="Rua, número, bairro, cidade - UF" value={v('endereco')} maxlength="500" autocomplete="street-address" required />
     </div>
 
     <Button variant="primary" size="large" type="submit">Finalizar e acessar a plataforma</Button>
@@ -120,28 +118,6 @@ const validado = Astro.url.searchParams.has('validado');
     if ((e.target as HTMLInputElement).name === 'tipo_pessoa') atualizarTipo();
   });
   atualizarTipo();
-
-  // CEP → endereço pela ViaCEP; só preenche se o usuário ainda não escreveu o próprio texto
-  const cep = document.getElementById('cep') as HTMLInputElement | null;
-  const endereco = document.getElementById('endereco') as HTMLInputElement | null;
-  let preenchidoPeloCep = '';
-  cep?.addEventListener('change', async () => {
-    const digitos = cep.value.replace(/\D/g, '');
-    if (digitos.length !== 8 || !endereco) return;
-    try {
-      const r = await fetch(`https://viacep.com.br/ws/${digitos}/json/`);
-      const d = (await r.json()) as { erro?: boolean; logradouro?: string; bairro?: string; localidade?: string; uf?: string };
-      if (d.erro) return;
-      const texto = [d.logradouro, d.bairro, d.localidade && `${d.localidade} - ${d.uf}`].filter(Boolean).join(', ');
-      if (texto && (!endereco.value.trim() || endereco.value === preenchidoPeloCep)) {
-        endereco.value = `${texto}`;
-        preenchidoPeloCep = endereco.value;
-        endereco.focus();
-      }
-    } catch {
-      // sem rede/CEP não encontrado: o campo segue manual
-    }
-  });
 </script>
 
 <style>

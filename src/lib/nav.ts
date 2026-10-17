@@ -38,12 +38,12 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'], recurso: 'documentos' },
   { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'], recurso: 'pesquisas' },
   { label: 'Banket Busca', icon: 'banket', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
-  { label: 'Configurações', icon: 'settings', href: '/configuracoes/empresa', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes', hrefLivre: '/configuracoes/financeiro' },
+  { label: 'Configurações', icon: 'settings', href: '/configuracoes/empresa', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes', hrefLivre: '/configuracoes/empresa' },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
 
 /** Itens do menu para a sessão: filtra por papel e marca o que está fora do plano (`bloqueado` = recurso). */
-// Configurações fora do plano (plano Busca) não fica com cadeado: abre direto em Configurações › Financeiro.
+// Configurações fora do plano (plano Busca) não fica com cadeado: abre em Configurações › Empresa (com o Financeiro).
 export function itensDoMenu(
   admin: boolean,
   podeUsar: (recurso: Modulo) => boolean,
@@ -73,9 +73,9 @@ export const CONFIG_SUBMENU = [
   { id: 'modelos-email', label: 'Modelos de e-mail', href: '/configuracoes/modelos-email' },
 ];
 
-/** Submenu de Configurações para o plano: sem o recurso `configuracoes`, só o Financeiro (assinatura e faturas). */
+/** Submenu de Configurações para o plano: sem o recurso `configuracoes`, só Empresa e Financeiro (livres em todo plano). */
 export const configSubmenuDoPlano = (temConfiguracoes: boolean) =>
-  temConfiguracoes ? CONFIG_SUBMENU : CONFIG_SUBMENU.filter((i) => i.id === 'financeiro');
+  temConfiguracoes ? CONFIG_SUBMENU : CONFIG_SUBMENU.filter((i) => i.id === 'empresa' || i.id === 'financeiro');
 
 export const CARDAPIO_SUBMENU = [
   // Na ordem em que se monta o catálogo: seção → itens → opções prontas

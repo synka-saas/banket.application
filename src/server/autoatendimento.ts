@@ -219,7 +219,6 @@ export const empresaNovaSchema = z
     cnpj: z.preprocess((v) => (typeof v === 'string' ? somenteDigitos(v) : ''), z.string()),
     razao_social: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().max(255)),
     nome_empresa: requiredText('Informe o nome do buffet (ele aparece nas suas propostas).', 255),
-    endereco: requiredText('Informe o endereço comercial.', 500),
   })
   .superRefine((d, ctx) => {
     if (d.tipo_pessoa === 'PJ') {
@@ -270,7 +269,7 @@ export async function criarEmpresa(usuario: OnboardingUser, input: z.infer<typeo
     const { rows: t } = await db.query<{ id: string }>(
       `INSERT INTO tenants (nome, slug, tipo_pessoa, documento, razao_social, email, telefone, endereco, onboarding_completo, origem_cadastro)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9) RETURNING id`,
-      [nome, slug, input.tipo_pessoa, documento, input.tipo_pessoa === 'PJ' ? input.razao_social : null, u[0].email, input.celular, input.endereco, origem]
+      [nome, slug, input.tipo_pessoa, documento, input.tipo_pessoa === 'PJ' ? input.razao_social : null, u[0].email, input.celular, null, origem]
     );
     const tenantId = t[0].id;
     // Padrões da empresa: status do Kanban, tipos, formatos, categorias, faixas, template e blocos da proposta

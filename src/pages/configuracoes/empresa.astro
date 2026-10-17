@@ -7,13 +7,18 @@ import FileUpload from '../../components/ui/FileUpload.astro';
 import { withTenant } from '../../lib/db';
 import { handleFormPost } from '../../lib/actions';
 import { formatarDocumento } from '../../lib/documento';
+import { UFS, formatarCep } from '../../lib/endereco';
 import { UserError } from '../../lib/forms';
-import { CONFIG_SUBMENU } from '../../lib/nav';
+import { configSubmenuDoPlano } from '../../lib/nav';
+import { podeUsarEm } from '../../lib/planos/gating';
+import { sincronizarPerfisComEmpresa } from '../../server/busca/onboarding';
 import { fileUrl, removeFile, saveUpload } from '../../lib/storage';
 import { carregarEmpresa, empresaSchema, removerLogo, salvarEmpresa } from '../../server/empresa';
 import { espacosParaSelecao } from '../../server/espacos';
 
 const { tenantId } = Astro.locals.user;
+// Plano sem Configurações (plano Busca): só os dados da empresa; os parâmetros da proposta seguem no formulário, ocultos
+const temConfiguracoes = podeUsarEm(Astro.locals.plano, 'configuracoes');
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data, raw) => {
@@ -31,7 +36,10 @@ if (Astro.request.method === 'POST') {
     const removerAtual = data.remover_logo === 'on' && !logoPath;
     const antigo = await withTenant(tenantId, async (db) => {
       await salvarEmpresa(db, input, logoPath);
-      return removerAtual ? removerLogo(db) : null;
+      const removido = removerAtual ? await removerLogo(db) : null;
+      // O perfil no Banket Busca usa estes dados (nome, documento, e-mail, telefone, logotipo): mantém igual
+      await sincronizarPerfisComEmpresa(db, tenantId, { logoAlterado: Boolean(logoPath) || removerAtual });
+      return removido;
     });
     if (antigo) await removeFile(tenantId, antigo);
     return 'Dados da empresa atualizados.';
@@ -44,7 +52,7 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
 });
 ---
 
-<AppLayout title="Empresa" heading="Configurações / Empresa" submenu={CONFIG_SUBMENU} submenuActive="empresa">
+<AppLayout title="Empresa" heading="Configurações / Empresa" submenu={configSubmenuDoPlano(temConfiguracoes)} submenuActive="empresa">
   <form method="post" enctype="multipart/form-data" class="empresa-form" data-form-sujo>
     <SectionCard title="Dados da empresa" icon="building">
       <div class="form-grid">
@@ -83,10 +91,43 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
           <label for="emp-tel">Telefone / WhatsApp</label>
           <input id="emp-tel" name="telefone" value={empresa.telefone ?? ''} inputmode="tel" data-mascara="telefone" />
         </div>
-        <div class="field span-2">
-          <label for="emp-end">Endereço</label>
-          <input id="emp-end" name="endereco" maxlength="500" value={empresa.endereco ?? ''} />
-        </div>
+        <fieldset class="emp-endereco span-2" data-endereco>
+          <legend class="field-label">Endereço</legend>
+          <div class="emp-endereco-grid">
+            <div class="field emp-cep">
+              <label for="emp-cep">CEP</label>
+              <input id="emp-cep" name="cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" maxlength="9" value={formatarCep(empresa.cep)} data-mascara="cep" data-cep />
+              <span class="field-hint" data-cep-status aria-live="polite">Digite o CEP para preencher o endereço.</span>
+            </div>
+            <div class="field emp-logradouro">
+              <label for="emp-logradouro">Rua</label>
+              <input id="emp-logradouro" name="logradouro" maxlength="255" autocomplete="address-line1" value={empresa.logradouro ?? ''} data-cep-campo="logradouro" />
+            </div>
+            <div class="field emp-numero">
+              <label for="emp-numero">Número</label>
+              <input id="emp-numero" name="numero" maxlength="20" value={empresa.numero ?? ''} />
+            </div>
+            <div class="field emp-complemento">
+              <label for="emp-complemento">Complemento</label>
+              <input id="emp-complemento" name="complemento" maxlength="120" autocomplete="address-line2" placeholder="Sala, bloco, referência" value={empresa.complemento ?? ''} />
+            </div>
+            <div class="field emp-bairro">
+              <label for="emp-bairro">Bairro</label>
+              <input id="emp-bairro" name="bairro" maxlength="120" value={empresa.bairro ?? ''} data-cep-campo="bairro" />
+            </div>
+            <div class="field emp-cidade">
+              <label for="emp-cidade">Cidade</label>
+              <input id="emp-cidade" name="cidade" maxlength="120" autocomplete="address-level2" value={empresa.cidade ?? ''} data-cep-campo="cidade" />
+            </div>
+            <div class="field emp-uf">
+              <label for="emp-uf">UF</label>
+              <select id="emp-uf" name="uf" autocomplete="address-level1" data-cep-campo="uf">
+                <option value="">—</option>
+                {UFS.map((u) => <option value={u} selected={empresa.uf === u}>{u}</option>)}
+              </select>
+            </div>
+          </div>
+        </fieldset>
         <div class="field span-2">
           <span class="field-label">Logotipo</span>
           <FileUpload
@@ -96,11 +137,12 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
             removerName="remover_logo"
             comprimirKb={380}
           />
-          <span class="field-hint">Usado nos templates de orçamento.</span>
+          <span class="field-hint">Usado nas propostas e no perfil do Banket Busca (PNG, JPG ou WebP aparecem na vitrine).</span>
         </div>
       </div>
     </SectionCard>
 
+    <div hidden={!temConfiguracoes} class="empresa-extras">
     <SectionCard title="Parâmetros comerciais" icon="coin">
       <div class="form-grid cols-3">
         <div class="field">
@@ -151,6 +193,7 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
         </div>
       </div>
     </SectionCard>
+    </div>
 
     <div class="form-actions">
       <Button type="submit" variant="primary" data-carregando="Salvando…">Salvar</Button>
@@ -160,6 +203,46 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
 
 <script>
   import { toast } from '../../lib/ui';
+  import { buscarCep } from '../../lib/endereco';
+
+  // CEP (primeiro campo do endereço) → ViaCEP: preenche rua, bairro, cidade e UF e leva ao número. Só troca o que estiver
+  // vazio ou o que a própria busca anterior preencheu (não apaga o que a pessoa digitou).
+  const bloco = document.querySelector<HTMLElement>('[data-endereco]');
+  const cep = bloco?.querySelector<HTMLInputElement>('[data-cep]');
+  const status = bloco?.querySelector<HTMLElement>('[data-cep-status]');
+  const preenchidos = new Map<string, string>();
+  let ultimo = cep?.value.replace(/\D/g, '') ?? '';
+  async function consultar() {
+    if (!bloco || !cep || !status) return;
+    const digitos = cep.value.replace(/\D/g, '');
+    if (digitos.length !== 8 || digitos === ultimo) return;
+    ultimo = digitos;
+    status.textContent = 'Buscando o endereço…';
+    try {
+      const r = await buscarCep(digitos);
+      if (!r) {
+        status.textContent = 'CEP não encontrado. Preencha o endereço à mão.';
+        return;
+      }
+      const valores: Record<string, string> = { logradouro: r.logradouro, bairro: r.bairro, cidade: r.cidade, uf: r.uf };
+      for (const campo of bloco.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-cep-campo]')) {
+        const novo = valores[campo.dataset.cepCampo ?? ''];
+        if (!novo) continue;
+        const atual = campo.value.trim();
+        if (!atual || atual === preenchidos.get(campo.name)) {
+          campo.value = novo;
+          preenchidos.set(campo.name, novo);
+          campo.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      status.textContent = 'Endereço encontrado. Confira e informe o número.';
+      document.getElementById('emp-numero')?.focus();
+    } catch {
+      status.textContent = 'Não foi possível consultar o CEP agora. Preencha o endereço à mão.';
+    }
+  }
+  cep?.addEventListener('input', consultar);
+  cep?.addEventListener('blur', consultar);
 
   document.querySelector<HTMLButtonElement>('[data-copiar-tenant]')?.addEventListener('click', async (ev) => {
     const id = (ev.currentTarget as HTMLButtonElement).dataset.copiarTenant ?? '';
@@ -175,6 +258,43 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
 <style>
   .empresa-form {
     max-width: 960px;
+  }
+
+  .emp-endereco {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .emp-endereco legend {
+    padding: 0;
+    margin-bottom: var(--space-2);
+  }
+
+  .emp-endereco-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .emp-cep { grid-column: span 3; }
+  .emp-logradouro { grid-column: span 7; }
+  .emp-numero { grid-column: span 2; }
+  .emp-complemento { grid-column: span 3; }
+  .emp-bairro { grid-column: span 3; }
+  .emp-cidade { grid-column: span 4; }
+  .emp-uf { grid-column: span 2; }
+
+  @media (max-width: 768px) {
+    .emp-endereco-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .emp-cep, .emp-logradouro, .emp-complemento, .emp-bairro { grid-column: span 4; }
+    .emp-numero { grid-column: span 2; }
+    .emp-cidade { grid-column: span 3; }
+    .emp-uf { grid-column: span 1; }
   }
 
   .emp-tenant {

@@ -259,7 +259,9 @@ eventos 1─1 pesquisa_envios 1─N pesquisa_respostas N─1 pesquisa_perguntas 
 ### SaaS e acesso
 
 **`tenants`** — empresa cliente do SaaS. `nome`, `slug` (UNIQUE), `tipo_pessoa` (PF/PJ), `documento` (CPF/CNPJ,
-UNIQUE quando informado: uma empresa por documento), `razao_social`, `email`, `telefone`, `endereco`, `logo_path`,
+UNIQUE quando informado: uma empresa por documento), `razao_social`, `email`, `telefone`, endereço desmembrado
+(`cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`; migration 040) e `endereco` (texto montado das
+partes por `enderecoCompleto`, `lib/endereco.ts`, usado em propostas, `{empresa_endereco}` e Stripe), `logo_path`,
 `segmento`, `porte`, `onboarding_completo`.
 
 **`usuarios`** — conta global (pode pertencer a várias empresas). `nome`, `email` (UNIQUE, também `lower(email)`),
@@ -584,6 +586,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `040_empresa_endereco` | endereço da empresa desmembrado em `tenants` (CEP, logradouro, número, complemento, bairro, cidade, UF); o texto antigo vai para o logradouro |
 | `039_assinatura_stripe` | espelho do Stripe em `tenants`, `assinatura_faturas`, `stripe_events`; motivos `plano_escolhido`/`inadimplencia`, funil `checkout_iniciado`, `plano_avisos.chave` 80; `fn_tenant_entitlements` com origem e assinatura |
 | `038_busca_reivindicacao` | `auth_tokens.tipo` aceita `reivindicacao`; `busca_reivindicacoes` (fila da equipe) e `busca_exclusoes` (buffets que saíram), só conexão de sistema |
 | `037_busca_unidades_importacao` | `busca_perfis` sem unicidade por empresa (um perfil por unidade) + `espaco_id`; `tenants.origem_cadastro` aceita `importacao`; tabela `busca_importacao` |
@@ -649,7 +652,8 @@ um owner ativo; remover um membro apaga só o vínculo (a conta pode pertencer a
    aceite de termos. Cadastro não confirmado anterior é sobrescrito. Envia e-mail de verificação (24 h).
 2. **Verificação** (`/auth/verificar?token=`): marca `email_verificado_em`; se já tem empresa, entra; senão emite o cookie
    `banket_onboarding` (JWT 2 h, `path=/auth`) e leva a `/auth/cadastro-complemento`.
-3. **Empresa nova**: PF (CPF) ou PJ (CNPJ + razão social), celular, endereço. CPF/CNPJ validados e únicos entre empresas
+3. **Empresa nova**: PF (CPF) ou PJ (CNPJ + razão social), celular e nome do buffet; **sem endereço** (ele fica só em
+   Configurações › Empresa). CPF/CNPJ validados e únicos entre empresas
    (quem já tem empresa entra por convite). Cria o tenant com slug único, aplica `aplicar_padroes_tenant_completo`,
    preenche a assinatura e vincula como `owner`.
 4. **Login** (`/auth/login`): senha checada no Postgres (`crypt`). Resultados: sessão, onboarding, e-mail não verificado
@@ -982,8 +986,12 @@ Usuários e convites · Ocasiões (matriz de toggles Corporativo/Social via `/ap
 `/configuracoes/tipos-evento` só redireciona para cá, os tipos são fixos) ·
 Status de orçamento (colunas do Kanban: nome, variante, cor, ordem, intervalo do Kanban) · Formatos de serviço ·
 Modelos de e-mail (`/configuracoes/modelos-email`, `server/emailModelos.ts`: nome, assunto, corpo com chips de
-variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ativo assume) · Empresa (dados cadastrais, logo,
-validade da proposta, faixas de crianças, espaço padrão, assinatura). A locação saiu daqui: fica em Espaços.
+variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ativo assume) · **Empresa** (primeiro item; aberta a todo plano — no plano Busca o menu Configurações abre nela e o submenu mostra só
+Empresa e Financeiro, com os parâmetros da proposta ocultos): tenant da conta (somente leitura, com Copiar), dados
+cadastrais, endereço desmembrado com o **CEP como primeiro campo, ligado à ViaCEP** (`buscarCep`: preenche rua, bairro,
+cidade e UF sem apagar o que foi digitado e leva ao número), logo, validade da proposta, faixas de crianças, espaço
+padrão, assinatura. Salvar copia nome, documento, e-mail, telefone e logo para os perfis do Busca
+(`sincronizarPerfisComEmpresa`). A locação saiu daqui: fica em Espaços.
 
 ### Uploads (`lib/storage.ts`, `pages/uploads/[...path].ts`)
 Disco em `{UPLOAD_DIR}/{tenantId}/{pasta}/{uuid}.{ext}` (volume Docker `/data/uploads`). Imagens PNG/JPEG/WebP/SVG até
@@ -1166,9 +1174,11 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
 - **Onboarding** = a própria página `/busca` do menu Banket Busca, dentro do `AppLayout` (faixa de situação com
   publicado/rascunho, etapas concluídas, completude e link da prévia; lista de etapas `Etapas.astro` à esquerda;
-  `/busca/cadastro` redireciona 301 para `/busca`): 1 Empresa (nome, CNPJ/CPF validado, logo, WhatsApp, e-mail,
-  Instagram/site, tempo de resposta, descrição ≥ 80; empresa **PJ em plano pago** vê "Capturar dados da conta", que
-  traz nome, CNPJ, e-mail, telefone e logo do cadastro da empresa, `capturarDadosDaConta`) · 2 Eventos e serviços
+  `/busca/cadastro` redireciona 301 para `/busca`): 1 Dados da empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp e logo **não são pedidos**: vêm de Configurações ›
+  Empresa, mostrados só para leitura com "Editar dados da empresa" e o que falta para concluir; `sincronizarPerfisComEmpresa`
+  copia para os perfis ao salvar a empresa, ao abrir `/busca` e ao salvar a etapa — celular vira WhatsApp, fixo vira
+  telefone, logo PNG/JPG/WebP copiado para `busca/`, nome só quando há um perfil; aqui ficam Instagram/site, tempo de
+  resposta, endereço do perfil e descrição ≥ 80) · 2 Eventos e serviços
   (tiles; plano gratuito até 3 de cada, conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região
   (cidade-base com autocomplete, espaço próprio com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades
   atendidas) · 4 Capacidade (mínimo ≤ máximo, aceita eventos menores sob consulta) · 5 Fotos (JPG/PNG/WebP, reduzidas

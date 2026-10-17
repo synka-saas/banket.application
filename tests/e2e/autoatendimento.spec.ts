@@ -91,7 +91,8 @@ test.describe.serial('Cadastro self-service', () => {
     await page.getByLabel('Razão social').fill('Buffet Teste E2E Ltda');
     await page.getByLabel('CNPJ').fill('11.222.333/0001-00');
     await page.getByLabel('Nome do buffet').fill('Buffet E2E');
-    await page.getByLabel('Endereço comercial').fill('Rua das Flores, 100 - São Paulo/SP');
+    // O endereço fica só em Configurações › Empresa
+    await expect(page.getByLabel('Endereço comercial')).toHaveCount(0);
     await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     await expect(page.locator('.auth-alert-error')).toContainText('CNPJ inválido');
     // O rascunho volta preenchido (inclusive o tipo escolhido)

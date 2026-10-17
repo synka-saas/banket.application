@@ -14,7 +14,7 @@ export interface EtapaOnboarding {
 }
 
 export const ETAPAS: EtapaOnboarding[] = [
-  { n: 1, slug: 'empresa', titulo: 'Dados da empresa', sub: 'Nome, contato e descrição', h: 'Conte quem é o seu buffet', p: 'Esses dados aparecem no seu perfil público. O CNPJ ou CPF não aparece para os clientes.' },
+  { n: 1, slug: 'empresa', titulo: 'Dados da empresa', sub: 'Do cadastro da empresa + descrição', h: 'Conte quem é o seu buffet', p: 'Esses dados aparecem no seu perfil público. O CNPJ ou CPF não aparece para os clientes.' },
   { n: 2, slug: 'eventos', titulo: 'Eventos e serviços', sub: 'O que você atende', h: 'Que eventos você atende?', p: 'Seu buffet aparece nas buscas desses tipos de evento e serviço.' },
   { n: 3, slug: 'regiao', titulo: 'Região de atendimento', sub: 'Espaço próprio e domicílio', h: 'Onde você atende?', p: 'Pedidos fora da sua região não chegam até você.' },
   { n: 4, slug: 'capacidade', titulo: 'Capacidade', sub: 'Mínimo e máximo de convidados', h: 'Quantos convidados você atende?', p: 'Usamos a faixa para mostrar seu buffet só em eventos que você comporta.' },

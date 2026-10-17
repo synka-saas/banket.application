@@ -38,6 +38,8 @@ export const REGRAS: ReadonlyArray<readonly [string | RegExp, Modulo | null]> = 
   ['/api/pesquisas', 'pesquisas'],
   // Configurações › Financeiro (assinatura): aberto a todo plano (é por ali que o plano gratuito assina)
   ['/configuracoes/financeiro', null],
+  // Dados da empresa: também usados pelo perfil do Banket Busca, então abertos a todo plano
+  ['/configuracoes/empresa', null],
   ['/configuracoes', 'configuracoes'],
   ['/api/configuracoes', 'configuracoes'],
 ];
