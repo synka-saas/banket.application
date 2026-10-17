@@ -17,7 +17,7 @@ const { id, valor = null } = Astro.props;
   <div class="campo-icone">
     <Icon name="search" size={18} class="campo-icone-ico" />
     <input
-      id={id} name="q" type="search" autocomplete="off" maxlength="80" placeholder="Ex.: Bisutti" value={valor ?? ''}
+      id={id} name="q" type="search" autocomplete="off" maxlength="80" placeholder="Digite o nome do buffet" value={valor ?? ''}
       role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls={`${id}-lista`} data-nome-texto
     />
   </div>
