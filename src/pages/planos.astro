@@ -85,7 +85,9 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
                 ? `Seu teste vai até ${plano!.trial!.ate.split('-').reverse().join('/')}. Troque de plano à vontade durante o teste e assine para continuar sem interrupção.`
                 : assinante
                   ? 'Para mudar de plano, escolha abaixo: a troca vale na hora e o ajuste proporcional entra na próxima fatura.'
-                  : 'Para mudar de plano ou tirar dúvidas, fale com a equipe.'}
+                  : plano?.publico === false && !plano?.gratuito
+                    ? `O plano ${plano?.planoNome ?? ''} é interno do Banket: libera todos os recursos e é gerenciado pela equipe. ${cobrancaOk ? 'Para assinar um dos planos abaixo, escolha o plano: o pagamento é confirmado pelo Stripe e o novo plano entra em seguida.' : 'Para mudar de plano, fale com a equipe.'}`
+                    : 'Para mudar de plano ou tirar dúvidas, fale com a equipe.'}
           </p>
         </>
       )}
@@ -123,7 +125,7 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
               </>
             ) : assinante && plano?.planoId === p.id ? (
               <a href="/configuracoes/financeiro" class="btn btn-outline btn-md btn-block">Ver assinatura</a>
-            ) : cobrancaOk && p.contratavel && (emTeste || assinante || plano?.gratuito) ? (
+            ) : cobrancaOk && p.contratavel ? (
               <a href={linkAssinar(p.id)} class:list={['btn btn-md btn-block', emTeste && plano?.planoId === p.id ? 'btn-primary' : 'btn-outline']}>
                 {assinante ? 'Mudar para este plano' : 'Assinar este plano'}
               </a>

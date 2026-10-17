@@ -13,6 +13,8 @@ export interface Entitlements {
   planoSlug: string | null;
   planoNome: string | null;
   gratuito: boolean;
+  /** Plano do catálogo público (false = interno: Busca, Completo) */
+  publico: boolean;
   /** Teste em andamento (plano pago com trial_ate ≥ hoje) */
   trial: { ate: string; diasRestantes: number } | null;
   /** Plano pago com trial_ate no passado: o agendador (ou o middleware) rebaixa para o plano Busca */
@@ -41,6 +43,7 @@ function converter(e: any): Entitlements | null {
     planoSlug: e.plano_slug ?? null,
     planoNome: e.plano_nome ?? null,
     gratuito: Boolean(e.gratuito),
+    publico: Boolean(e.publico),
     trial: e.trial ? { ate: String(e.trial.ate), diasRestantes: Number(e.trial.dias_restantes) } : null,
     trialVencido: Boolean(e.trial_vencido),
     trialAte: e.trial_ate ? String(e.trial_ate) : null,

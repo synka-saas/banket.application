@@ -1093,7 +1093,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   Portal do Cliente. **Rebaixam para o Busca** (cancelando no Stripe e anulando faturas abertas antes): fim do teste
   sem assinatura, fatura vencida não paga às 12h de D+1, assinatura `unpaid` ou encerrada. 1ª fatura Pix não paga até
   D+1 12h do vencimento: a contratação é desfeita (sem rebaixar). Plano pago sem teste nem assinatura (Completo,
-  Manager) é `manual`: nada acontece. E-mails: assinatura confirmada, pagamento recusado, fatura Pix, cancelamento
+  Manager) é `manual`: nada acontece sozinho, mas a empresa pode assinar (o plano escolhido entra após o pagamento). E-mails: assinatura confirmada, pagamento recusado, fatura Pix, cancelamento
   agendado e rebaixamento (dedup em `plano_avisos`). Sem `STRIPE_SECRET_KEY` ou sem preço no plano
   (`scripts/stripe-bootstrap.mjs` grava os ids), "Assinar" vira "Falar com a equipe". O Manager continua podendo
   trocar o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.

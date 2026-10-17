@@ -42,7 +42,8 @@ const contrataveis = planos.filter((p) => p.contratavel);
 const pedido = Astro.url.searchParams.get('plano');
 const escolhido = contrataveis.find((p) => p.id === pedido) ?? contrataveis.find((p) => p.id === c.plano_id) ?? null;
 const cicloInicial = Astro.url.searchParams.get('ciclo') === 'ano' || c.cobranca_intervalo === 'ano' ? 'ano' : 'mes';
-const mostrarContratacao = !manual || contratada;
+// Plano manual (Completo, Manager) também pode assinar: o plano pago entra quando o Stripe confirmar o pagamento
+const mostrarContratacao = true;
 
 const fuso = { timeZone: 'America/Sao_Paulo' } as const;
 const dataBR = (v: Date | string | null | undefined) => {
@@ -118,6 +119,9 @@ const planosJson = JSON.stringify(
           )}
           {estado === 'gratuito' && <div><dt>Valor</dt><dd>Gratuito para sempre</dd></div>}
           {manual && !contratada && <div><dt>Cobrança</dt><dd>Gerenciada pela equipe do Banket</dd></div>}
+          {manual && !contratada && plano?.publico === false && (
+            <div><dt>Sobre o plano</dt><dd>Plano interno com todos os recursos liberados, atribuído às contas criadas antes dos planos.</dd></div>
+          )}
         </dl>
 
         {c.plano_pendente_id && c.plano_pendente_id !== c.plano_id && (
@@ -171,7 +175,9 @@ const planosJson = JSON.stringify(
             ? `Contratar agora é opcional e você pode trocar de plano à vontade durante o teste. Para continuar depois de ${fimDoTeste}, assine com cartão ou Pix.`
             : estado === 'gratuito'
               ? (plano?.trialUsado ? 'Assine um plano para usar o Painel de Propostas, o Inbox, o financeiro e os demais módulos.' : 'Antes de assinar, você pode testar qualquer plano por 30 dias, sem cartão.')
-              : 'Escolha o plano, a recorrência e a forma de pagamento.'}
+              : manual
+                ? 'Seu plano atual é gerenciado pela equipe. Ao assinar, o plano escolhido entra assim que o pagamento for confirmado.'
+                : 'Escolha o plano, a recorrência e a forma de pagamento.'}
         icon="credit-card"
         id="assinar"
       >
