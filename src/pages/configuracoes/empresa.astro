@@ -266,6 +266,11 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
     max-width: 960px;
   }
 
+  /* Bloco dos parâmetros da proposta (oculto no plano Busca): mesmo espaço padrão entre cards (SectionCard) */
+  .empresa-extras {
+    margin-top: var(--space-5);
+  }
+
   .emp-endereco {
     margin: 0;
     padding: 0;
