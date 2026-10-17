@@ -214,7 +214,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
               <strong>É o proprietário deste buffet?</strong>
               <p>Este perfil foi criado com informações públicas. Reivindique a propriedade para completar fotos, serviços e capacidade e receber pedidos de orçamento — ou peça a remoção.</p>
             </div>
-            <a class="btn btn-secondary btn-md" href={caminhoVitrine(`/para-buffets/reivindicar?buffet=${encodeURIComponent(p.slug)}`)}>Reivindicar perfil</a>
+            <a class="btn btn-secondary btn-md" href={caminhoVitrine(`/para-buffets/reivindicar/${encodeURIComponent(p.slug)}`)}>Reivindicar perfil</a>
           </section>
         )}
       </div>

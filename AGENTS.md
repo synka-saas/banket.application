@@ -1107,7 +1107,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 ### Banket Busca: reivindicação de perfil — `/para-buffets/reivindicar`, `/equipe/reivindicacoes`, `/auth/reivindicar` (`server/busca/reivindicacao.ts`)
 - Perfil **reivindicável** = empresa `origem_cadastro = 'importacao'` sem nenhum usuário. O perfil público mostra
   "É o proprietário deste buffet?" e a home tem o botão "Meu buffet já está aqui"; os dois levam à página de
-  reivindicação (`?buffet=<id ou endereço>`), que tem busca pelo nome (instant search) e duas opções: **assumir e
+  reivindicação (`/para-buffets/reivindicar/<id ou endereço>`; o antigo `?buffet=` redireciona), que tem busca pelo nome (instant search) e duas opções: **assumir e
   completar o perfil** (destaque) ou **remover** o buffet. A pessoa deixa nome, cargo, e-mail e WhatsApp.
 - **A atribuição é sempre manual**: o pedido entra em `busca_reivindicacoes` (`pendente`), a equipe recebe e-mail e quem
   pediu recebe um recibo com os canais do perfil mascarados. Em `/equipe/reivindicacoes` (só e-mails de

@@ -2,7 +2,7 @@
 // Nome do buffet na barra de busca, com instant search (/api/vitrine/buffets): enquanto digita, mostra os buffets
 // publicados com esse nome; escolher um abre o perfil. Enter sem escolher envia a busca filtrando pelo nome (?q=).
 // Combobox acessível (setas, Enter, Esc). Sem JavaScript, o campo só filtra a busca.
-// `destino`: prefixo do link de cada sugestão (padrão: o perfil); a reivindicação usa a própria página (?buffet=).
+// `destino`: prefixo do link de cada sugestão (padrão: o perfil); a reivindicação usa a própria página (/para-buffets/reivindicar/<id>).
 import Icon from '../ui/Icon.astro';
 import { caminhoVitrine } from '../../lib/busca/url';
 

@@ -1,21 +1,24 @@
 ---
-// Reivindicação de perfil (busca.banket.com.br/para-buffets/reivindicar[?buffet=<id ou endereço>]): o dono acha o
+// Reivindicação de perfil (busca.banket.com.br/para-buffets/reivindicar[/<id ou endereço>]): o dono acha o
 // buffet e pede para assumir o perfil (foco: virar perfil administrado, com acesso ao Banket) ou para removê-lo.
 // A atribuição é sempre manual: a equipe confere a posse pelos canais reais do perfil em /equipe/reivindicacoes.
 // Regras em server/busca/reivindicacao.ts. noindex e sem cache (mostra o estado do pedido).
-import VitrineLayout from '../../../layouts/VitrineLayout.astro';
-import Icon from '../../../components/ui/Icon.astro';
-import CampoNome from '../../../components/busca/CampoNome.astro';
-import { caminhoVitrine } from '../../../lib/busca/url';
-import { userMessage } from '../../../lib/forms';
-import { ipDaRequisicao, permitir } from '../../../lib/rateLimit';
-import { buffetsPorNome } from '../../../server/busca/publico';
-import { perfilParaReivindicar, registrarPedido, type AcaoReivindicacao } from '../../../server/busca/reivindicacao';
+import VitrineLayout from '../../../../layouts/VitrineLayout.astro';
+import Icon from '../../../../components/ui/Icon.astro';
+import CampoNome from '../../../../components/busca/CampoNome.astro';
+import { caminhoVitrine } from '../../../../lib/busca/url';
+import { userMessage } from '../../../../lib/forms';
+import { ipDaRequisicao, permitir } from '../../../../lib/rateLimit';
+import { buffetsPorNome } from '../../../../server/busca/publico';
+import { perfilParaReivindicar, registrarPedido, type AcaoReivindicacao } from '../../../../server/busca/reivindicacao';
 
 Astro.response.headers.set('Cache-Control', 'private, no-store');
 const v = caminhoVitrine;
 const aqui = v('/para-buffets/reivindicar');
-const ref = Astro.url.searchParams.get('buffet');
+const antigo = Astro.url.searchParams.get('buffet');
+// Endereço antigo (?buffet=<id>) → caminho (/para-buffets/reivindicar/<id>)
+if (antigo && !Astro.params.buffet) return Astro.redirect(`${aqui}/${encodeURIComponent(antigo)}`, 301);
+const ref = Astro.params.buffet?.split('/')[0] || null;
 const termo = (Astro.url.searchParams.get('q') ?? '').trim();
 
 let enviado: { acao: AcaoReivindicacao; email: string } | null = null;
@@ -80,7 +83,7 @@ const BENEFICIOS = [
     </p>
 
     <form class="rv-busca" method="get" action={aqui} role="search" aria-label="Buscar o seu buffet">
-      <CampoNome id="rv-nome" valor={termo || null} rotulo="Encontre o seu buffet" placeholder="Digite o nome do buffet" destino={`${aqui}?buffet=`} />
+      <CampoNome id="rv-nome" valor={termo || null} rotulo="Encontre o seu buffet" placeholder="Digite o nome do buffet" destino={`${aqui}/`} />
       <button type="submit" class="btn btn-secondary btn-large"><Icon name="search" size={16} /> Buscar</button>
     </form>
 
@@ -88,7 +91,7 @@ const BENEFICIOS = [
       resultados.length ? (
         <ul class="rv-resultados" aria-label="Buffets encontrados">
           {resultados.map((b) => (
-            <li><a href={`${aqui}?buffet=${encodeURIComponent(b.slug)}`}><strong>{b.nome}</strong><span>{[b.bairro, b.cidade].filter(Boolean).join(', ')}</span><Icon name="chevron-right" size={16} /></a></li>
+            <li><a href={`${aqui}/${encodeURIComponent(b.slug)}`}><strong>{b.nome}</strong><span>{[b.bairro, b.cidade].filter(Boolean).join(', ')}</span><Icon name="chevron-right" size={16} /></a></li>
           ))}
         </ul>
       ) : (
@@ -541,11 +544,6 @@ const BENEFICIOS = [
     .rv-busca .btn {
       width: auto;
       flex: none;
-    }
-
-    .rv-opcoes {
-      grid-template-columns: 1.4fr 1fr;
-      align-items: stretch;
     }
 
     .rv-passos {
