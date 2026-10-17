@@ -1118,6 +1118,9 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   `concluida`; plano continua o Busca); **aprova remover** → `aprovarRemocao` grava `busca_exclusoes` e apaga o perfil,
   o espaço da unidade e a empresa se não sobrar unidade; ou **recusa** com o motivo (vai por e-mail a quem pediu).
 - `scripts/importar-busca.mjs` não traz de volta quem está em `busca_exclusoes` (place_id, e-mail ou telefone).
+- Perfil importado (com linha em `busca_importacao`) **não é despublicado** pelo `recalcular` quando o dono salva uma
+  etapa incompleta: segue na busca enquanto ele completa (a completude pesa no ranking). Se ele despublicar, as regras
+  normais (etapas 1 a 5) valem para publicar de novo. E-mails de provedores gratuitos valem como canal de confirmação.
 
 ### Banket Busca: área do buffet — `/busca?etapa=1..6` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a

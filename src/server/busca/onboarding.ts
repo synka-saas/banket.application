@@ -29,15 +29,22 @@ export async function contagens(db: Db, perfilId: string): Promise<Contagens> {
   return { fotos: Number(rows[0].fotos) };
 }
 
-/** Recalcula completude e etapa concluída; despublica se faltar alguma etapa. Devolve se foi despublicado. */
+/**
+ * Recalcula completude e etapa concluída; despublica se faltar alguma etapa. Devolve se foi despublicado.
+ * Exceção: perfil vindo da importação (busca_importacao) continua publicado enquanto o dono completa as informações
+ * (decisão de 17/10/2026); a completude pesa só no ranking. Se o dono despublicar, as regras valem para publicar de novo.
+ */
 export async function recalcular(db: Db, perfilId: string): Promise<{ despublicado: boolean }> {
-  const { rows } = await db.query<PerfilBusca>('SELECT * FROM busca_perfis WHERE id = $1', [perfilId]);
+  const { rows } = await db.query<PerfilBusca & { importado: boolean }>(
+    'SELECT p.*, EXISTS (SELECT 1 FROM busca_importacao i WHERE i.perfil_id = p.id) AS importado FROM busca_perfis p WHERE p.id = $1',
+    [perfilId]
+  );
   const p = rows[0];
   const c = await contagens(db, perfilId);
   const ok = etapasConcluidas(p, c);
   let maior = 0;
   for (let n = 1; n <= ETAPAS_PARA_PUBLICAR && ok.has(n); n++) maior = n;
-  const despublicar = p.publicado && !podePublicar(p, c);
+  const despublicar = p.publicado && !p.importado && !podePublicar(p, c);
   await db.query(
     `UPDATE busca_perfis SET completude = $2, etapa_concluida = $3, publicado = publicado AND NOT $4, updated_at = now() WHERE id = $1`,
     [perfilId, completude(p, c), despublicar ? maior : p.publicado ? ETAPA_REVISAO : maior, despublicar]
