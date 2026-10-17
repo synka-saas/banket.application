@@ -65,12 +65,12 @@ export const navAtiva = (pathname: string, match: string[]) => match.some((m) =>
 
 export const CONFIG_SUBMENU = [
   { id: 'empresa', label: 'Empresa', href: '/configuracoes/empresa' },
+  { id: 'financeiro', label: 'Financeiro', href: '/configuracoes/financeiro' },
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
   { id: 'categorias', label: ROTULOS.ocasioes, href: '/configuracoes/categorias' },
   { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
   { id: 'modelos-email', label: 'Modelos de e-mail', href: '/configuracoes/modelos-email' },
-  { id: 'financeiro', label: 'Financeiro', href: '/configuracoes/financeiro' },
 ];
 
 /** Submenu de Configurações para o plano: sem o recurso `configuracoes`, só o Financeiro (assinatura e faturas). */
