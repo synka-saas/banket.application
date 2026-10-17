@@ -281,6 +281,18 @@ body.vitrine {
 
 /* O placeholder orienta a busca inteira: no celular a fonte menor faz caber na largura */
 @media (max-width: 768px) {
+  .fbusca-unica.fbusca--destaque {
+    padding: 12px;
+  }
+
+  .fbusca-unica .campo-icone-ico {
+    display: none;
+  }
+
+  .fbusca-unica .campo-icone input {
+    padding-left: 12px !important;
+  }
+
   .fbusca-unica input::placeholder {
     font-size: var(--fs-12);
   }
