@@ -17,6 +17,8 @@ export interface ItemNavegacao {
   recurso?: Modulo;
   /** Item do Banket Busca: o link abre a área pelo urlArea */
   marca?: 'busca';
+  /** Fora do plano, em vez do cadeado o item leva a esta página (livre em todo plano) */
+  hrefLivre?: string;
 }
 
 // Uma só lista para a sidebar (desktop) e a barra inferior + painel "Mais" (celular)
@@ -36,11 +38,12 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Documentos', icon: 'signature', href: '/documentos', match: ['/documentos'], recurso: 'documentos' },
   { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'], recurso: 'pesquisas' },
   { label: 'Banket Busca', icon: 'banket', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
-  { label: 'Configurações', icon: 'settings', href: '/configuracoes/usuarios', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes' },
+  { label: 'Configurações', icon: 'settings', href: '/configuracoes/empresa', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes', hrefLivre: '/configuracoes/financeiro' },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
 
 /** Itens do menu para a sessão: filtra por papel e marca o que está fora do plano (`bloqueado` = recurso). */
+// Configurações fora do plano (plano Busca) não fica com cadeado: abre direto em Configurações › Financeiro.
 export function itensDoMenu(
   admin: boolean,
   podeUsar: (recurso: Modulo) => boolean,
@@ -48,7 +51,11 @@ export function itensDoMenu(
 ): (ItemNavegacao & { bloqueado: Modulo | null })[] {
   return itens
     .filter((item) => !item.adminOnly || admin)
-    .map((item) => ({ ...item, bloqueado: item.recurso && !podeUsar(item.recurso) ? item.recurso : null }));
+    .map((item) => {
+      const fora = Boolean(item.recurso && !podeUsar(item.recurso));
+      if (fora && item.hrefLivre) return { ...item, href: item.hrefLivre, bloqueado: null };
+      return { ...item, bloqueado: fora ? item.recurso! : null };
+    });
 }
 
 /** Link de um item bloqueado: abre o painel de upsell na página inicial do plano. */
@@ -57,13 +64,18 @@ export const linkBloqueado = (recurso: string, inicio: string) => `${inicio}?blo
 export const navAtiva = (pathname: string, match: string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 
 export const CONFIG_SUBMENU = [
+  { id: 'empresa', label: 'Empresa', href: '/configuracoes/empresa' },
   { id: 'usuarios', label: 'Usuários', href: '/configuracoes/usuarios' },
   { id: 'categorias', label: ROTULOS.ocasioes, href: '/configuracoes/categorias' },
   { id: 'status', label: ROTULOS.etapas, href: '/configuracoes/status-orcamento' },
   { id: 'formatos', label: 'Formatos de serviço', href: '/configuracoes/formatos-servico' },
   { id: 'modelos-email', label: 'Modelos de e-mail', href: '/configuracoes/modelos-email' },
-  { id: 'empresa', label: 'Empresa', href: '/configuracoes/empresa' },
+  { id: 'financeiro', label: 'Financeiro', href: '/configuracoes/financeiro' },
 ];
+
+/** Submenu de Configurações para o plano: sem o recurso `configuracoes`, só o Financeiro (assinatura e faturas). */
+export const configSubmenuDoPlano = (temConfiguracoes: boolean) =>
+  temConfiguracoes ? CONFIG_SUBMENU : CONFIG_SUBMENU.filter((i) => i.id === 'financeiro');
 
 export const CARDAPIO_SUBMENU = [
   // Na ordem em que se monta o catálogo: seção → itens → opções prontas

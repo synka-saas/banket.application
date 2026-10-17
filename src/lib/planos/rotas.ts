@@ -1,7 +1,7 @@
 // Mapa rota → recurso de plano (gate do middleware). Função pura, sem banco: o middleware pergunta aqui qual
 // recurso uma URL exige e checa a empresa com lib/planos/gating. Testes em rotas.test.ts.
 // Regras: prefixo mais específico primeiro; o que não está no mapa é livre (auth, público, /busca, /planos,
-// /conta, /suporte, /api/sessao, /uploads, estáticos).
+// /conta, /suporte, /api/sessao, /api/assinatura, /configuracoes/financeiro, /uploads, estáticos).
 import type { Modulo } from './recursos';
 
 /** [prefixo, recurso | null]. null = explicitamente livre (vence os prefixos seguintes). */
@@ -36,6 +36,8 @@ export const REGRAS: ReadonlyArray<readonly [string | RegExp, Modulo | null]> = 
   ['/documentos', 'documentos'],
   ['/pesquisas', 'pesquisas'],
   ['/api/pesquisas', 'pesquisas'],
+  // Configurações › Financeiro (assinatura): aberto a todo plano (é por ali que o plano gratuito assina)
+  ['/configuracoes/financeiro', null],
   ['/configuracoes', 'configuracoes'],
   ['/api/configuracoes', 'configuracoes'],
 ];

@@ -28,12 +28,19 @@ export interface Plano {
   preco_anual: number | null;
   trial_dias: number;
   recursos: Record<string, boolean | number>;
+  /** Tem preço no Stripe (mensal ou anual): dá para assinar pelo app */
+  contratavel: boolean;
+  anual_contratavel: boolean;
 }
 
-export type MotivoPlano = 'cadastro' | 'migracao' | 'trial_iniciado' | 'trial_encerrado' | 'upgrade' | 'downgrade' | 'hwesta' | 'backoffice' | 'assinatura' | 'cancelamento';
+export type MotivoPlano =
+  | 'cadastro' | 'migracao' | 'trial_iniciado' | 'trial_encerrado' | 'upgrade' | 'downgrade' | 'hwesta' | 'backoffice'
+  | 'assinatura' | 'cancelamento' | 'plano_escolhido' | 'inadimplencia';
 export type OrigemPlano = 'app' | 'hwesta' | 'agendador' | 'migracao' | 'stripe';
 
-const COLUNAS = 'id, slug, nome, descricao, gratuito, publico, ativo, ordem, preco_mensal, preco_anual, trial_dias, recursos';
+const COLUNAS = `id, slug, nome, descricao, gratuito, publico, ativo, ordem, preco_mensal, preco_anual, trial_dias, recursos,
+  (stripe_price_mensal_id IS NOT NULL OR stripe_price_anual_id IS NOT NULL) AS contratavel,
+  (stripe_price_anual_id IS NOT NULL) AS anual_contratavel`;
 
 /** Planos ativos (todos ou só os públicos), na ordem do catálogo. */
 export async function listarPlanos(db: Db, somentePublicos = true): Promise<Plano[]> {
@@ -203,20 +210,21 @@ const limiteNumerico = (ent: Entitlements, recurso: string): number | null => {
 // Cadastro, teste grátis e rebaixamento
 // ---------------------------------------------------------------------------
 
-/** Plano inicial da empresa recém-criada: Busca (origem 'busca') ou teste do Profissional (origem 'site'). */
+/**
+ * Plano inicial da empresa recém-criada: sempre o plano Busca (gratuito), como o Yosp. Quem veio do site (gestão) vai
+ * em seguida para /planos?teste=1 escolher o plano: a escolha inicia o teste de 30 dias (`iniciarTrial`).
+ */
 export async function cadastroInicial(db: Db, tenantId: string, origem: 'site' | 'busca', usuarioId: string | null): Promise<void> {
-  if (origem === 'busca') {
-    const gratuito = await planoGratuito(db);
-    await trocarPlano(db, tenantId, gratuito.id, { motivo: 'cadastro', origem: 'app', usuarioId, dados: { origem } });
-    return;
-  }
-  const plano = (await planoPorSlug(db, 'profissional')) ?? (await planoPorSlug(db, 'completo'));
-  if (!plano) throw new Error('Plano do cadastro não encontrado (migration 031).');
-  const hoje = emSaoPaulo(new Date()).data;
-  const ate = fimDoTrial(hoje, plano.trial_dias);
-  await db.query('UPDATE tenants SET trial_ate = $2, trial_iniciado_em = now(), trial_usado_em = now() WHERE id = $1', [tenantId, ate]);
-  await trocarPlano(db, tenantId, plano.id, { motivo: 'cadastro', origem: 'app', usuarioId, dados: { origem, trial_ate: ate }, manterTrial: true });
+  const gratuito = await planoGratuito(db);
+  await trocarPlano(db, tenantId, gratuito.id, { motivo: 'cadastro', origem: 'app', usuarioId, dados: { origem } });
 }
+
+/** Página de entrada de uma empresa do site que ainda não escolheu o plano do teste. */
+export const PAGINA_ESCOLHA_PLANO = '/planos?teste=1';
+
+/** A empresa veio do site, está no plano gratuito e ainda pode começar o teste: deve escolher o plano. */
+export const deveEscolherPlano = (ent: Entitlements | null): boolean =>
+  Boolean(ent && ent.gratuito && ent.origemCadastro === 'site' && !ent.trialUsado && !ent.assinaturaViva);
 
 /** Oferta de teste disponível? (plano gratuito, nunca testou e não recusou nos últimos 30 dias) */
 export function ofertaDeTrial(ent: Entitlements | null, agora = new Date()): 'disponivel' | 'recusada' | 'usada' | 'nao_se_aplica' {
@@ -254,11 +262,29 @@ export async function recusarTrial(db: Db, user: SessionUser): Promise<void> {
   await registrarUpsell(db, user, 'trial_recusado', null, {});
 }
 
+/**
+ * Troca o plano durante o teste, sem pagamento e sem mexer no prazo (como o select-plan do Yosp). Com assinatura,
+ * a troca é pelo Stripe (server/assinatura.ts → trocarPlanoDaAssinatura).
+ */
+export async function escolherPlanoNoTeste(db: Db, user: SessionUser, planoId: string): Promise<Plano> {
+  if (!isAdmin(user)) throw new UserError('Só proprietários e administradores podem trocar o plano.');
+  const ent = await entitlements(user.tenantId, db);
+  if (ent?.assinaturaViva) throw new UserError('Sua empresa já tem assinatura: a troca de plano é feita em Configurações › Financeiro.');
+  if (!ent?.trial) throw new UserError('A troca de plano sem pagamento só vale durante o teste. Assine o plano escolhido.');
+  const plano = await planoPorId(db, planoId);
+  if (!plano || plano.gratuito || !plano.publico || !plano.ativo) throw new UserError('Escolha um dos planos disponíveis.');
+  if (plano.id === ent.planoId) return plano;
+  await trocarPlano(db, user.tenantId, plano.id, {
+    motivo: 'plano_escolhido', origem: 'app', usuarioId: user.id, dados: { trial_ate: ent.trialAte }, manterTrial: true,
+  });
+  return plano;
+}
+
 /** Rebaixa uma empresa em plano pago para o plano gratuito. Idempotente (já gratuita → null). */
 export async function rebaixarParaBusca(
   db: Db,
   tenantId: string,
-  motivo: Extract<MotivoPlano, 'trial_encerrado' | 'cancelamento' | 'hwesta' | 'backoffice'>,
+  motivo: Extract<MotivoPlano, 'trial_encerrado' | 'cancelamento' | 'inadimplencia' | 'hwesta' | 'backoffice'>,
   origem: OrigemPlano,
   dados: Record<string, unknown> = {}
 ): Promise<boolean> {
@@ -276,9 +302,12 @@ export async function rebaixarParaBusca(
   return true;
 }
 
-/** Chamado pelo middleware quando o entitlements diz `trialVencido`: rebaixa se já passou de D+1 12h. */
+/**
+ * Chamado pelo middleware quando o entitlements diz `trialVencido`: rebaixa se já passou de D+1 12h. Empresa com
+ * assinatura no Stripe fica para o agendador/webhook (server/assinatura.ts), que confere a fatura e cancela no Stripe.
+ */
 export async function verificarTrialVencido(ent: Entitlements): Promise<boolean> {
-  if (!ent.trialVencido || !ent.trialAte || !deveRebaixar(ent.trialAte, new Date())) return false;
+  if (!ent.trialVencido || !ent.trialAte || ent.assinaturaViva || !deveRebaixar(ent.trialAte, new Date())) return false;
   return withSystem((db) => rebaixarParaBusca(db, ent.tenantId, 'trial_encerrado', 'app'));
 }
 
@@ -287,10 +316,12 @@ export async function verificarTrialVencido(ent: Entitlements): Promise<boolean>
  * plano_avisos. Cada empresa num try/catch. Devolve contadores para o log.
  */
 export async function varrerTrials(db: Db, agora = new Date()): Promise<{ rebaixadas: number; avisos: number }> {
+  // Com assinatura no Stripe (mesmo a 1ª fatura Pix ainda em aberto), o rebaixamento é do server/assinatura.ts
+  // (cancela no Stripe antes) e os avisos do teste não fazem sentido: a empresa já contratou.
   const { rows } = await db.query<{ id: string; trial_ate: string; plano_nome: string }>(
     `SELECT t.id, to_char(t.trial_ate, 'YYYY-MM-DD') AS trial_ate, p.nome AS plano_nome
        FROM tenants t JOIN planos p ON p.id = t.plano_id
-      WHERE t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.status = 'active'`
+      WHERE t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.status = 'active' AND t.stripe_assinatura_id IS NULL`
   );
   let rebaixadas = 0;
   let avisos = 0;
@@ -352,7 +383,9 @@ export async function aplicarDoManager(tenantId: string, ent: HwestaEntitlements
 // ---------------------------------------------------------------------------
 // Eventos de funil (upsell) e e-mails
 // ---------------------------------------------------------------------------
-export type TipoUpsell = 'cadeado_visto' | 'cta_clicado' | 'planos_visitado' | 'trial_iniciado' | 'trial_recusado' | 'assinatura_concluida' | 'rebaixado';
+export type TipoUpsell =
+  | 'cadeado_visto' | 'cta_clicado' | 'planos_visitado' | 'trial_iniciado' | 'trial_recusado' | 'assinatura_concluida' | 'rebaixado'
+  | 'checkout_iniciado';
 
 /**
  * Evento do funil de upsell. Nunca lança nem aborta a transação de quem chama (SAVEPOINT): é métrica, não regra.
@@ -372,7 +405,7 @@ export async function registrarUpsell(db: Db, user: { id: string | null; tenantI
   }
 }
 
-async function destinatarios(db: Db, tenantId: string): Promise<{ nome: string; email: string; empresa: string }[]> {
+export async function destinatarios(db: Db, tenantId: string): Promise<{ nome: string; email: string; empresa: string }[]> {
   const { rows } = await db.query<{ nome: string; email: string; empresa: string }>(
     `SELECT u.nome, u.email, t.nome AS empresa
        FROM tenant_usuarios tu JOIN usuarios u ON u.id = tu.usuario_id JOIN tenants t ON t.id = tu.tenant_id
@@ -395,7 +428,7 @@ async function enviarEmailTrial(db: Db, tenantId: string, tipo: AvisoTrial | 'in
       paragrafos: (nome) => [
         `Olá, ${nome}!`,
         `A ${empresa} tem acesso a tudo do plano ${ctx.planoNome} até ${dataBR(ctx.ate)}. Explore o Painel de Propostas, os orçamentos em PDF, o Inbox e o resto do Banket.`,
-        'Ao fim do teste, se não houver assinatura, a empresa volta ao plano Busca sem perder nenhum dado.',
+        'Durante o teste você pode trocar de plano à vontade. Para continuar depois dele, assine em Configurações › Financeiro (cartão ou Pix). Sem assinatura, a empresa volta ao plano Busca sem perder nenhum dado.',
       ],
       cta: { texto: 'Abrir o Banket', url: appUrl('/dashboard') },
     },
@@ -404,9 +437,9 @@ async function enviarEmailTrial(db: Db, tenantId: string, tipo: AvisoTrial | 'in
       titulo: 'Seu teste termina em 7 dias',
       paragrafos: (nome) => [
         `Olá, ${nome}!`,
-        `O teste do plano ${ctx.planoNome} da ${empresa} vai até ${dataBR(ctx.ate)}. Para continuar com o Painel de Propostas, os orçamentos e o Inbox, fale com a equipe e escolha o seu plano.`,
+        `O teste do plano ${ctx.planoNome} da ${empresa} vai até ${dataBR(ctx.ate)}. Para continuar com o Painel de Propostas, os orçamentos e o Inbox, assine o seu plano: no cartão, a cobrança pode ficar para o fim do teste.`,
       ],
-      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+      cta: { texto: 'Assinar o plano', url: appUrl('/configuracoes/financeiro') },
     },
     d1: {
       assunto: `Amanhã é o último dia do seu teste do ${ctx.planoNome}`,
@@ -415,16 +448,16 @@ async function enviarEmailTrial(db: Db, tenantId: string, tipo: AvisoTrial | 'in
         `Olá, ${nome}!`,
         `Amanhã (${dataBR(ctx.ate)}) é o último dia do teste do plano ${ctx.planoNome} da ${empresa}. Depois disso a empresa volta ao plano Busca: os dados ficam guardados, mas os módulos do plano deixam de abrir.`,
       ],
-      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+      cta: { texto: 'Assinar o plano', url: appUrl('/configuracoes/financeiro') },
     },
     d0: {
       assunto: `Hoje é o último dia do seu teste do ${ctx.planoNome}`,
       titulo: 'Último dia do teste',
       paragrafos: (nome) => [
         `Olá, ${nome}!`,
-        `Hoje é o último dia do teste do plano ${ctx.planoNome} da ${empresa}. Amanhã, ao meio-dia, a empresa volta ao plano Busca. Para continuar sem interrupção, escolha o seu plano.`,
+        `Hoje é o último dia do teste do plano ${ctx.planoNome} da ${empresa}. Amanhã, ao meio-dia, a empresa volta ao plano Busca. Para continuar sem interrupção, assine o seu plano.`,
       ],
-      cta: { texto: 'Ver planos', url: appUrl('/planos') },
+      cta: { texto: 'Assinar o plano', url: appUrl('/configuracoes/financeiro') },
     },
     fim: {
       assunto: 'Seu período de teste terminou',

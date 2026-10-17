@@ -1,8 +1,10 @@
 // Agendador mínimo do app (fase 1 do Banket Busca): um setInterval por processo para o que precisa acontecer sem
-// requisição — rebaixamento dos testes vencidos (D+1 12h) e avisos D-7/D-1/D0 do trial. Idempotente: as duas cores
-// do blue-green podem rodar ao mesmo tempo (dedup em plano_avisos e troca de plano com FOR UPDATE).
+// requisição — rebaixamento dos testes vencidos (D+1 12h), avisos D-7/D-1/D0 do trial e a cobrança da assinatura
+// (fatura vencida, contratação Pix abandonada, reconciliação com o Stripe; server/assinatura.ts). Idempotente: as
+// duas cores do blue-green podem rodar ao mesmo tempo (dedup em plano_avisos e troca de plano com FOR UPDATE).
 // Iniciado uma vez no módulo do middleware; o guard em globalThis segura o HMR do dev.
 import { withSystem } from '../lib/db';
+import { varrerCobranca } from './assinatura';
 import { varrerTrials } from './planos';
 
 const INTERVALO_MS = 10 * 60_000;
@@ -14,6 +16,12 @@ async function tique(): Promise<void> {
     if (r.rebaixadas || r.avisos) console.log(`[agendador] trials: ${r.rebaixadas} rebaixada(s), ${r.avisos} aviso(s)`);
   } catch (err) {
     console.error('[agendador] varredura falhou:', err);
+  }
+  try {
+    const c = await varrerCobranca(new Date());
+    if (c.rebaixadas || c.abandonadas) console.log(`[agendador] cobrança: ${c.rebaixadas} rebaixada(s), ${c.abandonadas} contratação(ões) Pix abandonada(s)`);
+  } catch (err) {
+    console.error('[agendador] cobrança falhou:', err);
   }
 }
 

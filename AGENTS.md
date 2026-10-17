@@ -4,8 +4,9 @@ SaaS multi-empresa (multi-tenant) para buffets e casas de eventos. Cobre a capta
 cadastro manual), o quadro de vendas (Kanban), o orçamento versionado montado a partir do catálogo (cardápios,
 bebidas, staff, locação por espaço), a geração do PDF da proposta, o envio por e-mail com as respostas do cliente no
 Inbox, a lista de compras por evento, a agenda com reuniões no Google Meet, o dashboard, os espaços de eventos, a gestão
-da equipe, a **gestão financeira** (contas a receber/pagar, plano de pagamento do evento) e a **pesquisa de satisfação**
-pós-evento (NPS + CSAT, link público por e-mail).
+da equipe, a **gestão financeira** (contas a receber/pagar, plano de pagamento do evento), a **pesquisa de satisfação**
+pós-evento (NPS + CSAT, link público por e-mail) e a **assinatura do próprio Banket** (planos, teste de 30 dias e
+cobrança pelo Stripe, no modelo do Yosp).
 
 - Produção: <https://app.banket.com.br> (VPS `synka-main`, código em `/var/www/banket`)
 - Repositório: `git@github.com:synka-saas/banket.application.git` (branch `main`)
@@ -33,6 +34,7 @@ pós-evento (NPS + CSAT, link público por e-mail).
 | Senhas | `pgcrypto`: `crypt(senha, gen_salt('bf'))` (bcrypt no próprio Postgres) |
 | PDF | **Chromium** via `playwright-core` + **pdf-lib** para juntar capa/miolo/contracapa |
 | E-mail | API HTTP do **Resend** (sem chave, o e-mail vai para o log) |
+| Cobrança | **Stripe** (`stripe` SDK): assinatura com cartão (Checkout hospedado) ou Pix (fatura com 7 dias), webhook em `/api/webhooks/stripe` |
 | Interface | CSS escrito à mão sobre os tokens do **design system** (`design-system/` → `src/styles/tokens.css`); fonte **General Sans** servida de `/public/fonts`; ícones **Tabler** em linha |
 | Testes | **Vitest** (unitários em `src/**/*.test.ts`) e **Playwright** (e2e em `tests/e2e`) |
 | Infra | Docker Compose; Nginx no host; deploy blue-green |
@@ -94,7 +96,8 @@ src/
                        matching.ts (compatibilidade eliminatória e disponibilidade), ranking.ts (grupo + pontuação com
                        pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host do Busca),
                        onboarding.ts (as 6 etapas, conclusão, publicação e completude)
-    planos/            recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
+    stripe.ts          cliente do Stripe (chave, versão, erros → UserError, prazo do QR Pix)
+    planos/            cobranca.ts (estado de cobrança puro: teste/ativa/vencida/rebaixar/manual), recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
     pesquisa.ts        tipos de pergunta, NPS/CSAT (classes, zonas) e validação das respostas da pesquisa (puro)
@@ -140,9 +143,14 @@ src/
                        vitrine.ts (critérios da URL, cidade digitada, cache público), onboarding.ts (etapas do cadastro do
                        perfil: validação, fotos com limite e grupos pelo plano, captura dos dados da conta, cidades
                        atendidas, publicar/despublicar)
-    agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h) e envia avisos D-7/D-1/D0
+    assinatura.ts      assinatura pelo Stripe: checkout (cartão/Pix, agora ou no fim do teste), troca, cancelamento, portal,
+                       Pix da fatura, espelho (tenants.stripe_*, assinatura_faturas), promoção do plano após o pagamento,
+                       rebaixamento por fatura vencida/assinatura encerrada, webhook, varredura e e-mails de cobrança
+    agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h), avisos D-7/D-1/D0 e a
+                       varredura da cobrança (fatura vencida, Pix abandonado, reconciliação com o Stripe a cada 6 h)
   pages/               rotas Astro (SSR); POST de formulário na própria página
-  pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts recebe o webhook do Resend
+  pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts e api/webhooks/stripe.ts recebem os
+                       webhooks do Resend e do Stripe; api/assinatura/* são as ações da assinatura
   pages/vitrine/       páginas públicas do Banket Busca (home, buscar, buffet/[slug], buffet/[tipo]/[cidade], orcamento);
                        no host BUSCA_URL são servidas sem o prefixo /vitrine (middleware)
   pages/print/         páginas de impressão da proposta e dos documentos (só com print token)
@@ -158,7 +166,7 @@ src/
                        financeiro.css (indicadores, listas de contas e barras; usado também pelas Pesquisas)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
-scripts/               migrate.mjs, deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
+scripts/               migrate.mjs, stripe-bootstrap.mjs (produtos/preços dos planos no Stripe e Portal do Cliente), deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
                        buffets → Busca; simula por padrão, --gravar grava, --remover-testes apaga as empresas de demonstração)
 tests/e2e/             Playwright (helpers.ts: login, leitura de links de e-mail no log do contêiner)
 public/ref/            PDFs de cardápios de referência (Brunch, Buffet, Boteco, Empratado) que originaram os seeds
@@ -474,6 +482,15 @@ upgrade, downgrade, hwesta, backoffice, assinatura, cancelamento; `origem`: app,
 **`plano_avisos`** — dedup dos e-mails do teste (PK tenant + chave `trial:<data>:d7|d1|d0`).
 **`busca_upsell_eventos`** — funil de upsell: `tipo` (cadeado_visto, cta_clicado, planos_visitado, trial_iniciado,
 trial_recusado, assinatura_concluida, rebaixado), `recurso`, `dados`.
+**Assinatura (migration 039)**: `tenants` ganhou o espelho do Stripe — `stripe_customer_id`, `stripe_assinatura_id`,
+`stripe_assinatura_status`, `cobranca_intervalo` (`mes | ano`), `forma_pagamento` (`cartao | pix`), `cartao_bandeira/
+final/validade`, `periodo_fim`, `cancelar_no_fim`, `cancelar_em`, `cancelamento_motivo`; `plano_pendente_id` guarda o
+plano escolhido no checkout até a confirmação. **`assinatura_faturas`** (RLS) — espelho das invoices: `stripe_id`
+(UNIQUE), `assinatura_id`, `numero`, `status` (`draft|open|paid|void|uncollectible`), `valor`, `valor_restante`,
+`vencimento` (Pix: due_date; cartão: data da cobrança), `pago_em`, `forma`, `motivo` (billing_reason), `cobranca`
+(collection_method), `url_fatura`, `pdf_url`, `plano_id`. **`stripe_events`** — idempotência do webhook (RLS forçado
+sem política: só sistema). `fn_tenant_entitlements` passou a devolver `origem_cadastro`, `assinatura_viva` e
+`plano_pendente_id`; motivos novos no histórico: `plano_escolhido`, `inadimplencia`; funil: `checkout_iniciado`.
 **`hwesta_entitlements`** passou a ser **override** por empresa (`capabilities` sobrepõe `planos.recursos`) e espelho
 do último push; a verdade do plano é `tenants.plano_id`.
 
@@ -567,6 +584,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `039_assinatura_stripe` | espelho do Stripe em `tenants`, `assinatura_faturas`, `stripe_events`; motivos `plano_escolhido`/`inadimplencia`, funil `checkout_iniciado`, `plano_avisos.chave` 80; `fn_tenant_entitlements` com origem e assinatura |
 | `038_busca_reivindicacao` | `auth_tokens.tipo` aceita `reivindicacao`; `busca_reivindicacoes` (fila da equipe) e `busca_exclusoes` (buffets que saíram), só conexão de sistema |
 | `037_busca_unidades_importacao` | `busca_perfis` sem unicidade por empresa (um perfil por unidade) + `espaco_id`; `tenants.origem_cadastro` aceita `importacao`; tabela `busca_importacao` |
 | `036_busca_endereco_perfil` | endereço do perfil = id (UUID) sem o recurso `busca_slug`; `busca_perfis.slugs_antigos` para os redirecionamentos 301 |
@@ -600,16 +618,18 @@ métricas, pedidos e opções de cardápio dos clientes (usuários `contato@<buf
 ### Middleware (`src/middleware.ts`)
 - Públicas: `/auth/*`, `/f/*`, `/p/*` (pesquisa de satisfação pelo token), `/vitrine*` (páginas públicas do Banket
   Busca), `/api/vitrine/*` (API pública da vitrine), `/busca-media/*` (fotos do Busca: só `busca/<uuid>.png|jpg|webp`), `/api/public/*`, `/api/hwesta/*` (Bearer do Manager), `/api/webhooks/*` (assinatura
-  Svix do Resend conferida na rota), `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e estáticos
+  Svix do Resend e Stripe-Signature do Stripe conferidas na rota), `/print/*` (exige print token), `/_astro/*`, `/_image`, `/api/health` e estáticos
   de `/public`. **`/uploads/*` é sempre protegido** e só serve arquivos do tenant da sessão.
 - Sem sessão: páginas redirecionam para `/auth/login?next=…`; `/api/*` responde 401 JSON.
 - `/configuracoes*`, `/api/configuracoes*`, `/financeiro*`, `/api/financeiro*` e a aba `/eventos/:id/financas`: só
   `owner` e `admin` (403 / redirect para o dashboard).
 - **Plano** (depois do papel): `locals.plano` = `entitlements(tenant)` (cache 15 s). Teste vencido depois de D+1 12h
-  rebaixa na hora. `/` e `/dashboard` sem o recurso `propostas` vão para `/busca`. Rota de módulo fora do plano
+  rebaixa na hora (sem assinatura no Stripe; com assinatura, quem decide é `server/assinatura.ts`). `/` e `/dashboard`
+  sem o recurso `propostas` vão para `/busca`, ou para `/planos?teste=1` se a empresa veio do site e ainda não escolheu
+  o plano do teste (`deveEscolherPlano`). Rota de módulo fora do plano
   (`recursoDaRota`, `lib/planos/rotas.ts`): API/print → `403 {code: 'RECURSO_FORA_DO_PLANO', recurso, upgrade_url}`;
   página → `<início do plano>?bloqueado=<recurso>`, que abre o painel de upsell. Livres: `/busca`, `/planos`, `/conta`,
-  `/suporte`, `/api/sessao`, `/api/planos`, `/uploads`.
+  `/suporte`, `/api/sessao`, `/api/planos`, `/api/assinatura`, `/configuracoes/financeiro`, `/uploads`.
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
   (exceto `/f/*`, que pode ser incorporado no site do buffet), HSTS em produção.
 - CSRF: `security.checkOrigin` do Astro; `allowedDomains` confia no `X-Forwarded-*` só para `app.banket.com.br` e localhost.
@@ -956,6 +976,8 @@ galeria os usam (`arquivoEmUso`). Gerações presas há mais de 6 min viram erro
 próprio: liga/desliga e posição do logotipo principal. Blocos de informação por página da proposta, com marcação simples.
 
 ### Configurações (owner/admin) — `/configuracoes/*` (`server/configuracoes.ts`, `server/empresa.ts`, `server/usuarios.ts`)
+**Financeiro** (`/configuracoes/financeiro`, aberta a todo plano — no plano Busca o item Configurações do menu abre direto nela, sem cadeado, e o submenu mostra só ela; ver Planos e gating): plano e situação,
+contratação/troca, cancelamento, uso dos limites, faturas (Pix, PDF) e histórico do plano ·
 Usuários e convites · Ocasiões (matriz de toggles Corporativo/Social via `/api/configuracoes/categorias/tipos`;
 `/configuracoes/tipos-evento` só redireciona para cá, os tipos são fixos) ·
 Status de orçamento (colunas do Kanban: nome, variante, cor, ordem, intervalo do Kanban) · Formatos de serviço ·
@@ -1050,14 +1072,31 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Menu**: itens fora do plano ficam com cadeado (`nav-item--bloqueado`, `data-bloqueado`); o clique abre o painel
   (`components/planos/Upsell.astro`, no `AppLayout`), que também abre com `?bloqueado=` e com qualquer `fetch` 403 de
   plano. Item "Banket Busca" depois de Pesquisas, com o ícone `banket` (símbolo do logo no traço dos ícones; a pílula "busca" fica só no cabeçalho da vitrine). Card do plano no rodapé da sidebar (owner/admin).
-- **Teste grátis**: a partir do plano gratuito, owner/admin, uma vez por empresa (`trial_usado_em`), 30 dias
-  (`/planos` ou `POST /api/planos/trial {plano_id}`; `DELETE` = "não tenho interesse", some por 30 dias).
-  Cadastro pelo site já nasce no teste do Profissional; `?plano=busca` em `/auth/cadastro` nasce no plano Busca.
+- **Teste grátis** (modelo do Yosp): toda empresa nasce no plano Busca (`cadastroInicial`). **Escolher um plano inicia
+  o teste de 30 dias**, sem cartão: owner/admin, uma vez por empresa (`trial_usado_em`). `/planos?teste=1` é a página de
+  seleção ("Escolha o plano para começar"); quem se cadastrou pelo site cai nela depois do cadastro e a cada entrada
+  enquanto não escolher. Também `POST /api/planos/trial {plano_id}`; `DELETE` = "não tenho interesse" (some dos avisos
+  por 30 dias). Durante o teste, trocar de plano é livre e não muda o prazo (`escolherPlanoNoTeste`, motivo
+  `plano_escolhido`: botão "Trocar o teste para este plano" em `/planos` ou `PUT /api/assinatura/plano`).
 - **Fim do teste** sem conversão: volta ao plano Busca às 12h (SP) do dia seguinte a `trial_ate` (agendador a cada
   10 min ou a próxima página da empresa). Excedentes: ficam o proprietário e os vínculos mais recentes até o limite;
   os demais ficam `ativo = false` + `bloqueado_plano_em` (nada é apagado; o upgrade reativa). Avisos D-7, D-1 e D0 às
   9h por e-mail para owner/admin.
-- **Conversão** (sem Stripe por enquanto): o Manager troca o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.
+- **Assinatura** (Stripe, `server/assinatura.ts`, regras puras em `lib/planos/cobranca.ts`): contratar em
+  **Configurações › Financeiro** (plano, mensal/anual, Pix ou cartão e, no teste, cobrar agora ou no fim do
+  teste via `trial_end`). Cartão → Checkout hospedado (volta em `?checkout=sucesso`, a tela espera o webhook); Pix →
+  assinatura `send_invoice` com 7 dias, paga em `/configuracoes/financeiro/pagar/<in_…>` (PaymentIntent Pix ligado à
+  fatura, QR Code). Exige CPF/CNPJ válido (e razão social se PJ) em Configurações › Empresa. **O plano pago só entra
+  depois da confirmação do Stripe** (`promoverPlano`: cartão com assinatura viva, Pix com fatura paga); até lá fica em
+  `plano_pendente_id`. Assinatura cobrando encerra o teste do Banket (`trial_ate = NULL`). Troca com assinatura:
+  proração do Stripe na próxima fatura. Cancelar = no fim do período (desfazer possível); "Cartão e recibos" abre o
+  Portal do Cliente. **Rebaixam para o Busca** (cancelando no Stripe e anulando faturas abertas antes): fim do teste
+  sem assinatura, fatura vencida não paga às 12h de D+1, assinatura `unpaid` ou encerrada. 1ª fatura Pix não paga até
+  D+1 12h do vencimento: a contratação é desfeita (sem rebaixar). Plano pago sem teste nem assinatura (Completo,
+  Manager) é `manual`: nada acontece. E-mails: assinatura confirmada, pagamento recusado, fatura Pix, cancelamento
+  agendado e rebaixamento (dedup em `plano_avisos`). Sem `STRIPE_SECRET_KEY` ou sem preço no plano
+  (`scripts/stripe-bootstrap.mjs` grava os ids), "Assinar" vira "Falar com a equipe". O Manager continua podendo
+  trocar o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.
 
 ### Banket Busca: vitrine pública — `/vitrine/*` (em produção, `busca.banket.com.br/*`)
 - **Rotas**: `/` (buscador, tipos com contagem, serviços, como funciona, destaques, depoimentos, chamada para buffets),
@@ -1300,6 +1339,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `JWT_SECRET` | sessão, onboarding e print token (≥ 32 caracteres, obrigatório) |
 | `APP_URL` | URL pública nos links de e-mail |
 | `RESEND_API_KEY` / `MAIL_FROM` | e-mail; **obrigatório em produção**. Para o Inbox a chave precisa ser de **acesso completo** (uma chave "sending only" recebe 401 na Receiving API) |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` / `STRIPE_API_VERSION` / `STRIPE_PIX_EXPIRES_SECONDS` | cobrança da assinatura (chave secreta, segredo `whsec_…` do webhook `/api/webhooks/stripe`, versão fixa da API, validade do QR Pix — padrão 24 h). Sem a chave, a contratação pelo app fica oculta |
 | `RESEND_INBOUND_DOMAIN` / `RESEND_WEBHOOK_SECRET` | Inbox: domínio que recebe as respostas (`respostas.banket.com.br`, MX → Resend) e segredo `whsec_…` do webhook `/api/webhooks/resend`; sem o domínio, o Reply-To é o e-mail do usuário; sem o segredo, o webhook responde 503 |
 | `OPENAI_TOKEN` / `OPENAI_MODEL` / `OPENAI_IMAGE_MODEL` | IA do template: sugestões de fontes/cores (padrão `gpt-4.1-mini`) e imagens de fundo (padrão `gpt-image-2`) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | login com o Google e reuniões com Google Meet (cliente OAuth 2.0 "Aplicativo da Web" com a API Google Calendar ativada; URI de redirecionamento padrão `APP_URL/auth/google/callback`). Sem as chaves, botão e agendamento ficam ocultos |
@@ -1394,6 +1434,10 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 - `:global()` só existe dentro de `<style>` de componente Astro; num `.css` comum o seletor é inválido e a regra inteira
   some (aconteceu em `busca.css`).
 - Telas com barra de ações fixa no rodapé (onboarding) precisam subir o `.toast-root`, senão um erro cobre o botão.
+- Cobrança: chamadas ao Stripe ficam **fora** das transações; o webhook busca sempre o objeto atual (eventos chegam
+  duplicados e fora de ordem) e nunca grava `tenants.plano_id` direto — só `promoverPlano`/`avaliarEmpresa` (via
+  `trocarPlano`/`rebaixarParaBusca`). Rebaixar solta a assinatura (`stripe_assinatura_id = NULL`): senão um plano dado
+  depois pelo Manager seria rebaixado de novo pela assinatura encerrada.
 - `registrarUpsell` usa SAVEPOINT: evento de funil nunca aborta a transação de quem chama.
 - O link da pesquisa (`/p/<token>`) é a credencial do cliente: não exponha o token fora das telas da empresa.
 - A lista de compras usa **todos** os convidados (crianças comem), não os pagantes equivalentes do cálculo de preço.

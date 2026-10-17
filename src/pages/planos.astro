@@ -1,7 +1,8 @@
 ---
 // Planos do Banket: comparação lida do catálogo (planos.recursos × lib/planos/recursos.ts), plano atual, uso dos
-// limites e os CTAs — teste grátis de 30 dias (plano gratuito, owner/admin, uma vez) e "Falar com a equipe"
-// (enquanto a assinatura não é feita no app). Fase 1 do Banket Busca.
+// limites e os CTAs (modelo do Yosp). Com ?teste=1 é a página de seleção de planos: escolher um plano inicia o teste
+// grátis de 30 dias (plano gratuito, owner/admin, uma vez por empresa). No teste, trocar de plano é livre; assinar e
+// trocar com assinatura ficam em Configurações › Financeiro (Stripe). Sem Stripe: "Falar com a equipe".
 import AppLayout from '../layouts/AppLayout.astro';
 import Icon from '../components/ui/Icon.astro';
 import SectionCard from '../components/ui/SectionCard.astro';
@@ -10,7 +11,8 @@ import { isAdmin } from '../lib/auth';
 import { withTenant } from '../lib/db';
 import { brl } from '../lib/forms';
 import { RECURSOS, type GrupoRecurso } from '../lib/planos/recursos';
-import { iniciarTrial, listarPlanos, ofertaDeTrial, registrarUpsell, usoDosLimites } from '../server/planos';
+import { cobrancaConfigurada } from '../lib/stripe';
+import { escolherPlanoNoTeste, iniciarTrial, listarPlanos, ofertaDeTrial, registrarUpsell, usoDosLimites } from '../server/planos';
 
 const user = Astro.locals.user;
 const plano = Astro.locals.plano;
@@ -18,6 +20,10 @@ const admin = isAdmin(user);
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data) => {
+    if (data._action === 'escolher') {
+      const p = await withTenant(user.tenantId, (db) => escolherPlanoNoTeste(db, user, String(data.plano_id ?? '')));
+      return { message: `Seu teste agora é do plano ${p.nome}. O prazo do teste continua o mesmo.`, redirect: '/planos' };
+    }
     if (data._action !== 'trial') throw new Error('Ação desconhecida.');
     const r = await withTenant(user.tenantId, (db) => iniciarTrial(db, user, String(data.plano_id ?? '')));
     return {
@@ -32,7 +38,13 @@ const { planos, uso } = await withTenant(user.tenantId, async (db) => {
   return { planos: await listarPlanos(db, true), uso: plano ? await usoDosLimites(db, plano) : {} };
 });
 const oferta = ofertaDeTrial(plano);
-const destacarTeste = Astro.url.searchParams.has('teste') && oferta === 'disponivel';
+// Pode começar o teste: plano gratuito e o teste nunca usado (a recusa só esconde a oferta nos avisos)
+const podeTestar = admin && Boolean(plano?.gratuito) && !plano?.trialUsado;
+const selecao = Astro.url.searchParams.has('teste') && podeTestar;
+const emTeste = Boolean(plano?.trial) && !plano?.assinaturaViva;
+const assinante = Boolean(plano?.assinaturaViva);
+const cobrancaOk = cobrancaConfigurada();
+const linkAssinar = (id: string) => `/configuracoes/financeiro?plano=${id}#assinar`;
 const pagos = planos.filter((p) => !p.gratuito);
 const GRUPOS: { id: GrupoRecurso; titulo: string }[] = [
   { id: 'modulos', titulo: 'Módulos' },
@@ -53,21 +65,37 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
 <AppLayout title="Planos" heading="Planos">
   <div class="planos">
     <header class="planos-cabecalho">
-      <p class="eyebrow">{plano?.gratuito ? 'Seu plano: Busca (gratuito)' : plano?.trial ? `Teste do ${plano.planoNome}` : `Seu plano: ${plano?.planoNome ?? '—'}`}</p>
-      <h2 class="planos-titulo">Do pedido ao pós-festa, no mesmo lugar</h2>
-      <p class="planos-sub">
-        {plano?.gratuito
-          ? 'O Plano Busca é gratuito para sempre. Os planos pagos liberam o Painel de Propostas, o Inbox, o financeiro e os demais módulos, com prioridade nos resultados da busca.'
-          : plano?.trial
-            ? `Seu teste vai até ${plano.trial.ate.split('-').reverse().join('/')}. Para continuar sem interrupção, fale com a equipe e escolha o plano.`
-            : 'Para mudar de plano ou tirar dúvidas, fale com a equipe.'}
-      </p>
+      {selecao ? (
+        <>
+          <p class="eyebrow">Teste grátis de 30 dias</p>
+          <h2 class="planos-titulo">Escolha o plano para começar</h2>
+          <p class="planos-sub">
+            Teste tudo do plano escolhido por 30 dias, sem cartão. Durante o teste você pode trocar de plano quando quiser;
+            para continuar depois, assine com cartão ou Pix. Sem assinatura, a empresa volta ao plano Busca sem perder nada.
+          </p>
+        </>
+      ) : (
+        <>
+          <p class="eyebrow">{plano?.gratuito ? 'Seu plano: Busca (gratuito)' : emTeste ? `Teste do ${plano?.planoNome}` : `Seu plano: ${plano?.planoNome ?? '—'}`}</p>
+          <h2 class="planos-titulo">Do pedido ao pós-festa, no mesmo lugar</h2>
+          <p class="planos-sub">
+            {plano?.gratuito
+              ? 'O Plano Busca é gratuito para sempre. Os planos pagos liberam o Painel de Propostas, o Inbox, o financeiro e os demais módulos, com prioridade nos resultados da busca.'
+              : emTeste
+                ? `Seu teste vai até ${plano!.trial!.ate.split('-').reverse().join('/')}. Troque de plano à vontade durante o teste e assine para continuar sem interrupção.`
+                : assinante
+                  ? 'Para mudar de plano, escolha abaixo: a troca vale na hora e o ajuste proporcional entra na próxima fatura.'
+                  : 'Para mudar de plano ou tirar dúvidas, fale com a equipe.'}
+          </p>
+        </>
+      )}
+      {!admin && <p class="planos-nota">Só proprietários e administradores podem escolher ou assinar um plano.</p>}
     </header>
 
     <div class="planos-cards">
       {pagos.map((p) => (
         <article class:list={['plano-card', { 'plano-card--atual': plano?.planoId === p.id, 'plano-card--destaque': p.slug === 'profissional' }]}>
-          {plano?.planoId === p.id && <span class="badge badge-accent plano-card-badge">{plano.trial ? 'Em teste' : 'Seu plano'}</span>}
+          {plano?.planoId === p.id && <span class="badge badge-accent plano-card-badge">{emTeste ? 'Em teste' : 'Seu plano'}</span>}
           <h3 class="plano-card-nome">{p.nome}</h3>
           <p class="plano-card-desc">{p.descricao}</p>
           <p class="plano-card-preco">
@@ -76,14 +104,29 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
           </p>
           {p.preco_anual != null && <p class="plano-card-anual">ou {brl(p.preco_anual)}/ano (2 meses grátis)</p>}
           <div class="plano-card-acoes">
-            {plano?.gratuito && admin && oferta === 'disponivel' ? (
+            {!admin ? null : podeTestar ? (
               <form method="post">
                 <input type="hidden" name="_action" value="trial" />
                 <input type="hidden" name="plano_id" value={p.id} />
-                <button type="submit" class:list={['btn btn-md btn-block', destacarTeste && p.slug === 'profissional' ? 'btn-primary' : 'btn-outline']} data-carregando="Iniciando…">
-                  Testar 30 dias grátis
+                <button type="submit" class:list={['btn btn-md btn-block', p.slug === 'profissional' ? 'btn-primary' : 'btn-outline']} data-carregando="Iniciando…">
+                  {selecao ? 'Escolher e testar 30 dias' : 'Testar 30 dias grátis'}
                 </button>
               </form>
+            ) : emTeste && plano?.planoId !== p.id ? (
+              <>
+                <form method="post">
+                  <input type="hidden" name="_action" value="escolher" />
+                  <input type="hidden" name="plano_id" value={p.id} />
+                  <button type="submit" class="btn btn-outline btn-md btn-block" data-carregando="Trocando…">Trocar o teste para este plano</button>
+                </form>
+                {cobrancaOk && p.contratavel && <a href={linkAssinar(p.id)} class="btn btn-text btn-sm btn-block">Assinar este plano</a>}
+              </>
+            ) : assinante && plano?.planoId === p.id ? (
+              <a href="/configuracoes/financeiro" class="btn btn-outline btn-md btn-block">Ver assinatura</a>
+            ) : cobrancaOk && p.contratavel && (emTeste || assinante || plano?.gratuito) ? (
+              <a href={linkAssinar(p.id)} class:list={['btn btn-md btn-block', emTeste && plano?.planoId === p.id ? 'btn-primary' : 'btn-outline']}>
+                {assinante ? 'Mudar para este plano' : 'Assinar este plano'}
+              </a>
             ) : (
               <a href="https://banket.com.br/#contato" target="_blank" rel="noopener" class="btn btn-outline btn-md btn-block">Falar com a equipe</a>
             )}
@@ -92,10 +135,8 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
       ))}
     </div>
 
-    {plano?.gratuito && oferta !== 'disponivel' && (
-      <p class="planos-nota">
-        {oferta === 'usada' ? 'Sua empresa já usou o teste grátis. Para assinar um plano, fale com a equipe.' : 'Quando quiser, a oferta de teste grátis volta a aparecer aqui.'}
-      </p>
+    {plano?.gratuito && oferta === 'usada' && (
+      <p class="planos-nota">Sua empresa já usou o teste grátis. {cobrancaOk ? 'Assine um plano para voltar a usar todos os módulos.' : 'Para assinar um plano, fale com a equipe.'}</p>
     )}
 
     {usoVisivel.length > 0 && (
@@ -249,6 +290,8 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
   .plano-card-acoes {
     margin-top: auto;
     padding-top: var(--space-3);
+    display: grid;
+    gap: var(--space-1-5);
   }
 
   .planos-nota {

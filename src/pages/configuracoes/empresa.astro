@@ -2,6 +2,7 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
+import Icon from '../../components/ui/Icon.astro';
 import FileUpload from '../../components/ui/FileUpload.astro';
 import { withTenant } from '../../lib/db';
 import { handleFormPost } from '../../lib/actions';
@@ -47,6 +48,14 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
   <form method="post" enctype="multipart/form-data" class="empresa-form" data-form-sujo>
     <SectionCard title="Dados da empresa" icon="building">
       <div class="form-grid">
+        <div class="field span-2">
+          <label for="emp-tenant">Tenant da conta</label>
+          <div class="emp-tenant">
+            <input id="emp-tenant" value={tenantId} readonly aria-readonly="true" class="emp-tenant-id" aria-describedby="emp-tenant-ajuda" />
+            <button type="button" class="btn btn-outline btn-md" data-copiar-tenant={tenantId}><Icon name="copy" size={16} /> Copiar</button>
+          </div>
+          <p class="field-hint" id="emp-tenant-ajuda">Identificador único da sua conta no Banket. Informe-o ao suporte quando precisar; não pode ser alterado.</p>
+        </div>
         <div class="field">
           <label for="emp-nome">Nome fantasia<span class="obrigatorio">*</span></label>
           <input id="emp-nome" name="nome" required maxlength="255" value={empresa.nome} />
@@ -149,9 +158,37 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
   </form>
 </AppLayout>
 
+<script>
+  import { toast } from '../../lib/ui';
+
+  document.querySelector<HTMLButtonElement>('[data-copiar-tenant]')?.addEventListener('click', async (ev) => {
+    const id = (ev.currentTarget as HTMLButtonElement).dataset.copiarTenant ?? '';
+    try {
+      await navigator.clipboard.writeText(id);
+      toast('Tenant copiado.', 'success');
+    } catch {
+      (document.getElementById('emp-tenant') as HTMLInputElement | null)?.select();
+    }
+  });
+</script>
+
 <style>
   .empresa-form {
     max-width: 960px;
+  }
+
+  .emp-tenant {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .emp-tenant-id {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+    background: var(--clay-25);
   }
 
   /* Ação única da página, ao fim do formulário */

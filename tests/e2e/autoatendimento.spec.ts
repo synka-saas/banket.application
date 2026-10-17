@@ -101,6 +101,9 @@ test.describe.serial('Cadastro self-service', () => {
     await page.getByLabel('CNPJ').fill(cnpjAleatorio());
     await page.getByLabel('Nome do buffet').fill('Buffet E2E');
     await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
+    // Cadastro pelo site: a empresa nasce no plano Busca e escolhe o plano; a escolha inicia o teste de 30 dias
+    await expect(page).toHaveURL(/\/planos\?teste=1/, { timeout: 15_000 });
+    await page.locator('.plano-card').filter({ hasText: 'Profissional' }).getByRole('button', { name: 'Escolher e testar 30 dias' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.locator('.user-role')).toContainText('Proprietário');
 

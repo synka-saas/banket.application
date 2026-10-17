@@ -27,7 +27,7 @@ const admin = isAdmin(user);
 // Card do plano no rodapé (owner/admin): gratuito com a oferta de teste, ou teste em andamento
 const oferta = ofertaDeTrial(plano);
 const cardGratuito = admin && plano?.gratuito === true;
-const cardTrial = admin && plano?.trial != null;
+const cardTrial = admin && plano?.trial != null && !plano?.assinaturaViva;
 ---
 
 <aside class="sidebar">
@@ -73,7 +73,7 @@ const cardTrial = admin && plano?.trial != null;
       <p class="sidebar-plano-texto tabular">
         {plano.trial.diasRestantes === 0 ? 'Último dia de acesso' : `Restam ${plano.trial.diasRestantes} ${plano.trial.diasRestantes === 1 ? 'dia' : 'dias'} de acesso`}
       </p>
-      <a href="/planos" class="btn btn-outline btn-sm btn-block">Escolher plano</a>
+      <a href="/configuracoes/financeiro" class="btn btn-outline btn-sm btn-block">Assinar</a>
     </div>
   )}
 </aside>

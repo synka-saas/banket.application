@@ -29,7 +29,7 @@ describe('recursoDaRota', () => {
   });
 
   it('deixa livres as rotas fora do mapa', () => {
-    for (const r of ['/busca', '/busca/cadastro', '/api/busca/perfil', '/planos', '/api/planos/trial', '/conta', '/suporte', '/api/sessao/empresa', '/uploads/x/y.png', '/conta-suspensa']) {
+    for (const r of ['/busca', '/busca/cadastro', '/api/busca/perfil', '/planos', '/api/planos/trial', '/conta', '/suporte', '/api/sessao/empresa', '/uploads/x/y.png', '/conta-suspensa', '/configuracoes/financeiro', '/configuracoes/financeiro/pagar/in_123', '/api/assinatura/checkout']) {
       expect(recursoDaRota(r), r).toBeNull();
     }
   });

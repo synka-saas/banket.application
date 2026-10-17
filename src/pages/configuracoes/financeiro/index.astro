@@ -1,0 +1,956 @@
+---
+// Configurações › Financeiro (modelo do Yosp: /account/financial-history + /account/usage): plano atual e
+// situação da cobrança, contratação (plano, recorrência, cartão ou Pix e, no teste, quando cobrar), troca de plano,
+// cancelamento, uso dos limites, faturas e histórico do plano. Aberta a todo plano (rotas.ts), só owner/admin
+// (middleware). Lê só o espelho local do Stripe; as ações chamam /api/assinatura/*.
+import AppLayout from '../../../layouts/AppLayout.astro';
+import Icon from '../../../components/ui/Icon.astro';
+import SectionCard from '../../../components/ui/SectionCard.astro';
+import { withTenant } from '../../../lib/db';
+import { brl } from '../../../lib/forms';
+import { configSubmenuDoPlano } from '../../../lib/nav';
+import { podeUsarEm } from '../../../lib/planos/gating';
+import { ROTULO_FATURA, taxIdDoDocumento } from '../../../lib/planos/cobranca';
+import { RECURSOS } from '../../../lib/planos/recursos';
+import { cobrancaConfigurada } from '../../../lib/stripe';
+import { carregarCobranca, estadoDe, listarFaturas, temAssinatura } from '../../../server/assinatura';
+import { historicoPlano, listarPlanos, usoDosLimites, type MotivoPlano, type OrigemPlano } from '../../../server/planos';
+
+const user = Astro.locals.user;
+const plano = Astro.locals.plano;
+
+const dados = await withTenant(user.tenantId, async (db) => ({
+  c: await carregarCobranca(db, user.tenantId),
+  faturas: await listarFaturas(db),
+  historico: await historicoPlano(db, user.tenantId),
+  planos: (await listarPlanos(db, true)).filter((p) => !p.gratuito && p.publico),
+  uso: plano ? await usoDosLimites(db, plano) : {},
+}));
+const { c, faturas, historico, planos, uso } = dados;
+if (!c) return Astro.redirect('/dashboard');
+
+const { estado } = estadoDe(c);
+const pixPendente = temAssinatura(c) && c.fatura_motivo === 'subscription_create';
+const contratada = temAssinatura(c) && !pixPendente;
+const manual = estado === 'manual';
+const noTeste = estado === 'trial' && !contratada;
+const cobrancaOk = cobrancaConfigurada();
+const fiscalOk = Boolean(taxIdDoDocumento(c.documento)) && (c.tipo_pessoa !== 'PJ' || Boolean(c.razao_social?.trim()));
+const contrataveis = planos.filter((p) => p.contratavel);
+
+// Plano escolhido: ?plano= (vindo de /planos), senão o do teste/assinatura atual
+const pedido = Astro.url.searchParams.get('plano');
+const escolhido = contrataveis.find((p) => p.id === pedido) ?? contrataveis.find((p) => p.id === c.plano_id) ?? null;
+const cicloInicial = Astro.url.searchParams.get('ciclo') === 'ano' || c.cobranca_intervalo === 'ano' ? 'ano' : 'mes';
+const mostrarContratacao = !manual || contratada;
+
+const fuso = { timeZone: 'America/Sao_Paulo' } as const;
+const dataBR = (v: Date | string | null | undefined) => {
+  if (!v) return '—';
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v.split('-').reverse().join('/');
+  return new Date(v).toLocaleDateString('pt-BR', fuso);
+};
+const fimDoTeste = c.trial_ate ? dataBR(c.trial_ate) : null;
+
+const situacao: Record<string, { rotulo: string; classe: string }> = {
+  gratuito: { rotulo: 'Gratuito', classe: 'badge' },
+  trial: { rotulo: contratada ? 'Contratado · em teste' : 'Em teste', classe: 'badge badge-info' },
+  ativa: { rotulo: c.cancelar_no_fim ? 'Cancelamento agendado' : 'Ativa', classe: c.cancelar_no_fim ? 'badge badge-warning' : 'badge badge-success' },
+  vencida: { rotulo: 'Fatura vencida', classe: 'badge badge-danger' },
+  rebaixar: { rotulo: 'Encerrada', classe: 'badge badge-danger' },
+  manual: { rotulo: 'Ativa', classe: 'badge badge-success' },
+};
+const sit = situacao[estado];
+const valorAtual = contratada ? (c.cobranca_intervalo === 'ano' ? c.preco_anual : c.preco_mensal) : null;
+const formaAtual = c.forma_pagamento === 'pix' ? 'Pix (fatura com 7 dias para pagar)' : c.cartao_final ? `Cartão ${c.cartao_bandeira ?? ''} final ${c.cartao_final}`.replace('  ', ' ') : c.forma_pagamento === 'cartao' ? 'Cartão de crédito' : '—';
+
+const MOTIVO: Record<MotivoPlano, string> = {
+  cadastro: 'Cadastro da empresa',
+  migracao: 'Migração',
+  trial_iniciado: 'Início do teste grátis',
+  trial_encerrado: 'Fim do teste sem assinatura',
+  upgrade: 'Mudança para um plano maior',
+  downgrade: 'Mudança para um plano menor',
+  hwesta: 'Ajuste da equipe Banket',
+  backoffice: 'Ajuste da equipe Banket',
+  assinatura: 'Assinatura confirmada',
+  cancelamento: 'Assinatura encerrada',
+  plano_escolhido: 'Troca de plano no teste',
+  inadimplencia: 'Fatura não paga',
+};
+const ORIGEM: Record<OrigemPlano, string> = { app: 'pelo app', hwesta: 'equipe Banket', agendador: 'automático', migracao: 'sistema', stripe: 'pagamento' };
+const usoRotulo = (slug: string) => RECURSOS.find((r) => r.slug === slug)?.rotulo ?? slug;
+const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
+const badgeFatura = (f: (typeof faturas)[number]) => {
+  const vencida = f.status === 'open' && f.vencimento && f.vencimento < new Date().toISOString().slice(0, 10);
+  if (vencida) return { rotulo: 'Vencida', classe: 'badge badge-danger' };
+  const classe = f.status === 'paid' ? 'badge badge-success' : f.status === 'open' ? 'badge badge-warning' : 'badge';
+  return { rotulo: ROTULO_FATURA[f.status] ?? f.status, classe };
+};
+const planosJson = JSON.stringify(
+  contrataveis.map((p) => ({ id: p.id, nome: p.nome, mensal: p.preco_mensal, anual: p.anual_contratavel ? p.preco_anual : null }))
+).replace(/</g, '\\u003c');
+---
+
+<AppLayout title="Financeiro" heading="Configurações / Financeiro" submenu={configSubmenuDoPlano(podeUsarEm(Astro.locals.plano, 'configuracoes'))} submenuActive="financeiro">
+  <div class="fat" data-checkout={Astro.url.searchParams.get('checkout') ?? ''}>
+    <div class="fat-confirmando" id="fat-confirmando" hidden role="status">
+      <Icon name="clock" size={16} /> Confirmando sua assinatura com o meio de pagamento…
+    </div>
+
+    <!-- Plano atual -->
+    <SectionCard title="Seu plano" icon="award">
+      <div class="fat-plano">
+        <div class="fat-plano-topo">
+          <h2 class="fat-plano-nome">{c.plano_nome ?? 'Sem plano'}</h2>
+          <span class={sit.classe}>{sit.rotulo}</span>
+        </div>
+        <dl class="fat-dados">
+          {noTeste && fimDoTeste && (
+            <div><dt>Teste grátis até</dt><dd class="tabular">{fimDoTeste}{plano?.trial ? ` · ${plano.trial.diasRestantes === 0 ? 'último dia' : `${plano.trial.diasRestantes} ${plano.trial.diasRestantes === 1 ? 'dia' : 'dias'}`}` : ''}</dd></div>
+          )}
+          {contratada && (
+            <>
+              <div><dt>Valor</dt><dd class="tabular">{valorAtual != null ? `${brl(valorAtual)} por ${c.cobranca_intervalo === 'ano' ? 'ano' : 'mês'}` : '—'}</dd></div>
+              <div><dt>{c.cancelar_no_fim ? 'Acesso até' : c.stripe_assinatura_status === 'trialing' ? 'Primeira cobrança' : 'Próxima cobrança'}</dt><dd class="tabular">{dataBR(c.cancelar_no_fim ? c.cancelar_em : c.periodo_fim)}</dd></div>
+              <div><dt>Forma de pagamento</dt><dd>{formaAtual}</dd></div>
+            </>
+          )}
+          {estado === 'gratuito' && <div><dt>Valor</dt><dd>Gratuito para sempre</dd></div>}
+          {manual && !contratada && <div><dt>Cobrança</dt><dd>Gerenciada pela equipe do Banket</dd></div>}
+        </dl>
+
+        {c.plano_pendente_id && c.plano_pendente_id !== c.plano_id && (
+          <p class="fat-aviso fat-aviso--info"><Icon name="clock" size={16} /> Aguardando a confirmação do pagamento do plano {c.plano_pendente_nome}.</p>
+        )}
+        {pixPendente && c.fatura_id && (
+          <div class="fat-aviso fat-aviso--alerta">
+            <p><Icon name="qrcode" size={16} /> Contratação do plano {c.plano_pendente_nome ?? ''} aguardando o Pix de {brl(c.fatura_valor ?? 0)}{c.fatura_vencimento ? `, até ${dataBR(c.fatura_vencimento)}` : ''}.</p>
+            <a class="btn btn-primary btn-sm" href={`/configuracoes/financeiro/pagar/${c.fatura_id}`}>Pagar com Pix</a>
+          </div>
+        )}
+        {contratada && c.fatura_id && (
+          <div class:list={['fat-aviso', estado === 'vencida' ? 'fat-aviso--erro' : 'fat-aviso--alerta']}>
+            <p>
+              Fatura em aberto de <strong class="tabular">{brl(c.fatura_valor ?? 0)}</strong>{c.fatura_vencimento ? `, vencimento em ${dataBR(c.fatura_vencimento)}` : ''}.
+              {estado === 'vencida' && ' Se não for paga até amanhã ao meio-dia, a empresa volta ao plano Busca.'}
+            </p>
+            {c.fatura_pix ? (
+              <a class="btn btn-primary btn-sm" href={`/configuracoes/financeiro/pagar/${c.fatura_id}`}>Pagar com Pix</a>
+            ) : (
+              <button type="button" class="btn btn-primary btn-sm" data-portal="cartao">Atualizar cartão</button>
+            )}
+          </div>
+        )}
+        {contratada && c.cancelar_no_fim && (
+          <div class="fat-aviso fat-aviso--alerta">
+            <p>Cancelamento agendado: o acesso termina em <strong>{dataBR(c.cancelar_em)}</strong> e depois a empresa volta ao plano Busca, sem perder dados.</p>
+            <button type="button" class="btn btn-outline btn-sm" data-retomar>Desfazer cancelamento</button>
+          </div>
+        )}
+
+        <div class="fat-acoes">
+          <a href="/planos" class="btn btn-outline btn-sm"><Icon name="list-check" size={16} /> Comparar planos</a>
+          {contratada && c.forma_pagamento === 'cartao' && (
+            <button type="button" class="btn btn-ghost btn-sm" data-portal=""><Icon name="credit-card" size={16} /> Cartão e recibos</button>
+          )}
+          {contratada && !c.cancelar_no_fim && (
+            <button type="button" class="btn btn-ghost btn-sm fat-cancelar" data-cancelar data-fim={dataBR(c.periodo_fim)}>Cancelar assinatura</button>
+          )}
+        </div>
+      </div>
+    </SectionCard>
+
+    <!-- Contratação / troca -->
+    {mostrarContratacao && (
+      <SectionCard
+        title={contratada ? 'Trocar de plano' : 'Assinar'}
+        description={contratada
+          ? 'A troca vale na hora; o ajuste proporcional entra na próxima fatura.'
+          : noTeste
+            ? `Contratar agora é opcional e você pode trocar de plano à vontade durante o teste. Para continuar depois de ${fimDoTeste}, assine com cartão ou Pix.`
+            : estado === 'gratuito'
+              ? (plano?.trialUsado ? 'Assine um plano para usar o Painel de Propostas, o Inbox, o financeiro e os demais módulos.' : 'Antes de assinar, você pode testar qualquer plano por 30 dias, sem cartão.')
+              : 'Escolha o plano, a recorrência e a forma de pagamento.'}
+        icon="credit-card"
+        id="assinar"
+      >
+        {!cobrancaOk || contrataveis.length === 0 ? (
+          <div class="fat-indisponivel">
+            <p>A contratação pelo app ainda não está disponível. Fale com a equipe do Banket para assinar ou mudar de plano.</p>
+            <a href="https://banket.com.br/#contato" target="_blank" rel="noopener" class="btn btn-outline btn-md">Falar com a equipe</a>
+          </div>
+        ) : estado === 'gratuito' && !plano?.trialUsado ? (
+          <div class="fat-indisponivel">
+            <p>Escolha um plano e teste tudo por 30 dias, sem cartão. A assinatura pode ser feita durante o teste.</p>
+            <a href="/planos?teste=1" class="btn btn-primary btn-md">Escolher plano e começar o teste</a>
+          </div>
+        ) : (
+          <form class="fat-form" id="fat-form" data-modo={contratada ? 'troca' : 'contrato'} data-teste={noTeste ? '1' : ''} data-plano-atual={c.plano_id ?? ''} data-fim-teste={fimDoTeste ?? ''} data-ciclo-atual={c.cobranca_intervalo ?? ''}>
+            <script type="application/json" id="fat-planos" set:html={planosJson}></script>
+            {!fiscalOk && !contratada && (
+              <p class="fat-aviso fat-aviso--alerta">
+                <Icon name="alert-circle" size={16} />
+                <span>Para assinar, informe um CPF ou CNPJ válido{c.tipo_pessoa === 'PJ' ? ' e a razão social' : ''} em <a href="/configuracoes/empresa">Configurações › Empresa</a>. Eles vão na cobrança e na nota fiscal.</span>
+              </p>
+            )}
+
+            <fieldset class="fat-grupo">
+              <legend class="fat-legenda">Plano</legend>
+              <div class="fat-opcoes fat-opcoes--planos">
+                {contrataveis.map((p) => (
+                  <label class="fat-opcao">
+                    <input type="radio" name="plano_id" value={p.id} checked={escolhido?.id === p.id} />
+                    <span class="fat-opcao-corpo">
+                      <span class="fat-opcao-titulo">{p.nome}{p.id === c.plano_id && <span class="tag tag-sm tag-accent">{contratada ? 'Atual' : noTeste ? 'Em teste' : 'Atual'}</span>}</span>
+                      <span class="fat-opcao-desc tabular">{p.preco_mensal != null ? `${brl(p.preco_mensal)}/mês` : '—'}{p.anual_contratavel && p.preco_anual != null ? ` · ${brl(p.preco_anual)}/ano` : ''}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset class="fat-grupo">
+              <legend class="fat-legenda">Recorrência</legend>
+              <div class="segmented" role="radiogroup" aria-label="Recorrência">
+                <button type="button" data-ciclo="mes" aria-pressed={cicloInicial === 'mes' ? 'true' : 'false'}>Mensal</button>
+                <button type="button" data-ciclo="ano" aria-pressed={cicloInicial === 'ano' ? 'true' : 'false'}>Anual · 2 meses grátis</button>
+              </div>
+            </fieldset>
+
+            {!contratada && (
+              <fieldset class="fat-grupo">
+                <legend class="fat-legenda">Forma de pagamento</legend>
+                <div class="fat-opcoes">
+                  <label class="fat-opcao">
+                    <input type="radio" name="forma" value="pix" />
+                    <span class="fat-opcao-icone"><Icon name="qrcode" size={20} /></span>
+                    <span class="fat-opcao-corpo">
+                      <span class="fat-opcao-titulo">Pix</span>
+                      <span class="fat-opcao-desc">Uma fatura a cada ciclo, com 7 dias para pagar pelo QR Code.</span>
+                    </span>
+                  </label>
+                  <label class="fat-opcao">
+                    <input type="radio" name="forma" value="cartao" />
+                    <span class="fat-opcao-icone"><Icon name="credit-card" size={20} /></span>
+                    <span class="fat-opcao-corpo">
+                      <span class="fat-opcao-titulo">Cartão de crédito</span>
+                      <span class="fat-opcao-desc">Cobrança automática na renovação. O cartão é digitado na página segura do Stripe.</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            )}
+
+            {noTeste && (
+              <fieldset class="fat-grupo" id="fat-quando" hidden>
+                <legend class="fat-legenda">Quando cobrar</legend>
+                <div class="fat-opcoes fat-opcoes--pilha">
+                  <label class="fat-opcao">
+                    <input type="radio" name="quando" value="fim" checked />
+                    <span class="fat-opcao-corpo">
+                      <span class="fat-opcao-titulo">No fim do teste</span>
+                      <span class="fat-opcao-desc" id="fat-quando-fim">A primeira cobrança acontece no dia seguinte a {fimDoTeste}. Até lá, você segue no teste.</span>
+                    </span>
+                  </label>
+                  <label class="fat-opcao">
+                    <input type="radio" name="quando" value="agora" />
+                    <span class="fat-opcao-corpo">
+                      <span class="fat-opcao-titulo">Agora</span>
+                      <span class="fat-opcao-desc">O teste termina hoje e o plano começa imediatamente.</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            )}
+
+            <div class="fat-total">
+              <div>
+                <span class="fat-total-valor tabular" id="fat-total">—</span>
+                <span class="fat-total-nota" id="fat-nota"></span>
+              </div>
+              <div class="fat-total-acoes">
+                {noTeste && <button type="button" class="btn btn-outline btn-md" id="fat-trocar-teste" hidden>Trocar o plano do teste</button>}
+                <button type="submit" class="btn btn-primary btn-md" id="fat-enviar" disabled={!fiscalOk && !contratada}>{contratada ? 'Trocar plano' : 'Assinar'}</button>
+              </div>
+            </div>
+          </form>
+        )}
+      </SectionCard>
+    )}
+
+    {usoVisivel.length > 0 && (
+      <SectionCard title="Uso do plano" description="Limites do plano atual e quanto a empresa já usa." icon="chart-bar">
+        <ul class="fat-uso">
+          {usoVisivel.map(([slug, u]) => (
+            <li class:list={['fat-uso-item', { 'fat-uso-item--cheio': u.uso >= u.limite }]}>
+              <span class="fat-uso-rotulo"><span>{usoRotulo(slug)}</span><span class="tabular">{u.uso} de {u.limite}</span></span>
+              <span class="fat-uso-barra" aria-hidden="true"><span style={`width:${Math.min(100, Math.round((u.uso / u.limite) * 100))}%`}></span></span>
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
+    )}
+
+    <SectionCard title="Faturas" description="Cobranças da assinatura do Banket." icon="receipt">
+      {faturas.length === 0 ? (
+        <p class="fat-vazio">Nenhuma fatura até agora.</p>
+      ) : (
+        <div class="fat-tabela-wrap">
+          <table class="fat-tabela">
+            <thead>
+              <tr><th scope="col">Data</th><th scope="col">Plano</th><th scope="col">Valor</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th></tr>
+            </thead>
+            <tbody>
+              {faturas.map((f) => {
+                const b = badgeFatura(f);
+                return (
+                  <tr>
+                    <td class="tabular" data-rotulo="Data">{dataBR(f.pago_em ?? f.vencimento ?? f.created_at)}{f.numero && <span class="fat-sub">{f.numero}</span>}</td>
+                    <td data-rotulo="Plano">{f.plano_nome ?? '—'}<span class="fat-sub">{f.forma === 'pix' ? 'Pix' : 'Cartão'}</span></td>
+                    <td class="tabular" data-rotulo="Valor">{brl(f.valor)}</td>
+                    <td data-rotulo="Situação"><span class={b.classe}>{b.rotulo}</span></td>
+                    <td class="fat-tabela-acoes">
+                      {f.status === 'open' && f.cobranca === 'send_invoice' && <a class="row-action" href={`/configuracoes/financeiro/pagar/${f.stripe_id}`}>Pagar com Pix</a>}
+                      {f.status === 'open' && f.cobranca !== 'send_invoice' && f.url_fatura && <a class="row-action" href={f.url_fatura} target="_blank" rel="noopener">Pagar</a>}
+                      {f.pdf_url && <a class="row-action" href={f.pdf_url} target="_blank" rel="noopener">PDF</a>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </SectionCard>
+
+    <SectionCard title="Histórico do plano" description="Cada mudança de plano da empresa." icon="history">
+      {historico.length === 0 ? (
+        <p class="fat-vazio">Nenhuma mudança registrada.</p>
+      ) : (
+        <ol class="fat-historico">
+          {historico.map((h) => (
+            <li>
+              <span class="fat-historico-data tabular">{new Date(h.created_at).toLocaleDateString('pt-BR', fuso)}</span>
+              <span class="fat-historico-texto">
+                <strong>{MOTIVO[h.motivo] ?? h.motivo}</strong>
+                <span>{h.de ? `${h.de} → ` : ''}{h.para ?? '—'} · {h.usuario_nome ?? ORIGEM[h.origem] ?? h.origem}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </SectionCard>
+  </div>
+</AppLayout>
+
+<script>
+  import { confirmar, emCarregamento, toast } from '../../../lib/ui';
+
+  type PlanoOpcao = { id: string; nome: string; mensal: number | null; anual: number | null };
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  async function enviar(url: string, metodo: string, corpo?: unknown): Promise<any> {
+    const res = await fetch(url, { method: metodo, headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: corpo ? JSON.stringify(corpo) : undefined });
+    const dados = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(dados.error || 'Não foi possível concluir. Tente novamente.');
+    return dados;
+  }
+
+  // Volta do Checkout do Stripe: espera o webhook confirmar a assinatura
+  const raiz = document.querySelector<HTMLElement>('.fat');
+  const checkout = raiz?.dataset.checkout;
+  if (checkout) {
+    history.replaceState(null, '', location.pathname);
+    if (checkout === 'cancelado') toast('Pagamento não concluído. Nada foi cobrado.', 'info');
+    if (checkout === 'sucesso') {
+      const aviso = document.getElementById('fat-confirmando');
+      if (aviso) aviso.hidden = false;
+      let tentativas = 0;
+      const timer = setInterval(async () => {
+        tentativas++;
+        try {
+          const r = await fetch('/api/assinatura/resumo').then((x) => x.json());
+          if (r.assinatura || tentativas > 20) {
+            clearInterval(timer);
+            location.reload();
+          }
+        } catch {
+          /* tenta de novo */
+        }
+      }, 3000);
+    }
+  }
+
+  // Contratação / troca
+  const form = document.getElementById('fat-form') as HTMLFormElement | null;
+  if (form) {
+    const planos: PlanoOpcao[] = JSON.parse(document.getElementById('fat-planos')?.textContent || '[]');
+    const modo = form.dataset.modo;
+    const noTeste = form.dataset.teste === '1';
+    const planoAtual = form.dataset.planoAtual;
+    const cicloAtual = form.dataset.cicloAtual;
+    let ciclo = form.querySelector<HTMLButtonElement>('[data-ciclo][aria-pressed="true"]')?.dataset.ciclo ?? 'mes';
+    const total = document.getElementById('fat-total')!;
+    const nota = document.getElementById('fat-nota')!;
+    const botao = document.getElementById('fat-enviar') as HTMLButtonElement;
+    const trocarTeste = document.getElementById('fat-trocar-teste') as HTMLButtonElement | null;
+    const quando = document.getElementById('fat-quando');
+    const fimTeste = form.dataset.fimTeste;
+
+    const valor = (nome: string) => (form.querySelector<HTMLInputElement>(`input[name="${nome}"]:checked`)?.value ?? '');
+
+    function atualizar() {
+      const plano = planos.find((p) => p.id === valor('plano_id'));
+      const anualBtn = form!.querySelector<HTMLButtonElement>('[data-ciclo="ano"]')!;
+      anualBtn.disabled = !plano || plano.anual == null;
+      if (anualBtn.disabled && ciclo === 'ano') ciclo = 'mes';
+      form!.querySelectorAll<HTMLButtonElement>('[data-ciclo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ciclo === ciclo)));
+      const forma = valor('forma');
+      if (quando) quando.hidden = !forma;
+      const adiar = noTeste && valor('quando') !== 'agora';
+      const preco = plano ? (ciclo === 'ano' ? plano.anual : plano.mensal) : null;
+      total.textContent = preco != null ? `${brl(preco)} por ${ciclo === 'ano' ? 'ano' : 'mês'}` : '—';
+      if (modo === 'troca') {
+        const igual = plano?.id === planoAtual && ciclo === cicloAtual;
+        nota.textContent = igual ? 'Este já é o seu plano.' : 'Ajuste proporcional na próxima fatura.';
+        botao.disabled = !plano || igual;
+        return;
+      }
+      nota.textContent = !forma
+        ? 'Escolha a forma de pagamento.'
+        : adiar
+          ? `Primeira cobrança no dia seguinte a ${fimTeste}.`
+          : forma === 'pix'
+            ? 'Você verá o QR Code em seguida.'
+            : 'Pagamento na página segura do Stripe.';
+      botao.textContent = forma === 'pix' ? (adiar ? 'Assinar com Pix' : 'Gerar Pix') : forma === 'cartao' ? (adiar ? 'Cadastrar cartão' : 'Ir para o pagamento') : 'Assinar';
+      if (!botao.hasAttribute('data-sem-fiscal')) botao.disabled = !plano || !forma;
+      if (trocarTeste) trocarTeste.hidden = !plano || plano.id === planoAtual;
+    }
+
+    if (botao.disabled && modo === 'contrato' && !planos.length) botao.setAttribute('data-sem-fiscal', '');
+    if (form.querySelector('.fat-aviso--alerta [href="/configuracoes/empresa"]')) botao.setAttribute('data-sem-fiscal', '');
+    form.addEventListener('change', atualizar);
+    form.querySelectorAll<HTMLButtonElement>('[data-ciclo]').forEach((b) =>
+      b.addEventListener('click', () => {
+        ciclo = b.dataset.ciclo!;
+        atualizar();
+      })
+    );
+    atualizar();
+
+    trocarTeste?.addEventListener('click', async () => {
+      const plano = planos.find((p) => p.id === valor('plano_id'));
+      if (!plano) return;
+      const restaurar = emCarregamento(trocarTeste, 'Trocando…');
+      try {
+        const r = await enviar('/api/assinatura/plano', 'PUT', { plano_id: plano.id, ciclo });
+        location.href = r.redirect || location.pathname;
+      } catch (e) {
+        restaurar();
+        toast((e as Error).message, 'error');
+      }
+    });
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const plano = planos.find((p) => p.id === valor('plano_id'));
+      if (!plano) return toast('Escolha um plano.', 'error');
+      if (modo === 'troca') {
+        const ok = await confirmar({ titulo: `Trocar para o plano ${plano.nome}?`, texto: 'A troca vale na hora. O Stripe calcula o ajuste proporcional, cobrado na próxima fatura.', confirmar: 'Trocar plano' });
+        if (!ok) return;
+      }
+      const restaurar = emCarregamento(botao, 'Aguarde…');
+      try {
+        if (modo === 'troca') {
+          const r = await enviar('/api/assinatura/plano', 'PUT', { plano_id: plano.id, ciclo });
+          location.href = r.redirect || location.pathname;
+          return;
+        }
+        const r = await enviar('/api/assinatura/checkout', 'POST', { plano_id: plano.id, ciclo, forma: valor('forma'), cobrar_agora: !noTeste || valor('quando') === 'agora' });
+        if (r.url) return void (location.href = r.url);
+        if (r.pagarUrl) return void (location.href = r.pagarUrl);
+        if (r.agendado) {
+          toast('Plano contratado. A primeira fatura Pix será gerada no fim do teste, com 7 dias para pagar.', 'success');
+          setTimeout(() => location.reload(), 2000);
+        }
+      } catch (e) {
+        restaurar();
+        toast((e as Error).message, 'error');
+      }
+    });
+  }
+
+  // Portal do Stripe, cancelamento e desfazer
+  document.querySelectorAll<HTMLButtonElement>('[data-portal]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      const restaurar = emCarregamento(b);
+      try {
+        const r = await enviar('/api/assinatura/portal', 'POST', { trocar_cartao: b.dataset.portal === 'cartao' });
+        location.href = r.url;
+      } catch (e) {
+        restaurar();
+        toast((e as Error).message, 'error');
+      }
+    })
+  );
+
+  document.querySelector<HTMLButtonElement>('[data-cancelar]')?.addEventListener('click', async (ev) => {
+    const b = ev.currentTarget as HTMLButtonElement;
+    const ok = await confirmar({
+      titulo: 'Cancelar assinatura?',
+      texto: `O acesso continua até o fim do período pago (${b.dataset.fim}). Depois disso a empresa volta ao plano Busca, sem perder nenhum dado.`,
+      confirmar: 'Cancelar assinatura',
+      perigo: true,
+    });
+    if (!ok) return;
+    const restaurar = emCarregamento(b, 'Cancelando…');
+    try {
+      const r = await enviar('/api/assinatura/cancelar', 'POST', { motivo: '' });
+      location.href = r.redirect || location.pathname;
+    } catch (e) {
+      restaurar();
+      toast((e as Error).message, 'error');
+    }
+  });
+
+  document.querySelector<HTMLButtonElement>('[data-retomar]')?.addEventListener('click', async (ev) => {
+    const b = ev.currentTarget as HTMLButtonElement;
+    const restaurar = emCarregamento(b, 'Desfazendo…');
+    try {
+      const r = await enviar('/api/assinatura/cancelar', 'DELETE');
+      location.href = r.redirect || location.pathname;
+    } catch (e) {
+      restaurar();
+      toast((e as Error).message, 'error');
+    }
+  });
+</script>
+
+<style>
+  .fat {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 960px;
+  }
+
+  .fat-confirmando {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--info-bg);
+    color: var(--info);
+    font-size: var(--fs-14);
+  }
+
+  .fat-plano {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .fat-plano-topo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .fat-plano-nome {
+    margin: 0;
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-strong);
+  }
+
+  .fat-dados {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-3) var(--space-5);
+    margin: 0;
+  }
+
+  .fat-dados dt {
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .fat-dados dd {
+    margin: 0;
+    font-size: var(--fs-14);
+    color: var(--text-body);
+  }
+
+  .fat-aviso {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-13);
+    line-height: 1.5;
+  }
+
+  .fat-aviso p {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .fat-aviso--info {
+    justify-content: flex-start;
+    background: var(--info-bg);
+    color: var(--info);
+  }
+
+  .fat-aviso--alerta {
+    justify-content: flex-start;
+    background: var(--warning-bg);
+    color: var(--text-body);
+  }
+
+  .fat-aviso--alerta:has(.btn) {
+    justify-content: space-between;
+  }
+
+  .fat-aviso--erro {
+    background: var(--danger-bg);
+    color: var(--text-body);
+  }
+
+  .fat-acoes {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .fat-cancelar {
+    margin-left: auto;
+    color: var(--danger);
+  }
+
+  .fat-indisponivel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .fat-indisponivel p {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--text-secondary);
+    font-size: var(--fs-14);
+  }
+
+  .fat-form {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .fat-grupo {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .fat-grupo[hidden] {
+    display: none;
+  }
+
+  .fat-legenda {
+    padding: 0;
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .fat-opcoes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-3);
+  }
+
+  .fat-opcoes--planos {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .fat-opcoes--pilha {
+    grid-template-columns: 1fr;
+  }
+
+  .fat-opcao {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  }
+
+  .fat-opcao:hover {
+    background: var(--clay-25);
+  }
+
+  .fat-opcao input {
+    margin: 3px 0 0;
+    accent-color: var(--action-primary);
+  }
+
+  .fat-opcao:has(input:checked) {
+    border-color: var(--border-accent);
+    background: var(--bg-accent-subtle);
+  }
+
+  .fat-opcao:has(input:focus-visible) {
+    box-shadow: var(--focus-ring);
+  }
+
+  .fat-opcao-icone {
+    display: inline-flex;
+    color: var(--terracotta-600);
+  }
+
+  .fat-opcao-corpo {
+    display: grid;
+    gap: 2px;
+  }
+
+  .fat-opcao-titulo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--fs-14);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .fat-opcao-desc {
+    font-size: var(--fs-12);
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+
+  .fat-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .fat-total > div:first-child {
+    display: grid;
+    gap: 2px;
+  }
+
+  .fat-total-valor {
+    font-size: var(--fs-20);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .fat-total-nota {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .fat-total-acoes {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .fat-uso {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-4) var(--space-6);
+  }
+
+  .fat-uso-item {
+    display: grid;
+    gap: var(--space-1-5);
+    font-size: var(--fs-14);
+  }
+
+  .fat-uso-rotulo {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .fat-uso-barra {
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--bg-subtle);
+    overflow: hidden;
+  }
+
+  .fat-uso-barra span {
+    display: block;
+    height: 100%;
+    background: var(--action-primary);
+    border-radius: inherit;
+  }
+
+  .fat-uso-item--cheio .fat-uso-rotulo {
+    color: var(--danger);
+  }
+
+  .fat-uso-item--cheio .fat-uso-barra span {
+    background: var(--danger);
+  }
+
+  .fat-vazio {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--fs-14);
+  }
+
+  .fat-tabela-wrap {
+    overflow-x: auto;
+  }
+
+  .fat-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-14);
+  }
+
+  .fat-tabela th {
+    padding: var(--space-2) var(--space-3);
+    background: var(--clay-25);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .fat-tabela td {
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+  }
+
+  .fat-tabela tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .fat-sub {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .fat-tabela-acoes {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .fat-tabela-acoes .row-action + .row-action {
+    margin-left: var(--space-3);
+  }
+
+  .fat-historico {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+
+  .fat-historico li {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: var(--space-3);
+    padding: var(--space-2-5, 10px) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+  }
+
+  .fat-historico li:last-child {
+    border-bottom: 0;
+  }
+
+  .fat-historico-data {
+    color: var(--text-muted);
+    font-size: var(--fs-13);
+  }
+
+  .fat-historico-texto {
+    display: grid;
+    gap: 2px;
+  }
+
+  .fat-historico-texto strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .fat-historico-texto span {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    .fat-cancelar {
+      margin-left: 0;
+    }
+
+    .fat-tabela thead {
+      display: none;
+    }
+
+    .fat-tabela tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .fat-tabela td {
+      padding: 0;
+      border: 0;
+    }
+
+    .fat-tabela-acoes {
+      grid-column: 1 / -1;
+      text-align: left;
+    }
+
+    .fat-historico li {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+
+    .fat-total-acoes,
+    .fat-total-acoes .btn {
+      width: 100%;
+    }
+  }
+</style>

@@ -76,7 +76,8 @@ test.describe.serial('Planos e gating', () => {
     await login(page, GRATUITO);
     await page.goto('/planos?teste=1');
     const card = page.locator('.plano-card').filter({ hasText: 'Profissional' });
-    await card.getByRole('button', { name: 'Testar 30 dias grátis' }).click();
+    await expect(page.getByRole('heading', { name: 'Escolha o plano para começar' })).toBeVisible();
+    await card.getByRole('button', { name: 'Escolher e testar 30 dias' }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.locator('.toast').first()).toContainText('Seu teste do plano Profissional começou');
     await expect(page.locator('.sidebar .nav-item--bloqueado')).toHaveCount(0);
@@ -87,6 +88,20 @@ test.describe.serial('Planos e gating', () => {
     const segundo = await page.request.post('/api/planos/trial', { data: { plano_id: psql(`SELECT id FROM planos WHERE slug = 'prime'`) } });
     expect(segundo.status()).toBe(403);
     expect((await segundo.json()).code).toBe('TRIAL_INDISPONIVEL');
+
+    // No teste, trocar de plano é livre e não mexe no prazo
+    await page.goto('/planos');
+    await page.locator('.plano-card').filter({ hasText: 'Prime' }).getByRole('button', { name: 'Trocar o teste para este plano' }).click();
+    await expect(page.locator('.toast').first()).toContainText('Seu teste agora é do plano Prime');
+    expect(psql(`SELECT p.slug || '|' || (t.trial_ate - (now() AT TIME ZONE 'America/Sao_Paulo')::date) FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT_GRATUITO}`)).toBe('prime|30');
+    expect(psql(`SELECT motivo FROM tenant_plano_historico WHERE tenant_id = ${TENANT_GRATUITO} ORDER BY created_at DESC LIMIT 1`)).toBe('plano_escolhido');
+
+    // Configurações › Financeiro: plano em teste e o histórico
+    await page.goto('/configuracoes/financeiro');
+    await expect(page.locator('.fat-plano')).toContainText('Prime');
+    await expect(page.locator('.fat-plano')).toContainText('Em teste');
+    await expect(page.locator('.fat-historico')).toContainText('Troca de plano no teste');
+    await expect(page.locator('.fat-historico')).toContainText('Início do teste grátis');
 
     // Durante o teste entra um segundo usuário; depois o teste vence (D+1 12h já passou)
     psql(`INSERT INTO usuarios (nome, email, senha_hash, email_verificado_em) VALUES ('Excedente E2E', '${EXTRA}', crypt('Banket.2026', gen_salt('bf')), now());

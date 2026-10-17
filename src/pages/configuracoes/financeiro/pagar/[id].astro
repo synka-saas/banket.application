@@ -1,0 +1,258 @@
+---
+// Pagamento Pix de uma fatura da assinatura (modelo do Yosp: /assinatura/pagar/[id]). Destino dos e-mails de fatura.
+// O QR Code é gerado na abertura (POST /api/assinatura/pix/[id]) e a tela acompanha a confirmação (GET a cada 5 s).
+import AppLayout from '../../../../layouts/AppLayout.astro';
+import Icon from '../../../../components/ui/Icon.astro';
+import { configSubmenuDoPlano } from '../../../../lib/nav';
+import { podeUsarEm } from '../../../../lib/planos/gating';
+
+const faturaId = Astro.params.id ?? '';
+if (!/^in_[A-Za-z0-9]+$/.test(faturaId)) return Astro.redirect('/configuracoes/financeiro');
+---
+
+<AppLayout title="Pagar com Pix" heading="Configurações / Financeiro" submenu={configSubmenuDoPlano(podeUsarEm(Astro.locals.plano, 'configuracoes'))} submenuActive="financeiro">
+  <a href="/configuracoes/financeiro" class="voltar"><Icon name="arrow-left" size={16} /> Financeiro</a>
+  <div class="pix" data-fatura={faturaId}>
+    <h2 class="pix-titulo">Pagar com Pix</h2>
+    <p class="pix-sub">Abra o app do seu banco e escaneie o QR Code, ou copie o código Pix.</p>
+
+    <section class="pix-card" aria-live="polite">
+      <p id="pix-carregando" class="pix-estado-texto">Gerando o QR Code…</p>
+
+      <div id="pix-pronto" hidden>
+        <div class="pix-valor">
+          <span class="pix-rotulo">Valor</span>
+          <strong id="pix-valor" class="tabular">—</strong>
+        </div>
+        <img id="pix-qr" class="pix-qr" alt="QR Code Pix para pagamento da fatura" width="240" height="240" />
+        <label class="pix-rotulo" for="pix-codigo">Pix copia e cola</label>
+        <textarea id="pix-codigo" class="pix-codigo" rows="3" readonly></textarea>
+        <div class="pix-acoes">
+          <button type="button" class="btn btn-primary btn-md" id="pix-copiar"><Icon name="copy" size={16} /> Copiar código</button>
+          <button type="button" class="btn btn-outline btn-md" id="pix-conferir"><Icon name="refresh" size={16} /> Já paguei</button>
+        </div>
+        <p class="pix-expira"><Icon name="clock" size={16} /> <span id="pix-expira">—</span></p>
+        <p class="pix-nota">
+          O pagamento é processado pelo Stripe. No app do banco, o recebedor pode aparecer com o nome do parceiro de
+          processamento; a identificação do Banket aparece nos detalhes do pagamento.
+        </p>
+      </div>
+
+      <div id="pix-pago" class="pix-estado" hidden>
+        <span class="pix-ok"><Icon name="circle-check" size={32} /></span>
+        <h3>Pagamento confirmado</h3>
+        <p>Obrigado! Sua assinatura está em dia.</p>
+        <a class="btn btn-primary btn-md" href="/configuracoes/financeiro">Ver faturamento</a>
+      </div>
+
+      <div id="pix-erro" class="pix-estado" hidden>
+        <h3 id="pix-erro-titulo">Não foi possível gerar o Pix</h3>
+        <p id="pix-erro-texto">Tente novamente em instantes.</p>
+        <button type="button" class="btn btn-primary btn-md" id="pix-novo"><Icon name="refresh" size={16} /> Gerar novo código</button>
+      </div>
+    </section>
+  </div>
+</AppLayout>
+
+<script>
+  import { toast } from '../../../../lib/ui';
+
+  const raiz = document.querySelector<HTMLElement>('.pix');
+  const api = `/api/assinatura/pix/${encodeURIComponent(raiz?.dataset.fatura ?? '')}`;
+  const $ = (id: string) => document.getElementById(id) as HTMLElement;
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  let timer: ReturnType<typeof setInterval> | null = null;
+  let expiraEm: number | null = null;
+
+  const parar = () => {
+    if (timer) clearInterval(timer);
+    timer = null;
+  };
+  function mostrar(estado: 'carregando' | 'pronto' | 'pago' | 'erro') {
+    for (const s of ['carregando', 'pronto', 'pago', 'erro']) $(`pix-${s}`).hidden = s !== estado;
+    if (estado === 'pago' || estado === 'erro') parar();
+  }
+  function erro(titulo: string, texto: string) {
+    $('pix-erro-titulo').textContent = titulo;
+    $('pix-erro-texto').textContent = texto;
+    mostrar('erro');
+  }
+
+  async function gerar() {
+    mostrar('carregando');
+    try {
+      const res = await fetch(api, { method: 'POST', headers: { Accept: 'application/json' } });
+      const d = await res.json();
+      if (!res.ok) return erro('Não foi possível gerar o Pix', d.error || 'Tente novamente em instantes.');
+      if (d.status === 'paid') return mostrar('pago');
+      $('pix-valor').textContent = brl(Number(d.valor || 0));
+      ($('pix-qr') as HTMLImageElement).src = d.imagem;
+      ($('pix-codigo') as HTMLTextAreaElement).value = d.codigo;
+      expiraEm = d.expiraEm ? new Date(d.expiraEm).getTime() : null;
+      $('pix-expira').textContent = expiraEm
+        ? `Código válido até ${new Date(expiraEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+        : '';
+      mostrar('pronto');
+      parar();
+      timer = setInterval(() => conferir(), 5000);
+    } catch {
+      erro('Sem conexão', 'Verifique sua internet e tente novamente.');
+    }
+  }
+
+  async function conferir(manual = false) {
+    if (expiraEm && Date.now() > expiraEm) return erro('O código Pix expirou', 'Gere um novo código para pagar a fatura.');
+    try {
+      const res = await fetch(api, { headers: { Accept: 'application/json' } });
+      const d = await res.json();
+      if (d.status === 'paid') return mostrar('pago');
+      if (res.ok && d.status && d.status !== 'open') return erro('Fatura indisponível', 'Esta fatura não está mais aberta para pagamento.');
+      if (manual) toast('Ainda não identificamos o pagamento. Pode levar alguns segundos.', 'info');
+    } catch {
+      /* tenta de novo no próximo ciclo */
+    }
+  }
+
+  $('pix-copiar').addEventListener('click', async () => {
+    const codigo = ($('pix-codigo') as HTMLTextAreaElement).value;
+    try {
+      await navigator.clipboard.writeText(codigo);
+      toast('Código Pix copiado.', 'success');
+    } catch {
+      ($('pix-codigo') as HTMLTextAreaElement).select();
+    }
+  });
+  $('pix-conferir').addEventListener('click', () => conferir(true));
+  $('pix-novo').addEventListener('click', gerar);
+  gerar();
+</script>
+
+<style>
+  .pix {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 480px;
+    margin-top: var(--space-4);
+  }
+
+  .pix-titulo {
+    margin: 0;
+    font-size: var(--fs-20);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .pix-sub {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--fs-14);
+  }
+
+  .pix-card {
+    margin-top: var(--space-3);
+    padding: var(--space-6);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-xs);
+  }
+
+  #pix-pronto:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .pix-valor {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .pix-valor strong {
+    font-size: var(--fs-24);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .pix-rotulo,
+  .pix-estado-texto {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .pix-qr {
+    align-self: center;
+    width: 240px;
+    height: 240px;
+  }
+
+  .pix-codigo {
+    width: 100%;
+    resize: none;
+    padding: var(--space-2) var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-12);
+    color: var(--text-body);
+    background: var(--clay-25);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+  }
+
+  .pix-acoes {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .pix-expira {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1-5);
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .pix-nota {
+    margin: 0;
+    font-size: var(--fs-12);
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+
+  .pix-estado:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .pix-estado h3 {
+    margin: 0;
+    font-size: var(--fs-18);
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .pix-estado p {
+    margin: 0;
+    color: var(--text-secondary);
+  }
+
+  .pix-ok {
+    color: var(--success);
+  }
+
+  @media (max-width: 768px) {
+    .pix-card {
+      padding: var(--space-4);
+    }
+
+    .pix-qr {
+      width: 200px;
+      height: 200px;
+    }
+  }
+</style>

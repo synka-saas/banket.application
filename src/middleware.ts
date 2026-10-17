@@ -5,7 +5,7 @@ import { consumeFlash, setFlash } from './lib/flash';
 import { getMembership } from './lib/membership';
 import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
 import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
-import { verificarTrialVencido } from './server/planos';
+import { PAGINA_ESCOLHA_PLANO, deveEscolherPlano, verificarTrialVencido } from './server/planos';
 import { iniciarAgendador } from './server/agendador';
 import { decidirHost } from './lib/busca/host';
 import { appUrl } from './lib/mail';
@@ -122,9 +122,12 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
   if (plano?.trialVencido && (await verificarTrialVencido(plano))) plano = await entitlements(user.tenantId);
   context.locals.plano = plano;
 
-  // Página inicial por plano: quem não tem o Painel de Propostas cai no Banket Busca (sem painel de upsell)
+  // Página inicial por plano: quem não tem o Painel de Propostas cai no Banket Busca (sem painel de upsell). Quem se
+  // cadastrou pelo site e ainda não escolheu o plano do teste vai para a seleção de planos (a escolha inicia o teste).
   const temPropostas = podeUsarEm(plano, 'propostas');
-  if ((pathname === '/dashboard' || pathname === '/') && !temPropostas) return context.redirect('/busca');
+  if ((pathname === '/dashboard' || pathname === '/') && !temPropostas) {
+    return context.redirect(deveEscolherPlano(plano) && isAdmin(user) ? PAGINA_ESCOLHA_PLANO : '/busca');
+  }
 
   // Gate por plano: rota de módulo fora do plano → 403 padronizado na API, upsell nas páginas
   const recurso = recursoDaRota(pathname);

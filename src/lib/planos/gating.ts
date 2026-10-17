@@ -20,6 +20,12 @@ export interface Entitlements {
   trialAte: string | null;
   trialUsado: boolean;
   trialRecusadoEm: string | null;
+  /** Por onde a empresa entrou: site (gestão), busca (vitrine) ou importacao */
+  origemCadastro: string | null;
+  /** Assinatura do Stripe existente (em dia, em teste no Stripe ou com fatura pendente) */
+  assinaturaViva: boolean;
+  /** Plano escolhido no checkout, à espera da confirmação do Stripe */
+  planoPendenteId: string | null;
   recursos: Record<string, boolean | number>;
 }
 
@@ -40,6 +46,9 @@ function converter(e: any): Entitlements | null {
     trialAte: e.trial_ate ? String(e.trial_ate) : null,
     trialUsado: Boolean(e.trial_usado),
     trialRecusadoEm: e.trial_recusado_em ? String(e.trial_recusado_em) : null,
+    origemCadastro: e.origem_cadastro ?? null,
+    assinaturaViva: Boolean(e.assinatura_viva),
+    planoPendenteId: e.plano_pendente_id ?? null,
     recursos: (e.recursos ?? {}) as Record<string, boolean | number>,
   };
 }

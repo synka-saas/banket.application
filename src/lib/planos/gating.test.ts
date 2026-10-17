@@ -3,7 +3,7 @@ import { ErroPlano, limiteEm, nivelEm, podeUsarEm, type Entitlements } from './g
 
 const base: Entitlements = {
   tenantId: 't', semPlano: false, planoId: 'p', planoSlug: 'busca', planoNome: 'Plano Busca', gratuito: true,
-  trial: null, trialVencido: false, trialAte: null, trialUsado: false, trialRecusadoEm: null,
+  trial: null, trialVencido: false, trialAte: null, trialUsado: false, trialRecusadoEm: null, origemCadastro: null, assinaturaViva: false, planoPendenteId: null,
   recursos: { propostas: false, busca: true, usuarios: 1, busca_fotos: 5, historico_meses: 3, templates_qtd: 0, ia_analises_mes: -1 },
 };
 
