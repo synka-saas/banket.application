@@ -32,6 +32,19 @@ describe('estadoCobranca', () => {
     expect(estadoCobranca(aberta, sp('2026-10-16T12:00'))).toEqual({ estado: 'rebaixar', motivo: 'inadimplencia' });
   });
 
+  it('cartão recusado: fica vencida durante as novas tentativas do Stripe e só rebaixa no unpaid ou no teto', () => {
+    const cartao: DadosCobranca = {
+      ...base, assinaturaId: 'sub_1', assinaturaStatus: 'past_due',
+      faturaAberta: { vencimento: '2026-10-15', motivo: 'subscription_cycle', pix: false },
+    };
+    expect(estadoCobranca(cartao, sp('2026-10-16T12:00')).estado).toBe('vencida');
+    expect(estadoCobranca(cartao, sp('2026-11-10T12:00')).estado).toBe('vencida');
+    expect(estadoCobranca({ ...cartao, assinaturaStatus: 'unpaid' }, sp('2026-10-20T12:00'))).toEqual({ estado: 'rebaixar', motivo: 'inadimplencia' });
+    expect(estadoCobranca(cartao, sp('2026-11-15T12:00'))).toEqual({ estado: 'rebaixar', motivo: 'inadimplencia' });
+    // Pix continua com o prazo de D+1
+    expect(estadoCobranca({ ...cartao, assinaturaStatus: 'active', faturaAberta: { ...cartao.faturaAberta!, pix: true } }, sp('2026-10-16T12:00')).estado).toBe('rebaixar');
+  });
+
   it('assinatura incobrável ou encerrada rebaixa', () => {
     expect(estadoCobranca({ ...base, assinaturaId: 'sub_1', assinaturaStatus: 'unpaid' }).motivo).toBe('inadimplencia');
     expect(estadoCobranca({ ...base, assinaturaId: 'sub_1', assinaturaStatus: 'canceled' }).motivo).toBe('cancelamento');

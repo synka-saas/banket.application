@@ -5,8 +5,10 @@
 //   gratuito → plano Busca: nunca teste, cobrança ou rebaixamento
 //   trial    → teste do Banket vigente (sem assinatura) ou assinatura do Stripe ainda em teste
 //   ativa    → assinatura em dia
-//   vencida  → fatura venceu (D0 passou), antes das 12h de D+1: tudo liberado, aviso na tela
-//   rebaixar → teste acabou sem assinatura, fatura vencida depois das 12h de D+1, ou assinatura encerrada/incobrável
+//   vencida  → fatura venceu (D0 passou), antes das 12h de D+1: tudo liberado, aviso na tela. No cartão, segue vencida
+//              enquanto o Stripe tenta cobrar de novo (Smart Retries), até a assinatura virar unpaid/encerrada
+//   rebaixar → teste acabou sem assinatura, fatura Pix vencida depois das 12h de D+1, cartão sem pagamento depois das
+//              novas tentativas (unpaid, encerrada ou 30 dias de atraso), ou assinatura encerrada/incobrável
 //   manual   → plano pago sem teste nem assinatura (Manager Hwesta, backoffice, empresas anteriores aos planos)
 import { HORA_REBAIXAMENTO, deveRebaixar, emSaoPaulo, somarDias } from './trial';
 
@@ -21,7 +23,7 @@ export interface DadosCobranca {
   assinaturaId: string | null;
   assinaturaStatus: string | null;
   /** Fatura em aberto mais antiga da assinatura atual */
-  faturaAberta?: { vencimento: string | null; motivo: string | null } | null;
+  faturaAberta?: { vencimento: string | null; motivo: string | null; pix?: boolean } | null;
   /** A assinatura atual já teve alguma fatura paga com valor? (ausente = sim, para quem não informa) */
   teveFaturaPaga?: boolean;
 }
@@ -30,6 +32,12 @@ export interface DadosCobranca {
 export const ASSINATURA_ENCERRADA = new Set(['canceled', 'incomplete_expired']);
 /** Status em que a assinatura existe e cobra (unpaid = retentativas esgotadas). */
 export const ASSINATURA_VIVA = new Set(['active', 'trialing', 'past_due', 'unpaid']);
+
+/**
+ * Cartão recusado: o Stripe tenta cobrar de novo por alguns dias (Smart Retries) e, ao esgotar, deixa a assinatura
+ * unpaid ou a cancela (configuração da conta). Se a conta deixar em past_due para sempre, este é o teto.
+ */
+export const DIAS_TENTATIVAS_CARTAO = 30;
 
 /** A fatura venceu e já passou das 12h de D+1? */
 export const passouDoPrazo = (vencimento: string, agora: Date): boolean => deveRebaixar(vencimento, agora);
@@ -55,7 +63,9 @@ export function estadoCobranca(d: DadosCobranca, agora = new Date()): { estado: 
     if (status === 'unpaid') return { estado: 'rebaixar', motivo: 'inadimplencia' };
     const venc = d.faturaAberta?.vencimento;
     if (venc) {
-      if (passouDoPrazo(venc, agora)) return { estado: 'rebaixar', motivo: 'inadimplencia' };
+      // Cartão: não rebaixa no D+1; espera as novas tentativas do Stripe (unpaid acima) até o teto de dias
+      const prazo = d.faturaAberta?.pix === false ? somarDias(venc, DIAS_TENTATIVAS_CARTAO) : venc;
+      if (passouDoPrazo(prazo, agora)) return { estado: 'rebaixar', motivo: 'inadimplencia' };
       if (venceu(venc, agora)) return { estado: 'vencida' };
     }
     return { estado: status === 'trialing' ? 'trial' : 'ativa' };

@@ -121,7 +121,7 @@ export function estadoDe(c: Cobranca, agora = new Date()): { estado: EstadoCobra
       trialAte: c.trial_ate,
       assinaturaId: c.stripe_assinatura_id,
       assinaturaStatus: c.stripe_assinatura_status,
-      faturaAberta: c.fatura_vencimento ? { vencimento: c.fatura_vencimento, motivo: c.fatura_motivo } : null,
+      faturaAberta: c.fatura_vencimento ? { vencimento: c.fatura_vencimento, motivo: c.fatura_motivo, pix: c.fatura_pix } : null,
       teveFaturaPaga: c.fatura_paga,
     },
     agora
