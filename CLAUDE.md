@@ -1476,7 +1476,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   `/etc/nginx/conf.d/banket-upstream.conf` (reescrito a cada deploy). HTTPS via Certbot. `client_max_body_size 20m`.
 - **Site institucional** (`site/`, <https://banket.com.br>): HTML estático sem build nem contêiner. É **página única**:
   todas as seções (hero, como funciona, recursos, para quem é, planos, dúvidas, contato) ficam no `index.html` e o menu
-  usa âncoras; só páginas de fato separadas ganham arquivo `.html` próprio. `assets/css/design-system.css` é cópia
+  usa âncoras; só páginas de fato separadas ganham arquivo `.html` próprio. Documentos legais: `site/termos/`, `site/privacidade/` e `site/cookies/` (`index.html` em cada pasta, URLs `/termos/`, `/privacidade/`, `/cookies/`, caminhos absolutos para `/assets`), com o mesmo cabeçalho e rodapé da home, abas entre eles e `assets/css/legal.css`; a coluna "Legal" do rodapé da home aponta para eles. São as URLs de privacidade e termos cadastradas no app da Meta (WhatsApp). Ao mudar o cabeçalho ou o rodapé da home, replique nas três páginas. `assets/css/design-system.css` é cópia
   concatenada de `design-system/tokens` e `components` (recopiar quando o design system mudar); `assets/css/site.css` e
   `assets/js/site.js` são do site (JS puro: passos do "Como funciona", cobrança mensal/anual, comparação, dúvidas,
   staff, formulário, menu do celular). Nginx: `/etc/nginx/sites-enabled/banket.com.br.conf` (root em

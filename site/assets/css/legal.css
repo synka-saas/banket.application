@@ -245,6 +245,51 @@
     font-size: 15px;
   }
 
+  /* Tabelas viram cartões: rótulo da coluna acima de cada valor */
+  .legal-tabela {
+    overflow: visible;
+  }
+
+  .legal-tabela table,
+  .legal-tabela tbody,
+  .legal-tabela tr,
+  .legal-tabela td {
+    display: block;
+    min-width: 0;
+  }
+
+  .legal-tabela thead {
+    display: none;
+  }
+
+  .legal-tabela tr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-tabela tr:last-child {
+    border-bottom: 0;
+  }
+
+  .legal-tabela td {
+    padding: 0;
+    border: 0;
+  }
+
+  .legal-tabela td + td {
+    margin-top: 8px;
+  }
+
+  .legal-tabela td::before {
+    content: attr(data-rotulo);
+    display: block;
+    font-size: 11px;
+    font-weight: var(--fw-medium);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
   .legal-texto h2 {
     font-size: 20px;
   }
