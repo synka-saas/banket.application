@@ -1,4 +1,4 @@
-// Onboarding do perfil no Banket Busca (PLANO.md §7): as 6 etapas, quando cada uma está concluída, quando o perfil pode
+// Onboarding do perfil no Banket Busca: as 6 etapas, quando cada uma está concluída, quando o perfil pode
 // ser publicado (etapas 1 a 5) e a completude (0–100) usada no ranking. Puro e testado (onboarding.test.ts).
 // Sem pacotes nem preço (decisão de 16/10/2026: o Busca não divulga preço). Cardápios e Disponibilidade não são
 // etapas: aparecem na lista como recursos "Exclusivo Banket" (vêm do próprio Banket).

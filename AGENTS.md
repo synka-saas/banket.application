@@ -14,9 +14,7 @@ cobrança pelo Stripe, no modelo do Yosp).
 - Leitura complementar: [README.md](README.md) (setup local) e [DEPLOY.md](DEPLOY.md) (VPS, Nginx, blue-green)
 - `CLAUDE.md` é a fonte principal desta documentação; `AGENTS.md` é uma cópia idêntica. Ao alterar um, copie para o outro.
 
-> `modelagem-banco-de-dados.md` descreve o schema **antigo** do projeto de origem (Casa Club Gourmet: ids serial,
-> `pipeline_colunas`, `db/init/`). Não reflete o Banket atual. A fonte de verdade do schema é `db/migrations/`
-> e a seção [Modelo de dados](#modelo-de-dados) abaixo.
+> A fonte de verdade do schema é `db/migrations/` e a seção [Modelo de dados](#modelo-de-dados) abaixo.
 
 ---
 
@@ -1136,10 +1134,25 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   Os cards de `/planos` no app mostram os destaques de cada plano (`DESTAQUES_PLANO` em `lib/planos/recursos.ts`, mesmo
   texto do site), com o Banket Busca Personalizado.
   **Plano Busca** (gratuito, `publico = false`): só o menu Banket Busca, 1 usuário, o Perfil Simples, aviso de pedido
-  só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
-  **Master** (R$ 449, `publico = false`) é o único plano comercial sem limites, contratado pela equipe; no site aparece só
+  só dentro do app, histórico de 3 meses. **Master** (R$ 449, `publico = false`) é o único plano comercial sem limites, contratado pela equipe; no site aparece só
   como chamada abaixo dos cards. **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031.
-  Limites e níveis por plano: `diferenciacao.md`. Detalhes em `PLANO.md`.
+  Preços: Essencial R$ 89, Profissional R$ 197, Prime R$ 297, Master R$ 449 por mês; anual = 10 mensalidades
+  (R$ 890, 1.970, 2.970 e 4.490; o site mostra o anual como valor por mês). Limites (migrations 046 e 048):
+
+  | Recurso | Busca | Essencial | Profissional | Prime | Master / Completo |
+  |---|---|---|---|---|---|
+  | Usuários | 1 | 2 | 5 | 15 | sem limite |
+  | Espaços · templates · formulários · modelos de contrato | — | 1 | 3 | 10 | sem limite |
+  | Opções de cardápio | — | 3 | 7 | 20 | sem limite |
+  | Modelos de e-mail | — | — | 10 | 20 | sem limite |
+  | Itens de estoque | — | — | 200 | 1.000 | sem limite |
+  | Análises de IA / fundos de proposta por IA (por mês) | — | — | 30 / — | 100 / 20 | sem limite |
+  | Fotos no Busca | 5 gerais | 30 em grupos | 30 em grupos | 60 em grupos | sem limite |
+  | Tipos de evento / de serviço no Busca | 3 / 3 | 6 / 6 | 6 / 6 | 10 / 10 | sem limite |
+  | Histórico | 3 meses | completo | completo | completo | completo |
+
+  Quem já passa de um limite não perde nada: o limite só impede criar ou reativar. A fonte de verdade dos valores é
+  `planos.recursos` (migrations); esta tabela é o resumo.
 - **Gating**: nunca leia `planos` para decidir; use `podeUsar`/`limite`/`exigir`/`exigirLimite`/`exigirLimiteDb` de
   `lib/planos/gating.ts` no servidor (a interface só espelha). `ErroPlano` vira 403 JSON no `jsonEndpoint` e mensagem em
   `userMessage`. Empresa **sem plano** é permissiva. Recurso novo: slug em `RECURSOS` (`recursos.ts`), valor em cada
@@ -1183,7 +1196,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   no slug curto, `campinas`; o longo `campinas-sp` dá 301), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
 - **Busca** (`buscarBuffets`): pré-filtro SQL largo (tipo, 200 km da cidade) → `compativel` (tipo, local, capacidade e,
   só para cliente Banket com agenda, data ocupada por evento aprovado ou bloqueio) → `passaFiltros` (serviço, restrição,
-  atendimento, nota, raio) → `ordenar` (`lib/busca/ranking.ts`, ver `rankeamento.md`) → "Mostrar mais" de 12 em 12.
+  atendimento, nota, raio) → `ordenar` (`lib/busca/ranking.ts`) → "Mostrar mais" de 12 em 12.
   Relevância igual para todos: distância 30%, avaliação 25%, completude 20%, resposta (cumprimento do prazo) 15% e
   atividade recente 10% (perfil atualizado ou pedido respondido; 0 em 90 dias). Pagante (`busca_prioridade`) ganha
   bônus de até 0,15 × completude × fator de distância (cai a 0 em 2× o raio); as 3 primeiras posições são **Destaque**
@@ -1191,10 +1204,14 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   3 pagantes seguidos (recomeça a cada página); empatados (< 0,03) em rodízio diário (semente dia SP + cidade + tipo).
   "Melhor avaliados" e "Mais próximos" ignoram bônus e destaque. `BUSCA_RANKING_PESOS` e `BUSCA_RANKING_REGRAS`
   sobrescrevem. Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
+  Acompanhamento semanal: participação de pagantes e gratuitos nas aparições e nos cliques (referência: pagantes com
+  50–60% dos cliques, gratuitos com pelo menos 30% das aparições) e taxa de clique por posição; o ajuste é por
+  `bonus_pago` e `vagas_destaque` em `BUSCA_RANKING_REGRAS`, sem mudar código.
 - **Card** (`BuffetCard`): o card inteiro e o botão "Ver detalhes" levam ao perfil (sem seleção múltipla). A página de
   busca guarda a URL completa (filtros, ordem, página) em `sessionStorage` (`banket-busca-ultima`); o "Voltar aos
   resultados" do perfil usa essa URL (sem ela, cai nos critérios principais).
-- **Pedido de orçamento no perfil** (contato com um toque para todos, `diferenciacao.md` §3): buffet **pagante** =
+- **Pedido de orçamento no perfil** (contato com um toque para todos; o pagante tem caminhos a
+  mais, nunca a menos; nunca bloquear link nem cópia dos contatos do gratuito, para não esvaziar a busca): buffet **pagante** =
   perfil `nivel = 'cliente'` (Perfil Personalizado) com formulário ativo → botão **Receber orçamento sem compromisso**
   ("Obter orçamento" na barra do celular) abre um modal com o formulário do buffet (o marcado `usar_no_busca`, senão o
   ativo mais antigo) num `<iframe>` de `APP_URL/f/<slug>?busca=<perfil>&tipo=&data=&convidados=` (`perfilCompleto` →
@@ -1483,10 +1500,9 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   concatenada de `design-system/tokens` e `components` (recopiar quando o design system mudar); `assets/css/site.css` e
   `assets/js/site.js` são do site (JS puro: passos do "Como funciona", cobrança mensal/anual, comparação, dúvidas,
   staff, formulário, menu do celular). Nginx: `/etc/nginx/sites-enabled/banket.com.br.conf` (root em
-  `/var/www/banket/site`, `www` e HTTP redirecionam, `/_prototipo/` bloqueado); certificado `banket.com.br` (Certbot);
+  `/var/www/banket/site`, `www` e HTTP redirecionam); certificado `banket.com.br` (Certbot);
   DNS pelo Cloudflare (proxy), que guarda CSS/JS em cache: ao alterá-los, suba o `?v=` dos links no `index.html`.
-  Publicar = salvar o arquivo. `site/_prototipo/` guarda o export original do Claude Design (runtime `support.js` +
-  React), só como referência.
+  Publicar = salvar o arquivo.
 - **Agendamento da demonstração** (formulário de `#contato`): acoplado à Agenda do Manager Hwesta
   (`/var/www/hwesta/manager`, calendário público `crm-banket`, 30 min, Google Meet + e-mail pelo Resend). O navegador
   só chama `/api/agenda/slots` (GET), `/api/agenda/bookings` (POST) e `/api/agenda/ics/<token>` (GET) no próprio

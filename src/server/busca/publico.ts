@@ -498,7 +498,7 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
       disponibilidade: disponibilidade({ usaAgenda, ocupado: data != null && datasOcupadas.includes(data) }, data),
       datasOcupadas: usaAgenda ? datasOcupadas : [],
       formularioSlug: p.formulario ?? null,
-      // Contato com um toque para todos (diferenciacao.md §3): o pagante tem o formulário e também os contatos
+      // Contato com um toque para todos: o pagante tem o formulário e também os contatos
       contatos: { whatsapp: p.whatsapp, telefone: p.telefone, email: p.email_contato, instagram: base.instagram, site: base.site },
     };
   });

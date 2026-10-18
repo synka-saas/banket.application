@@ -1,4 +1,4 @@
-// Catálogo dos recursos controlados por plano (fase 1 do Banket Busca, ver PLANO.md §3).
+// Catálogo dos recursos controlados por plano.
 // Os VALORES de cada plano ficam em `planos.recursos` (migration 031); aqui ficam só as definições: slug tipado,
 // rótulo, descrição, tipo e grupo, usados pela página /planos, pelo painel de upsell e pelo gating.
 // Roda no navegador (painel de upsell): não importe nada de Node aqui.

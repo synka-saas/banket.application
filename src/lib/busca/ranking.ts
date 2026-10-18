@@ -1,4 +1,4 @@
-// Ranking da busca (rankeamento.md): relevância igual para todos (distância, avaliação, completude, resposta e atividade
+// Ranking da busca: relevância igual para todos (distância, avaliação, completude, resposta e atividade
 // recente) + bônus dosado do pagante (busca_prioridade), vagas de destaque no topo da primeira página, no máximo N
 // pagantes seguidos na lista comum e rodízio diário entre empatados. Puro, com pesos e regras configuráveis
 // (BUSCA_RANKING_PESOS e BUSCA_RANKING_REGRAS) e testes.
@@ -77,7 +77,7 @@ export function lerPesos(json: string | undefined | null): Pesos {
   }
 }
 
-// Chaves aceitas em BUSCA_RANKING_REGRAS (snake_case, como em rankeamento.md) e a faixa válida de cada uma
+// Chaves aceitas em BUSCA_RANKING_REGRAS (snake_case) e a faixa válida de cada uma
 const CHAVES_REGRAS: Record<string, { campo: keyof Regras; min: number; max: number; inteiro?: boolean }> = {
   bonus_pago: { campo: 'bonusPago', min: 0, max: 1 },
   vagas_destaque: { campo: 'vagasDestaque', min: 0, max: 12, inteiro: true },

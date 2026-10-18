@@ -1,4 +1,4 @@
-// Onboarding e edição do perfil no Banket Busca (fase 4, PLANO.md §7). Cada etapa valida com zod e grava no perfil
+// Onboarding e edição do perfil no Banket Busca. Cada etapa valida com zod e grava no perfil
 // da própria empresa (withTenant). Depois de toda gravação: completude e etapa_concluida recalculadas; perfil publicado
 // que deixa de cumprir as etapas 1–5 volta a rascunho. Limites do plano (tipos, fotos, grupos de fotos) pelo gating
 // central. Sem pacotes nem preço (16/10/2026); a tabela busca_pacotes fica sem uso.

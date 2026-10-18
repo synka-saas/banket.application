@@ -1,7 +1,7 @@
 // Compatibilidade de um buffet com a busca (eliminatório) e disponibilidade na data. Puro e testado; o SQL de
 // server/busca/busca.ts faz um pré-filtro largo e esta função decide de fato, para a regra ficar num lugar só.
 //
-// Regras (PLANO.md §8):
+// Regras:
 //   1. Tipo de evento: precisa estar entre os atendidos.
 //   2. Localização (com cidade na busca): mesma cidade, cidade atendida explicitamente, domicílio até o raio do
 //      buffet ou espaço próprio até a distância de deslocamento (filtro de raio ou 30 km).

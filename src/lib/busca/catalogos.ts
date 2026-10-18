@@ -1,4 +1,4 @@
-// Catálogos fixos do Banket Busca (PLANO.md §2.3): tipos de evento e de serviço globais (ampliados com os da base importada), iguais para todas as
+// Catálogos fixos do Banket Busca: tipos de evento e de serviço globais (ampliados com os da base importada), iguais para todas as
 // empresas (a vitrine compara buffets de empresas diferentes), restrições alimentares e o mapeamento para os tipos
 // de evento do app (Social/Corporativo, migration 030). Puro: roda no navegador e no servidor.
 

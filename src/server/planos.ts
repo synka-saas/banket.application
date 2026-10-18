@@ -1,5 +1,5 @@
 // Planos da empresa: catálogo, transições (único dono de `tenants.plano_id`), teste grátis, rebaixamento para o
-// plano Busca, excedentes e avisos. Fase 1 do Banket Busca (PLANO.md §5). Quem muda o plano: cadastro (`cadastroInicial`),
+// plano Busca, excedentes e avisos. Quem muda o plano: cadastro (`cadastroInicial`),
 // o usuário (`iniciarTrial`/`recusarTrial`), o Manager Hwesta (`aplicarDoManager`) e o agendador (`varrerTrials`).
 // As funções recebem `db` (withTenant da própria empresa ou withSystem no agendador/HCP): as linhas tocadas são
 // sempre da empresa (tenants, tenant_usuarios, tenant_plano_historico, plano_avisos).
