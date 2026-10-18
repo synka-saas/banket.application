@@ -12,7 +12,8 @@
 // 2. Portal do Cliente: trocar o cartão, ver faturas, atualizar dados fiscais. Troca de plano e cancelamento ficam
 //    no Banket (o Portal não conhece o Pix).
 //
-// Lê STRIPE_SECRET_KEY / STRIPE_API_VERSION / APP_URL do ambiente ou do .env. Grava no banco via psql no contêiner
+// Chave: --live usa STRIPE_SECRET_KEY_PROD; sem --live, STRIPE_SECRET_KEY_DEV (sandbox). STRIPE_SECRET_KEY, se
+// existir, tem prioridade. Lê também STRIPE_API_VERSION / APP_URL do ambiente ou do .env. Grava no banco via psql no contêiner
 // (banket-postgres-1; outro nome com BANKET_DB_CONTAINER).
 import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -50,9 +51,10 @@ function psql(sql) {
 }
 const lit = (v) => (v == null ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`);
 
-const chave = env('STRIPE_SECRET_KEY');
+const nomeChave = args.has('--live') ? 'STRIPE_SECRET_KEY_PROD' : 'STRIPE_SECRET_KEY_DEV';
+const chave = env('STRIPE_SECRET_KEY') || env(nomeChave);
 if (!chave) {
-  console.error('STRIPE_SECRET_KEY ausente no ambiente e no .env.');
+  console.error(`${nomeChave} ausente no ambiente e no .env.`);
   process.exit(2);
 }
 const versao = env('STRIPE_API_VERSION');

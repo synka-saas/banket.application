@@ -11,12 +11,19 @@ let cliente: Stripe | null = null;
 
 const env = (nome: string): string | undefined => process.env[nome] ?? (import.meta.env as Record<string, string | undefined>)[nome];
 
+/**
+ * Ambiente do Stripe: STRIPE_AMBIENTE=prod usa STRIPE_SECRET_KEY_PROD / STRIPE_WEBHOOK_SECRET_PROD; qualquer outro valor
+ * (ou vazio) usa as _DEV (sandbox). STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET, se definidas, têm prioridade (legado).
+ */
+export const ambienteStripe = (): 'PROD' | 'DEV' => (env('STRIPE_AMBIENTE')?.trim().toLowerCase() === 'prod' ? 'PROD' : 'DEV');
+const chaveSecreta = (): string | undefined => env('STRIPE_SECRET_KEY') || env(`STRIPE_SECRET_KEY_${ambienteStripe()}`);
+
 /** Há chave do Stripe? Sem ela, "Assinar" vira "Falar com a equipe". */
-export const cobrancaConfigurada = (): boolean => Boolean(env('STRIPE_SECRET_KEY'));
+export const cobrancaConfigurada = (): boolean => Boolean(chaveSecreta());
 
 export function stripe(): Stripe {
   if (cliente) return cliente;
-  const chave = env('STRIPE_SECRET_KEY');
+  const chave = chaveSecreta();
   if (!chave) throw new UserError('A contratação pelo app ainda não está disponível. Fale com a equipe do Banket.');
   const versao = env('STRIPE_API_VERSION');
   cliente = new Stripe(chave, {
@@ -27,7 +34,7 @@ export function stripe(): Stripe {
   return cliente;
 }
 
-export const webhookSecret = (): string | undefined => env('STRIPE_WEBHOOK_SECRET');
+export const webhookSecret = (): string | undefined => env('STRIPE_WEBHOOK_SECRET') || env(`STRIPE_WEBHOOK_SECRET_${ambienteStripe()}`);
 
 export const PIX_DIAS_PARA_PAGAR = 7;
 export const PIX_QR_SEGUNDOS = Number(env('STRIPE_PIX_EXPIRES_SECONDS')) || 24 * 60 * 60;
