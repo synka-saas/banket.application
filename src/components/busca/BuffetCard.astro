@@ -61,9 +61,11 @@ const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1,
     {tags.length > 0 && <ul class="bcard-tags">{tags.map((t) => <li class="tag tag-sm">{t}</li>)}</ul>}
     {item.disponibilidade === 'consultar' && <p class="bcard-consultar"><Icon name="calendar" size={14} /> Consultar disponibilidade</p>}
     <div class="bcard-rodape">
-      <div class="bcard-info">
-        {capacidade && <span class="bcard-cap"><Icon name="users" size={14} />{capacidade}</span>}
-      </div>
+      {capacidade && (
+        <div class="bcard-info">
+          <span class="bcard-cap"><Icon name="users" size={14} />{capacidade}</span>
+        </div>
+      )}
       <div class="bcard-acoes">
         {!compacto && (
           <label class="bcard-selecionar">

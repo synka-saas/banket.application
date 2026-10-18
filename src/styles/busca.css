@@ -497,13 +497,12 @@ body.vitrine {
   color: var(--text-muted);
 }
 
+/* Rodapé em duas linhas: convidados em cima, seleção e botão embaixo (sempre na mesma posição em todos os cards) */
 .bcard-rodape {
   margin-top: auto;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px 16px;
+  flex-direction: column;
+  gap: 10px;
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
 }
@@ -527,8 +526,13 @@ body.vitrine {
   z-index: 2;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+.bcard-acoes .bcard-selecionar {
+  margin-right: auto;
 }
 
 .bcard-selecionar {
