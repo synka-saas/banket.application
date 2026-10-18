@@ -38,7 +38,7 @@ if (Astro.request.method === 'POST' && ref) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(digitado.email)) throw new Error('email');
     const tel = digitado.telefone.replace(/\D/g, '');
     if (tel.length < 10) throw new Error('telefone');
-    if (!permitir(`reivindicar:ip:${ip}`, 10, 60 * 60_000) || !permitir(`reivindicar:perfil:${ref}`, 4, 24 * 60 * 60_000)) throw new Error('limite');
+    if (!permitir(`reivindicar:ip:${ip}`, 10, 60 * 60_000)) throw new Error('limite');
     await registrarPedido(ref, acao, {
       nome: digitado.nome.slice(0, 160), cargo: digitado.cargo.slice(0, 80) || null, email: digitado.email.slice(0, 255),
       telefone: tel.slice(0, 13), mensagem: digitado.mensagem.slice(0, 1000) || null,

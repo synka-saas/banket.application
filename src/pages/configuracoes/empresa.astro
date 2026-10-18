@@ -1,4 +1,5 @@
 ---
+import { permitir } from '../../lib/rateLimit';
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
@@ -50,6 +51,10 @@ if (Astro.request.method === 'POST') {
     });
     if (antigo) await removeFile(tenantId, antigo);
     if (data._action === 'whatsapp_teste' && temWhatsapp) {
+      // Cada teste é um template pago na Meta e o número não é confirmado: poucos por empresa
+      if (!permitir(`whatsapp-teste:${tenantId}`, 3, 60 * 60_000) || !permitir(`whatsapp-teste-dia:${tenantId}`, 10, 24 * 60 * 60_000)) {
+        throw new UserError('Dados salvos, mas o limite de mensagens de teste foi atingido. Tente de novo mais tarde.');
+      }
       const r = await avisarWhatsapp(tenantId, 'teste', { variaveis: [input.nome], link: 'configuracoes/empresa' });
       if (r === 'ignorado') throw new UserError('Informe o WhatsApp que recebe os avisos antes de enviar o teste.', 'whatsapp_avisos');
       if (r === 'falhou') throw new UserError('Dados salvos, mas a mensagem de teste não foi enviada. Veja o motivo nos últimos avisos.');

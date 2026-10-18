@@ -1,6 +1,6 @@
 // Peças comuns das análises de IA por evento (Assistente de Negociação IA e Assistente de Orçamentos IA).
 import type { Db } from '../../lib/db';
-import type { SessionUser } from '../../lib/auth';
+import { isAdmin, type SessionUser } from '../../lib/auth';
 import { UserError } from '../../lib/forms';
 import { exigirLimite } from '../../lib/planos/gating';
 import { permitir } from '../../lib/rateLimit';
@@ -45,24 +45,40 @@ export async function guardarAnalise<T>(
   return rows[0].id;
 }
 
+/**
+ * Quem pode ver a análise: a de negociação leva os e-mails do Inbox (owner/admin enxergam todas as conversas do
+ * evento; o usuário comum, só as dele), então o usuário comum vê só as análises que ele mesmo gerou. A de orçamento
+ * não tem conversa e é visível a todos. Devolve o id do usuário a filtrar, ou null para todas.
+ */
+export function filtroDeAutor(user: SessionUser, tipo: TipoAnalise): string | null {
+  return tipo === 'negociacao' && !isAdmin(user) ? user.id : null;
+}
+
 /** Análises do evento (mais recente primeiro), sem o contexto (pesado). */
-export async function historicoAnalises(db: Db, eventoId: string, tipo: TipoAnalise) {
+export async function historicoAnalises(db: Db, user: SessionUser, eventoId: string, tipo: TipoAnalise) {
   const { rows } = await db.query<{ id: string; versao_numero: number | null; usuario_nome: string | null; created_at: Date }>(
     `SELECT a.id, a.versao_numero, u.nome AS usuario_nome, a.created_at
        FROM ia_analises a LEFT JOIN usuarios u ON u.id = a.usuario_id
-      WHERE a.evento_id = $1 AND a.tipo = $2 ORDER BY a.created_at DESC LIMIT 30`,
-    [eventoId, tipo]
+      WHERE a.evento_id = $1 AND a.tipo = $2 AND ($3::uuid IS NULL OR a.usuario_id = $3)
+      ORDER BY a.created_at DESC LIMIT 30`,
+    [eventoId, tipo, filtroDeAutor(user, tipo)]
   );
   return rows;
 }
 
-export async function carregarAnalise<T>(db: Db, eventoId: string, tipo: TipoAnalise, id: string | null): Promise<AnaliseGuardada<T> | null> {
+export async function carregarAnalise<T>(
+  db: Db,
+  user: SessionUser,
+  eventoId: string,
+  tipo: TipoAnalise,
+  id: string | null
+): Promise<AnaliseGuardada<T> | null> {
   const { rows } = await db.query<AnaliseGuardada<T>>(
     `SELECT a.id, a.tipo, a.versao_numero, a.contexto_md, a.resultado, a.modelo, u.nome AS usuario_nome, a.created_at
        FROM ia_analises a LEFT JOIN usuarios u ON u.id = a.usuario_id
-      WHERE a.evento_id = $1 AND a.tipo = $2 AND ($3::uuid IS NULL OR a.id = $3)
+      WHERE a.evento_id = $1 AND a.tipo = $2 AND ($3::uuid IS NULL OR a.id = $3) AND ($4::uuid IS NULL OR a.usuario_id = $4)
       ORDER BY a.created_at DESC LIMIT 1`,
-    [eventoId, tipo, id && /^[0-9a-f-]{36}$/i.test(id) ? id : null]
+    [eventoId, tipo, id && /^[0-9a-f-]{36}$/i.test(id) ? id : null, filtroDeAutor(user, tipo)]
   );
   return rows[0] ?? null;
 }

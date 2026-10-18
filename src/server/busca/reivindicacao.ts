@@ -5,7 +5,8 @@
 //   3. aprovada a posse: assumir → link de criação do acesso no e-mail conferido (aprovarAssumir → assumirPerfil);
 //      remover → o perfil sai e a base não o traz de volta (aprovarRemocao, busca_exclusoes); ou recusa (recusar).
 // Conexão de sistema: quem pede não tem sessão nem empresa, e as tabelas cruzam empresas (como convites.ts).
-import { systemQuery, withSystem, type Db } from '../../lib/db';
+import { systemQuery, withLeituraPublica, withSystem, type Db } from '../../lib/db';
+import { permitir } from '../../lib/rateLimit';
 import { UserError } from '../../lib/forms';
 import { validarSenha } from '../../lib/senha';
 import { generateToken, hashToken } from '../../lib/tokens';
@@ -63,7 +64,8 @@ export function mascararTelefone(digitos: string): string {
 export async function perfilParaReivindicar(ref: string | null): Promise<PerfilReivindicavel | null> {
   const r0 = (ref ?? '').trim().toLowerCase();
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(r0)) return null;
-  const { rows } = await systemQuery(
+  // Página pública: leitura pelo pool da vitrine (somente leitura), não pelas conexões de login/cadastro
+  const { rows } = await withLeituraPublica((db) => db.query(
     `SELECT p.id, p.tenant_id, p.slug, p.nome, p.bairro, c.nome AS cidade, c.uf, p.email_contato, p.whatsapp, p.telefone,
             (t.origem_cadastro = 'importacao' AND NOT EXISTS (SELECT 1 FROM tenant_usuarios tu WHERE tu.tenant_id = t.id)) AS reivindicavel,
             EXISTS (SELECT 1 FROM busca_reivindicacoes r WHERE r.perfil_id = p.id AND r.status IN ('pendente', 'aprovada')) AS em_analise
@@ -71,7 +73,7 @@ export async function perfilParaReivindicar(ref: string | null): Promise<PerfilR
       WHERE (p.slug = $1 OR p.id::text = $1 OR $1 = ANY(p.slugs_antigos)) AND p.publicado AND t.status = 'active'
       LIMIT 1`,
     [r0]
-  );
+  ));
   const r = rows[0];
   if (!r) return null;
   const canais = [
@@ -98,6 +100,21 @@ export async function registrarPedido(perfilRef: string, acao: AcaoReivindicacao
   const p = await perfilParaReivindicar(perfilRef);
   if (!p) throw new UserError('Não encontramos esse buffet. Busque de novo pelo nome.');
   if (!p.reivindicavel) throw new UserError('Este perfil já é administrado pelo próprio buffet. Se você é o responsável, entre na sua conta.');
+  // Limites pelo perfil de fato (qualquer grafia do endereço cai no mesmo id), pelo e-mail e no total: cada pedido
+  // manda e-mail à equipe e a quem pediu
+  const email = dados.email.trim().toLowerCase();
+  if (
+    !permitir(`reivindicar-perfil:${p.perfilId}`, 4, 24 * 60 * 60_000) ||
+    !permitir(`reivindicar-email:${email}`, 3, 24 * 60 * 60_000) ||
+    !permitir('reivindicar-total', 60, 60 * 60_000)
+  ) {
+    throw new UserError('Muitos pedidos em pouco tempo. Tente de novo mais tarde.');
+  }
+  const { rows: pendente } = await systemQuery(
+    `SELECT 1 FROM busca_reivindicacoes WHERE perfil_id = $1 AND lower(email) = $2 AND status = 'pendente' LIMIT 1`,
+    [p.perfilId, email]
+  );
+  if (pendente.length) throw new UserError('Já recebemos o seu pedido para este buffet. A equipe responde em até 2 dias úteis.');
   await systemQuery(
     `INSERT INTO busca_reivindicacoes (perfil_id, tenant_id, buffet_nome, acao, nome, cargo, email, telefone, mensagem, ip)
      VALUES ($1, $2, $3, $4, $5, $6, lower($7), $8, $9, $10)`,
@@ -119,7 +136,8 @@ export async function registrarPedido(perfilRef: string, acao: AcaoReivindicacao
   const recibo = emailLayout({
     titulo: 'Recebemos o seu pedido',
     paragrafos: [
-      `Olá, ${dados.nome.split(' ')[0]}. Recebemos o pedido para ${oQue} do ${p.nome} no Banket Busca.`,
+      // Sem o nome digitado: o recibo vai para o e-mail informado, ainda não confirmado
+      `Olá! Recebemos o pedido para ${oQue} do ${p.nome} no Banket Busca.`,
       `Para proteger o seu buffet, a nossa equipe confirma a posse pelos contatos que já estão no perfil${p.canais.length ? ` (${p.canais.join(', ')})` : ''} antes de qualquer mudança. Respondemos em até 2 dias úteis.`,
       acao === 'assumir' ? 'Assim que confirmarmos, você recebe o link para criar o seu acesso gratuito e completar o perfil.' : 'Assim que confirmarmos, o perfil sai do Banket Busca.',
     ],

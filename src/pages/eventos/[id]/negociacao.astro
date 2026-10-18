@@ -28,8 +28,8 @@ if (Astro.request.method === 'POST') {
 
 const { evento, analise, historico } = await withTenant(user.tenantId, async (db) => ({
   evento: await carregarEvento(db, id),
-  analise: await carregarAnalise<AnaliseNegociacao>(db, id, 'negociacao', Astro.url.searchParams.get('analise')),
-  historico: await historicoAnalises(db, id, 'negociacao'),
+  analise: await carregarAnalise<AnaliseNegociacao>(db, Astro.locals.user, id, 'negociacao', Astro.url.searchParams.get('analise')),
+  historico: await historicoAnalises(db, Astro.locals.user, id, 'negociacao'),
 }));
 const configurada = openAiConfigurada();
 const a = analise?.resultado;

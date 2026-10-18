@@ -1,4 +1,5 @@
 // Formulários públicos de captação: configuração (a partir do modelo), página pública e respostas.
+import { permitir } from '../lib/rateLimit';
 import { avisarWhatsapp } from './whatsapp';
 import { TEMPO_RESPOSTA_PADRAO, rotuloTempo } from '../lib/tempoResposta';
 import { z } from 'zod';
@@ -461,6 +462,17 @@ async function avisarPedidoBusca(pessoas: { nome: string; email: string }[], per
  * Vindo do Banket Busca (`busca`), o evento tem origem 'busca', o pedido fica em busca_pedidos e owner/admin recebem
  * um e-mail.
  */
+/** Nome de empresa para texto de e-mail: sem URLs nem domínios (o nome é escrito pela própria conta). */
+function semLinks(nome: string): string {
+  return nome
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\bwww\.\S+/gi, '')
+    .replace(/\b[\w-]+(\.[\w-]+)*\.(com|net|org|br|io|app|info|site|online|xyz)\b\S*/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
 export async function receberResposta(formulario: FormularioPublico, dados: Record<string, unknown>, ip: string, busca: OrigemBusca | null = null) {
   const respostas = validarRespostas(formulario.secoes, dados);
   const aviso: { perfil: string | null; pessoas: { nome: string; email: string }[]; whatsapp: (string | number | null)[] } = { perfil: null, pessoas: [], whatsapp: [] };
@@ -501,17 +513,20 @@ export async function receberResposta(formulario: FormularioPublico, dados: Reco
     // Confirmação para quem preencheu (UX-072): melhor esforço, o pedido já foi registrado
     const email = typeof respostas.email === 'string' ? respostas.email.trim() : '';
     const nome = typeof respostas.nome === 'string' ? respostas.nome.trim().split(/\s+/)[0] : '';
-    if (email) {
+    // A confirmação vai para o e-mail digitado (não confirmado) com o nome que a empresa escolheu: teto diário por
+    // empresa e nome sem endereços, para o formulário não virar canal de spam ou phishing em nome do Banket
+    const empresa = semLinks(formulario.empresa.nome);
+    if (email && empresa && permitir(`confirmacao-formulario:${formulario.tenantId}`, 200, 24 * 60 * 60_000)) {
       const { html, text } = emailLayout({
         titulo: 'Recebemos o seu pedido!',
         paragrafos: [
           `Olá${nome ? `, ${nome}` : ''}!`,
-          `O seu pedido de orçamento chegou para a equipe de ${formulario.empresa.nome}, que vai analisar os detalhes do seu evento e retornar em breve.`,
+          `O seu pedido de orçamento chegou para a equipe de ${empresa}, que vai analisar os detalhes do seu evento e retornar em breve.`,
           'Se lembrar de algum detalhe importante, é só responder este e-mail.',
         ],
-        rodape: `Você recebeu esta mensagem porque preencheu o formulário de ${formulario.empresa.nome}.`,
+        rodape: `Você recebeu esta mensagem porque preencheu o formulário de ${empresa}.`,
       });
-      await sendMail({ to: email, subject: `Recebemos o seu pedido — ${formulario.empresa.nome}`, html, text }).catch((err: unknown) =>
+      await sendMail({ to: email, subject: `Recebemos o seu pedido — ${empresa}`, html, text }).catch((err: unknown) =>
         console.error('Falha ao enviar a confirmação do formulário:', err)
       );
     }

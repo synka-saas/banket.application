@@ -1,7 +1,7 @@
 // Leituras públicas do Banket Busca (vitrine): cruzam empresas, então rodam na conexão de sistema, sempre numa
 // transação READ ONLY e sempre filtrando perfis publicados de empresas ativas. É o ÚNICO módulo do Busca que lê
 // sem RLS; só colunas públicas saem daqui. Escritas da vitrine (pedido, avaliação, métricas) entram por withTenant.
-import { withLeituraPublica, withSystem, type Db } from '../../lib/db';
+import { gravarMetrica, withLeituraPublica, type Db } from '../../lib/db';
 import { slugTexto } from '../../lib/busca/geo';
 import { urlMidia } from './perfil';
 import { POR_PAGINA, semFiltrosSecundarios, type Criterios } from '../../lib/busca/filtros';
@@ -525,18 +525,12 @@ const CAMPOS_METRICA: readonly CampoMetrica[] = ['aparicoes', 'visualizacoes', '
 export async function registrarMetrica(perfilIds: string[], campo: CampoMetrica, userAgent: string | null): Promise<void> {
   // O nome da coluna entra no SQL: só os da lista
   if (!perfilIds.length || ehRobo(userAgent) || !CAMPOS_METRICA.includes(campo)) return;
-  try {
-    await withSystem((db) =>
-      db.query(
-        `INSERT INTO busca_metricas_dia (tenant_id, perfil_id, dia, ${campo})
-         SELECT p.tenant_id, p.id, (now() AT TIME ZONE 'America/Sao_Paulo')::date, 1 FROM busca_perfis p WHERE p.id = ANY($1::uuid[]) AND p.publicado
-         ON CONFLICT (perfil_id, dia) DO UPDATE SET ${campo} = busca_metricas_dia.${campo} + 1`,
-        [perfilIds]
-      )
-    );
-  } catch (err) {
-    console.error('[busca] métrica:', err);
-  }
+  gravarMetrica(
+    `INSERT INTO busca_metricas_dia (tenant_id, perfil_id, dia, ${campo})
+     SELECT p.tenant_id, p.id, (now() AT TIME ZONE 'America/Sao_Paulo')::date, 1 FROM busca_perfis p WHERE p.id = ANY($1::uuid[]) AND p.publicado
+     ON CONFLICT (perfil_id, dia) DO UPDATE SET ${campo} = busca_metricas_dia.${campo} + 1`,
+    [perfilIds]
+  );
 }
 
 /** Tipos de evento com pelo menos um buffet publicado em cada cidade (landings e links internos). */

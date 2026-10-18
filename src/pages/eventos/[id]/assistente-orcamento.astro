@@ -46,8 +46,8 @@ const ctx = await withTenant(user.tenantId, async (db) => {
   return {
     ...c,
     alertas: await alertasEstoque(db),
-    analise: c.versao ? await carregarAnalise<AnaliseCardapio>(db, id, 'cardapio', Astro.url.searchParams.get('analise')) : null,
-    historico: await historicoAnalises(db, id, 'cardapio'),
+    analise: c.versao ? await carregarAnalise<AnaliseCardapio>(db, Astro.locals.user, id, 'cardapio', Astro.url.searchParams.get('analise')) : null,
+    historico: await historicoAnalises(db, Astro.locals.user, id, 'cardapio'),
   };
 });
 const { evento, orcamento, versao, alertas, analise, historico } = ctx;
