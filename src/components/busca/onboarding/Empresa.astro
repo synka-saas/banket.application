@@ -63,9 +63,8 @@ const fone = empresa?.telefone ? mascararTelefone(empresa.telefone) : null;
         <div class="field"><label for="e-insta">Instagram</label><input id="e-insta" name="instagram" placeholder="@seubuffet" value={p.instagram ?? ''} /></div>
         <div class="field"><label for="e-site">Site</label><input id="e-site" name="site" placeholder="www.seubuffet.com.br" value={p.site ?? ''} /></div>
         <div class="field"><label for="e-tempo">Tempo de resposta</label>
-          <select id="e-tempo" name="tempo_resposta_texto">
-            {['', 'Responde em até 2 horas', 'Responde no mesmo dia', 'Responde em até 1 dia'].map((o) => <option value={o} selected={(p.tempo_resposta_texto ?? '') === o}>{o || 'Não informar'}</option>)}
-          </select>
+          <input id="e-tempo" value={p.tempo_resposta_texto ?? 'Responde em até 48 horas'} readonly />
+          <span class="field-hint">Definido em <a class="link" href="/configuracoes/empresa#tempo-resposta">Configurações › Empresa</a>. O cumprimento desse prazo pesa no ranking.</span>
         </div>
         {endereco ? (
           <div class="field span-2" data-endereco>

@@ -41,7 +41,16 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
   <div class="vr-cabeca">
     <div>
       <h1 class="vr-titulo">{titulo ?? contagem}</h1>
-      <p class="vr-meta">{titulo ? `${contagem}${resumo ? ` · ${resumo}` : ''}` : resumo || 'Todos os buffets publicados'}. Clientes Banket aparecem primeiro.</p>
+      <p class="vr-meta">{titulo ? `${contagem}${resumo ? ` · ${resumo}` : ''}` : resumo || 'Todos os buffets publicados'}.</p>
+      <details class="vr-como">
+        <summary>Como ordenamos os resultados</summary>
+        <p>
+          Mostramos primeiro os buffets mais relevantes para a sua busca: distância, avaliações, perfil completo, tempo de
+          resposta e atividade recente. Buffets que usam o Banket (selo Cliente Banket) recebem um impulso na ordem e podem
+          ocupar até três posições marcadas como <strong>Destaque</strong> no topo. Todo buffet que atende ao seu pedido
+          aparece na lista. Em "Melhor avaliados" e "Mais próximos" não há destaque nem impulso.
+        </p>
+      </details>
     </div>
     <form class="vr-ordem" method="get" action={caminhoVitrine('/buscar')} data-ordem>
       {[...new URLSearchParams(queryDaBusca({ ...c, ordem: 'relevancia', pagina: 1 }).slice(1))].map(([k, v]) => <input type="hidden" name={k} value={v} />)}

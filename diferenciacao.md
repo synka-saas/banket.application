@@ -54,7 +54,10 @@ do Busca acima do limite saem do perfil público e voltam quando o plano permiti
 | Selo "Cliente Banket" e prioridade na busca | não | sim |
 | Cardápios no perfil | não | sim, só as opções marcadas **"Cardápio público"** no editor da opção (ao lado de "Cardápio ativo") |
 | Disponibilidade | "Consultar disponibilidade" | pela agenda do Banket (datas fechadas saem da busca) |
-| Pedido no perfil | **Ver contatos** (WhatsApp, telefone, e-mail, Instagram, site) | **Obter orçamento**: formulário do buffet, pedido no Painel de Propostas |
+| Pedido no perfil | **Ver contatos** (WhatsApp, telefone, e-mail, Instagram, site) | **Receber orçamento sem compromisso**: formulário do buffet, pedido no Painel de Propostas; + **Falar no WhatsApp** com a mensagem pronta |
+| Avaliações | só as já existentes | pela pesquisa de satisfação (nota CSAT e depoimento autorizado), com resposta pública |
+| Avisos | e-mail (Essencial) / só no app (Busca) | e-mail e WhatsApp da empresa |
+| Painel `/busca/desempenho` | totais e o que deixou de ganhar | por dia, funil até o pedido, tempo de resposta e região |
 | Endereço do perfil | `/buffet/<id do perfil>` | gerado do nome do buffet; pode ser trocado na etapa 1, digitando ou pela varinha de IA (até 3 sugestões) |
 
 ### 1.3 Onde isso aparece
@@ -137,14 +140,23 @@ chamaria o gratuito ao lado. O pagante perderia justamente o contato inicial.
 - O Master não tem oferta pública: no site aparece só como chamada ("Grande buffet ou rede de buffets?") e é
   contratado pela equipe.
 
-## 5. Pendências de implementação
+## 5. Implementação (18/10/2026, migration 047)
 
-1. Perfil público do pagante: incluir o botão secundário de contato ao lado de "Obter orçamento" (hoje o pagante só
-   tem o formulário).
-2. WhatsApp do pagante com a mensagem pré-preenchida pelos critérios da busca.
-3. Contar os cliques em "Ver contatos" / "Falar no WhatsApp" em `busca_metricas_dia` (por exemplo
-   `cliques_contato`) e mostrar no painel do buffet.
-4. Painel do gratuito com o aviso do que deixou de ganhar (buscas, visualizações, contatos) e o upsell.
-5. Pedido de avaliação pós-evento e resposta às avaliações só para o Personalizado.
-6. Avaliar o pedido estruturado com limite para o Simples (item 2.1).
-7. Ranking conforme `rankeamento.md`.
+1. **Feito.** Perfil público do pagante: "Receber orçamento sem compromisso" + secundário "Falar no WhatsApp" e "Ver
+   outros contatos" (no celular, ícone do WhatsApp ao lado de "Obter orçamento").
+2. **Feito.** WhatsApp do pagante com a mensagem pré-preenchida pelos critérios da busca (tipo, data, convidados).
+3. **Feito.** `busca_metricas_dia.cliques_contato` (e `cliques_orcamento`, que antes não era contado) por
+   `POST /api/vitrine/metrica`; painel em `/busca/desempenho`.
+4. **Feito.** Painel do Simples com "O que você deixou de ganhar" (média de pedidos dos personalizados da cidade ou do
+   estado, com 3+ perfis) e o convite para o teste de 30 dias.
+5. **Feito, pela pesquisa de satisfação** (decisão de 18/10/2026): a resposta vira avaliação no Busca (nota = média
+   CSAT; sem CSAT, NPS convertido; depoimento só com autorização). A empresa responde publicamente e pode ocultar o
+   depoimento (a nota continua). Pesquisas só existem do Profissional para cima, então só o Personalizado acumula nota.
+6. **Adiado** (decisão de 18/10/2026): pedido estruturado com limite para o Simples. O Simples segue com "Ver contatos".
+7. **Feito.** Ranking conforme `rankeamento.md`.
+8. **Novo — tempo de resposta**: cada empresa escolhe 2, 4, 6, 12, 24, 48 ou 72 h em Configurações › Empresa ›
+   Parâmetros comerciais (padrão 48 h); o perfil mostra "Responde em até X horas" e o cumprimento (pedidos do Busca e
+   dos formulários respondidos no prazo, 90 dias) é a taxa de resposta do ranking.
+9. **Novo — avisos no WhatsApp** (Cloud API da Meta, recurso `busca_aviso_whatsapp`): para o número da empresa, com
+   aceite e escolha dos avisos — novo pedido, prazo de resposta vencendo (quando restam 25% do prazo, só em prazos
+   acima de 12 h), resposta do cliente no Inbox e pesquisa respondida.

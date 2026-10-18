@@ -2,6 +2,7 @@
 // da própria empresa (withTenant). Depois de toda gravação: completude e etapa_concluida recalculadas; perfil publicado
 // que deixa de cumprir as etapas 1–5 volta a rascunho. Limites do plano (tipos, fotos, grupos de fotos) pelo gating
 // central. Sem pacotes nem preço (16/10/2026); a tabela busca_pacotes fica sem uso.
+import { TEMPO_RESPOSTA_PADRAO, textoTempoResposta } from '../../lib/tempoResposta';
 import { z } from 'zod';
 import type { Db } from '../../lib/db';
 import { isAdmin, type SessionUser } from '../../lib/auth';
@@ -58,15 +59,14 @@ export async function recalcular(db: Db, perfilId: string): Promise<{ despublica
 // Etapas 1 a 4
 // ---------------------------------------------------------------------------
 /**
- * Etapa 1 só com o que é do perfil público: redes, tempo de resposta e descrição (o endereço do perfil é gerado do
+ * Etapa 1 só com o que é do perfil público: redes e descrição (o endereço do perfil é gerado do
  * nome, atualizarEnderecosPeloNome). Os dados da
- * empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp, logotipo) vêm de Configurações › Empresa
- * (sincronizarPerfisComEmpresa) e não são pedidos de novo.
+ * empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp, logotipo e o tempo de resposta dos Parâmetros comerciais) vêm de
+ * Configurações › Empresa (sincronizarPerfisComEmpresa) e não são pedidos de novo.
  */
 export const empresaSchema = z.object({
   instagram: optionalText(120),
   site: optionalText(255),
-  tempo_resposta_texto: optionalText(60),
   descricao: z.preprocess((v) => (typeof v === 'string' ? v.trim() : ''), z.string().min(80, 'Escreva ao menos 80 caracteres na descrição.').max(1200, 'A descrição pode ter até 1.200 caracteres.')),
   // Endereço do perfil (só planos pagos mostram o campo): ausente = não mexe; vazio = volta a acompanhar o nome
   endereco: z.preprocess((v) => (typeof v === 'string' ? normalizarSlug(v) : undefined), z.string().optional()),
@@ -77,8 +77,8 @@ export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<ty
   const p = await garantirPerfil(db, user.tenantId);
   const instagram = input.instagram ? (input.instagram.startsWith('@') || input.instagram.includes('/') ? input.instagram : `@${input.instagram}`) : null;
   await db.query(
-    `UPDATE busca_perfis SET instagram = $2, site = $3, tempo_resposta_texto = $4, descricao = $5, updated_at = now() WHERE id = $1`,
-    [p.id, instagram, input.site, input.tempo_resposta_texto, input.descricao]
+    `UPDATE busca_perfis SET instagram = $2, site = $3, descricao = $4, updated_at = now() WHERE id = $1`,
+    [p.id, instagram, input.site, input.descricao]
   );
   await sincronizarPerfisComEmpresa(db, user.tenantId);
   await salvarEndereco(db, user.tenantId, p.id, input.endereco);
@@ -163,10 +163,15 @@ export interface DadosEmpresa {
   email: string | null;
   telefone: string | null;
   logo_path: string | null;
+  tempo_resposta_horas: number;
 }
 
 export async function dadosDaEmpresa(db: Db, tenantId: string): Promise<DadosEmpresa | null> {
-  const { rows } = await db.query<DadosEmpresa>('SELECT nome, documento, email, telefone, logo_path FROM tenants WHERE id = $1', [tenantId]);
+  const { rows } = await db.query<DadosEmpresa>(
+    `SELECT t.nome, t.documento, t.email, t.telefone, t.logo_path, coalesce(c.tempo_resposta_horas, ${TEMPO_RESPOSTA_PADRAO}) AS tempo_resposta_horas
+       FROM tenants t LEFT JOIN configuracoes_tenant c ON c.tenant_id = t.id WHERE t.id = $1`,
+    [tenantId]
+  );
   return rows[0] ?? null;
 }
 
@@ -206,10 +211,10 @@ export async function sincronizarPerfisComEmpresa(db: Db, tenantId: string, opco
     }
     await db.query(
       `UPDATE busca_perfis SET documento = $2, email_contato = $3, whatsapp = $4, telefone = $5, logo_path = $6,
-              nome = CASE WHEN $7 THEN $8 ELSE nome END, updated_at = now()
+              nome = CASE WHEN $7 THEN $8 ELSE nome END, tempo_resposta_texto = $9, updated_at = now()
         WHERE id = $1`,
       [p.id, doc, e.email?.trim().toLowerCase() || null, fone.length === 11 ? fone : null, fone.length === 10 ? fone : null, logo,
-       perfis.length === 1, e.nome]
+       perfis.length === 1, e.nome, textoTempoResposta(e.tempo_resposta_horas)]
     );
     if (doBusca && p.logo_path !== logo) await removeFile(tenantId, p.logo_path!).catch(() => undefined);
     await recalcular(db, p.id);

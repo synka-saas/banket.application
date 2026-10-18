@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import { systemQuery, withTenant, type Db } from '../lib/db';
-import type { SessionUser } from '../lib/auth';
+import { isAdmin, type SessionUser } from '../lib/auth';
 import { UserError, checkbox, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import { appUrl } from '../lib/mail';
@@ -12,8 +12,10 @@ import { aplicarVariaveis } from '../lib/documentos/variaveis';
 import {
   CLASSES_NPS,
   TIPOS_PERGUNTA,
+  avaliacaoDaPesquisa,
   calcularNps,
   classeNps,
+  nomeDeExibicao,
   validarRespostas,
   type ClasseNps,
   type PerguntaPublica,
@@ -23,6 +25,7 @@ import { carregarEmpresa } from './empresa';
 import { listaEmails } from './emailTexto';
 import { enviarNaConversa, obterOuCriarConversa } from './conversas';
 import { registrarTimeline } from './timeline';
+import { avisarWhatsapp } from './whatsapp';
 
 export * from '../lib/pesquisa';
 
@@ -356,6 +359,7 @@ export async function responderPesquisa(pub: PesquisaPublica, dados: Record<stri
     throw new UserError((err as Error).message);
   }
   if (!respostas.length) throw new UserError('Responda pelo menos uma pergunta.');
+  const resumo = { cliente: '', evento: '', resultado: '' };
   await withTenant(pub.tenantId, async (db) => {
     const { rows } = await db.query<{ respondida_em: Date | null }>('SELECT respondida_em FROM pesquisa_envios WHERE id = $1 FOR UPDATE', [pub.envioId]);
     if (!rows[0]) throw new UserError('Pesquisa não encontrada.');
@@ -368,7 +372,22 @@ export async function responderPesquisa(pub: PesquisaPublica, dados: Record<stri
       );
     }
     const nps = respostas.find((r) => r.pergunta.tipo === 'nps')?.nota ?? null;
-    await db.query('UPDATE pesquisa_envios SET respondida_em = now(), nps = $2, ip = $3 WHERE id = $1', [pub.envioId, nps, ip.slice(0, 64)]);
+    // Avaliação no Banket Busca: nota = média CSAT (ou NPS convertido); depoimento só com autorização
+    const av = avaliacaoDaPesquisa(respostas.map((r) => ({ tipo: r.pergunta.tipo, texto: r.pergunta.texto, nota: r.nota, opcoes: r.opcoes, resposta: r.texto })));
+    const { rows: [cli] } = await db.query<{ nome: string | null; titulo: string }>(
+      'SELECT c.nome, e.titulo FROM eventos e LEFT JOIN clientes c ON c.id = e.cliente_id WHERE e.id = $1',
+      [pub.eventoId]
+    );
+    await db.query(
+      `UPDATE pesquisa_envios SET respondida_em = now(), nps = $2, ip = $3, nota_busca = $4, depoimento = $5, depoimento_nome = $6
+        WHERE id = $1`,
+      [pub.envioId, nps, ip.slice(0, 64), av.nota, av.depoimento, av.depoimento ? nomeDeExibicao(cli?.nome) : null]
+    );
+    if (av.nota != null) await db.query('SELECT busca_recalcular_avaliacoes($1)', [pub.tenantId]);
+    resumo.cliente = cli?.nome ?? 'Cliente';
+    resumo.evento = cli?.titulo ?? 'o evento';
+    resumo.resultado = [nps != null ? `NPS ${nps}` : null, av.nota != null ? `nota média ${av.nota.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}` : null]
+      .filter(Boolean).join(' · ') || 'sem nota';
     await registrarTimeline(
       db,
       { tenantId: pub.tenantId, eventoId: pub.eventoId, usuarioId: null },
@@ -376,6 +395,10 @@ export async function responderPesquisa(pub: PesquisaPublica, dados: Record<stri
       `Pesquisa de satisfação respondida${nps !== null ? ` — NPS ${nps} (${CLASSES_NPS[classeNps(nps)].toLowerCase()})` : ''}`,
       { envio_id: pub.envioId, nps }
     );
+  });
+  await avisarWhatsapp(pub.tenantId, 'pesquisa', {
+    variaveis: [resumo.cliente, resumo.evento, resumo.resultado], link: `pesquisas/respostas/${pub.envioId}`,
+    eventoId: pub.eventoId, chave: `pesquisa:${pub.envioId}`,
   });
 }
 
@@ -553,9 +576,20 @@ export async function listarEnvios(
   return { rows, total: t[0].total };
 }
 
+export interface AvaliacaoBusca {
+  nota_busca: number | null;
+  depoimento: string | null;
+  depoimento_nome: string | null;
+  busca_oculta: boolean;
+  busca_resposta: string | null;
+  busca_resposta_em: Date | null;
+}
+
 export interface RespostaDetalhe {
   envio: EnvioPesquisa;
   respostas: { pergunta_texto: string; tipo: TipoPergunta; nota: number | null; opcoes: string[] | null; texto: string | null }[];
+  /** Como a resposta aparece no perfil do Banket Busca (nota, depoimento autorizado e a resposta da empresa) */
+  busca: AvaliacaoBusca;
 }
 
 export async function carregarResposta(db: Db, envioId: string): Promise<RespostaDetalhe> {
@@ -571,7 +605,31 @@ export async function carregarResposta(db: Db, envioId: string): Promise<Respost
     'SELECT pergunta_texto, tipo, nota, opcoes, texto FROM pesquisa_respostas WHERE envio_id = $1 ORDER BY ordem, created_at',
     [envioId]
   );
-  return { envio: rows[0], respostas };
+  const { rows: [busca] } = await db.query<AvaliacaoBusca>(
+    'SELECT nota_busca, depoimento, depoimento_nome, busca_oculta, busca_resposta, busca_resposta_em FROM pesquisa_envios WHERE id = $1',
+    [envioId]
+  );
+  return { envio: rows[0], respostas, busca };
+}
+
+export const avaliacaoBuscaSchema = z.object({
+  busca_resposta: optionalText(1000),
+  busca_oculta: checkbox(),
+});
+
+/**
+ * Resposta pública da empresa ao depoimento e ocultar o depoimento no perfil do Busca (owner/admin). Ocultar esconde o
+ * texto e a resposta; a nota continua contando na média.
+ */
+export async function salvarAvaliacaoBusca(db: Db, user: SessionUser, envioId: string, input: z.infer<typeof avaliacaoBuscaSchema>): Promise<void> {
+  if (!isAdmin(user)) throw new UserError('Só proprietários e administradores respondem avaliações.');
+  const { rowCount } = await db.query(
+    `UPDATE pesquisa_envios SET busca_resposta = $2, busca_oculta = $3,
+            busca_resposta_em = CASE WHEN $2::text IS NULL THEN NULL WHEN busca_resposta IS DISTINCT FROM $2 THEN now() ELSE busca_resposta_em END
+      WHERE id = $1 AND nota_busca IS NOT NULL`,
+    [envioId, input.busca_resposta, input.busca_oculta]
+  );
+  if (!rowCount) throw new UserError('Esta resposta ainda não virou avaliação no Banket Busca.');
 }
 
 export interface RespostaDaPergunta {

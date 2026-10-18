@@ -1,4 +1,6 @@
 // Formulários públicos de captação: configuração (a partir do modelo), página pública e respostas.
+import { avisarWhatsapp } from './whatsapp';
+import { TEMPO_RESPOSTA_PADRAO, rotuloTempo } from '../lib/tempoResposta';
 import { z } from 'zod';
 import { systemQuery, withTenant, type Db } from '../lib/db';
 import { sendMail } from '../lib/mail';
@@ -461,7 +463,7 @@ async function avisarPedidoBusca(pessoas: { nome: string; email: string }[], per
  */
 export async function receberResposta(formulario: FormularioPublico, dados: Record<string, unknown>, ip: string, busca: OrigemBusca | null = null) {
   const respostas = validarRespostas(formulario.secoes, dados);
-  const aviso: { perfil: string | null; pessoas: { nome: string; email: string }[] } = { perfil: null, pessoas: [] };
+  const aviso: { perfil: string | null; pessoas: { nome: string; email: string }[]; whatsapp: (string | number | null)[] } = { perfil: null, pessoas: [], whatsapp: [] };
   return withTenant(formulario.tenantId, async (db) => {
     const clienteId = await clienteDoPedido(db, formulario.tenantId, respostas);
     const briefing = await briefingDoPedido(db, respostas, clienteId);
@@ -480,9 +482,22 @@ export async function receberResposta(formulario: FormularioPublico, dados: Reco
       aviso.perfil = perfil;
       aviso.pessoas = await destinatarios(db, formulario.tenantId);
     }
+    // Dados do aviso no WhatsApp (enviado depois do commit)
+    const { rows: [ev] } = await db.query<{ cliente: string | null; evento: string; data: string | null; convidados: number | null; horas: number | null }>(
+      `SELECT cl.nome AS cliente, coalesce(ce.nome, e.titulo) AS evento, to_char(e.data_evento, 'DD/MM/YYYY') AS data,
+              e.numero_convidados AS convidados, (SELECT tempo_resposta_horas FROM configuracoes_tenant) AS horas
+         FROM eventos e LEFT JOIN clientes cl ON cl.id = e.cliente_id LEFT JOIN categorias_evento ce ON ce.id = e.categoria_evento_id
+        WHERE e.id = $1`,
+      [eventoId]
+    );
+    aviso.whatsapp = [ev?.cliente ?? 'Cliente', ev?.evento ?? 'Evento', ev?.data ?? 'a definir', ev?.convidados ?? 'a definir',
+      perfil ? 'Banket Busca' : `Formulário ${formulario.nome}`, rotuloTempo(ev?.horas ?? TEMPO_RESPOSTA_PADRAO)];
     return eventoId;
   }).then(async (eventoId) => {
     if (aviso.perfil) await avisarPedidoBusca(aviso.pessoas, aviso.perfil, eventoId, respostas);
+    await avisarWhatsapp(formulario.tenantId, 'novo_pedido', {
+      variaveis: aviso.whatsapp, link: `eventos/${eventoId}`, eventoId, chave: `pedido:${eventoId}`,
+    });
     // Confirmação para quem preencheu (UX-072): melhor esforço, o pedido já foi registrado
     const email = typeof respostas.email === 'string' ? respostas.email.trim() : '';
     const nome = typeof respostas.nome === 'string' ? respostas.nome.trim().split(/\s+/)[0] : '';

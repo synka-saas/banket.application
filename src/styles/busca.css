@@ -394,6 +394,23 @@ body.vitrine {
   min-width: 0;
 }
 
+.bcard-destaque {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text-accent);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+
 .bcard-cabeca {
   display: flex;
   align-items: flex-start;
@@ -891,6 +908,28 @@ body.vitrine {
   margin: 4px 0 0;
   font-size: var(--fs-13);
   color: var(--text-secondary);
+}
+
+.vr-como {
+  margin-top: 4px;
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.vr-como summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--text-link);
+}
+
+.vr-como p {
+  max-width: 64ch;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+
+.vr-como strong {
+  font-weight: var(--fw-medium);
 }
 
 .vr-layout {
@@ -1600,6 +1639,16 @@ body.vitrine {
   text-overflow: ellipsis;
   font-weight: var(--fw-medium);
   color: var(--text-heading);
+}
+
+.vp-movel-acoes {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.vp-aside-mais {
+  align-self: center;
 }
 
 /* Fotos do perfil, em grupos por evento (planos pagos) */

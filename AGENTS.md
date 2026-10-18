@@ -34,6 +34,7 @@ cobrança pelo Stripe, no modelo do Yosp).
 | Senhas | `pgcrypto`: `crypt(senha, gen_salt('bf'))` (bcrypt no próprio Postgres) |
 | PDF | **Chromium** via `playwright-core` + **pdf-lib** para juntar capa/miolo/contracapa |
 | E-mail | API HTTP do **Resend** (sem chave, o e-mail vai para o log) |
+| WhatsApp | **Cloud API da Meta** só com `fetch` (`lib/whatsapp.ts`): avisos de template às empresas do Perfil Personalizado; sem token, vai para o log |
 | Cobrança | **Stripe** (`stripe` SDK): assinatura com cartão (Checkout hospedado) ou Pix (fatura com 7 dias), webhook em `/api/webhooks/stripe` |
 | Interface | CSS escrito à mão sobre os tokens do **design system** (`design-system/` → `src/styles/tokens.css`); fonte **General Sans** servida de `/public/fonts`; ícones **Tabler** em linha |
 | Testes | **Vitest** (unitários em `src/**/*.test.ts`) e **Playwright** (e2e em `tests/e2e`) |
@@ -100,7 +101,10 @@ src/
     planos/            cobranca.ts (estado de cobrança puro: teste/ativa/vencida/rebaixar/manual), recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
                        gating.ts (fn_tenant_entitlements com cache 15 s; podeUsar/limite/exigir; ErroPlano), trial.ts e
                        excedentes.ts (regras puras do teste grátis e do rebaixamento)
-    pesquisa.ts        tipos de pergunta, NPS/CSAT (classes, zonas) e validação das respostas da pesquisa (puro)
+    pesquisa.ts        tipos de pergunta, NPS/CSAT (classes, zonas), validação das respostas e a avaliação do Busca que sai
+                       da resposta (avaliacaoDaPesquisa: média CSAT, depoimento autorizado; puro)
+    whatsapp.ts        Cloud API da Meta: envio de template, número (DDI 55), parâmetros, assinatura do webhook
+    tempoResposta.ts   opções do tempo de resposta (2–72 h), texto do perfil e momento do aviso de prazo (puro)
     cripto.ts          AES-256-GCM com chave derivada do JWT_SECRET (tokens OAuth do Google guardados cifrados)
     google.ts          OAuth do Google (state assinado + nonce), perfil, renovação de token e Calendar API (evento + Meet)
     storage.ts         arquivos em disco particionados por tenant
@@ -134,7 +138,9 @@ src/
     ia/                assistentes de IA por evento (OpenAI): negociacao.ts (Assistente de Negociação IA), cardapio.ts
                        (Assistente de Orçamentos IA: alertas de estoque, sugestões, aplicar troca), comum.ts (histórico, limite)
     financeiro.ts      contas a receber/pagar, categorias, baixa, plano de pagamento do evento, contas do estoque, CSV
-    pesquisas.ts       pesquisa de satisfação: questionário, envio pelo Inbox, página pública (token), indicadores
+    pesquisas.ts       pesquisa de satisfação: questionário, envio pelo Inbox, página pública (token), indicadores, nota e
+                       depoimento no Banket Busca (resposta pública e ocultar)
+    whatsapp.ts        avisos à empresa no WhatsApp (avisarWhatsapp: recurso, aceite, tipos, dedup em whatsapp_mensagens)
     planos.ts          planos da empresa: único dono de tenants.plano_id (trocarPlano), teste grátis, rebaixamento para o
                        plano Busca, excedentes, push do Manager, eventos de upsell, e-mails do teste, contagens dos limites
     busca/             Banket Busca: perfil.ts (perfil da empresa, pré-preenchimento, nível pelo plano, excedentes,
@@ -146,8 +152,9 @@ src/
     assinatura.ts      assinatura pelo Stripe: checkout (cartão/Pix, agora ou no fim do teste), troca, cancelamento, portal,
                        Pix da fatura, espelho (tenants.stripe_*, assinatura_faturas), promoção do plano após o pagamento,
                        rebaixamento por fatura vencida/assinatura encerrada, webhook, varredura e e-mails de cobrança
-    agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h), avisos D-7/D-1/D0 e a
-                       varredura da cobrança (fatura vencida, Pix abandonado, reconciliação com o Stripe a cada 6 h)
+    agendador.ts       setInterval por processo (10 min): rebaixa testes vencidos (D+1 12h), avisos D-7/D-1/D0, a
+                       varredura da cobrança (fatura vencida, Pix abandonado, reconciliação com o Stripe a cada 6 h), a
+                       taxa de resposta dos perfis do Busca (a cada hora) e o aviso de prazo vencendo no WhatsApp
   pages/               rotas Astro (SSR); POST de formulário na própria página
   pages/api/           endpoints JSON usados pelas ilhas Preact; api/webhooks/resend.ts e api/webhooks/stripe.ts recebem os
                        webhooks do Resend e do Stripe; api/assinatura/* são as ações da assinatura
@@ -166,7 +173,7 @@ src/
                        financeiro.css (indicadores, listas de contas e barras; usado também pelas Pesquisas)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
-scripts/               migrate.mjs, stripe-bootstrap.mjs (produtos, preços, descrição e recursos com limites dos planos pagos
+scripts/               migrate.mjs, whatsapp-templates.mjs (cria os templates dos avisos na conta do WhatsApp Business), stripe-bootstrap.mjs (produtos, preços, descrição e recursos com limites dos planos pagos
                        no Stripe, inclusive o Master não público; Portal do Cliente), deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
                        buffets → Busca; simula por padrão, --gravar grava, --remover-testes apaga as empresas de demonstração)
 tests/e2e/             Playwright (helpers.ts: login, leitura de links de e-mail no log do contêiner)
@@ -276,7 +283,9 @@ partes por `enderecoCompleto`, `lib/endereco.ts`, usado em propostas, `{empresa_
 
 **`configuracoes_tenant`** — PK `tenant_id`. `validade_proposta_dias` (5), `criancas_isentas_ate` (5),
 `criancas_meia_ate` (11), `espaco_padrao_id` (→ `espacos`, pré-selecionado em eventos novos e no formulário público),
-`assinatura_nome/cargo/telefone`, `kanban_intervalo_meses` (NULL, 1, 3 ou 6). `local_padrao`, `email_assunto` e
+`assinatura_nome/cargo/telefone`, `kanban_intervalo_meses` (NULL, 1, 3 ou 6), `tempo_resposta_horas` (2, 4, 6, 12, 24,
+48 ou 72; padrão 48; migration 047), `whatsapp_avisos` (DDI+DDD+número), `whatsapp_avisos_ativo` (aceite) e
+`whatsapp_avisos_tipos` (`novo_pedido | prazo_resposta | inbox | pesquisa`). `local_padrao`, `email_assunto` e
 `email_corpo` ficaram **sem uso** (substituídos por `espaco_padrao_id` e por `email_modelos`; remover num deploy futuro).
 
 **`email_modelos`** — modelos de e-mail (Configurações › Modelos de e-mail): `nome` (UNIQUE por empresa), `assunto`,
@@ -532,7 +541,10 @@ cliques por dia). `eventos.origem` aceita `busca`. Extensões: `cube`, `earthdis
 máximo **uma pergunta NPS** por empresa. Padrões em `aplicar_padroes_pesquisa` (NPS, 5 notas de CSAT, expectativa,
 duas abertas, autorização de depoimento).
 **`pesquisa_envios`** — um link por evento (`evento_id` UNIQUE, CASCADE): `token` (UNIQUE, 32 caracteres base64url),
-`enviado_para TEXT[]`, `enviado_em`, `envios`, `enviado_por`, `respondida_em`, `nps` (cópia da nota para agregação), `ip`.
+`enviado_para TEXT[]`, `enviado_em`, `envios`, `enviado_por`, `respondida_em`, `nps` (cópia da nota para agregação), `ip`;
+avaliação no Banket Busca (migration 047): `nota_busca` (média CSAT 1–5; sem CSAT, 1 + NPS × 0,4), `depoimento` (1ª
+aberta com 20+ caracteres, só com "Sim" na pergunta de autorização de depoimento), `depoimento_nome` ("Mariana S."),
+`busca_oculta`, `busca_resposta`, `busca_resposta_em`.
 **`pesquisa_respostas`** — `envio_id` (CASCADE), `pergunta_id` (SET NULL), `tipo` e `pergunta_texto` copiados na
 resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 
@@ -590,6 +602,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `047_busca_ranking_avaliacoes_whatsapp` | `busca_metricas_dia.cliques_contato`, `busca_perfis.ultima_resposta_em`, tempo de resposta e avisos do WhatsApp em `configuracoes_tenant`, avaliação do Busca em `pesquisa_envios` + `busca_recalcular_avaliacoes(tenant)`, `whatsapp_mensagens` (RLS) e `whatsapp_events` (só sistema) |
 | `046_planos_precos_master` | preços (89/197/297; anual 10×), limites do Profissional e do Prime (ilimitado só no Master) e o plano Master (R$ 449, não público) |
 | `045_planos_descricoes` | descrições dos planos sem o termo "Concierge", com Banket Busca Simples/Personalizado |
 | `044_busca_simples_personalizado` | Busca em dois níveis: Essencial com os recursos do Busca do gratuito (Perfil Simples); `busca_personalizado` em Profissional, Prime e Completo; `busca_perfis.nivel` passa a seguir o recurso |
@@ -891,6 +904,10 @@ domínio, o e-mail do usuário), `In-Reply-To`/`References` com os ids já conhe
   promotores/detratores, distribuição 0–10, CSAT por aspecto, escolhas, comentários recentes); Respostas (status,
   classe NPS, período, busca no texto) com detalhe por pesquisa; **Por pergunta**: distribuição da pergunta (clicar numa
   linha filtra a nota/opção) e a lista de respostas com filtros de classe NPS, período e texto — é onde se leem as abertas.
+- **Avaliação no Banket Busca** (é a avaliação do Perfil Personalizado; o módulo Pesquisas só existe do Profissional para
+  cima): ao responder, `responderPesquisa` grava `nota_busca` e o depoimento autorizado (`avaliacaoDaPesquisa`) e chama
+  `busca_recalcular_avaliacoes`. No detalhe da resposta, o cartão "No Banket Busca" mostra a nota e o depoimento;
+  owner/admin escrevem a **resposta pública** e podem **ocultar** o depoimento (a nota continua na média).
 
 ### Assistentes de IA (OpenAI, `lib/openai.ts` → `openAiJson` com JSON Schema strict; `OPENAI_TOKEN`/`OPENAI_MODEL`)
 - **Assistente de Negociação IA** — aba do evento `/eventos/:id/negociacao` (`server/ia/negociacao.ts`). "Analisar
@@ -1009,8 +1026,29 @@ variáveis e prévia, padrão único, ativo; ao excluir o padrão o próximo ati
 Empresa e Financeiro, com os parâmetros da proposta ocultos): tenant da conta (somente leitura, com Copiar), dados
 cadastrais, endereço desmembrado com o **CEP como primeiro campo, ligado à ViaCEP** (`buscarCep`: preenche rua, bairro,
 cidade e UF — substitui o que estava; número e complemento ficam — e leva ao número), logo, validade da proposta, faixas de crianças, espaço
-padrão, assinatura. Salvar copia nome, documento, e-mail, telefone e logo para os perfis do Busca
+padrão, assinatura. **Tempo de resposta aos pedidos** (Parâmetros comerciais, visível em todo plano: 2 a 72 h, padrão
+48 h) com o cumprimento dos últimos 90 dias (`cumprimentoDaEmpresa`, `server/busca/respostas.ts`: pedido do Busca ou de
+formulário respondido = 1º e-mail enviado ao cliente numa conversa do evento ou 1ª ação de usuário — etapa, orçamento,
+envio, reunião, anotação, checklist); o agendador grava a taxa em `busca_perfis.taxa_resposta` (ranking) e o perfil
+mostra "Responde em até X horas". **Avisos no WhatsApp** (recurso `busca_aviso_whatsapp`; sem ele, cadeado): número
+da empresa, aceite, tipos (novo pedido, prazo de resposta vencendo — quando restam 25% do prazo, só em prazos acima de
+12 h —, resposta do cliente no Inbox, pesquisa respondida), "Salvar e enviar teste" e os últimos avisos com a
+situação. Salvar copia nome, documento, e-mail, telefone, logo e o texto do tempo de resposta para os perfis do Busca
 (`sincronizarPerfisComEmpresa`). A locação saiu daqui: fica em Espaços.
+
+### Avisos no WhatsApp (`lib/whatsapp.ts`, `server/whatsapp.ts`, `scripts/whatsapp-templates.mjs`, `/api/webhooks/whatsapp`)
+- Cloud API da Meta, mensagens de **template** (categoria Utilidade, pt_BR, botão de URL `APP_URL/{{1}}`):
+  `banket_novo_pedido`, `banket_prazo_resposta`, `banket_resposta_cliente`, `banket_pesquisa_respondida`,
+  `banket_avisos_ativados` (teste). `node scripts/whatsapp-templates.mjs` cria os que faltam no WABA e mostra a situação
+  (`--status`, `--dry-run`); enquanto a Meta não aprova, o envio falha e fica registrado.
+- `avisarWhatsapp(tenant, tipo, {variaveis, link, eventoId, chave})`: confere o recurso, o aceite e o tipo; grava em
+  `whatsapp_mensagens` (dedup por `chave`: `pedido:<evento>`, `prazo:<evento>`, `inbox:<mensagem>`,
+  `pesquisa:<envio>`) e chama a Meta **fora da transação**; nunca falha quem chama. Disparos: `receberResposta`
+  (formulário/Busca), `processarEventoResend` (e-mail recebido), `responderPesquisa` e o agendador (`avisarPrazosVencendo`).
+- Sem `WHATSAPP_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID`, o aviso vai para o log (`status = 'registrada'`).
+- Webhook: `GET` responde o desafio (`hub.verify_token` = `WHATSAPP_VERIFY_TOKEN`); `POST` confere
+  `X-Hub-Signature-256` com `WHATSAPP_APP_SECRET`, deduplica em `whatsapp_events` e atualiza o status pelo `wamid`
+  (enviada → entregue → lida; falha guarda o motivo).
 
 ### Uploads (`lib/storage.ts`, `pages/uploads/[...path].ts`)
 Disco em `{UPLOAD_DIR}/{tenantId}/{pasta}/{uuid}.{ext}` (volume Docker `/data/uploads`). Imagens PNG/JPEG/WebP/SVG até
@@ -1142,17 +1180,25 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   no slug curto, `campinas`; o longo `campinas-sp` dá 301), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
 - **Busca** (`buscarBuffets`): pré-filtro SQL largo (tipo, 200 km da cidade) → `compativel` (tipo, local, capacidade e,
   só para cliente Banket com agenda, data ocupada por evento aprovado ou bloqueio) → `passaFiltros` (serviço, restrição,
-  atendimento, nota, raio) → `ordenar` (clientes com `busca_prioridade` sempre antes; depois completude 30%,
-  avaliação 30%, taxa de resposta 20%, distância 20%; `BUSCA_RANKING_PESOS` sobrescreve) → "Mostrar mais" de 12 em 12.
-  Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
+  atendimento, nota, raio) → `ordenar` (`lib/busca/ranking.ts`, ver `rankeamento.md`) → "Mostrar mais" de 12 em 12.
+  Relevância igual para todos: distância 30%, avaliação 25%, completude 20%, resposta (cumprimento do prazo) 15% e
+  atividade recente 10% (perfil atualizado ou pedido respondido; 0 em 90 dias). Pagante (`busca_prioridade`) ganha
+  bônus de até 0,15 × completude × fator de distância (cai a 0 em 2× o raio); as 3 primeiras posições são **Destaque**
+  (pagantes com relevância ≥ 0,40; rótulo no card e "Como ordenamos os resultados" na lista); na lista comum, no máximo
+  3 pagantes seguidos (recomeça a cada página); empatados (< 0,03) em rodízio diário (semente dia SP + cidade + tipo).
+  "Melhor avaliados" e "Mais próximos" ignoram bônus e destaque. `BUSCA_RANKING_PESOS` e `BUSCA_RANKING_REGRAS`
+  sobrescrevem. Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
 - **Card** (`BuffetCard`): o card inteiro e o botão "Ver detalhes" levam ao perfil (sem seleção múltipla). A página de
   busca guarda a URL completa (filtros, ordem, página) em `sessionStorage` (`banket-busca-ultima`); o "Voltar aos
   resultados" do perfil usa essa URL (sem ela, cai nos critérios principais).
-- **Pedido de orçamento no perfil**: buffet **pagante** = perfil `nivel = 'cliente'` (Perfil Personalizado) com
-  formulário ativo → botão **Obter orçamento** abre um modal com o formulário do buffet (o marcado `usar_no_busca`, senão
-  o ativo mais antigo) num `<iframe>` de `APP_URL/f/<slug>?busca=<perfil>&tipo=&data=&convidados=` (`perfilCompleto` →
-  `formularioSlug`). Os demais (gratuito, importados, pagante sem formulário) mostram **Ver contatos**: modal com
-  WhatsApp (`wa.me`), telefone, e-mail, Instagram e site do perfil (`contatos`). A página `/orcamento` ficou sem links.
+- **Pedido de orçamento no perfil** (contato com um toque para todos, `diferenciacao.md` §3): buffet **pagante** =
+  perfil `nivel = 'cliente'` (Perfil Personalizado) com formulário ativo → botão **Receber orçamento sem compromisso**
+  ("Obter orçamento" na barra do celular) abre um modal com o formulário do buffet (o marcado `usar_no_busca`, senão o
+  ativo mais antigo) num `<iframe>` de `APP_URL/f/<slug>?busca=<perfil>&tipo=&data=&convidados=` (`perfilCompleto` →
+  `formularioSlug`), e o secundário **Falar no WhatsApp** (`wa.me` com a mensagem já preenchida com tipo, data e
+  convidados da busca) + "Ver outros contatos". Os demais (gratuito, importados, pagante sem formulário) mostram **Ver
+  contatos**: modal com WhatsApp (sem mensagem pronta), telefone, e-mail, Instagram e site (`contatos`, sempre
+  devolvido). A página `/orcamento` ficou sem links.
 - **Sem preço** (decisão de 16/10/2026): nenhuma menção a preço na vitrine (card, perfil, card lateral, landings,
   JSON-LD sem `priceRange`/`makesOffer`). Não há pacotes.
 - **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio **ativas e
@@ -1172,8 +1218,12 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   `?v=` = 8 primeiros caracteres do md5sum: ao trocar a imagem, atualize o `?v=` para furar o cache de 4 h do Cloudflare),
   também como `og:image`; o JSON-LD não a declara como foto do buffet (nem quando ela está gravada como foto, caso dos
   perfis de demonstração desde a migration 035).
-- **Métricas**: aparições (cards exibidos), visualizações (perfil) por dia em `busca_metricas_dia`; robôs e clientes de
-  linha de comando não contam (`ehRobo`).
+- **Métricas**: aparições (cards exibidos), visualizações (perfil), `cliques_orcamento` (abriu o formulário) e
+  `cliques_contato` (abriu os contatos ou tocou num canal) por dia em `busca_metricas_dia`; os cliques chegam por
+  `POST /api/vitrine/metrica` (`{perfil, tipo}`, uma vez por IP, perfil e tipo a cada 30 min); robôs e clientes de
+  linha de comando não contam (`ehRobo`). Avaliações do perfil = `busca_avaliacoes` publicadas + pesquisas de
+  satisfação respondidas (`SQL_AVALIACOES` em `server/busca/publico.ts`; pesquisa de evento no espaço de outra unidade
+  não entra); `busca_perfis.nota_media/total_avaliacoes` por `busca_recalcular_avaliacoes`.
 - **Host**: com `BUSCA_URL`, o middleware reescreve `busca.banket.com.br/x` para `/vitrine/x` (`decidirHost`), deixa
   estáticos, `/busca-media` e `/api/vitrine` passarem, e redireciona (301) `app…/vitrine/*` para o subdomínio. As páginas
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
@@ -1211,6 +1261,11 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   normais (etapas 1 a 5) valem para publicar de novo. E-mails de provedores gratuitos valem como canal de confirmação.
 
 ### Banket Busca: área do buffet — `/busca?etapa=1..6` (`server/busca/onboarding.ts`, `lib/busca/onboarding.ts`, `components/busca/onboarding/*`)
+- **Desempenho** (`/busca/desempenho`, botão na faixa de situação; `server/busca/desempenho.ts`): últimos 30 dias.
+  Perfil Simples: aparições, visualizações e cliques em contato + "O que você deixou de ganhar" (média de pedidos dos
+  perfis personalizados da cidade, ou do estado, só com 3+ perfis) e o convite para o teste do Personalizado.
+  Personalizado: visualizações por dia (com a tabela), funil perfil → contato/formulário → pedido → aprovado, pedidos
+  por origem, cumprimento do tempo de resposta e médias da região.
 - **Cadastro gratuito**: `/auth/cadastro?plano=busca` (links da vitrine) grava `usuarios.origem_cadastro = 'busca'`; a
   empresa nasce no plano Busca (`cadastroInicial`) e quem entra cai em `/busca`.
 - **Onboarding** = a própria página `/busca` do menu Banket Busca, dentro do `AppLayout` (faixa de situação com
@@ -1218,8 +1273,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   `/busca/cadastro` redireciona 301 para `/busca`): 1 Dados da empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp e logo **não são pedidos**: vêm de Configurações ›
   Empresa, mostrados só para leitura com "Editar dados da empresa" e o que falta para concluir; `sincronizarPerfisComEmpresa`
   copia para os perfis ao salvar a empresa, ao abrir `/busca` e ao salvar a etapa — celular vira WhatsApp, fixo vira
-  telefone, logo PNG/JPG/WebP copiado para `busca/`, nome só quando há um perfil; aqui ficam Instagram/site, tempo de
-  resposta, endereço do perfil e descrição ≥ 80) · 2 Eventos e serviços
+  telefone, logo PNG/JPG/WebP copiado para `busca/`, nome só quando há um perfil; o tempo de resposta aparece só para
+  leitura, vindo de Configurações › Empresa; aqui ficam Instagram/site, endereço do perfil e descrição ≥ 80) · 2 Eventos e serviços
   (tiles; plano gratuito até 3 de cada, conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região
   (cidade-base com autocomplete, espaço próprio com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades
   atendidas) · 4 Capacidade (mínimo ≤ máximo, aceita eventos menores sob consulta) · 5 Fotos (área de envio com
@@ -1399,7 +1454,9 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
 | `HWESTA_APP_ID` / `HWESTA_MANAGER_URL` / `HWESTA_APP_KEY` / `HWESTA_MANAGER_KEY` | integração com o Manager Hwesta (só no compose de produção); sem as chaves a integração fica desligada |
 | `BUSCA_URL` | endereço público da vitrine (`https://busca.banket.com.br`); sem ela, a vitrine fica em `APP_URL/vitrine` (`lib/busca/url.ts`) |
 | `COOKIE_DOMAIN` | domínio dos cookies de sessão e onboarding (`.banket.com.br`): a sessão vale no app e no Busca; vazio = só o host atual |
-| `BUSCA_RANKING_PESOS` | JSON parcial com os pesos do ranking (`{"avaliacao":0.4}`), normalizado para somar 1 |
+| `BUSCA_RANKING_PESOS` | JSON parcial com os pesos da relevância (`distancia`, `avaliacao`, `completude`, `resposta`, `atividade`), normalizado para somar 1 |
+| `BUSCA_RANKING_REGRAS` | JSON parcial com as regras do ranking: `bonus_pago` (0,15), `vagas_destaque` (3), `relevancia_minima_destaque` (0,40), `max_pagos_seguidos` (3), `empate` (0,03) |
+| `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_WABA_ID` / `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` / `WHATSAPP_API_VERSION` | avisos no WhatsApp (Cloud API da Meta): token permanente de usuário do sistema (`whatsapp_business_messaging` + `whatsapp_business_management`), id do número, id da conta (templates), App Secret (assinatura do webhook `/api/webhooks/whatsapp`), token de verificação do webhook, versão da Graph API (padrão `v23.0`). Sem token/número, os avisos vão para o log |
 | `DB_POOL_VITRINE` | conexões do pool de leitura pública da vitrine (padrão 6) |
 | `BANKET_EQUIPE_EMAILS` | e-mails da equipe Banket (vírgula) que acessam `/equipe/reivindicacoes` e recebem os pedidos de reivindicação do Busca |
 | `BANKET_SEM_AGENDADOR` | `1` desliga o agendador do processo (rebaixamento e avisos do teste continuam pela próxima página da empresa) |

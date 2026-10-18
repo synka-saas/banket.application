@@ -74,9 +74,20 @@ const urlFormulario = p.formularioSlug
     }).filter(([, valor]) => valor)).toString()
   : null;
 const digitos = (v: string | null | undefined) => (v ?? '').replace(/\D/g, '');
+// Pagante: WhatsApp com a mensagem já preenchida pelos critérios da busca (o contato rápido chega qualificado)
+const mensagemWhatsapp = [
+  `Olá! Encontrei o ${p.nome} no Banket Busca e gostaria de um orçamento`,
+  criterios.tipo ? ` para ${rotuloEvento(criterios.tipo).toLowerCase()}` : '',
+  dataBR ? ` em ${dataBR}` : '',
+  criterios.convidados ? `, com ${criterios.convidados} convidados` : '',
+  '.',
+].join('');
+const whatsappHref = p.contatos && digitos(p.contatos.whatsapp).length >= 10
+  ? `https://wa.me/55${digitos(p.contatos.whatsapp)}${urlFormulario ? `?text=${encodeURIComponent(mensagemWhatsapp)}` : ''}`
+  : null;
 const contatos = p.contatos
   ? [
-      digitos(p.contatos.whatsapp).length >= 10 && { icone: 'brand-whatsapp', rotulo: 'WhatsApp', valor: mascararTelefone(p.contatos.whatsapp!), href: `https://wa.me/55${digitos(p.contatos.whatsapp)}`, externo: true },
+      whatsappHref && { icone: 'brand-whatsapp', rotulo: 'WhatsApp', valor: mascararTelefone(p.contatos.whatsapp!), href: whatsappHref, externo: true },
       digitos(p.contatos.telefone).length >= 10 && { icone: 'phone', rotulo: 'Telefone', valor: mascararTelefone(p.contatos.telefone!), href: `tel:+55${digitos(p.contatos.telefone)}`, externo: false },
       p.contatos.email && { icone: 'mail', rotulo: 'E-mail', valor: p.contatos.email, href: `mailto:${p.contatos.email}`, externo: false },
       p.contatos.instagram && {
@@ -247,8 +258,18 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
         {urlFormulario ? (
           <>
             <p class="vp-aside-texto">Conte como será o seu evento. O pedido vai direto para a equipe do buffet.</p>
-            <button type="button" class="btn btn-primary btn-large btn-block" data-abrir-orcamento>Obter orçamento</button>
-            <span class="vp-aside-nota">Grátis e sem compromisso{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
+            <button type="button" class="btn btn-primary btn-large btn-block" data-abrir-orcamento>Receber orçamento sem compromisso</button>
+            <span class="vp-aside-nota">Grátis{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
+            {whatsappHref ? (
+              <>
+                <a class="btn btn-secondary btn-large btn-block" href={whatsappHref} target="_blank" rel="noopener nofollow" data-contato>
+                  <Icon name="brand-whatsapp" size={16} /> Falar no WhatsApp
+                </a>
+                {contatos.length > 1 && <button type="button" class="btn btn-text btn-sm vp-aside-mais" data-abrir-contatos>Ver outros contatos</button>}
+              </>
+            ) : contatos.length > 0 && (
+              <button type="button" class="btn btn-secondary btn-large btn-block" data-abrir-contatos>Ver contatos</button>
+            )}
           </>
         ) : (
           <>
@@ -260,11 +281,17 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
     </div>
   </div>
 
+  {!emPrevia && <span hidden data-metricas-perfil={p.id}></span>}
   <div class="vp-movel">
     <span class="vp-movel-nome">{p.nome}</span>
-    {urlFormulario
-      ? <button type="button" class="btn btn-primary btn-large" data-abrir-orcamento>Obter orçamento</button>
-      : <button type="button" class="btn btn-primary btn-large" data-abrir-contatos>Ver contatos</button>}
+    {urlFormulario ? (
+      <div class="vp-movel-acoes">
+        {whatsappHref
+          ? <a class="btn btn-secondary btn-large" href={whatsappHref} target="_blank" rel="noopener nofollow" aria-label="Falar no WhatsApp" data-contato><Icon name="brand-whatsapp" size={18} /></a>
+          : contatos.length > 0 && <button type="button" class="btn btn-secondary btn-large" aria-label="Ver contatos" data-abrir-contatos><Icon name="address-book" size={18} /></button>}
+        <button type="button" class="btn btn-primary btn-large" data-abrir-orcamento>Obter orçamento</button>
+      </div>
+    ) : <button type="button" class="btn btn-primary btn-large" data-abrir-contatos>Ver contatos</button>}
   </div>
 
   {urlFormulario && (
@@ -276,7 +303,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
       <iframe class="vp-modal-frame" title={`Formulário de orçamento de ${p.nome}`} data-frame-orcamento></iframe>
     </dialog>
   )}
-  {!urlFormulario && (
+  {(!urlFormulario || contatos.length > 0) && (
     <dialog class="vp-modal" aria-labelledby="vp-modal-contatos" data-modal-contatos>
       <div class="vp-modal-cabeca">
         <span id="vp-modal-contatos">Contatos · {p.nome}</span>
@@ -288,7 +315,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
             <ul class="vp-contatos">
               {contatos.map((c) => (
                 <li>
-                  <a class="vp-contato" href={c.href} target={c.externo ? '_blank' : undefined} rel={c.externo ? 'noopener nofollow' : undefined}>
+                  <a class="vp-contato" href={c.href} target={c.externo ? '_blank' : undefined} rel={c.externo ? 'noopener nofollow' : undefined} data-contato>
                     <span class="vp-fato-ico"><Icon name={c.icone} size={18} /></span>
                     <span><small>{c.rotulo}</small>{c.valor}</span>
                     <Icon name="external-link" size={16} class="vp-contato-seta" />
@@ -316,11 +343,22 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
     // sem armazenamento: fica o link com os critérios principais
   }
 
+  // Métricas do buffet: abriu o orçamento / os contatos ou tocou num contato (o servidor conta uma vez a cada 30 min)
+  const perfilId = document.querySelector<HTMLElement>('[data-metricas-perfil]')?.dataset.metricasPerfil;
+  const contar = (tipo: 'contato' | 'orcamento') => {
+    if (!perfilId) return;
+    fetch('/api/vitrine/metrica', {
+      method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ perfil: perfilId, tipo }),
+    }).catch(() => undefined);
+  };
+
   // Modais: formulário de orçamento (carregado só ao abrir) e contatos
   const orcamento = document.querySelector<HTMLDialogElement>('[data-modal-orcamento]');
   const contatos = document.querySelector<HTMLDialogElement>('[data-modal-contatos]');
   document.addEventListener('click', (e) => {
     const alvo = e.target as HTMLElement;
+    if (alvo.closest('[data-abrir-orcamento]')) contar('orcamento');
+    else if (alvo.closest('[data-abrir-contatos], [data-contato]')) contar('contato');
     if (alvo.closest('[data-abrir-orcamento]') && orcamento) {
       const frame = orcamento.querySelector<HTMLIFrameElement>('[data-frame-orcamento]')!;
       if (!frame.src) frame.src = orcamento.dataset.src!;

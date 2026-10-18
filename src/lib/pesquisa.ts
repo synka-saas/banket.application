@@ -100,3 +100,38 @@ export function validarRespostas(perguntas: PerguntaPublica[], dados: Record<str
   }
   return respostas;
 }
+
+// ---------------------------------------------------------------------------
+// Avaliação no Banket Busca a partir da pesquisa respondida
+// ---------------------------------------------------------------------------
+export interface RespostaParaAvaliacao {
+  tipo: TipoPergunta;
+  /** Enunciado da pergunta */
+  texto: string;
+  nota: number | null;
+  opcoes: string[] | null;
+  /** Resposta aberta */
+  resposta: string | null;
+}
+
+/**
+ * Nota (1 a 5) = média das perguntas de nota (CSAT); sem nenhuma, o NPS convertido (1 + NPS × 0,4). Depoimento = 1ª
+ * resposta aberta com 20+ caracteres, só se o cliente respondeu "Sim" na pergunta de autorização de depoimento.
+ */
+export function avaliacaoDaPesquisa(respostas: RespostaParaAvaliacao[]): { nota: number | null; depoimento: string | null } {
+  const notas = respostas.filter((r) => r.tipo === 'nota' && r.nota != null).map((r) => r.nota!);
+  const nps = respostas.find((r) => r.tipo === 'nps' && r.nota != null)?.nota ?? null;
+  const nota = notas.length
+    ? Math.round((notas.reduce((a, b) => a + b, 0) / notas.length) * 100) / 100
+    : nps != null ? Math.round((1 + nps * 0.4) * 100) / 100 : null;
+  const autorizou = respostas.some((r) => r.tipo === 'escolha' && /depoimento/i.test(r.texto) && (r.opcoes ?? []).includes('Sim'));
+  const texto = autorizou ? respostas.find((r) => r.tipo === 'texto' && (r.resposta ?? '').trim().length >= 20)?.resposta?.trim() ?? null : null;
+  return { nota, depoimento: texto ? texto.slice(0, 1000) : null };
+}
+
+/** "Mariana Souza Lima" → "Mariana L." (nome de quem deu o depoimento). */
+export function nomeDeExibicao(nome: string | null | undefined): string {
+  const partes = (nome ?? '').trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return 'Cliente';
+  return (partes.length > 1 ? `${partes[0]} ${partes[partes.length - 1][0].toUpperCase()}.` : partes[0]).slice(0, 80);
+}

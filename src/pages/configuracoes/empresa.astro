@@ -15,10 +15,17 @@ import { sincronizarPerfisComEmpresa } from '../../server/busca/onboarding';
 import { fileUrl, removeFile, saveUpload } from '../../lib/storage';
 import { carregarEmpresa, empresaSchema, removerLogo, salvarEmpresa } from '../../server/empresa';
 import { espacosParaSelecao } from '../../server/espacos';
+import { TEMPOS_RESPOSTA, rotuloTempo } from '../../lib/tempoResposta';
+import { whatsappConfigurado } from '../../lib/whatsapp';
+import { TIPOS_AVISO, avisarWhatsapp, ultimosAvisos } from '../../server/whatsapp';
+import { cumprimentoDaEmpresa } from '../../server/busca/respostas';
+import { mascararTelefone } from '../../lib/mascaras';
 
 const { tenantId } = Astro.locals.user;
 // Plano sem Configurações (plano Busca): só os dados da empresa; os parâmetros da proposta seguem no formulário, ocultos
 const temConfiguracoes = podeUsarEm(Astro.locals.plano, 'configuracoes');
+// Avisos no WhatsApp: recurso do Perfil Personalizado (Profissional, Prime, Master)
+const temWhatsapp = podeUsarEm(Astro.locals.plano, 'busca_aviso_whatsapp');
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(Astro, async (data, raw) => {
@@ -42,14 +49,28 @@ if (Astro.request.method === 'POST') {
       return removido;
     });
     if (antigo) await removeFile(tenantId, antigo);
+    if (data._action === 'whatsapp_teste' && temWhatsapp) {
+      const r = await avisarWhatsapp(tenantId, 'teste', { variaveis: [input.nome], link: 'configuracoes/empresa' });
+      if (r === 'ignorado') throw new UserError('Informe o WhatsApp que recebe os avisos antes de enviar o teste.', 'whatsapp_avisos');
+      if (r === 'falhou') throw new UserError('Dados salvos, mas a mensagem de teste não foi enviada. Veja o motivo nos últimos avisos.');
+      return 'Dados salvos e mensagem de teste enviada para o WhatsApp.';
+    }
     return 'Dados da empresa atualizados.';
   });
 }
 
-const { empresa, espacos } = await withTenant(tenantId, async (db) => {
+const { empresa, espacos, cumprimento, avisos } = await withTenant(tenantId, async (db) => {
   const empresa = await carregarEmpresa(db);
-  return { empresa, espacos: await espacosParaSelecao(db, empresa.espaco_padrao_id) };
+  return {
+    empresa,
+    espacos: await espacosParaSelecao(db, empresa.espaco_padrao_id),
+    cumprimento: await cumprimentoDaEmpresa(db),
+    avisos: temWhatsapp ? await ultimosAvisos(db) : [],
+  };
 });
+const ROTULO_AVISO: Record<string, string> = { ...Object.fromEntries(TIPOS_AVISO.map((t) => [t.valor, t.rotulo])), teste: 'Mensagem de teste' };
+const ROTULO_STATUS: Record<string, string> = { pendente: 'Pendente', enviada: 'Enviada', entregue: 'Entregue', lida: 'Lida', falhou: 'Falhou', registrada: 'Só no log (API não configurada)' };
+const numeroAvisos = empresa.whatsapp_avisos ? mascararTelefone(empresa.whatsapp_avisos.replace(/^55/, '')) : '';
 ---
 
 <AppLayout title="Empresa" heading="Configurações / Empresa" submenu={configSubmenuDoPlano(temConfiguracoes)} submenuActive="empresa">
@@ -142,9 +163,34 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
       </div>
     </SectionCard>
 
-    <div hidden={!temConfiguracoes} class="empresa-extras">
     <SectionCard title="Parâmetros comerciais" icon="coin">
-      <div class="form-grid cols-3">
+      <div class="form-grid cols-3" id="tempo-resposta">
+        <div class="field">
+          <label for="cfg-tempo">Tempo de resposta aos pedidos<span class="obrigatorio">*</span></label>
+          <select id="cfg-tempo" name="tempo_resposta_horas">
+            {TEMPOS_RESPOSTA.map((h) => <option value={h} selected={h === empresa.tempo_resposta_horas}>Em até {rotuloTempo(h)}</option>)}
+          </select>
+        </div>
+        <div class="field span-2">
+          <span class="field-label-falso">Cumprimento nos últimos 90 dias</span>
+          <p class="empresa-cumprimento">
+            {cumprimento.pedidos > 0 ? (
+              <>
+                <strong class="tabular">{Math.round((cumprimento.taxa ?? 0) * 100)}%</strong>
+                <span class="tabular">{[
+                  `dos pedidos respondidos no prazo (${cumprimento.noPrazo} de ${cumprimento.pedidos})`,
+                  cumprimento.medianaHoras != null ? `resposta típica em ${cumprimento.medianaHoras.toLocaleString('pt-BR')} h` : null,
+                ].filter(Boolean).join(' · ')}</span>
+              </>
+            ) : 'Ainda sem pedidos do Banket Busca ou dos formulários para medir.'}
+          </p>
+        </div>
+        <span class="field-hint span-3">
+          Aparece no perfil do Banket Busca ("Responde em até…"). Um pedido conta como respondido no primeiro e-mail enviado ao
+          cliente ou na primeira ação no evento (etapa, orçamento, reunião, anotação). O cumprimento pesa no ranking da busca.
+        </span>
+      </div>
+      <div class="form-grid cols-3 empresa-proposta" hidden={!temConfiguracoes}>
         <div class="field">
           <label for="cfg-validade">Validade da proposta<span class="obrigatorio">*</span></label>
           <div class="com-sufixo">
@@ -176,6 +222,61 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
         </div>
       </div>
     </SectionCard>
+
+    <SectionCard title="Avisos no WhatsApp" icon="brand-whatsapp" description="Pedidos novos, prazos e respostas de clientes no WhatsApp da empresa, pelo número oficial do Banket.">
+      {temWhatsapp ? (
+        <>
+          <input type="hidden" name="_whatsapp" value="1" />
+          <div class="form-grid cols-3">
+            <div class="field">
+              <label for="cfg-wa">WhatsApp que recebe os avisos</label>
+              <input id="cfg-wa" name="whatsapp_avisos" data-mascara="telefone" inputmode="tel" placeholder="(11) 98765-4321" value={numeroAvisos} />
+            </div>
+            <div class="field span-2">
+              <span class="field-label-falso">Situação</span>
+              <label class="switch empresa-wa-switch">
+                <input type="checkbox" name="whatsapp_avisos_ativo" checked={empresa.whatsapp_avisos_ativo} />
+                <span>Receber avisos neste número</span>
+              </label>
+            </div>
+            <fieldset class="field span-3 empresa-avisos">
+              <legend>Avisos</legend>
+              {TIPOS_AVISO.map((t) => (
+                <label class="empresa-aviso">
+                  <input type="checkbox" name="whatsapp_avisos_tipos" value={t.valor} checked={empresa.whatsapp_avisos_tipos.includes(t.valor)} />
+                  <span>{t.rotulo}<small>{t.descricao}</small></span>
+                </label>
+              ))}
+            </fieldset>
+            <span class="field-hint span-3">
+              Ao ligar, a empresa autoriza o Banket a enviar estes avisos para o número informado. Dá para desligar a qualquer momento.
+              {!whatsappConfigurado() && ' A conexão com o WhatsApp ainda está sendo configurada: por enquanto os avisos ficam só registrados.'}
+            </span>
+          </div>
+          <div class="empresa-wa-acoes">
+            <Button type="submit" variant="secondary" size="sm" name="_action" value="whatsapp_teste" icon="send" data-carregando="Enviando…">Salvar e enviar teste</Button>
+          </div>
+          {avisos.length > 0 && (
+            <ul class="empresa-wa-log">
+              {avisos.map((a) => (
+                <li>
+                  <span>{ROTULO_AVISO[a.tipo] ?? a.tipo}</span>
+                  <span class={`badge ${a.status === 'falhou' ? 'badge-danger' : ['entregue', 'lida'].includes(a.status) ? 'badge-success' : ''}`}>{ROTULO_STATUS[a.status] ?? a.status}</span>
+                  <span class="tabular empresa-wa-data">{new Date(a.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })}</span>
+                  {a.erro && <small class="empresa-wa-erro">{a.erro}</small>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <p class="empresa-wa-bloqueado">
+          <Icon name="lock" size={16} /> Disponível no Perfil Personalizado (planos Profissional e Prime). <a class="link" href="/planos">Ver planos</a>
+        </p>
+      )}
+    </SectionCard>
+
+    <div hidden={!temConfiguracoes} class="empresa-extras">
 
     <SectionCard title="Assinatura da proposta" icon="signature">
       <div class="form-grid cols-3">
@@ -271,6 +372,119 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
     margin-top: var(--space-5);
   }
 
+  .empresa-proposta {
+    margin-top: var(--space-5);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .field-label-falso {
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .empresa-cumprimento {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: var(--control-h-md);
+    margin: 0;
+    font-size: var(--fs-14);
+    color: var(--text-secondary);
+  }
+
+  .empresa-cumprimento strong {
+    margin-right: 4px;
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .empresa-wa-switch {
+    min-height: var(--control-h-md);
+  }
+
+  .empresa-avisos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .empresa-avisos legend {
+    margin-bottom: var(--space-2);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .empresa-aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    font-size: var(--fs-14);
+    color: var(--text-body);
+  }
+
+  .empresa-aviso input {
+    margin-top: 3px;
+  }
+
+  .empresa-aviso small {
+    display: block;
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  .empresa-wa-acoes {
+    margin-top: var(--space-4);
+  }
+
+  .empresa-wa-log {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-4) 0 0;
+    padding: var(--space-3) 0 0;
+    border-top: 1px solid var(--border-subtle);
+    list-style: none;
+    font-size: var(--fs-13);
+  }
+
+  .empresa-wa-log li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .empresa-wa-data {
+    color: var(--text-muted);
+  }
+
+  .empresa-wa-erro {
+    flex-basis: 100%;
+    color: var(--danger);
+  }
+
+  .empresa-wa-bloqueado {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    font-size: var(--fs-14);
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    .empresa-avisos {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .emp-endereco {
     margin: 0;
     padding: 0;
@@ -333,6 +547,10 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .cols-3 .span-2 {
+    grid-column: span 2;
+  }
+
   .cols-3 .span-3 {
     grid-column: 1 / -1;
   }
@@ -365,6 +583,10 @@ const { empresa, espacos } = await withTenant(tenantId, async (db) => {
   @media (max-width: 768px) {
     .cols-3 {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cols-3 .span-2 {
+      grid-column: 1 / -1;
     }
 
     .form-actions :global(.btn) {

@@ -1,20 +1,31 @@
 ---
 import AppLayout from '../../../layouts/AppLayout.astro';
 import SectionCard from '../../../components/ui/SectionCard.astro';
+import Button from '../../../components/ui/Button.astro';
+import { handleFormPost } from '../../../lib/actions';
 import { withTenant } from '../../../lib/db';
 import { isAdmin } from '../../../lib/auth';
 import { dataCurta, dataHora } from '../../../lib/datas';
 import { pesquisasSubmenu } from '../../../lib/nav';
-import { CLASSES_NPS, ROTULOS_NOTA, carregarResposta, classeNps } from '../../../server/pesquisas';
+import { CLASSES_NPS, ROTULOS_NOTA, avaliacaoBuscaSchema, carregarResposta, classeNps, salvarAvaliacaoBusca } from '../../../server/pesquisas';
 
 // Respostas de uma pesquisa (um evento), na ordem do questionário respondido.
 const user = Astro.locals.user;
 const id = Astro.params.id ?? '';
 if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response(null, { status: 404 });
 
+if (Astro.request.method === 'POST') {
+  return handleFormPost(Astro, async (data) => {
+    const input = avaliacaoBuscaSchema.parse(data);
+    await withTenant(user.tenantId, (db) => salvarAvaliacaoBusca(db, user, id, input));
+    return 'Avaliação do Banket Busca atualizada.';
+  });
+}
+
 const detalhe = await withTenant(user.tenantId, (db) => carregarResposta(db, id)).catch(() => null);
 if (!detalhe) return new Response(null, { status: 404 });
-const { envio, respostas } = detalhe;
+const { envio, respostas, busca } = detalhe;
+const notaBusca = busca.nota_busca?.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const classe = envio.nps !== null ? classeNps(envio.nps) : null;
 const TAG = { promotor: 'tag-sage', neutro: 'tag-ochre', detrator: 'tag-wine' } as const;
 ---
@@ -49,9 +60,77 @@ const TAG = { promotor: 'tag-sage', neutro: 'tag-ochre', detrator: 'tag-wine' } 
       <p class="rp-apoio">O cliente ainda não respondeu.</p>
     )}
   </SectionCard>
+
+  {busca.nota_busca != null && (
+    <SectionCard title="No Banket Busca" icon="banket" description="A nota entra na média do seu perfil público. O depoimento aparece só com a autorização do cliente.">
+      <div class="rp-busca">
+        <span class="rp-nota tabular">{notaBusca}<small>/5 · nota média das perguntas de nota</small></span>
+        {busca.depoimento ? (
+          <blockquote class="rp-depoimento">
+            <p>{busca.depoimento}</p>
+            <footer>{busca.depoimento_nome ?? 'Cliente'}{busca.busca_oculta ? ' · oculto no perfil' : ''}</footer>
+          </blockquote>
+        ) : (
+          <p class="rp-apoio">Sem depoimento no perfil: o cliente não autorizou ou não deixou comentário.</p>
+        )}
+      </div>
+      {isAdmin(user) ? (
+        <form method="post" class="rp-busca-form" data-form-sujo>
+          <div class="field">
+            <label for="rp-resposta">Resposta pública da empresa</label>
+            <textarea id="rp-resposta" name="busca_resposta" rows="3" maxlength="1000" placeholder="Agradeça e, se for o caso, conte o que vai melhorar.">{busca.busca_resposta ?? ''}</textarea>
+            <span class="field-hint">Aparece abaixo do depoimento, no seu perfil do Banket Busca.</span>
+          </div>
+          <label class="rp-check">
+            <input type="checkbox" name="busca_oculta" checked={busca.busca_oculta} />
+            <span>Ocultar o depoimento e a resposta no perfil (a nota continua na média)</span>
+          </label>
+          <div><Button type="submit" variant="secondary" data-carregando="Salvando…">Salvar</Button></div>
+        </form>
+      ) : busca.busca_resposta && !busca.busca_oculta && (
+        <p class="rp-texto"><strong>Resposta da empresa:</strong> {busca.busca_resposta}</p>
+      )}
+    </SectionCard>
+  )}
 </AppLayout>
 
 <style>
+  .rp-busca {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .rp-depoimento {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-left: 3px solid var(--border-accent);
+    background: var(--clay-25);
+    border-radius: var(--radius-sm);
+  }
+
+  .rp-depoimento footer {
+    margin-top: var(--space-2);
+    font-size: var(--fs-12);
+    color: var(--text-secondary);
+  }
+
+  .rp-busca-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .rp-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--fs-13);
+  }
+
   .rp-cabecalho {
     display: flex;
     align-items: flex-start;

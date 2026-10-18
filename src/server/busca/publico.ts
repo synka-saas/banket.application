@@ -6,7 +6,7 @@ import { slugTexto } from '../../lib/busca/geo';
 import { urlMidia } from './perfil';
 import { POR_PAGINA, semFiltrosSecundarios, type Criterios } from '../../lib/busca/filtros';
 import { compativel, disponibilidade, passaFiltros, type CandidatoBusca } from '../../lib/busca/matching';
-import { lerPesos, ordenar, type Rankeavel } from '../../lib/busca/ranking';
+import { lerPesos, lerRegras, ordenar, sementeDoDia, type OpcoesRanking, type Rankeavel } from '../../lib/busca/ranking';
 import { RESTRICOES, TIPOS_SERVICO } from '../../lib/busca/catalogos';
 
 export interface Cidade {
@@ -132,6 +132,7 @@ const RAIO_PREFILTRO_M = 200_000;
 const MAX_CANDIDATOS = 5000;
 
 export interface ItemResultado extends CandidatoBusca, Rankeavel {
+  raioKm: number | null;
   tenantId: string;
   slug: string;
   bairro: string | null;
@@ -140,6 +141,8 @@ export interface ItemResultado extends CandidatoBusca, Rankeavel {
   foto: string | null;
   selo: boolean;
   disponibilidade: 'disponivel' | 'indisponivel' | 'consultar' | null;
+  /** Vaga de destaque no topo da primeira página (pagante relevante) */
+  destaque: boolean;
 }
 
 function env(name: string): string | undefined {
@@ -178,6 +181,7 @@ const SQL_CANDIDATOS = `
   SELECT p.id, p.tenant_id, p.slug, p.nome, p.bairro, c.nome AS cidade, c.uf, p.cidade_id, p.tipos_evento, p.tipos_servico,
          p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio, p.capacidade_min, p.capacidade_max, p.aceita_menor,
          p.completude, p.nota_media, p.total_avaliacoes, p.taxa_resposta, p.sincronizar_agenda,
+         GREATEST(p.updated_at, p.ultima_resposta_em) AS atividade_em,
          CASE WHEN $1::float8 IS NULL OR p.lat IS NULL THEN NULL
               ELSE earth_distance(ll_to_earth(p.lat, p.lng), ll_to_earth($1, $2)) / 1000 END AS distancia_km,
          ARRAY(SELECT pc.cidade_id FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id) AS cidades,
@@ -212,6 +216,7 @@ function paraItem(r: any, data: string | null): ItemResultado {
     taxaResposta: r.taxa_resposta == null ? null : Number(r.taxa_resposta), completude: r.completude,
     prioridade: r.prioridade === true, selo: r.selo === true, usaAgenda: r.agenda === true && r.sincronizar_agenda,
     ocupado: r.ocupado === true, foto: urlMidia(r.tenant_id, r.foto), disponibilidade: null,
+    atividadeEm: r.atividade_em, destaque: false,
   };
   item.disponibilidade = disponibilidade(item, data);
   return item;
@@ -246,7 +251,9 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
     const todos = await candidatos(db, crit, cidade);
     const base = todos.filter((c) => compativel(c, crit, cidade));
     const filtrados = base.filter((c) => passaFiltros(c, crit, cidade));
-    const ordenados = ordenar(filtrados, crit.ordem, lerPesos(env('BUSCA_RANKING_PESOS')), crit.raio ?? 30);
+    const ordenados = ordenar(filtrados, crit.ordem, {
+      ...opcoesRanking(), raioRef: crit.raio ?? 30, semente: sementeDoDia(cidade?.slug ?? null, crit.tipo), porPagina: POR_PAGINA,
+    });
     const conta = (f: (c: ItemResultado) => boolean) => base.filter(f).length;
     const facetas = {
       servicos: TIPOS_SERVICO.map((s) => ({ valor: s.slug, rotulo: s.rotulo, total: conta((c) => c.tiposServico.includes(s.slug)) })).filter((f) => f.total > 0 || crit.servicos.includes(f.valor)),
@@ -272,11 +279,17 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
   });
 }
 
-/** Destaques da home: os mais bem colocados no ranking geral (clientes Banket primeiro). */
+/** Pesos e regras do ranking (BUSCA_RANKING_PESOS e BUSCA_RANKING_REGRAS). */
+function opcoesRanking(): OpcoesRanking {
+  return { pesos: lerPesos(env('BUSCA_RANKING_PESOS')), regras: lerRegras(env('BUSCA_RANKING_REGRAS')) };
+}
+
+/** Destaques da home: os mais bem colocados no ranking geral (mesmas regras da busca, rodízio do dia). */
 export async function destaques(limite = 6): Promise<ItemResultado[]> {
   return leituraPublica(async (db) => {
     const lista = await candidatos(db, { tipo: null, data: null, nome: null }, null);
-    return ordenar(lista.filter((c) => c.foto), 'relevancia', lerPesos(env('BUSCA_RANKING_PESOS'))).slice(0, limite);
+    return ordenar(lista.filter((c) => c.foto), 'relevancia', { ...opcoesRanking(), semente: sementeDoDia(null, null) })
+      .slice(0, limite).map((c) => ({ ...c, destaque: false }));
   });
 }
 
@@ -332,16 +345,36 @@ export interface Depoimento {
   data: Date;
 }
 
+// Avaliações de um perfil: as do Busca (publicadas) e as pesquisas de satisfação respondidas (nota = média CSAT). Pesquisa
+// de evento no espaço de outra unidade da empresa não entra; depoimento só com autorização e sem ocultar.
+const SQL_AVALIACOES = `
+  SELECT a.perfil_id, a.nome_exibicao AS nome, a.nota::numeric AS nota, a.texto, a.tipo_evento AS "tipoEvento",
+         a.respondida_em AS data, a.resposta
+    FROM (SELECT a.perfil_id, a.nome_exibicao, a.nota, a.texto, d.tipo_evento, a.respondida_em, a.resposta_buffet AS resposta
+            FROM busca_avaliacoes a JOIN busca_pedidos d ON d.id = a.pedido_id WHERE a.publicada AND a.nota IS NOT NULL) a
+  UNION ALL
+  SELECT bp.id, coalesce(pe.depoimento_nome, 'Cliente'), pe.nota_busca,
+         CASE WHEN pe.busca_oculta THEN NULL ELSE pe.depoimento END,
+         coalesce(ce.nome, te.nome, 'Evento'), pe.respondida_em,
+         CASE WHEN pe.busca_oculta THEN NULL ELSE pe.busca_resposta END
+    FROM pesquisa_envios pe
+    JOIN eventos e ON e.id = pe.evento_id
+    LEFT JOIN categorias_evento ce ON ce.id = e.categoria_evento_id
+    LEFT JOIN tipos_evento te ON te.id = e.tipo_evento_id
+    JOIN busca_perfis bp ON bp.tenant_id = pe.tenant_id
+   WHERE pe.nota_busca IS NOT NULL
+     AND (e.espaco_id = bp.espaco_id OR NOT EXISTS (
+           SELECT 1 FROM busca_perfis o WHERE o.tenant_id = bp.tenant_id AND o.espaco_id IS NOT NULL AND o.espaco_id = e.espaco_id))`;
+
 /** Avaliações reais, publicadas e bem dadas (nota ≥ 4), mais recentes primeiro. */
 export async function depoimentos(limite = 3, perfilSlug?: string): Promise<Depoimento[]> {
   return leituraPublica(async (db) => {
     const { rows } = await db.query<Depoimento>(
-      `SELECT a.nome_exibicao AS nome, a.texto, a.nota, p.nome AS buffet, p.slug, d.tipo_evento AS "tipoEvento", a.respondida_em AS data
-         FROM busca_avaliacoes a JOIN busca_perfis p ON p.id = a.perfil_id JOIN tenants t ON t.id = p.tenant_id
-         JOIN busca_pedidos d ON d.id = a.pedido_id
-        WHERE a.publicada AND a.nota >= 4 AND length(coalesce(a.texto, '')) >= 20 AND ${PERFIL_VISIVEL}
+      `SELECT a.nome, a.texto, round(a.nota)::int AS nota, p.nome AS buffet, p.slug, a."tipoEvento", a.data
+         FROM (${SQL_AVALIACOES}) a JOIN busca_perfis p ON p.id = a.perfil_id JOIN tenants t ON t.id = p.tenant_id
+        WHERE a.nota >= 4 AND length(coalesce(a.texto, '')) >= 20 AND ${PERFIL_VISIVEL}
           AND ($2::text IS NULL OR p.slug = $2)
-        ORDER BY a.nota DESC, a.respondida_em DESC LIMIT $1`,
+        ORDER BY a.nota DESC, a.data DESC LIMIT $1`,
       [limite, perfilSlug ?? null]
     );
     return rows;
@@ -386,7 +419,7 @@ export interface PerfilCompleto extends PerfilPublico {
    * (o marcado para o Busca ou o ativo mais antigo), e o pedido cai no kanban dele; os demais mostram os contatos.
    */
   formularioSlug: string | null;
-  /** Canais do perfil para "Ver contatos" (só quando não há formulário) */
+  /** Canais do perfil para "Ver contatos" / "Falar no WhatsApp" (todos os perfis) */
   contatos: { whatsapp: string | null; telefone: string | null; email: string | null; instagram: string | null; site: string | null } | null;
 }
 
@@ -408,13 +441,17 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
       [base.slug]
     );
     const usaAgenda = p.agenda === true && p.sincronizar_agenda;
+    // Lista: as com texto primeiro (as só com nota completam), mais recentes primeiro
     const avs = await db.query<AvaliacaoPublica>(
-        `SELECT a.nome_exibicao AS nome, a.nota, a.texto, d.tipo_evento AS "tipoEvento", a.respondida_em AS data, a.resposta_buffet AS resposta
-           FROM busca_avaliacoes a JOIN busca_pedidos d ON d.id = a.pedido_id
-          WHERE a.perfil_id = $1 AND a.publicada ORDER BY a.respondida_em DESC LIMIT 20`,
+        `SELECT a.nome, round(a.nota, 1)::float8 AS nota, a.texto, a."tipoEvento", a.data, a.resposta
+           FROM (${SQL_AVALIACOES}) a WHERE a.perfil_id = $1
+          ORDER BY (a.texto IS NOT NULL) DESC, a.data DESC LIMIT 20`,
         [p.id]
       );
-    const dist = await db.query<{ nota: number; n: number }>(`SELECT nota, count(*) AS n FROM busca_avaliacoes WHERE perfil_id = $1 AND publicada GROUP BY nota`, [p.id]);
+    const dist = await db.query<{ nota: number; n: number }>(
+      `SELECT LEAST(5, GREATEST(1, round(a.nota)))::int AS nota, count(*) AS n FROM (${SQL_AVALIACOES}) a WHERE a.perfil_id = $1 GROUP BY 1`,
+      [p.id]
+    );
     const ocupadas = await (usaAgenda
         ? db.query<{ d: string }>(
             `SELECT DISTINCT to_char(d, 'YYYY-MM-DD') AS d FROM (
@@ -461,21 +498,22 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
       disponibilidade: disponibilidade({ usaAgenda, ocupado: data != null && datasOcupadas.includes(data) }, data),
       datasOcupadas: usaAgenda ? datasOcupadas : [],
       formularioSlug: p.formulario ?? null,
-      contatos: p.formulario
-        ? null
-        : { whatsapp: p.whatsapp, telefone: p.telefone, email: p.email_contato, instagram: base.instagram, site: base.site },
+      // Contato com um toque para todos (diferenciacao.md §3): o pagante tem o formulário e também os contatos
+      contatos: { whatsapp: p.whatsapp, telefone: p.telefone, email: p.email_contato, instagram: base.instagram, site: base.site },
     };
   });
 }
 
 // ---------------------------------------------------------------------------
-// Métricas (aparições nos resultados, visualizações do perfil, cliques em "Pedir orçamento")
+// Métricas (aparições nos resultados, visualizações do perfil, aberturas do formulário de orçamento e cliques em contato)
 // ---------------------------------------------------------------------------
 const ROBO = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|whatsapp|preview|headless|lighthouse|curl|wget|python|httpie|go-http|java\//i;
 export const ehRobo = (userAgent: string | null) => !userAgent || ROBO.test(userAgent);
 
 /** Soma métricas do dia (fuso SP). Contador de sistema: nunca falha a página. */
-export async function registrarMetrica(perfilIds: string[], campo: 'aparicoes' | 'visualizacoes' | 'cliques_orcamento', userAgent: string | null): Promise<void> {
+export type CampoMetrica = 'aparicoes' | 'visualizacoes' | 'cliques_orcamento' | 'cliques_contato';
+
+export async function registrarMetrica(perfilIds: string[], campo: CampoMetrica, userAgent: string | null): Promise<void> {
   if (!perfilIds.length || ehRobo(userAgent)) return;
   try {
     await withSystem((db) =>

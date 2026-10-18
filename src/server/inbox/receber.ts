@@ -8,7 +8,9 @@ import path from 'node:path';
 import { systemQuery, withTenant } from '../../lib/db';
 import { saveFile } from '../../lib/storage';
 import type { ResendReceiving } from '../../lib/resendReceiving';
-import { atualizarStatusMensagem, receberMensagem, type AnexoMensagem, type StatusMensagem } from '../conversas';
+import { atualizarStatusMensagem, receberMensagem, trecho, type AnexoMensagem, type StatusMensagem } from '../conversas';
+import { enderecoPuro } from '../emailTexto';
+import { avisarWhatsapp } from '../whatsapp';
 
 export interface EventoResend {
   /** svix-id (idempotência) */
@@ -178,8 +180,8 @@ async function receberEmail(e: EventoResend, deps: DepsReceber): Promise<void> {
   }
 
   const alvo = destino;
-  await withTenant(alvo.tenantId, (db) =>
-    receberMensagem(db, alvo, {
+  const recebida = await withTenant(alvo.tenantId, async (db) => {
+    const id = await receberMensagem(db, alvo, {
       de: email.from || (typeof e.data.from === 'string' ? e.data.from : 'desconhecido'),
       para: email.to.length ? email.to : strs(e.data.to),
       cc: email.cc,
@@ -191,6 +193,18 @@ async function receberEmail(e: EventoResend, deps: DepsReceber): Promise<void> {
       referencias,
       resend_id: emailId,
       anexos,
-    })
-  );
+    });
+    if (!id) return null;
+    const { rows } = await db.query<{ titulo: string }>('SELECT titulo FROM eventos WHERE id = $1', [alvo.eventoId]);
+    return { id, titulo: rows[0]?.titulo ?? 'o evento' };
+  });
+  // Aviso no WhatsApp da empresa (melhor esforço; reenvio do Resend não duplica: dedup pela mensagem)
+  if (recebida) {
+    const de = email.from || (typeof e.data.from === 'string' ? e.data.from : 'Cliente');
+    const nome = de.replace(/<[^>]*>/, '').replace(/"/g, '').trim() || enderecoPuro(de);
+    await avisarWhatsapp(alvo.tenantId, 'inbox', {
+      variaveis: [nome, recebida.titulo, trecho(email.text, email.html ? limparHtmlEmail(email.html) : null) || email.subject || '(sem texto)'],
+      link: `inbox/${alvo.conversaId}`, eventoId: alvo.eventoId, chave: `inbox:${recebida.id}`,
+    });
+  }
 }

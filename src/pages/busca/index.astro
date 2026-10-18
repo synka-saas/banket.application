@@ -168,6 +168,7 @@ const publicoUrl = perfil.publicado ? buscaUrl(`/buffet/${perfil.slug}`) : appUr
     <span class="tabular">{feitas} de {ETAPAS_PARA_PUBLICAR} etapas concluídas</span>
     <span class="tabular">Completude {perfil.completude}%</span>
     <span class="onb-situacao-barra" role="progressbar" aria-label="Completude do perfil" aria-valuemin="0" aria-valuemax="100" aria-valuenow={perfil.completude}><span style={`width:${perfil.completude}%`}></span></span>
+    <a href="/busca/desempenho" class="btn btn-outline btn-sm"><Icon name="chart-bar" size={16} /> Desempenho</a>
     <a href={publicoUrl} target="_blank" rel="noopener" class="btn btn-outline btn-sm"><Icon name="eye" size={16} /> {perfil.publicado ? 'Ver perfil público' : 'Ver prévia'}</a>
   </div>
   <div class="onb-corpo">

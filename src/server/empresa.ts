@@ -3,7 +3,11 @@ import { z } from 'zod';
 import type { Db } from '../lib/db';
 import { cnpjValido, cpfValido, somenteDigitos } from '../lib/documento';
 import { UFS, cepDigitos, enderecoCompleto } from '../lib/endereco';
-import { UserError, optionalEmail, optionalInt, optionalText, optionalUuid, requiredText } from '../lib/forms';
+import { UserError, checkbox, optionalEmail, optionalInt, optionalText, optionalUuid, requiredText } from '../lib/forms';
+import { TEMPOS_RESPOSTA, TEMPO_RESPOSTA_PADRAO, tempoRespostaValido } from '../lib/tempoResposta';
+import { numeroWhatsapp } from '../lib/whatsapp';
+
+const TIPOS_AVISO = ['novo_pedido', 'prazo_resposta', 'inbox', 'pesquisa'];
 
 export const empresaSchema = z
   .object({
@@ -28,6 +32,12 @@ export const empresaSchema = z
     assinatura_nome: optionalText(255),
     assinatura_cargo: optionalText(255),
     assinatura_telefone: optionalText(30),
+    tempo_resposta_horas: z.preprocess((v) => (v == null || v === '' ? TEMPO_RESPOSTA_PADRAO : Number(v)), z.number().refine(tempoRespostaValido, `Escolha um tempo de resposta: ${TEMPOS_RESPOSTA.join(', ')} horas.`)),
+    // Avisos no WhatsApp: só chegam quando o cartão aparece (recurso do plano); sem _whatsapp, nada muda
+    _whatsapp: optionalText(1),
+    whatsapp_avisos: optionalText(20),
+    whatsapp_avisos_ativo: checkbox(),
+    whatsapp_avisos_tipos: z.preprocess((v) => (Array.isArray(v) ? v : v ? [v] : []), z.array(z.string())).transform((l) => l.filter((t) => TIPOS_AVISO.includes(t))),
   })
   // Razão social só existe para pessoa jurídica
   .transform((e) => ({ ...e, documento: e.documento ? somenteDigitos(e.documento) : null, razao_social: e.tipo_pessoa === 'PJ' ? e.razao_social : null }))
@@ -38,6 +48,14 @@ export const empresaSchema = z
   .refine((e) => (e.criancas_meia_ate ?? 0) >= (e.criancas_isentas_ate ?? 0), {
     message: 'A idade limite para meia deve ser maior ou igual à de isenção.',
     path: ['criancas_meia_ate'],
+  })
+  .refine((e) => !e._whatsapp || !e.whatsapp_avisos || numeroWhatsapp(e.whatsapp_avisos), {
+    message: 'Informe um celular com DDD, ex.: (11) 98765-4321.',
+    path: ['whatsapp_avisos'],
+  })
+  .refine((e) => !e._whatsapp || !e.whatsapp_avisos_ativo || e.whatsapp_avisos, {
+    message: 'Informe o WhatsApp que recebe os avisos.',
+    path: ['whatsapp_avisos'],
   });
 
 export type EmpresaInput = z.infer<typeof empresaSchema>;
@@ -67,6 +85,10 @@ export interface Empresa {
   assinatura_nome: string | null;
   assinatura_cargo: string | null;
   assinatura_telefone: string | null;
+  tempo_resposta_horas: number;
+  whatsapp_avisos: string | null;
+  whatsapp_avisos_ativo: boolean;
+  whatsapp_avisos_tipos: string[];
 }
 
 export async function carregarEmpresa(db: Db): Promise<Empresa> {
@@ -76,7 +98,8 @@ export async function carregarEmpresa(db: Db): Promise<Empresa> {
     `SELECT t.id, t.nome, t.slug, t.razao_social, t.tipo_pessoa, t.documento, t.email, t.telefone, t.endereco, t.logo_path,
             t.cep, t.logradouro, t.numero, t.complemento, t.bairro, t.cidade, t.uf,
             c.validade_proposta_dias, c.criancas_isentas_ate, c.criancas_meia_ate, c.espaco_padrao_id,
-            c.assinatura_nome, c.assinatura_cargo, c.assinatura_telefone
+            c.assinatura_nome, c.assinatura_cargo, c.assinatura_telefone, c.tempo_resposta_horas,
+            c.whatsapp_avisos, c.whatsapp_avisos_ativo, c.whatsapp_avisos_tipos
        FROM tenants t JOIN configuracoes_tenant c ON c.tenant_id = t.id`
   );
   if (!rows[0]) throw new UserError('Empresa não encontrada.');
@@ -99,7 +122,8 @@ export async function salvarEmpresa(db: Db, input: EmpresaInput, logoPath?: stri
   );
   await db.query(
     `UPDATE configuracoes_tenant SET validade_proposta_dias = $1, criancas_isentas_ate = $2, criancas_meia_ate = $3,
-            espaco_padrao_id = $4, assinatura_nome = $5, assinatura_cargo = $6, assinatura_telefone = $7, updated_at = now()
+            espaco_padrao_id = $4, assinatura_nome = $5, assinatura_cargo = $6, assinatura_telefone = $7,
+            tempo_resposta_horas = $8, updated_at = now()
       WHERE tenant_id = app_tenant_id()`,
     [
       input.validade_proposta_dias,
@@ -109,8 +133,16 @@ export async function salvarEmpresa(db: Db, input: EmpresaInput, logoPath?: stri
       input.assinatura_nome,
       input.assinatura_cargo,
       input.assinatura_telefone,
+      input.tempo_resposta_horas,
     ]
   );
+  if (input._whatsapp) {
+    await db.query(
+      `UPDATE configuracoes_tenant SET whatsapp_avisos = $1, whatsapp_avisos_ativo = $2, whatsapp_avisos_tipos = $3, updated_at = now()
+        WHERE tenant_id = app_tenant_id()`,
+      [numeroWhatsapp(input.whatsapp_avisos), input.whatsapp_avisos_ativo && Boolean(input.whatsapp_avisos), input.whatsapp_avisos_tipos]
+    );
+  }
 }
 
 export async function removerLogo(db: Db): Promise<string | null> {

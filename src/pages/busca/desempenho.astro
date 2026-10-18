@@ -1,0 +1,339 @@
+---
+// Banket Busca — desempenho do perfil nos últimos 30 dias (diferenciacao.md §2.5). Perfil Simples: totais e o que deixou
+// de ganhar, com o convite para o Perfil Personalizado. Personalizado: visualizações por dia, funil até o pedido,
+// origem dos pedidos, tempo de resposta e comparação com a região.
+import AppLayout from '../../layouts/AppLayout.astro';
+import Icon from '../../components/ui/Icon.astro';
+import SectionCard from '../../components/ui/SectionCard.astro';
+import Button from '../../components/ui/Button.astro';
+import { withTenant } from '../../lib/db';
+import { nivelEm } from '../../lib/planos/gating';
+import { DIAS_DESEMPENHO, desempenhoDoBuffet } from '../../server/busca/desempenho';
+
+const user = Astro.locals.user;
+const plano = Astro.locals.plano;
+const personalizado = nivelEm(plano) === 'cliente';
+const d = await withTenant(user.tenantId, (db) => desempenhoDoBuffet(db, user.tenantId));
+const n = (v: number) => v.toLocaleString('pt-BR');
+const pct = (a: number, b: number) => (b > 0 ? `${Math.round((a / b) * 100)}%` : '—');
+const maxDia = Math.max(1, ...d.porDia.map((x) => x.visualizacoes));
+const diaCurto = (iso: string) => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+const podeTestar = !personalizado && plano != null && !plano.trialUsado;
+const ctaUrl = podeTestar ? '/planos?teste=1' : '/planos';
+const kpis = [
+  { rotulo: 'Aparições nas buscas', valor: d.totais.aparicoes, icone: 'search' },
+  { rotulo: 'Visualizações do perfil', valor: d.totais.visualizacoes, icone: 'eye' },
+  { rotulo: 'Cliques em contato', valor: d.totais.contatos, icone: 'address-book' },
+  personalizado
+    ? { rotulo: 'Pedidos pelo Busca', valor: d.pedidos.busca, icone: 'mail' }
+    : { rotulo: 'Pedidos no seu funil', valor: 0, icone: 'lock' },
+];
+---
+
+<AppLayout title="Desempenho · Banket Busca" heading="Banket Busca / Desempenho">
+  <div class="dsp-cabeca">
+    <a class="voltar" href="/busca"><Icon name="arrow-left" size={16} /> Perfil do Banket Busca</a>
+    <p class="dsp-periodo">Últimos {DIAS_DESEMPENHO} dias · {personalizado ? 'Perfil Personalizado' : 'Perfil Simples'}</p>
+  </div>
+
+  <ul class="dsp-kpis">
+    {kpis.map((k) => (
+      <li class="dsp-kpi">
+        <span class="eyebrow"><Icon name={k.icone} size={14} /> {k.rotulo}</span>
+        <strong class="tabular">{personalizado || k.icone !== 'lock' ? n(k.valor) : '—'}</strong>
+      </li>
+    ))}
+  </ul>
+
+  {!personalizado && (
+    <SectionCard title="O que você deixou de ganhar" icon="arrow-up-right">
+      <p class="dsp-texto">
+        Você apareceu em <strong class="tabular">{n(d.totais.aparicoes)}</strong> {d.totais.aparicoes === 1 ? 'busca' : 'buscas'};{' '}
+        <strong class="tabular">{n(d.totais.visualizacoes)}</strong> {d.totais.visualizacoes === 1 ? 'pessoa viu' : 'pessoas viram'} o seu perfil e{' '}
+        <strong class="tabular">{n(d.totais.contatos)}</strong> {d.totais.contatos === 1 ? 'abriu' : 'abriram'} os seus contatos.
+        {d.regiao && d.regiao.pedidos > 0 && (
+          <> Buffets com Perfil Personalizado em {d.regiao.nome} receberam em média <strong class="tabular">{d.regiao.pedidos.toLocaleString('pt-BR')}</strong> pedidos no mesmo período, direto no funil.</>
+        )}
+      </p>
+      <ul class="dsp-beneficios">
+        <li><Icon name="check" size={16} /> Pedido pelo seu formulário, já no Painel de Propostas, com data, convidados e tipo de evento</li>
+        <li><Icon name="check" size={16} /> Selo Cliente Banket, impulso no ranking e vagas de destaque no topo da busca</li>
+        <li><Icon name="check" size={16} /> Disponibilidade pela agenda, cardápios no perfil e avisos no WhatsApp</li>
+        <li><Icon name="check" size={16} /> Avaliações pela pesquisa de satisfação, que sobem a sua nota</li>
+      </ul>
+      <div><Button href={ctaUrl} variant="primary">{podeTestar ? 'Testar o Perfil Personalizado por 30 dias' : 'Conhecer o Perfil Personalizado'}</Button></div>
+    </SectionCard>
+  )}
+
+  {personalizado && (
+    <>
+      <SectionCard title="Visualizações do perfil por dia" icon="chart-bar">
+        <div class="dsp-grafico" role="img" aria-label={`Visualizações por dia nos últimos ${DIAS_DESEMPENHO} dias; total ${d.totais.visualizacoes}`}>
+          {d.porDia.map((x) => (
+            <span class="dsp-barra" style={`--h:${(x.visualizacoes / maxDia) * 100}%`} data-valor={`${diaCurto(x.dia)} · ${x.visualizacoes} ${x.visualizacoes === 1 ? 'visualização' : 'visualizações'}`}></span>
+          ))}
+        </div>
+        <div class="dsp-eixo"><span>{diaCurto(d.porDia[0].dia)}</span><span>{diaCurto(d.porDia[d.porDia.length - 1].dia)}</span></div>
+        <details class="dsp-tabela">
+          <summary>Ver os números por dia</summary>
+          <table class="data-table">
+            <thead><tr><th>Dia</th><th>Aparições</th><th>Visualizações</th><th>Contatos</th><th>Formulário aberto</th></tr></thead>
+            <tbody>
+              {[...d.porDia].reverse().map((x) => (
+                <tr><td>{diaCurto(x.dia)}</td><td class="tabular">{x.aparicoes}</td><td class="tabular">{x.visualizacoes}</td><td class="tabular">{x.contatos}</td><td class="tabular">{x.orcamentos}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      </SectionCard>
+
+      <div class="dsp-grade">
+        <SectionCard title="Do perfil ao contrato" icon="filter">
+          <dl class="dsp-funil">
+            <div><dt>Visualizações → contato ou formulário</dt><dd class="tabular">{pct(d.totais.contatos + d.totais.orcamentos, d.totais.visualizacoes)}</dd></div>
+            <div><dt>Formulário aberto → pedido</dt><dd class="tabular">{pct(d.pedidos.busca, d.totais.orcamentos)}</dd></div>
+            <div><dt>Pedidos do Busca aprovados</dt><dd class="tabular">{n(d.pedidos.aprovados)} de {n(d.pedidos.busca)}</dd></div>
+            <div><dt>Pedidos pelos formulários (site e redes)</dt><dd class="tabular">{n(d.pedidos.formulario)}</dd></div>
+          </dl>
+        </SectionCard>
+        <SectionCard title="Resposta e região" icon="clock">
+          <dl class="dsp-funil">
+            <div><dt>Respondidos em até {d.cumprimento.prazoHoras} h (90 dias)</dt><dd class="tabular">{d.cumprimento.taxa == null ? '—' : `${Math.round(d.cumprimento.taxa * 100)}%`}</dd></div>
+            <div><dt>Resposta típica</dt><dd class="tabular">{d.cumprimento.medianaHoras == null ? '—' : `${d.cumprimento.medianaHoras.toLocaleString('pt-BR')} h`}</dd></div>
+            {d.regiao ? (
+              <>
+                <div><dt>Visualizações, média em {d.regiao.nome}</dt><dd class="tabular">{n(d.regiao.visualizacoes)}</dd></div>
+                <div><dt>Pedidos, média em {d.regiao.nome}</dt><dd class="tabular">{d.regiao.pedidos.toLocaleString('pt-BR')}</dd></div>
+              </>
+            ) : (
+              <div><dt>Comparação com a região</dt><dd class="dsp-nota">Poucos perfis personalizados na sua região para comparar.</dd></div>
+            )}
+          </dl>
+          <a class="link dsp-link" href="/configuracoes/empresa#tempo-resposta">Ajustar o tempo de resposta</a>
+        </SectionCard>
+      </div>
+    </>
+  )}
+</AppLayout>
+
+<style>
+  .dsp-cabeca {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .dsp-periodo {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .dsp-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    list-style: none;
+  }
+
+  .dsp-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .dsp-kpi .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+  }
+
+  .dsp-kpi strong {
+    font-size: var(--fs-28);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--ls-tight);
+    color: var(--text-strong);
+  }
+
+  .dsp-texto {
+    margin: 0 0 var(--space-4);
+    max-width: 72ch;
+    font-size: var(--fs-15);
+    line-height: 1.6;
+  }
+
+  .dsp-texto strong {
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+  }
+
+  .dsp-beneficios {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-14);
+  }
+
+  .dsp-beneficios li {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+
+  .dsp-beneficios :global(svg) {
+    flex: none;
+    margin-top: 2px;
+    color: var(--success);
+  }
+
+  .dsp-grafico {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 160px;
+    padding-top: var(--space-2);
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .dsp-barra {
+    position: relative;
+    flex: 1;
+    height: var(--h);
+    border-radius: 4px 4px 0 0;
+    background: var(--chart-1);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* Área de toque maior que a barra: a coluna inteira mostra o valor */
+  .dsp-barra::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    right: -1px;
+    bottom: 0;
+    height: 160px;
+  }
+
+  .dsp-barra:hover {
+    background: var(--terracotta-700);
+  }
+
+  .dsp-barra:hover::after {
+    content: attr(data-valor);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 2;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-md);
+    font-size: var(--fs-12);
+    color: var(--text-body);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .dsp-eixo {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-1);
+    font-size: var(--fs-12);
+    color: var(--text-muted);
+  }
+
+  .dsp-tabela {
+    margin-top: var(--space-4);
+    font-size: var(--fs-13);
+  }
+
+  .dsp-tabela summary {
+    cursor: pointer;
+    color: var(--text-link);
+    margin-bottom: var(--space-3);
+  }
+
+  .dsp-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    margin-top: var(--space-5);
+  }
+
+  .dsp-grade > :global(*) {
+    margin: 0;
+  }
+
+  .dsp-funil {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+  }
+
+  .dsp-funil div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-2-5) 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--fs-14);
+  }
+
+  .dsp-funil div:last-child {
+    border-bottom: 0;
+  }
+
+  .dsp-funil dt {
+    color: var(--text-secondary);
+  }
+
+  .dsp-funil dd {
+    margin: 0;
+    font-weight: var(--fw-medium);
+    color: var(--text-strong);
+    text-align: right;
+  }
+
+  .dsp-nota {
+    font-weight: var(--fw-regular) !important;
+    color: var(--text-muted) !important;
+  }
+
+  .dsp-link {
+    display: inline-block;
+    margin-top: var(--space-3);
+    font-size: var(--fs-13);
+  }
+
+  @media (max-width: 1024px) {
+    .dsp-kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .dsp-grade {
+      grid-template-columns: 1fr;
+    }
+
+    .dsp-grafico {
+      height: 120px;
+    }
+  }
+</style>

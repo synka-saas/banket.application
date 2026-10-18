@@ -27,6 +27,7 @@ const card: ItemResultado = {
   capacidadeMax: p.capacidade_max, aceitaMenor: p.aceita_menor, distanciaKm: null, notaMedia: p.nota_media,
   totalAvaliacoes: p.total_avaliacoes, taxaResposta: p.taxa_resposta, completude: p.completude, prioridade: p.nivel === 'cliente',
   selo: p.nivel === 'cliente', usaAgenda: false, ocupado: false, foto: capa ? urlMidia(p.tenant_id, capa.path) : null, disponibilidade: null,
+  destaque: false,
 };
 const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa=1'}`);
 ---

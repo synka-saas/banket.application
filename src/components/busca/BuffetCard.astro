@@ -1,5 +1,6 @@
 ---
-// Card de buffet nos resultados e nos destaques (layout-busca/BuffetCard): foto, selo "Cliente Banket", nota, região,
+// Card de buffet nos resultados e nos destaques (layout-busca/BuffetCard): foto, rótulo "Destaque" (vaga paga do topo,
+// rankeamento.md §4), selo "Cliente Banket", nota, região,
 // distância, tags, capacidade e "Ver detalhes" (o card inteiro também leva ao perfil, onde se pede o orçamento ou se vê
 // os contatos). O Busca não divulga preço.
 import Icon from '../ui/Icon.astro';
@@ -38,6 +39,9 @@ const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1,
     <img src={item.foto ?? FOTO_PADRAO} alt="" loading={primeiro ? 'eager' : 'lazy'} decoding="async" width="560" height="420" />
     {item.disponibilidade === 'disponivel' && <span class="bcard-disponivel"><span class="bcard-ponto" aria-hidden="true"></span>Disponível na data</span>}
   </a>
+  {item.destaque && (
+    <span class="bcard-destaque" title="Posição de destaque para buffets que usam o Banket (Cliente Banket)">Destaque</span>
+  )}
   <div class="bcard-corpo">
     <div class="bcard-cabeca">
       <h3 class="bcard-nome"><a href={perfilUrl}>{item.nome}</a></h3>
