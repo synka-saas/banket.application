@@ -177,6 +177,11 @@ export async function slugCurtoDaCidade(c: Cidade): Promise<string> {
 
 // Recursos do plano só para clientes: no plano gratuito (nivel = 'gratuito', sincronizado pelo trocarPlano) os três são
 // falsos, e fn_tenant_pode por linha custava ~0,4 ms × milhares de perfis importados em cada busca.
+// Evento que ocupa a data de um perfil: o do espaço da própria unidade ou de nenhum espaço de outra unidade da empresa
+// (redes têm um perfil por unidade; o evento numa unidade não tira as outras da busca). `e` = eventos, `p` = perfil.
+const EVENTO_DA_UNIDADE = `(e.espaco_id IS NOT DISTINCT FROM p.espaco_id OR NOT EXISTS (
+    SELECT 1 FROM busca_perfis o WHERE o.tenant_id = p.tenant_id AND o.id <> p.id AND o.espaco_id IS NOT NULL AND o.espaco_id = e.espaco_id))`;
+
 const SQL_CANDIDATOS = `
   SELECT p.id, p.tenant_id, p.slug, p.nome, p.bairro, c.nome AS cidade, c.uf, p.cidade_id, p.tipos_evento, p.tipos_servico,
          p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio, p.capacidade_min, p.capacidade_max, p.aceita_menor,
@@ -191,7 +196,7 @@ const SQL_CANDIDATOS = `
          p.nivel = 'cliente' AND fn_tenant_pode(p.tenant_id, 'busca_disponibilidade') AS agenda,
          CASE WHEN $5::date IS NULL THEN false ELSE (
            EXISTS (SELECT 1 FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
-                    WHERE e.tenant_id = p.tenant_id AND e.data_evento = $5::date AND s.variante = 'aprovado')
+                    WHERE e.tenant_id = p.tenant_id AND e.data_evento = $5::date AND s.variante = 'aprovado' AND ${EVENTO_DA_UNIDADE})
            OR EXISTS (SELECT 1 FROM busca_bloqueios b WHERE b.perfil_id = p.id AND $5::date BETWEEN b.data_inicio AND b.data_fim)
          ) END AS ocupado
     FROM busca_perfis p
@@ -456,7 +461,9 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
         ? db.query<{ d: string }>(
             `SELECT DISTINCT to_char(d, 'YYYY-MM-DD') AS d FROM (
                SELECT e.data_evento AS d FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
+                 JOIN busca_perfis p ON p.id = $2
                 WHERE e.tenant_id = $1 AND s.variante = 'aprovado' AND e.data_evento BETWEEN current_date AND current_date + 90
+                  AND ${EVENTO_DA_UNIDADE}
                UNION ALL
                SELECT generate_series(greatest(b.data_inicio, current_date), least(b.data_fim, current_date + 90), interval '1 day')::date
                  FROM busca_bloqueios b WHERE b.perfil_id = $2

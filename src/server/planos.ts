@@ -142,7 +142,10 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
   else {
     if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
     if (podeUsarEm(ent, 'busca_personalizado')) {
+      // Devolve o que estava guardado e corta de novo pelo limite do plano de destino (Prime → Essencial, ou a volta
+      // de quem foi Prime pelo Essencial): sem o corte, fotos e tipos ficavam acima do limite do plano novo
       await restaurarBusca(db, tenantId);
+      await aplicarExcedentesBusca(db, tenantId);
       await atualizarEnderecosPeloNome(db, tenantId);
     } else {
       await aplicarExcedentesBusca(db, tenantId);

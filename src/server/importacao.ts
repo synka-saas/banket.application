@@ -31,6 +31,22 @@ function conferirLimite(totalLinhas: number) {
   if (totalLinhas > LIMITE_LINHAS) throw new UserError(`O arquivo tem ${totalLinhas} linhas; o limite por importação é ${LIMITE_LINHAS}.`);
 }
 
+/**
+ * Cada linha num SAVEPOINT: o erro de uma (e-mail ou documento repetido, por exemplo) desfaz só ela. Sem isso o
+ * primeiro erro do Postgres abortava a transação inteira e o COMMIT final virava ROLLBACK em silêncio.
+ */
+async function emSavepoint<T>(db: Db, fn: () => Promise<T>): Promise<T> {
+  await db.query('SAVEPOINT linha_importacao');
+  try {
+    const r = await fn();
+    await db.query('RELEASE SAVEPOINT linha_importacao');
+    return r;
+  } catch (err) {
+    await db.query('ROLLBACK TO SAVEPOINT linha_importacao');
+    throw err;
+  }
+}
+
 export async function importarClientes(db: Db, tenantId: string, csv: string): Promise<ResultadoImportacao> {
   const { linhas, colunas } = csvComCabecalho(csv);
   if (!colunas.includes('nome')) throw new UserError('O cabeçalho precisa ter a coluna "nome". Baixe o modelo para conferir as colunas.');
@@ -48,7 +64,7 @@ export async function importarClientes(db: Db, tenantId: string, csv: string): P
         endereco: valores.endereco || null,
         observacoes: valores.observacoes || null,
       });
-      await salvarCliente(db, tenantId, null, input);
+      await emSavepoint(db, () => salvarCliente(db, tenantId, null, input));
       resultado.importados++;
     } catch (err) {
       resultado.erros.push({ linha: numero, motivo: userMessage(err) });
@@ -67,10 +83,12 @@ export async function importarItens(db: Db, tenantId: string, csv: string): Prom
   // Seções pelo nome (sem diferenciar maiúsculas); as que faltarem são criadas
   const { rows } = await db.query<{ id: string; nome: string }>('SELECT id, nome FROM catalogo_secoes');
   const secoes = new Map(rows.map((r) => [r.nome.trim().toLowerCase(), r.id]));
+  let criadasNaLinha: string[] = [];
   const secaoDaLinha = async (nome: string): Promise<string> => {
     const chave = nome.trim().toLowerCase();
     const existente = secoes.get(chave);
     if (existente) return existente;
+    criadasNaLinha.push(chave);
     const nova = await db.query<{ id: string }>(
       `INSERT INTO catalogo_secoes (tenant_id, nome, ordem)
        VALUES ($1, $2, (SELECT COALESCE(max(ordem), 0) + 1 FROM catalogo_secoes))
@@ -85,24 +103,29 @@ export async function importarItens(db: Db, tenantId: string, csv: string): Prom
   for (const { numero, valores } of linhas) {
     try {
       if (!valores.secao) throw new UserError('Informe a seção do item.');
-      const secaoId = await secaoDaLinha(valores.secao);
-      const input = itemSchema.parse({
-        nome: valores.nome,
-        secao_id: secaoId,
-        descricao: valores.descricao || null,
-        composicao: valores.composicao || null,
-        preco: valores.preco || null,
-        custo_unitario: valores.custo_unitario || null,
-        unidade_cobranca: (valores.unidade_cobranca || 'pessoa').toLowerCase(),
-        porcao_qtd: valores.porcao || null,
-        porcao_unidade: (valores.porcao_unidade || '').toLowerCase() || null,
-        restricoes: [],
-        dados_operacionais: [],
-        ativo: 'on',
+      criadasNaLinha = [];
+      await emSavepoint(db, async () => {
+        const secaoId = await secaoDaLinha(valores.secao);
+        const input = itemSchema.parse({
+          nome: valores.nome,
+          secao_id: secaoId,
+          descricao: valores.descricao || null,
+          composicao: valores.composicao || null,
+          preco: valores.preco || null,
+          custo_unitario: valores.custo_unitario || null,
+          unidade_cobranca: (valores.unidade_cobranca || 'pessoa').toLowerCase(),
+          porcao_qtd: valores.porcao || null,
+          porcao_unidade: (valores.porcao_unidade || '').toLowerCase() || null,
+          restricoes: [],
+          dados_operacionais: [],
+          ativo: 'on',
+        });
+        await salvarItem(db, tenantId, null, input);
       });
-      await salvarItem(db, tenantId, null, input);
       resultado.importados++;
     } catch (err) {
+      // A seção criada nesta linha foi desfeita junto
+      for (const chave of criadasNaLinha) secoes.delete(chave);
       resultado.erros.push({ linha: numero, motivo: userMessage(err) });
     }
   }

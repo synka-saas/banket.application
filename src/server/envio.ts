@@ -104,6 +104,8 @@ export async function enviarProposta(
   input: z.infer<typeof envioSchema>
 ): Promise<{ delivered: boolean; novaVersao: number | null }> {
   const para = input.para.join(', ');
+  // Um envio por evento de cada vez: o segundo clique espera o primeiro terminar e cai na conferência abaixo
+  await db.query(`SELECT pg_advisory_xact_lock(hashtext('envio-proposta:' || $1))`, [eventoId]);
   // Duplo clique ou reenvio acidental: a mesma versão para os mesmos destinatários há poucos segundos
   const recente = await db.query(
     `SELECT 1 FROM orcamento_versoes v JOIN orcamentos o ON o.id = v.orcamento_id

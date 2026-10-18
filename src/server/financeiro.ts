@@ -471,6 +471,8 @@ export type PlanoInput = z.infer<typeof planoSchema>;
  * as já recebidas ficam. Cada parcela vira uma conta a receber do cliente do evento.
  */
 export async function salvarPlano(db: Db, user: SessionUser, eventoId: string, input: PlanoInput): Promise<number> {
+  // Dois envios do mesmo plano (duplo clique, duas abas) em sequência, nunca juntos: senão as parcelas saem em dobro
+  await db.query(`SELECT pg_advisory_xact_lock(hashtext('plano-pagamento:' || $1))`, [eventoId]);
   const { rows: ev } = await db.query<{ titulo: string | null; cliente_id: string | null; cliente_nome: string | null }>(
     'SELECT e.titulo, e.cliente_id, c.nome AS cliente_nome FROM eventos e LEFT JOIN clientes c ON c.id = e.cliente_id WHERE e.id = $1',
     [eventoId]
