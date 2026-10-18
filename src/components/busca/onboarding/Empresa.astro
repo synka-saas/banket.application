@@ -2,7 +2,9 @@
 // Etapa 1: o perfil público da empresa. Os dados da empresa (nome, CNPJ/CPF, e-mail, telefone/WhatsApp, logotipo)
 // são os de Configurações › Empresa, mostrados aqui só para leitura e copiados para o perfil
 // (server/busca/onboarding → sincronizarPerfisComEmpresa); aqui ficam redes, tempo de resposta, descrição e o
-// endereço do perfil (id do perfil por padrão; com o nome do buffet só nos planos pagos, recurso busca_slug).
+// link do perfil: o código do perfil no plano gratuito; nos planos pagos (recurso busca_slug), gerado do nome do buffet
+// e atualizado quando o nome muda (server/busca/perfil → atualizarEnderecosPeloNome), ou escolhido pela empresa no campo
+// "Endereço do perfil" (digitado ou uma das até 3 sugestões da varinha de IA, /api/busca/endereco-sugestoes).
 import Icon from '../../ui/Icon.astro';
 import Acoes from './Acoes.astro';
 import { formatarDocumento } from '../../../lib/documento';
@@ -18,12 +20,14 @@ interface Props {
   empresa: DadosEmpresa | null;
   /** O que falta no cadastro da empresa para concluir a etapa */
   faltas: string[];
-  /** Plano permite escolher o endereço do perfil */
+  /** Plano dá o link com o nome do buffet (recurso busca_slug) */
   endereco?: boolean;
 }
 const { perfil: p, editor, empresa, faltas, endereco = false } = Astro.props;
+const linkPerfil = buscaUrl(`/buffet/${p.slug}`);
+const linkVisivel = linkPerfil.replace(/^https?:\/\//, '');
 const baseEndereco = buscaUrl('/buffet/').replace(/^https?:\/\//, '');
-const enderecoProprio = ehUuid(p.slug) ? '' : p.slug;
+const enderecoAtual = ehUuid(p.slug) ? '' : p.slug;
 const logo = urlMidia(p.tenant_id, p.logo_path);
 const fone = empresa?.telefone ? mascararTelefone(empresa.telefone) : null;
 ---
@@ -63,23 +67,38 @@ const fone = empresa?.telefone ? mascararTelefone(empresa.telefone) : null;
             {['', 'Responde em até 2 horas', 'Responde no mesmo dia', 'Responde em até 1 dia'].map((o) => <option value={o} selected={(p.tempo_resposta_texto ?? '') === o}>{o || 'Não informar'}</option>)}
           </select>
         </div>
-        <div class="field span-2">
-          <label for="e-endereco">Endereço do perfil</label>
-          {endereco ? (
-            <>
-              <div class="onb-endereco">
-                <span class="onb-endereco-base">{baseEndereco}</span>
-                <input id="e-endereco" name="endereco" maxlength="60" autocomplete="off" spellcheck="false" placeholder="nome-do-seu-buffet" value={enderecoProprio} />
-              </div>
-              <span class="field-hint">Letras minúsculas, números e hífens. Vazio usa o código do perfil. O endereço anterior continua levando ao perfil.</span>
-            </>
-          ) : (
-            <>
-              <div class="onb-endereco onb-endereco--fixo"><span class="onb-endereco-base">{baseEndereco}</span><span class="tabular">{p.slug}</span></div>
-              <a class="field-hint" href="/busca?etapa=1&bloqueado=busca_slug" data-bloqueado="busca_slug"><Icon name="lock" size={12} /> Endereço com o nome do buffet: exclusivo Banket</a>
-            </>
-          )}
-        </div>
+        {endereco ? (
+          <div class="field span-2" data-endereco>
+            <label for="e-endereco">Endereço do perfil</label>
+            <div class="onb-endereco">
+              <span class="onb-endereco-base">{baseEndereco}</span>
+              <input id="e-endereco" name="endereco" maxlength="60" autocomplete="off" spellcheck="false" placeholder="nome-do-seu-buffet" value={enderecoAtual} />
+              {editor && (
+                <button type="button" class="onb-endereco-ia" data-sugerir-endereco aria-label="Sugerir endereços com IA" title="Sugerir endereços com IA">
+                  <Icon name="wand" size={18} />
+                </button>
+              )}
+            </div>
+            <div class="onb-endereco-sugestoes" data-sugestoes hidden>
+              <span class="field-hint">Escolha uma sugestão:</span>
+              <div class="onb-endereco-opcoes" role="radiogroup" aria-label="Sugestões de endereço" data-opcoes></div>
+            </div>
+            <span class="field-hint">
+              {p.slug_escolhido ? 'Endereço escolhido por você. Apague para voltar a acompanhar o nome do buffet.' : 'Gerado a partir do nome do buffet. Troque se quiser: digite ou use a varinha para sugestões.'}
+              {' '}O endereço anterior continua levando ao perfil.
+              <button type="button" class="btn btn-text btn-sm onb-endereco-copiar" data-copiar-link={linkPerfil}><Icon name="copy" size={14} /> Copiar link</button>
+            </span>
+          </div>
+        ) : (
+          <div class="field span-2">
+            <span class="field-label">Link do perfil</span>
+            <div class="onb-link">
+              <span class="onb-link-url" title={linkPerfil}>{linkVisivel}</span>
+              <button type="button" class="btn btn-secondary btn-sm" data-copiar-link={linkPerfil}><Icon name="copy" size={16} /> Copiar link</button>
+            </div>
+            <a class="field-hint" href="/busca?etapa=1&bloqueado=busca_slug" data-bloqueado="busca_slug"><Icon name="lock" size={12} /> Link com o nome do buffet: exclusivo Banket</a>
+          </div>
+        )}
         <div class="field span-2">
           <label for="e-desc">Descrição<span class="obrigatorio">*</span></label>
           <textarea id="e-desc" name="descricao" rows="6" minlength="80" maxlength="1200" required placeholder="Há quantos anos atende, o espaço, a cozinha, o que torna o seu buffet especial.">{p.descricao ?? ''}</textarea>
@@ -90,3 +109,56 @@ const fone = empresa?.telefone ? mascararTelefone(empresa.telefone) : null;
   </fieldset>
   <Acoes etapa={1} editor={editor} />
 </form>
+
+<script>
+  import { emCarregamento, toast } from '../../../lib/ui';
+
+  // Varinha: até 3 sugestões de endereço pela IA; escolher uma preenche o campo (salva com o botão Salvar da etapa)
+  const caixa = document.querySelector<HTMLElement>('[data-endereco]');
+  const campo = caixa?.querySelector<HTMLInputElement>('#e-endereco');
+  const botaoIa = caixa?.querySelector<HTMLButtonElement>('[data-sugerir-endereco]');
+  const painel = caixa?.querySelector<HTMLElement>('[data-sugestoes]');
+  const opcoes = caixa?.querySelector<HTMLElement>('[data-opcoes]');
+  botaoIa?.addEventListener('click', async () => {
+    const fim = emCarregamento(botaoIa, '');
+    botaoIa.classList.add('onb-endereco-ia--gerando');
+    try {
+      const res = await fetch('/api/busca/endereco-sugestoes', { method: 'POST', headers: { Accept: 'application/json' } });
+      const corpo = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(corpo.error || 'Não foi possível sugerir agora.');
+      const lista: string[] = corpo.sugestoes ?? [];
+      opcoes!.replaceChildren(
+        ...lista.map((s) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'onb-endereco-opcao';
+          b.setAttribute('role', 'radio');
+          b.setAttribute('aria-checked', String(campo!.value === s));
+          b.textContent = s;
+          b.addEventListener('click', () => {
+            campo!.value = s;
+            campo!.dispatchEvent(new Event('input', { bubbles: true }));
+            opcoes!.querySelectorAll('[role="radio"]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+          });
+          return b;
+        })
+      );
+      painel!.hidden = lista.length === 0;
+      opcoes!.querySelector<HTMLButtonElement>('button')?.focus();
+    } catch (err) {
+      toast((err as Error).message, 'error');
+    } finally {
+      botaoIa.classList.remove('onb-endereco-ia--gerando');
+      fim();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const botao = (e.target as HTMLElement).closest<HTMLElement>('[data-copiar-link]');
+    if (!botao) return;
+    navigator.clipboard
+      .writeText(botao.dataset.copiarLink!)
+      .then(() => toast('Link do perfil copiado.', 'success'))
+      .catch(() => toast('Não foi possível copiar o link.', 'error'));
+  });
+</script>

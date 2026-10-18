@@ -324,7 +324,7 @@ médio do momento na saída, base do CMV), `fornecedor`, `documento` (NF), `even
 `restricoes TEXT[]` (`vegetariana, vegana, sem_gluten, sem_lactose, alergenicos`), `dados_operacionais TEXT[]`, `ativo`, `ordem`,
 **`porcao_qtd`** + **`porcao_unidade`** (`g | kg | ml | l | un`): porção por pessoa, base da lista de compras do orçamento.
 **`cardapio_opcoes`** — "opções prontas"/pacotes: `nome`, `descricao`, `preco_por_pessoa`, `duracao_horas`,
-`formato_servico_id`, `tags TEXT[]`, `ativo`.
+`formato_servico_id`, `tags TEXT[]`, `ativo`, `publico_busca` (exibida no perfil do Banket Busca; migration 042).
 **`cardapio_opcao_secoes`** — seções da opção: `opcao_id`, `secao_id`, `titulo` (nome alternativo), `escolha_qtd`
 ("escolha N opções"), `preco`, `ordem`.
 **`cardapio_opcao_itens`** — `opcao_secao_id`, `item_id`, `preco`, `ordem`; UNIQUE (`opcao_secao_id`, `item_id`).
@@ -590,6 +590,8 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `039_assinatura_stripe` | espelho do Stripe em `tenants`, `assinatura_faturas`, `stripe_events`; motivos `plano_escolhido`/`inadimplencia`, funil `checkout_iniciado`, `plano_avisos.chave` 80; `fn_tenant_entitlements` com origem e assinatura |
 | `038_busca_reivindicacao` | `auth_tokens.tipo` aceita `reivindicacao`; `busca_reivindicacoes` (fila da equipe) e `busca_exclusoes` (buffets que saíram), só conexão de sistema |
 | `037_busca_unidades_importacao` | `busca_perfis` sem unicidade por empresa (um perfil por unidade) + `espaco_id`; `tenants.origem_cadastro` aceita `importacao`; tabela `busca_importacao` |
+| `042_cardapio_publico_busca` | `cardapio_opcoes.publico_busca`: só as opções marcadas aparecem no perfil do Busca |
+| `041_busca_endereco_escolhido` | `busca_perfis.slug_escolhido`: endereço escolhido pela empresa não acompanha mais o nome |
 | `036_busca_endereco_perfil` | endereço do perfil = id (UUID) sem o recurso `busca_slug`; `busca_perfis.slugs_antigos` para os redirecionamentos 301 |
 | `035_busca_fotos_thumb` | fotos de demonstração (`/busca-demo/*.svg`) viram a imagem padrão `/thumb-buffet.webp` |
 | `030_tipos_evento_fixos` | `tipos_evento.slug` (`corporativo`/`social`, único por empresa); garante os dois tipos em toda empresa, remove os demais (eventos vão para Social) e trava cadastro/renomeação por trigger |
@@ -1118,11 +1120,15 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Seleção múltipla** em `sessionStorage` (até 5 buffets, `MAX_SELECAO`), barra fixa com o link do pedido.
 - **Sem preço** (decisão de 16/10/2026): nenhuma menção a preço na vitrine (card, perfil, card lateral, landings,
   JSON-LD sem `priceRange`/`makesOffer`). Não há pacotes.
-- **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio ativas do
+- **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio **ativas e
+  marcadas como públicas** (toggle "Cardápio público" no topo do editor da opção, ao lado de "Cardápio ativo") do
   catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
   grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
-- **Endereço do perfil**: `/buffet/<id do perfil>` (UUID); só planos pagos (recurso `busca_slug`) escolhem um endereço
-  com o nome na etapa 1 (`problemaNoSlug`, único também entre os `slugs_antigos`). O perfil é achado pelo endereço atual,
+- **Endereço do perfil**: `/buffet/<id do perfil>` (UUID); nos planos pagos (recurso `busca_slug`) é gerado do nome do
+  buffet e acompanha o nome (`atualizarEnderecosPeloNome`), ou a empresa escolhe outro no campo da etapa 1, digitando ou
+  pela **varinha de IA** (`POST /api/busca/endereco-sugestoes` → `sugerirEnderecos`: OpenAI, até 3 sugestões válidas e
+  livres, 20 pedidos / 10 min por empresa); escolhido = `slug_escolhido` (não segue mais o nome; apagar o campo volta ao
+  automático). Sempre `problemaNoSlug` e único também entre os `slugs_antigos`. O perfil é achado pelo endereço atual,
   pelo id ou por um antigo, e a página faz 301 para o atual. Perder o plano pago volta o endereço para o id.
 - **Galeria do topo** (`vp-galeria--N`): conta só fotos reais (a imagem padrão não conta); sem foto, a imagem padrão
   sozinha; 1 foto, ela sozinha; da 2ª em diante, miniaturas (até 4) sem espaço vazio na grade.

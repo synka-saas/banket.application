@@ -367,6 +367,8 @@ export const opcaoSchema = z.object({
   formato_servico_id: optionalUuid(),
   tags: tagList(),
   ativo: z.boolean().default(true),
+  // Exibido no perfil público do Banket Busca (seção Cardápios)
+  publico_busca: z.boolean().default(false),
   secoes: z.array(opcaoSecaoSchema).min(1, 'Adicione pelo menos uma seção ao cardápio.'),
 });
 
@@ -381,13 +383,14 @@ export interface OpcaoResumo {
   formato_nome: string | null;
   tags: string[];
   ativo: boolean;
+  publico_busca: boolean;
   secoes: number;
   itens: number;
 }
 
 export async function listarOpcoes(db: Db, filtros: { busca: string | null; secaoId: string | null }): Promise<OpcaoResumo[]> {
   const { rows } = await db.query<OpcaoResumo>(
-    `SELECT o.id, o.nome, o.descricao, o.preco_por_pessoa, o.duracao_horas, f.nome AS formato_nome, o.tags, o.ativo,
+    `SELECT o.id, o.nome, o.descricao, o.preco_por_pessoa, o.duracao_horas, f.nome AS formato_nome, o.tags, o.ativo, o.publico_busca,
             (SELECT count(*) FROM cardapio_opcao_secoes os WHERE os.opcao_id = o.id) AS secoes,
             (SELECT count(*) FROM cardapio_opcao_itens oi JOIN cardapio_opcao_secoes os ON os.id = oi.opcao_secao_id
               WHERE os.opcao_id = o.id) AS itens
@@ -410,12 +413,13 @@ export interface OpcaoDetalhe {
   formato_servico_id: string | null;
   tags: string[];
   ativo: boolean;
+  publico_busca: boolean;
   secoes: { secao_id: string; titulo: string | null; escolha_qtd: number | null; preco: number | null; itens: string[] }[];
 }
 
 export async function carregarOpcao(db: Db, id: string): Promise<OpcaoDetalhe> {
   const { rows } = await db.query<OpcaoDetalhe>(
-    `SELECT o.id, o.nome, o.descricao, o.preco_por_pessoa, o.duracao_horas, o.formato_servico_id, o.tags, o.ativo,
+    `SELECT o.id, o.nome, o.descricao, o.preco_por_pessoa, o.duracao_horas, o.formato_servico_id, o.tags, o.ativo, o.publico_busca,
             COALESCE((
               SELECT json_agg(json_build_object(
                        'secao_id', os.secao_id, 'titulo', os.titulo, 'escolha_qtd', os.escolha_qtd, 'preco', os.preco,
@@ -440,6 +444,7 @@ export async function salvarOpcao(db: Db, tenantId: string, id: string | null, i
     input.formato_servico_id,
     input.tags,
     input.ativo,
+    input.publico_busca,
   ];
   let opcaoId = id;
   // Limite do plano conta as opções ativas: criar ativa ou reativar uma inativa ocupa vaga
@@ -450,16 +455,16 @@ export async function salvarOpcao(db: Db, tenantId: string, id: string | null, i
   if (id) {
     const res = await db.query(
       `UPDATE cardapio_opcoes SET nome = $1, descricao = $2, preco_por_pessoa = $3, duracao_horas = $4,
-              formato_servico_id = $5, tags = $6, ativo = $7, updated_at = now()
-        WHERE id = $8`,
+              formato_servico_id = $5, tags = $6, ativo = $7, publico_busca = $8, updated_at = now()
+        WHERE id = $9`,
       [...values, id]
     );
     if (!res.rowCount) throw new UserError('Opção de cardápio não encontrada.');
     await db.query('DELETE FROM cardapio_opcao_secoes WHERE opcao_id = $1', [id]);
   } else {
     const { rows } = await db.query<{ id: string }>(
-      `INSERT INTO cardapio_opcoes (nome, descricao, preco_por_pessoa, duracao_horas, formato_servico_id, tags, ativo, tenant_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      `INSERT INTO cardapio_opcoes (nome, descricao, preco_por_pessoa, duracao_horas, formato_servico_id, tags, ativo, publico_busca, tenant_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
       [...values, tenantId]
     );
     opcaoId = rows[0].id;
@@ -498,6 +503,7 @@ export async function duplicarOpcao(db: Db, tenantId: string, id: string): Promi
   return salvarOpcao(db, tenantId, null, {
     ...original,
     nome: `${original.nome} (cópia)`,
+    publico_busca: false,
     secoes: original.secoes,
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completude, ehUuid, etapasConcluidas, normalizarSlug, pendentesParaPublicar, podePublicar, problemaNoSlug, proximaEtapa, type EstadoPerfil } from './onboarding';
+import { candidatosSlug, completude, ehUuid, filtrarSugestoesSlug, etapasConcluidas, normalizarSlug, slugAcompanhaNome, slugDoNome, pendentesParaPublicar, podePublicar, problemaNoSlug, proximaEtapa, type EstadoPerfil } from './onboarding';
 
 const vazio: EstadoPerfil = {
   nome: 'Buffet', documento: null, descricao: null, logo_path: null, telefone: null, whatsapp: null, email_contato: null,
@@ -62,5 +62,34 @@ describe('endereço do perfil', () => {
     expect(problemaNoSlug('buffet-sabor-de-festa')).toBeNull();
     expect(ehUuid('3f2b8c1e-0a4d-4c55-9b1a-2d8e5f6a7b9c')).toBe(true);
     expect(ehUuid('buffet')).toBe(false);
+  });
+
+  it('gera o endereço a partir do nome do buffet', () => {
+    expect(slugDoNome('Buffet São João')).toBe('buffet-sao-joao');
+    expect(slugDoNome('Lá')).toBe('buffet-la');
+    expect(slugDoNome('!!!')).toBeNull();
+    expect(slugDoNome(null)).toBeNull();
+    expect(slugDoNome('x'.repeat(80))).toHaveLength(60);
+  });
+
+  it('reconhece o endereço que já acompanha o nome', () => {
+    expect(slugAcompanhaNome('buffet-sao-joao', 'buffet-sao-joao')).toBe(true);
+    expect(slugAcompanhaNome('buffet-sao-joao-3', 'buffet-sao-joao')).toBe(true);
+    expect(slugAcompanhaNome('buffet-sao-joao-centro', 'buffet-sao-joao')).toBe(false);
+    expect(slugAcompanhaNome('gourmet-38', 'buffet-sao-joao')).toBe(false);
+  });
+
+  it('desempata com sufixo numérico sem passar do tamanho máximo', () => {
+    expect(candidatosSlug('buffet-x', 3)).toEqual(['buffet-x', 'buffet-x-2', 'buffet-x-3']);
+    const longo = candidatosSlug('a'.repeat(60), 12);
+    expect(longo.every((s) => s.length <= 60)).toBe(true);
+    expect(longo[11]).toBe(`${'a'.repeat(57)}-12`);
+  });
+});
+
+describe('sugestões de endereço', () => {
+  it('normaliza, tira inválidos, repetidos e o endereço atual', () => {
+    expect(filtrarSugestoesSlug(['Buffet São João', 'buffet-sao-joao', 'ab', 42, 'Casa Ípê Festas!', 'atual-x'], 'atual-x'))
+      .toEqual(['buffet-sao-joao', 'casa-ipe-festas']);
   });
 });

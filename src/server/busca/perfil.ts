@@ -6,16 +6,19 @@ import { systemQuery, type Db } from '../../lib/db';
 import { ARQUIVO_FOTO_PADRAO, FOTO_PADRAO } from '../../lib/busca/url';
 import { randomUUID } from 'node:crypto';
 import { entitlements, limiteEm, nivelEm, podeUsarEm } from '../../lib/planos/gating';
+import { candidatosSlug, ehUuid, slugAcompanhaNome, slugDoNome } from '../../lib/busca/onboarding';
 
 export interface PerfilBusca {
   id: string;
   tenant_id: string;
   /** Espaço da unidade (redes: um perfil por unidade); null em quem só atende em domicílio */
   espaco_id: string | null;
-  /** Endereço público (/buffet/<slug>): o próprio id por padrão; endereço escolhido só com o recurso busca_slug */
+  /** Endereço público (/buffet/<slug>): o próprio id por padrão; com o recurso busca_slug, gerado do nome (atualizarEnderecosPeloNome) */
   slug: string;
   /** Endereços anteriores: redirecionam (301) para o atual */
   slugs_antigos: string[];
+  /** Endereço escolhido pela empresa (digitado ou sugerido pela IA): não acompanha mais o nome */
+  slug_escolhido: boolean;
   nome: string;
   documento: string | null;
   descricao: string | null;
@@ -73,6 +76,32 @@ export async function slugLivre(slug: string, perfilId: string): Promise<boolean
   return rows.length === 0;
 }
 
+/**
+ * Endereço com o nome do buffet (recurso busca_slug): cada perfil da empresa ganha o endereço gerado do próprio nome
+ * ("buffet-sao-joao", ou "buffet-sao-joao-2" se outro perfil já usa). Ninguém digita: roda ao sincronizar com a empresa
+ * e no upgrade, e só troca quando o nome mudou. O endereço anterior vai para slugs_antigos e continua redirecionando.
+ * Sem o recurso, nada muda aqui (o rebaixamento devolve o id em aplicarExcedentesBusca).
+ */
+export async function atualizarEnderecosPeloNome(db: Db, tenantId: string): Promise<void> {
+  if (!podeUsarEm(await entitlements(tenantId, db), 'busca_slug')) return;
+  // Endereço escolhido pela empresa fica como está (slug_escolhido)
+  const { rows } = await db.query<Pick<PerfilBusca, 'id' | 'slug' | 'slugs_antigos' | 'nome'>>(
+    'SELECT id, slug, slugs_antigos, nome FROM busca_perfis WHERE tenant_id = $1 AND NOT slug_escolhido ORDER BY created_at, id',
+    [tenantId]
+  );
+  for (const p of rows) {
+    const base = slugDoNome(p.nome);
+    if (!base || slugAcompanhaNome(p.slug, base)) continue;
+    let novo: string | null = null;
+    for (const c of candidatosSlug(base)) {
+      if (await slugLivre(c, p.id)) { novo = c; break; }
+    }
+    if (!novo) continue;
+    const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== novo);
+    await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, updated_at = now() WHERE id = $1', [p.id, novo, antigos]);
+  }
+}
+
 /** Perfil da empresa; cria o rascunho (não publicado) com os dados da empresa e do espaço padrão na primeira vez. */
 export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBusca> {
   const atual = await carregarPerfil(db);
@@ -93,7 +122,7 @@ export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBu
       WHERE e.tipo = 'proprio' AND e.ativo ORDER BY (c.tenant_id IS NOT NULL) DESC, e.ordem LIMIT 1`
   );
   const ent = await entitlements(tenantId, db);
-  // O endereço nasce como o próprio id do perfil; planos pagos podem trocar por um nome na etapa 1
+  // O endereço nasce como o próprio id do perfil; com o recurso busca_slug, atualizarEnderecosPeloNome troca pelo nome
   const id = randomUUID();
   const min = esp[0]?.capacidade_min ?? null;
   const max = esp[0]?.capacidade_max ?? null;
@@ -124,8 +153,8 @@ export async function aplicarExcedentesBusca(db: Db, tenantId: string): Promise<
     await db.query(
       `UPDATE busca_perfis
           SET slugs_antigos = CASE WHEN slug = ANY(slugs_antigos) THEN slugs_antigos ELSE array_append(slugs_antigos, slug) END,
-              slug = id::text, updated_at = now()
-        WHERE tenant_id = $1 AND slug <> id::text`,
+              slug = id::text, slug_escolhido = false, updated_at = now()
+        WHERE tenant_id = $1 AND (slug <> id::text OR slug_escolhido)`,
       [tenantId]
     );
   }

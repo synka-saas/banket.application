@@ -13,7 +13,7 @@ import { escolherExcedentes } from '../lib/planos/excedentes';
 import { avisoDoDia, deveRebaixar, emSaoPaulo, fimDoTrial, recusaVigente, type AvisoTrial } from '../lib/planos/trial';
 import type { HwestaEntitlements } from '../lib/hwesta/types';
 import { emailLayout } from './emails';
-import { aplicarExcedentesBusca, sincronizarNivel } from './busca/perfil';
+import { aplicarExcedentesBusca, atualizarEnderecosPeloNome, sincronizarNivel } from './busca/perfil';
 
 export interface Plano {
   id: string;
@@ -138,6 +138,7 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
   await sincronizarNivel(db, tenantId, destino.gratuito ? 'gratuito' : 'cliente');
   if (destino.gratuito) await aplicarExcedentes(db, tenantId);
   else if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
+  if (!destino.gratuito) await atualizarEnderecosPeloNome(db, tenantId);
   return { de, para: paraPlanoId };
 }
 

@@ -40,6 +40,7 @@ interface FormState {
   formato_servico_id: string;
   tags: string;
   ativo: boolean;
+  publico_busca: boolean;
   secoes: SecaoState[];
 }
 
@@ -52,6 +53,7 @@ const vazio: FormState = {
   formato_servico_id: '',
   tags: '',
   ativo: true,
+  publico_busca: false,
   secoes: [],
 };
 
@@ -115,6 +117,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
         formato_servico_id: data.formato_servico_id ?? '',
         tags: (data.tags ?? []).join(', '),
         ativo: data.ativo,
+        publico_busca: data.publico_busca === true,
         secoes: data.secoes.map((s: { secao_id: string; titulo: string | null; escolha_qtd: number | null; itens: string[] }) => ({
           key: novaChave(),
           secao_id: s.secao_id,
@@ -218,6 +221,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
       formato_servico_id: form.formato_servico_id,
       tags: form.tags,
       ativo: form.ativo,
+      publico_busca: form.publico_busca,
       secoes: form.secoes.map((s) => ({
         secao_id: s.secao_id,
         titulo: s.titulo,
@@ -301,6 +305,18 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
               </div>
             </div>
 
+            {/* Situação do cardápio: antes da montagem */}
+            <div class="ed-toggles">
+              <label class="switch ed-ativo">
+                <input type="checkbox" checked={form.ativo} onChange={(e) => set('ativo', e.currentTarget.checked)} />
+                <span>Cardápio ativo <small>Disponível para novos orçamentos</small></span>
+              </label>
+              <label class="switch ed-ativo">
+                <input type="checkbox" checked={form.publico_busca} onChange={(e) => set('publico_busca', e.currentTarget.checked)} />
+                <span>Cardápio público <small>Exibido no seu perfil do Banket Busca{form.ativo ? '' : ' (quando ativo)'}</small></span>
+              </label>
+            </div>
+
             <div class="ed-add">
               <select class="control" value={novaSecao} onChange={(e) => setNovaSecao(e.currentTarget.value)} aria-label="Seção do catálogo">
                 <option value="">Escolha uma seção do catálogo…</option>
@@ -374,11 +390,6 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
                 </section>
               );
             })}
-
-            <label class="switch ed-ativo">
-              <input type="checkbox" checked={form.ativo} onChange={(e) => set('ativo', e.currentTarget.checked)} />
-              Cardápio ativo (disponível para novos orçamentos)
-            </label>
           </div>
         )}
       </form>

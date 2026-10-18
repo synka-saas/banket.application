@@ -408,7 +408,7 @@ a.onb-etapa:hover {
   color: var(--text-body);
 }
 
-/* Etapa 1: endereço do perfil (prefixo fixo + campo) */
+/* Etapa 1: endereço do perfil nos planos pagos (prefixo fixo + campo + varinha de IA) */
 .onb-endereco {
   display: flex;
   align-items: stretch;
@@ -444,19 +444,82 @@ a.onb-etapa:hover {
   box-shadow: none !important;
 }
 
-.onb-endereco--fixo {
+.onb-endereco-ia {
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  min-height: var(--control-h-md);
-  background: var(--bg-subtle);
-  font-size: var(--fs-13);
-  color: var(--text-muted);
+  justify-content: center;
+  width: 40px;
+  margin: 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-accent-subtle);
+  color: var(--terracotta-600);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
-.onb-endereco--fixo > span:last-child {
+.onb-endereco-ia:hover {
+  background: var(--terracotta-100);
+}
+
+.onb-endereco-ia:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-forte);
+}
+
+.onb-endereco-ia:disabled {
+  cursor: progress;
+}
+
+.onb-endereco-ia--gerando svg {
+  animation: onb-varinha 900ms var(--ease-out) infinite alternate;
+}
+
+@keyframes onb-varinha {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(12deg); }
+}
+
+.onb-endereco-sugestoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.onb-endereco-opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.onb-endereco-opcao {
+  height: 30px;
   padding: 0 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  font: inherit;
+  font-size: var(--fs-13);
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.onb-endereco-opcao:hover {
+  border-color: var(--border-accent);
+  background: var(--clay-25);
+}
+
+.onb-endereco-opcao[aria-checked='true'] {
+  border-color: var(--terracotta-600);
+  background: var(--bg-accent-subtle);
+  color: var(--terracotta-700);
+}
+
+.onb-endereco-copiar {
+  margin-left: 4px;
+  vertical-align: baseline;
 }
 
 @media (max-width: 768px) {
@@ -465,6 +528,29 @@ a.onb-etapa:hover {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+/* Etapa 1: link do perfil (gerado, só leitura, com Copiar) */
+.onb-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--control-h-md);
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--clay-25);
+}
+
+.onb-link-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-14);
+  color: var(--text-body);
 }
 
 /* Etapa 1: dados da empresa (de Configurações › Empresa), só leitura */

@@ -127,7 +127,8 @@ export function resumoEtapas(p: EstadoPerfil, c: Contagens, rotulos: { cidade: s
 }
 
 // ---------------------------------------------------------------------------
-// Endereço do perfil (/buffet/<slug>): UUID do perfil por padrão; endereço próprio só com o recurso busca_slug
+// Endereço do perfil (/buffet/<slug>): UUID do perfil por padrão; com o recurso busca_slug, gerado do nome do buffet
+// (o usuário não digita: muda sozinho quando o nome muda, e o anterior segue redirecionando)
 // ---------------------------------------------------------------------------
 export const SLUG_MIN = 3;
 export const SLUG_MAX = 60;
@@ -154,4 +155,45 @@ export function problemaNoSlug(slug: string): string | null {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use só letras minúsculas, números e hífens no endereço.';
   if (ehUuid(slug)) return 'Escolha um endereço com o nome do buffet.';
   return null;
+}
+
+/**
+ * Endereço base a partir do nome do buffet ("Buffet São João" → "buffet-sao-joao"); null quando o nome não rende um
+ * endereço válido (curto demais, só símbolos). Nomes curtos ganham "buffet-" na frente ("Lá" → "buffet-la").
+ */
+export function slugDoNome(nome: string | null | undefined): string | null {
+  const base = normalizarSlug(nome ?? '');
+  if (!problemaNoSlug(base)) return base;
+  const comPrefixo = normalizarSlug(`buffet ${nome ?? ''}`);
+  return base && !problemaNoSlug(comPrefixo) ? comPrefixo : null;
+}
+
+/** O endereço atual já acompanha o nome (a base, ou a base com o sufixo numérico usado para desempatar)? */
+export function slugAcompanhaNome(slug: string, base: string): boolean {
+  return slug === base || (slug.startsWith(`${base}-`) && /^\d+$/.test(slug.slice(base.length + 1)));
+}
+
+/** Endereços a tentar, em ordem: a base, depois base-2, base-3… (sempre dentro do tamanho máximo). */
+export function candidatosSlug(base: string, quantidade = 50): string[] {
+  const lista = [base];
+  for (let n = 2; lista.length < quantidade; n++) {
+    const sufixo = `-${n}`;
+    lista.push(`${base.slice(0, SLUG_MAX - sufixo.length).replace(/-+$/g, '')}${sufixo}`);
+  }
+  return lista;
+}
+
+/** Sugestões de endereço (IA ou variações do nome) normalizadas, válidas, sem repetir e sem o endereço atual. */
+export function filtrarSugestoesSlug(lista: unknown[], atual: string | null = null, limite = 12): string[] {
+  const vistos = new Set<string>(atual ? [atual] : []);
+  const out: string[] = [];
+  for (const item of lista) {
+    if (typeof item !== 'string') continue;
+    const s = normalizarSlug(item);
+    if (!s || vistos.has(s) || problemaNoSlug(s)) continue;
+    vistos.add(s);
+    out.push(s);
+    if (out.length >= limite) break;
+  }
+  return out;
 }

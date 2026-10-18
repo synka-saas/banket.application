@@ -420,7 +420,7 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
     const mostraCardapio = p.cardapios === true;
     const cardapios: CardapioPublico[] = [];
     if (mostraCardapio) {
-      // Opções de cardápio ativas, na ordem do catálogo do app (seções e itens ativos)
+      // Opções de cardápio ativas marcadas como públicas no app (seções e itens ativos)
       const { rows } = await db.query<{ opcao_id: string; opcao: string; descricao: string | null; titulo: string; escolha: number | null; nome: string; restricoes: string[] }>(
         `SELECT o.id AS opcao_id, o.nome AS opcao, o.descricao, coalesce(os.titulo, cs.nome) AS titulo, os.escolha_qtd AS escolha,
                 ci.nome, ci.restricoes
@@ -429,7 +429,7 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
            JOIN catalogo_secoes cs ON cs.id = os.secao_id
            JOIN cardapio_opcao_itens oi ON oi.opcao_secao_id = os.id
            JOIN catalogo_itens ci ON ci.id = oi.item_id AND ci.ativo
-          WHERE o.tenant_id = $1 AND o.ativo
+          WHERE o.tenant_id = $1 AND o.ativo AND o.publico_busca
           ORDER BY o.nome, o.id, os.ordem, oi.ordem`,
         [base.tenantId]
       );

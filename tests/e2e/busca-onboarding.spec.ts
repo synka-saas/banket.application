@@ -70,8 +70,10 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     expect(psql(`SELECT p.slug || '|' || t.origem_cadastro FROM tenants t JOIN planos p ON p.id = t.plano_id WHERE t.id = ${TENANT}`)).toBe('busca|busca');
     await expect(page.locator('[data-situacao]')).toContainText('Rascunho');
     await expect(page.locator('[data-situacao]')).toContainText('0 de 5 etapas');
-    // Plano gratuito: endereço = id do perfil, sem campo para trocar
+    // Plano gratuito: link = id do perfil, sem campo para digitar
     await expect(page.locator('#e-endereco')).toHaveCount(0);
+    await expect(page.locator('[data-sugerir-endereco]')).toHaveCount(0);
+    await expect(page.locator('.onb-link-url')).toContainText('/buffet/');
     expect(psql(`SELECT (slug = id::text)::text FROM busca_perfis WHERE tenant_id = ${TENANT}`)).toBe('true');
     // Os dados da empresa vêm do cadastro (sem pedir de novo) e não há etapa de pacotes
     await expect(page.locator('.onb-empresa')).toContainText(NOME);
@@ -212,20 +214,31 @@ test.describe.serial('Banket Busca: cadastro gratuito e onboarding', () => {
     await expect(page.locator('.onb-empresa')).toContainText('contato@mesaposta.test');
     expect(psql(`SELECT email_contato FROM busca_perfis WHERE tenant_id = ${MESA}`)).toBe('contato@mesaposta.test');
 
-    // Endereço próprio (plano pago): inválido é recusado; o novo vale e o anterior redireciona
-    await page.fill('#e-endereco', 'ab');
-    await page.getByRole('button', { name: 'Salvar' }).click();
-    await expect(page.locator('.toast').first()).toContainText('ao menos 3');
-    await page.fill('#e-endereco', `Mesa Posta E2E ${ts}`);
-    await page.getByRole('button', { name: 'Salvar' }).click();
+    // Endereço do perfil (plano pago): gerado do nome e editável; acompanha o nome até a empresa escolher outro
+    const MESA_ID = psql(`SELECT id FROM tenants WHERE nome = 'Mesa Posta Catering'`);
+    await expect(page.locator('#e-endereco')).toHaveValue('mesa-posta-catering');
+    await expect(page.locator('[data-sugerir-endereco]')).toBeVisible();
+    psql(`UPDATE tenants SET nome = 'Mesa Posta E2E ${ts}' WHERE id = '${MESA_ID}'`);
+    await etapa(page, 1);
     await expect(page.locator('#e-endereco')).toHaveValue(`mesa-posta-e2e-${ts}`);
     const r1 = await page.request.get(`/vitrine/buffet/mesa-posta-catering`, { maxRedirects: 0 });
     expect(r1.status()).toBe(301);
     expect(r1.headers().location).toContain(`/buffet/mesa-posta-e2e-${ts}`);
-    await page.fill('#e-endereco', 'mesa-posta-catering');
+    // Escolhido pela empresa: inválido é recusado; o escolhido não muda mais com o nome
+    await page.fill('#e-endereco', 'ab');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('.toast').first()).toContainText('ao menos 3');
+    await page.fill('#e-endereco', `escolhido-e2e-${ts}`);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.locator('#e-endereco')).toHaveValue(`escolhido-e2e-${ts}`);
+    psql(`UPDATE tenants SET nome = 'Mesa Posta Catering' WHERE id = '${MESA_ID}'`);
+    await etapa(page, 1);
+    await expect(page.locator('#e-endereco')).toHaveValue(`escolhido-e2e-${ts}`);
+    // Apagar o campo volta a acompanhar o nome
+    await page.fill('#e-endereco', '');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.locator('#e-endereco')).toHaveValue('mesa-posta-catering');
-    psql(`UPDATE busca_perfis SET slugs_antigos = array_remove(slugs_antigos, 'mesa-posta-e2e-${ts}') WHERE tenant_id = ${MESA}`);
+    psql(`UPDATE busca_perfis SET slugs_antigos = array_remove(array_remove(slugs_antigos, 'mesa-posta-e2e-${ts}'), 'escolhido-e2e-${ts}') WHERE tenant_id = '${MESA_ID}'`);
 
     // Fotos: sem limite e com grupo; no perfil público o grupo aparece separado
     await etapa(page, 5);

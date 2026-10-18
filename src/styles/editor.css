@@ -368,8 +368,33 @@
   text-decoration: line-through;
 }
 
+/* Situação do cardápio (ativo e público no Banket Busca), no topo, antes da montagem */
+.ed-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8, 32px);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--clay-25);
+}
+
 .ed-ativo {
-  margin-top: var(--space-2);
+  align-items: flex-start;
+}
+
+.ed-ativo span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.ed-ativo small {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular);
+  color: var(--text-secondary);
 }
 
 @keyframes ed-fade {
