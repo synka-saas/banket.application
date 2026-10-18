@@ -148,14 +148,24 @@ export function normalizarSlug(v: string): string {
     .replace(/-+$/g, '');
 }
 
+/** Endereços que nenhum buffet pode usar: rotas e nomes do próprio Banket. */
+const SLUGS_RESERVADOS = new Set([
+  'admin', 'api', 'app', 'auth', 'avaliar', 'busca', 'buscar', 'buffet', 'buffets', 'cadastro', 'conta', 'contato',
+  'equipe', 'login', 'orcamento', 'para-buffets', 'planos', 'privacidade', 'suporte', 'termos', 'vitrine',
+]);
+
 /** Motivo pelo qual o endereço não pode ser usado (null = válido). Não confere se já está em uso. */
 export function problemaNoSlug(slug: string): string | null {
   if (slug.length < SLUG_MIN) return `Use ao menos ${SLUG_MIN} letras ou números no endereço.`;
   if (slug.length > SLUG_MAX) return `O endereço pode ter até ${SLUG_MAX} caracteres.`;
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use só letras minúsculas, números e hífens no endereço.';
   if (ehUuid(slug)) return 'Escolha um endereço com o nome do buffet.';
+  if (SLUGS_RESERVADOS.has(slug) || /^banket(-|$)/.test(slug)) return 'Esse endereço é reservado. Escolha um com o nome do buffet.';
   return null;
 }
+
+/** Endereços antigos guardados por perfil (redirecionam 301): só os mais recentes, para ninguém acumular nomes. */
+export const MAX_SLUGS_ANTIGOS = 3;
 
 /**
  * Endereço base a partir do nome do buffet ("Buffet São João" → "buffet-sao-joao"); null quando o nome não rende um

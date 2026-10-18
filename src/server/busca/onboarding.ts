@@ -10,12 +10,12 @@ import { UserError, checkbox, optionalInt, optionalText, requiredText } from '..
 import { cnpjValido, cpfValido, somenteDigitos } from '../../lib/documento';
 import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO, filtrarSlugs } from '../../lib/busca/catalogos';
 import { cepValido } from '../../lib/busca/geo';
-import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
+import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, MAX_SLUGS_ANTIGOS, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
 import { openAiJson } from '../../lib/openai';
 import { ErroPlano, entitlements, exigir, limite, podeUsar } from '../../lib/planos/gating';
 import { copiarArquivo, removeFile, saveUpload } from '../../lib/storage';
-import { atualizarEnderecosPeloNome, garantirPerfil, slugLivre, type PerfilBusca } from './perfil';
+import { atualizarEnderecosPeloNome, garantirPerfil, nomeDeOutroBuffet, slugLivre, type PerfilBusca } from './perfil';
 
 export const TIPOS_FOTO = ['image/png', 'image/jpeg', 'image/webp'];
 const MAX_FOTO_BYTES = 8 * 1024 * 1024;
@@ -106,7 +106,8 @@ async function salvarEndereco(db: Db, tenantId: string, perfilId: string, endere
   const problema = problemaNoSlug(endereco);
   if (problema) throw new UserError(problema, 'endereco');
   if (!(await slugLivre(endereco, p.id))) throw new UserError('Esse endereço já está em uso. Escolha outro.', 'endereco');
-  const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== endereco);
+  if (await nomeDeOutroBuffet(endereco, tenantId)) throw new UserError('Esse endereço é o nome de outro buffet. Escolha um com o nome do seu.', 'endereco');
+  const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== endereco).slice(-MAX_SLUGS_ANTIGOS);
   await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, slug_escolhido = true, updated_at = now() WHERE id = $1', [p.id, endereco, antigos]);
 }
 
@@ -151,7 +152,7 @@ export async function sugerirEnderecos(db: Db, user: SessionUser): Promise<strin
   const livres: string[] = [];
   for (const c of candidatos) {
     if (livres.length >= 3) break;
-    if (await slugLivre(c, p.id)) livres.push(c);
+    if ((await slugLivre(c, p.id)) && !(await nomeDeOutroBuffet(c, p.tenant_id))) livres.push(c);
   }
   return livres;
 }

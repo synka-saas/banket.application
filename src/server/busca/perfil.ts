@@ -6,7 +6,7 @@ import { systemQuery, type Db } from '../../lib/db';
 import { ARQUIVO_FOTO_PADRAO, FOTO_PADRAO } from '../../lib/busca/url';
 import { randomUUID } from 'node:crypto';
 import { entitlements, limiteEm, nivelEm, podeUsarEm } from '../../lib/planos/gating';
-import { candidatosSlug, ehUuid, slugAcompanhaNome, slugDoNome } from '../../lib/busca/onboarding';
+import { MAX_SLUGS_ANTIGOS, candidatosSlug, ehUuid, slugAcompanhaNome, slugDoNome } from '../../lib/busca/onboarding';
 
 export interface PerfilBusca {
   id: string;
@@ -68,6 +68,22 @@ export async function carregarPerfil(db: Db): Promise<PerfilBusca | null> {
  * O endereço está livre no Busca inteiro? Não pode ser o endereço atual nem um endereço antigo de outro perfil (os
  * antigos continuam redirecionando). Conexão de sistema: a RLS esconde os perfis das outras empresas.
  */
+/**
+ * O endereço é o nome de um buffet de outra empresa (o endereço que esse buffet ganharia pelo nome)? Impede que um
+ * concorrente pegue o nome de outro, inclusive dos importados, que ainda usam o id.
+ */
+export async function nomeDeOutroBuffet(slug: string, tenantId: string): Promise<boolean> {
+  const { rows } = await systemQuery(
+    `SELECT 1 FROM busca_perfis
+      WHERE tenant_id <> $2
+        AND (trim(both '-' from regexp_replace(lower(busca_sem_acento(nome)), '[^a-z0-9]+', '-', 'g')) = $1
+             OR trim(both '-' from regexp_replace(lower(busca_sem_acento('buffet ' || nome)), '[^a-z0-9]+', '-', 'g')) = $1)
+      LIMIT 1`,
+    [slug, tenantId]
+  );
+  return rows.length > 0;
+}
+
 export async function slugLivre(slug: string, perfilId: string): Promise<boolean> {
   const { rows } = await systemQuery(
     'SELECT 1 FROM busca_perfis WHERE id <> $2 AND (slug = $1 OR $1 = ANY(slugs_antigos)) LIMIT 1',
@@ -97,7 +113,7 @@ export async function atualizarEnderecosPeloNome(db: Db, tenantId: string): Prom
       if (await slugLivre(c, p.id)) { novo = c; break; }
     }
     if (!novo) continue;
-    const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== novo);
+    const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== novo).slice(-MAX_SLUGS_ANTIGOS);
     await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, updated_at = now() WHERE id = $1', [p.id, novo, antigos]);
   }
 }
