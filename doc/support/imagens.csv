@@ -1,0 +1,487 @@
+pasta;artigo;imagem;onde_entra;legenda
+01-primeiros-passos;01-o-que-e-o-banket.md;01-o-que-e-o-banket.webp;Seção Os módulos do menu, antes da tabela;Tela inicial do Banket com o menu de módulos à esquerda
+01-primeiros-passos;02-criar-sua-conta.md;01-criar-sua-conta.webp;Passo a passo, passo 1;Link Crie sua conta na tela de login
+01-primeiros-passos;02-criar-sua-conta.md;02-criar-sua-conta.webp;Passo a passo, depois do passo 4;Formulário de cadastro preenchido, pronto para Criar conta
+01-primeiros-passos;02-criar-sua-conta.md;03-criar-sua-conta.webp;Passo a passo, passo 5;Tela de confirmação: enviamos um link para o seu e-mail
+01-primeiros-passos;02-criar-sua-conta.md;04-criar-sua-conta.webp;Seção Cadastro com o Google, passo 1;Botão Continuar com o Google no cadastro
+01-primeiros-passos;02-criar-sua-conta.md;05-criar-sua-conta.webp;Seção Cadastro pelo Banket Busca;Cadastro aberto pela vitrine: Cadastre seu buffet no Banket Busca
+01-primeiros-passos;03-confirmar-email-e-cadastrar-empresa.md;01-confirmar-email-e-cadastrar-empresa.webp;Passo a passo, seção 1, passo 2;Tela de confirmação com Abrir o Gmail, Reenviar e Refazer o cadastro
+01-primeiros-passos;04-entrar-no-sistema.md;01-entrar-no-sistema.webp;Seção Entrar com e-mail e senha;Tela de login preenchida, com Manter conectado neste dispositivo marcado
+01-primeiros-passos;04-entrar-no-sistema.md;02-entrar-no-sistema.webp;Seção Entrar com link de acesso por e-mail, passo 1;Link Entrar com link de acesso por e-mail
+01-primeiros-passos;04-entrar-no-sistema.md;03-entrar-no-sistema.webp;Seção Entrar com link de acesso por e-mail, passo 2;Tela Entrar sem senha com o e-mail informado
+01-primeiros-passos;04-entrar-no-sistema.md;04-entrar-no-sistema.webp;Seção Entrar com link de acesso por e-mail, depois do passo 2;Confirmação genérica do envio do link de acesso
+01-primeiros-passos;04-entrar-no-sistema.md;05-entrar-no-sistema.webp;Seção Entrar com o Google, passo 1;Botão Entrar com o Google na tela de login
+01-primeiros-passos;04-entrar-no-sistema.md;06-entrar-no-sistema.webp;"Perguntas frequentes, Apareceu ""E-mail ou senha incorretos""";Mensagem E-mail ou senha incorretos
+01-primeiros-passos;04-entrar-no-sistema.md;07-entrar-no-sistema.webp;Seção Sair do sistema;Menu do usuário com a opção Sair
+01-primeiros-passos;05-recuperar-senha.md;01-recuperar-senha.webp;Passo a passo, passo 1;Link Esqueceu a senha? abaixo do campo de senha
+01-primeiros-passos;05-recuperar-senha.md;02-recuperar-senha.webp;Passo a passo, passo 2;Tela Esqueceu a sua senha? com o e-mail preenchido
+01-primeiros-passos;05-recuperar-senha.md;03-recuperar-senha.webp;Seção O que você precisa saber;Mensagem genérica de envio do link de recuperação
+01-primeiros-passos;05-recuperar-senha.md;04-recuperar-senha.webp;"Perguntas frequentes, Apareceu ""Link inválido ou expirado""";Tela Link inválido ou expirado com Pedir um novo link
+01-primeiros-passos;06-aceitar-convite.md;01-aceitar-convite.webp;"Perguntas frequentes, Apareceu ""Convite inválido ou expirado""";Tela Convite inválido ou expirado
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;01-conhecer-o-menu-e-a-navegacao.webp;Seção Menu lateral;Menu lateral com os módulos
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;02-conhecer-o-menu-e-a-navegacao.webp;Seção Cartão do plano no rodapé do menu;Cartão do plano no rodapé do menu
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;03-conhecer-o-menu-e-a-navegacao.webp;Seção Itens com cadeado;Painel Não incluído no seu plano
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;04-conhecer-o-menu-e-a-navegacao.webp;Seção Barra superior, item Seu nome e papel;Menu do usuário aberto, com Minha conta e Sair
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;05-conhecer-o-menu-e-a-navegacao.webp;Seção Barra superior, item Título da página;Título da página em forma de trilha (Clientes / Maria Silva)
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;06-conhecer-o-menu-e-a-navegacao.webp;Seção Barra superior, último parágrafo (submenu);Submenu de abas dentro do módulo Cardápios
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;07-conhecer-o-menu-e-a-navegacao.webp;Seção Menu lateral, último item (tablet);No tablet, o menu lateral mostra só os ícones
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;08-conhecer-o-menu-e-a-navegacao.webp;Seção No celular;No celular, a barra fixa no rodapé com os atalhos e o botão Mais
+01-primeiros-passos;07-conhecer-o-menu-e-a-navegacao.md;09-conhecer-o-menu-e-a-navegacao.webp;Seção No celular, item O botão Mais;Painel Mais aberto com os demais módulos
+01-primeiros-passos;08-trocar-de-empresa.md;01-trocar-de-empresa.webp;Passo a passo, passo 1 (e Perguntas frequentes, Não aparece a opção Trocar de empresa);Menu do seu nome: com uma só empresa, a opção Trocar de empresa não aparece
+01-primeiros-passos;09-minha-conta.md;01-minha-conta.webp;Seção Como abrir, depois do passo 2;Página Minha conta
+01-primeiros-passos;09-minha-conta.md;02-minha-conta.webp;Seção Atualizar seus dados;Cartão Meus dados
+01-primeiros-passos;09-minha-conta.md;03-minha-conta.webp;Seção Trocar a senha;Cartão Trocar senha
+01-primeiros-passos;09-minha-conta.md;04-minha-conta.webp;Seção Minhas empresas;Cartão Minhas empresas com a Empresa atual
+01-primeiros-passos;10-conectar-conta-google.md;01-conectar-conta-google.webp;Seção Vincular a conta Google, passo 2;Cartão Conta Google com o botão Vincular conta Google
+02-dashboard;01-entender-o-dashboard.md;01-entender-o-dashboard.webp;Seção Como abrir;Dashboard com indicadores, funil por etapa, retornos e próximos eventos
+02-dashboard;01-entender-o-dashboard.md;02-entender-o-dashboard.webp;Seção Escolher o período;Seletor de período no canto superior direito do Dashboard
+02-dashboard;01-entender-o-dashboard.md;03-entender-o-dashboard.webp;Seção Indicadores do topo;Indicadores do topo: pedidos recebidos, em aberto, aprovados, taxa de conversão e ticket médio
+02-dashboard;01-entender-o-dashboard.md;04-entender-o-dashboard.webp;Seção Funil por etapa;Cartão Funil por etapa com a quantidade e o valor de cada etapa
+02-dashboard;01-entender-o-dashboard.md;05-entender-o-dashboard.webp;Seção Próximos 30 dias;Cartão Próximos 30 dias com o evento agendado
+02-dashboard;02-primeiros-passos-do-dashboard.md;01-primeiros-passos-do-dashboard.webp;Seção Os passos (e Ocultar e mostrar os primeiros passos, passo 1);Cartão Primeiros passos com o contador de passos concluídos e o botão Ocultar
+02-dashboard;03-retornos-combinados-e-orcamentos-parados.md;01-retornos-combinados-e-orcamentos-parados.webp;Seção Retornos combinados, O que aparece;Cartão Retornos combinados com a anotação do Casamento – Maria Silva
+02-dashboard;03-retornos-combinados-e-orcamentos-parados.md;02-retornos-combinados-e-orcamentos-parados.webp;Seção Propostas sem retorno há 7+ dias;Cartão Propostas sem retorno há 7+ dias sem propostas paradas
+03-propostas-e-eventos;01-painel-de-propostas.md;01-painel-de-propostas.webp;Seção Abrir o painel, depois do passo 1;Painel de Propostas na visão Kanban, com uma coluna por etapa do funil
+03-propostas-e-eventos;01-painel-de-propostas.md;02-painel-de-propostas.webp;Seção A visão Kanban, cabeçalho de cada coluna;Cabeçalho da coluna: quantidade de eventos, soma dos orçamentos e a verba estimada dos eventos sem orçamento
+03-propostas-e-eventos;01-painel-de-propostas.md;03-painel-de-propostas.webp;Seção A visão Kanban, tabela Cada card mostra;Card de um evento com orçamento: cliente, pessoas, formato de serviço, valor do orçamento, data e tipo
+03-propostas-e-eventos;01-painel-de-propostas.md;04-painel-de-propostas.webp;Seção A visão Kanban, depois da tabela;Menu de três pontos do card: Editar, Abrir orçamento e Mover para
+03-propostas-e-eventos;01-painel-de-propostas.md;05-painel-de-propostas.webp;Seção A visão Lista;Visão Lista: eventos em tabela com data, evento, cliente, convidados, etapa, orçamento e Abrir
+03-propostas-e-eventos;01-painel-de-propostas.md;06-painel-de-propostas.webp;Seção Intervalo de trabalho;Faixa do intervalo de trabalho com o seletor de período
+03-propostas-e-eventos;02-criar-evento.md;01-criar-evento.webp;Passo a passo, passo 2;Botão Novo evento no Painel de Propostas
+03-propostas-e-eventos;02-criar-evento.md;02-criar-evento.webp;Passo a passo, passo 3;Cadastro de um novo cliente dentro do formulário do evento
+03-propostas-e-eventos;02-criar-evento.md;03-criar-evento.webp;Passo a passo, passo 3;Cliente já cadastrado escolhido no campo Cliente
+03-propostas-e-eventos;02-criar-evento.md;04-criar-evento.webp;Seção Entenda os campos, Detalhes do evento;Card Detalhes do evento preenchido
+03-propostas-e-eventos;02-criar-evento.md;05-criar-evento.webp;Seção Entenda os campos, Responsável;Card Responsável preenchido
+03-propostas-e-eventos;02-criar-evento.md;06-criar-evento.webp;Seção Entenda os campos, Logística e infraestrutura;Escolha do espaço e infraestrutura do evento
+03-propostas-e-eventos;02-criar-evento.md;07-criar-evento.webp;Seção Entenda os campos, Estilo gastronômico e bebidas;Estilo gastronômico, bebidas e restrições alimentares
+03-propostas-e-eventos;02-criar-evento.md;08-criar-evento.webp;Passo a passo, passo 5;Botão Criar evento no fim do formulário
+03-propostas-e-eventos;02-criar-evento.md;09-criar-evento.webp;Passo a passo, depois do passo 5;Evento criado: o resumo abre com a mensagem Evento criado.
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;01-editar-briefing-do-evento.webp;Passo a passo, passo 2;Botão Editar evento no fim do Resumo do evento
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;02-editar-briefing-do-evento.webp;Passo a passo, passo 2 (atalho);Atalho Editar no menu de três pontos do card
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;03-editar-briefing-do-evento.webp;Passo a passo, passo 3;Número de convidados alterado no formulário de edição
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;04-editar-briefing-do-evento.webp;Passo a passo, passo 4;Botão Salvar alterações
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;05-editar-briefing-do-evento.webp;Passo a passo, depois do passo 4;Mensagem Evento atualizado. depois de salvar
+03-propostas-e-eventos;03-editar-briefing-do-evento.md;06-editar-briefing-do-evento.webp;Seção O que acontece depois, Linha do tempo;Linha do tempo com o antes e o depois do número de convidados
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;01-mover-evento-entre-etapas.webp;Seção Arrastar no Kanban, passo 2;Arraste o card até a coluna da nova etapa (aqui, de Novo orçamento para Em negociação)
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;02-mover-evento-entre-etapas.webp;Seção Pelo menu do card, passo 2;Menu do card com a lista Mover para
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;03-mover-evento-entre-etapas.webp;Seção Pelo resumo do evento, passo 2;Campo Etapa na faixa do topo do resumo do evento
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;04-mover-evento-entre-etapas.webp;Seção Pelo resumo do evento, passo 3;Mensagem Etapa alterada com o botão Desfazer
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;05-mover-evento-entre-etapas.webp;Seção Etapa de aprovado;Janela Parabéns pelo fechamento! com a data de fechamento e a opção de cadastrar o plano de pagamento
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;06-mover-evento-entre-etapas.webp;Seção Etapa de recusado;Janela Marcar como perdido com o motivo da perda e os detalhes
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;07-mover-evento-entre-etapas.webp;Seção Quando a etapa é de fechamento, depois de Etapa de recusado;Evento recusado: o motivo da perda aparece na faixa do resumo
+03-propostas-e-eventos;04-mover-evento-entre-etapas.md;08-mover-evento-entre-etapas.webp;Seção O que acontece depois;Mudanças de etapa registradas na linha do tempo
+03-propostas-e-eventos;05-filtrar-e-exportar-eventos.md;01-filtrar-e-exportar-eventos.webp;Seção Pesquisar, passo 2;Pesquisa por Maria na visão Lista
+03-propostas-e-eventos;05-filtrar-e-exportar-eventos.md;02-filtrar-e-exportar-eventos.webp;Seção Filtrar, passo 2;Painel de filtros aberto com período e tipo de evento preenchidos
+03-propostas-e-eventos;05-filtrar-e-exportar-eventos.md;03-filtrar-e-exportar-eventos.webp;Seção Filtrar, depois do passo 3;Filtros aplicados na visão Lista: o botão mostra Filtros (2) e as etiquetas de cada filtro com Limpar tudo
+03-propostas-e-eventos;05-filtrar-e-exportar-eventos.md;04-filtrar-e-exportar-eventos.webp;Seção Filtro de datas e intervalo de trabalho;"No Kanban, as datas do filtro substituem o intervalo de trabalho; o link volta ao intervalo"
+03-propostas-e-eventos;05-filtrar-e-exportar-eventos.md;05-filtrar-e-exportar-eventos.webp;Seção Exportar para planilha, passo 2;Botão Exportar CSV na barra do Painel de Propostas
+03-propostas-e-eventos;06-resumo-do-evento.md;01-resumo-do-evento.webp;Seção O topo da página;Resumo do evento: título, abas do evento e a faixa com cliente, data, local e etapa
+03-propostas-e-eventos;06-resumo-do-evento.md;02-resumo-do-evento.webp;Seção As abas do evento;Abas do evento
+03-propostas-e-eventos;06-resumo-do-evento.md;03-resumo-do-evento.webp;Seção O que tem no Resumo do evento;Página completa do resumo: coluna principal com o briefing e coluna lateral com informações operacionais e checklist
+03-propostas-e-eventos;06-resumo-do-evento.md;04-resumo-do-evento.webp;Seção Coluna principal, Cliente e orçamento;Card do cliente e do orçamento, com o link chamar do WhatsApp e o botão Abrir orçamento
+03-propostas-e-eventos;07-checklist-do-evento.md;01-checklist-do-evento.webp;Seção Adicionar um item, passo 4;Novo item do checklist com prazo, antes de clicar em Adicionar
+03-propostas-e-eventos;07-checklist-do-evento.md;02-checklist-do-evento.webp;Seção Atualizar um item;Checklist com três itens: um agendado e um com prazo vencido em destaque
+03-propostas-e-eventos;07-checklist-do-evento.md;03-checklist-do-evento.webp;Seção Remover um item, passo 2;Confirmação para remover um item do checklist
+03-propostas-e-eventos;08-linha-do-tempo-e-anotacoes.md;01-linha-do-tempo-e-anotacoes.webp;Seção Consultar o histórico, depois do passo 2;Aba Linha do tempo com o histórico do evento, do mais recente para o mais antigo
+03-propostas-e-eventos;08-linha-do-tempo-e-anotacoes.md;02-linha-do-tempo-e-anotacoes.webp;Seção Registrar uma anotação, passo 5;Card Nova anotação preenchido, com data de retorno
+03-propostas-e-eventos;08-linha-do-tempo-e-anotacoes.md;03-linha-do-tempo-e-anotacoes.webp;Seção Retornos combinados;Anotação registrada na linha do tempo com a data de retorno
+03-propostas-e-eventos;09-excluir-evento.md;01-excluir-evento.webp;Passo a passo, passo 2;Botão Excluir evento no fim do Resumo do evento
+03-propostas-e-eventos;09-excluir-evento.md;02-excluir-evento.webp;Passo a passo, passo 3;Confirmação: Excluir este evento? O orçamento e o histórico também serão removidos.
+03-propostas-e-eventos;09-excluir-evento.md;03-excluir-evento.webp;Passo a passo, depois do passo 3;De volta ao Painel de Propostas com a mensagem Evento excluído.
+04-orcamento;01-criar-orcamento.md;01-criar-orcamento.webp;Passo a passo, passos 2 e 3;Aba Orçamento de um evento sem orçamento, com o botão Criar orçamento
+04-orcamento;01-criar-orcamento.md;02-criar-orcamento.webp;Passo a passo, depois do passo 4;Versão 01 do orçamento criada, com a mensagem de que o evento passou para Em negociação
+04-orcamento;01-criar-orcamento.md;03-criar-orcamento.webp;Seção As sub-abas do orçamento;Sub-abas do orçamento e o selo da versão em edição
+04-orcamento;01-criar-orcamento.md;04-criar-orcamento.webp;Seção O que acontece depois, salvamento automático;Barra do rodapé com o estado do salvamento
+04-orcamento;02-adicionar-cardapios.md;01-adicionar-cardapios.webp;Passo a passo, passo 3;Lista de Adicionar cardápio com as opções prontas e Montar cardápio do zero
+04-orcamento;02-adicionar-cardapios.md;02-adicionar-cardapios.webp;Passo a passo, passo 6 / Seção Entenda os valores do cardápio;Cardápio Premium no orçamento, com preço base, preço por pessoa, subtotal e os itens marcados em cada seção
+04-orcamento;02-adicionar-cardapios.md;03-adicionar-cardapios.webp;Passo a passo, passo 7;Adicionar item numa seção: itens do catálogo ou Item personalizado
+04-orcamento;02-adicionar-cardapios.md;04-adicionar-cardapios.webp;Passo a passo, passo 5;Adicionar seção do catálogo ao cardápio
+04-orcamento;02-adicionar-cardapios.md;05-adicionar-cardapios.webp;Seção Ajustes manuais;Preço por pessoa ajustado manualmente, com o ícone para voltar ao valor calculado
+04-orcamento;03-adicionar-bebidas.md;01-adicionar-bebidas.webp;Passo a passo, passo 2;Adicionar bebida: pacotes e itens do catálogo ou bebida avulsa
+04-orcamento;03-adicionar-bebidas.md;02-adicionar-bebidas.webp;Seção Entenda as colunas;Bebidas no orçamento: espumante por unidade e uma bebida avulsa com valor manual
+04-orcamento;04-staff-no-orcamento.md;01-staff-no-orcamento.webp;Seção Como a quantidade é calculada;Seção Staff com as funções dimensionadas para 150 convidados
+04-orcamento;04-staff-no-orcamento.md;02-staff-no-orcamento.webp;Passo a passo, passo 2;Adicionar função: cada opção mostra a regra de dimensionamento
+04-orcamento;04-staff-no-orcamento.md;03-staff-no-orcamento.webp;Seção Ajustes manuais;Barman incluído e quantidade de garçons ajustada manualmente
+04-orcamento;05-locacao-e-extras.md;01-locacao-e-extras.webp;Seção Incluir a locação, passo 4;Locação do Salão Jardim calculada pela faixa de convidados e dois extras lançados
+04-orcamento;06-informacoes-complementares-e-condicoes-gerais.md;01-informacoes-complementares-e-condicoes-gerais.webp;Seção Onde ficam;Sub-aba Informações complementares com os blocos de logística, restrições, dinâmica de serviço e equipe
+04-orcamento;06-informacoes-complementares-e-condicoes-gerais.md;02-informacoes-complementares-e-condicoes-gerais.webp;Seção Passo a passo, passos 3 a 6;Bloco aberto para edição: título, linhas rótulo e valor, setas de ordem, remover e Adicionar linha
+04-orcamento;06-informacoes-complementares-e-condicoes-gerais.md;03-informacoes-complementares-e-condicoes-gerais.webp;Seção Linhas automáticas;Linhas automáticas do Dimensionamento da equipe, com o botão Editar manualmente
+04-orcamento;06-informacoes-complementares-e-condicoes-gerais.md;04-informacoes-complementares-e-condicoes-gerais.webp;Seção Onde ficam, Condições gerais e textos;Bloco Condições financeiras na sub-aba Condições gerais e textos
+04-orcamento;07-textos-da-proposta.md;01-textos-da-proposta.webp;Passo a passo, passos 2 a 4;Textos da proposta agrupados pela página do PDF, com a chave de cada bloco
+04-orcamento;07-textos-da-proposta.md;02-textos-da-proposta.webp;Passo a passo, passo 5;Bloco Degustação ligado: o texto aparece na caixa para ajustes só neste orçamento
+04-orcamento;08-versoes-do-orcamento.md;01-versoes-do-orcamento.webp;Seção Consultar uma versão antiga, passo 1;Histórico de versões: a versão 02 em edição e a versão 01 enviada, com o botão Acessar
+04-orcamento;08-versoes-do-orcamento.md;02-versoes-do-orcamento.webp;Seção Criar uma nova versão, passo 2;Confirmação para criar uma nova versão do orçamento
+04-orcamento;08-versoes-do-orcamento.md;03-versoes-do-orcamento.webp;Seção Consultar uma versão antiga, passo 2;Versão 01 aberta em modo somente leitura (Versão 01 · congelada)
+04-orcamento;08-versoes-do-orcamento.md;04-versoes-do-orcamento.webp;Seção Restaurar uma versão antiga, passo 2;No histórico, a versão aberta aparece como Visualizando, com Voltar à atual e Restaurar como nova versão
+04-orcamento;08-versoes-do-orcamento.md;05-versoes-do-orcamento.webp;Seção Como funciona;Barra do rodapé numa versão congelada: Versão congelada · somente leitura
+04-orcamento;08-versoes-do-orcamento.md;06-versoes-do-orcamento.webp;Seção Restaurar uma versão antiga, passo 2;Confirmação para restaurar a versão 01 como nova versão
+04-orcamento;08-versoes-do-orcamento.md;07-versoes-do-orcamento.webp;Seção Restaurar uma versão antiga, passo 3;"Versão 03 criada a partir da versão 01; a versão 02 ficou congelada"
+04-orcamento;09-previa-e-pdf-da-proposta.md;01-previa-e-pdf-da-proposta.webp;Seção Ver a prévia, passo 2;Sub-aba Pré-visualização com a capa da proposta e o botão Baixar PDF
+04-orcamento;09-previa-e-pdf-da-proposta.md;02-previa-e-pdf-da-proposta.webp;Seção O que vai na proposta;Página de conteúdo da proposta na prévia, com os cardápios do evento
+04-orcamento;09-previa-e-pdf-da-proposta.md;03-previa-e-pdf-da-proposta.webp;Seção O que vai na proposta (Resumo e Assinatura);Última página de conteúdo do PDF: demais condições, resumo de valores com o valor total e a assinatura
+04-orcamento;09-previa-e-pdf-da-proposta.md;04-previa-e-pdf-da-proposta.webp;Seção Baixar o PDF;Botão Salvar e baixar PDF na barra do rodapé da sub-aba Itens e valores
+04-orcamento;09-previa-e-pdf-da-proposta.md;05-previa-e-pdf-da-proposta.webp;Seção Baixar o PDF;Enquanto o PDF é gerado, o botão mostra Gerando PDF…
+04-orcamento;09-previa-e-pdf-da-proposta.md;06-previa-e-pdf-da-proposta.webp;Seção O que vai na proposta;PDF da proposta baixado: capa, páginas de conteúdo e contracapa
+04-orcamento;10-escolher-template-da-proposta.md;01-escolher-template-da-proposta.webp;Passo a passo, passo 2;Card Template da proposta, na coluna da direita do orçamento
+04-orcamento;10-escolher-template-da-proposta.md;02-escolher-template-da-proposta.webp;Passo a passo, passo 4;Template Elegante escolhido, com o aviso Template da proposta atualizado.
+04-orcamento;10-escolher-template-da-proposta.md;03-escolher-template-da-proposta.webp;Passo a passo, passo 5;Pré-visualização da proposta com o novo template
+04-orcamento;11-enviar-proposta-por-email.md;01-enviar-proposta-por-email.webp;Passo a passo, passo 2;Botão Enviar ao cliente na barra do rodapé do orçamento
+04-orcamento;11-enviar-proposta-por-email.md;02-enviar-proposta-por-email.webp;Passo a passo, passos 3 e 4;Painel Enviar proposta com destinatário, modelo, assunto, mensagem e a prévia do e-mail
+04-orcamento;11-enviar-proposta-por-email.md;03-enviar-proposta-por-email.webp;Passo a passo, passo 3;Painel de envio aberto sobre o orçamento
+04-orcamento;11-enviar-proposta-por-email.md;04-enviar-proposta-por-email.webp;Passo a passo, passo 5;Confirmação do envio com a versão, o total e os destinatários
+04-orcamento;11-enviar-proposta-por-email.md;05-enviar-proposta-por-email.webp;Seção O que acontece depois;Proposta enviada: a versão 01 foi congelada e o orçamento segue na versão 02
+04-orcamento;12-lista-de-compras.md;01-lista-de-compras.webp;Seção Abrir a lista, depois do passo 2;Sub-aba Lista de compras com o resumo: convidados, itens, comprados e em estoque
+04-orcamento;12-lista-de-compras.md;02-lista-de-compras.webp;Seção Usar a lista;Lista de compras com um item comprado, uma quantidade ajustada à mão, uma observação e uma linha avulsa
+04-orcamento;12-lista-de-compras.md;03-lista-de-compras.webp;Seção Exportar;Barra do rodapé da lista: Exportar CSV, Exportar PDF e Adicionar linha avulsa
+04-orcamento;13-como-o-valor-e-calculado.md;01-como-o-valor-e-calculado.webp;Seção Convidados e pagantes;Convidados, crianças meia e isentas e o número de pagantes
+04-orcamento;13-como-o-valor-e-calculado.md;02-como-o-valor-e-calculado.webp;Seção Resumo do orçamento;Card Resumo do orçamento com os totais, a margem estimada e o valor final da proposta
+04-orcamento;13-como-o-valor-e-calculado.md;03-como-o-valor-e-calculado.webp;Seção Resumo do orçamento, Valor final da proposta;Com valor final manual, o topo mostra o valor da proposta e o total calculado
+05-assistentes-de-ia;01-assistente-de-negociacao.md;01-assistente-de-negociacao.webp;Passo a passo, passos 2 e 3;Aba Assistente de Negociação IA com o botão Analisar negociação
+05-assistentes-de-ia;01-assistente-de-negociacao.md;02-assistente-de-negociacao.webp;Passo a passo, passo 3;Análise em andamento: o botão mostra Analisando… (até 1 minuto)
+05-assistentes-de-ia;01-assistente-de-negociacao.md;03-assistente-de-negociacao.webp;Seção Entenda o resultado, Temperatura do fechamento;Temperatura do fechamento com a chance em %, o estágio, a urgência e o resumo da negociação
+05-assistentes-de-ia;01-assistente-de-negociacao.md;04-assistente-de-negociacao.webp;Seção Entenda o resultado, Objeções mapeadas;Objeção mapeada com categoria, gravidade, evidência e Como tratar
+05-assistentes-de-ia;01-assistente-de-negociacao.md;05-assistente-de-negociacao.webp;Seção Entenda o resultado, Sugestões de abordagem;Sugestões de abordagem com o canal indicado, o roteiro pronto e o botão Copiar
+05-assistentes-de-ia;01-assistente-de-negociacao.md;06-assistente-de-negociacao.webp;Seção Entenda o resultado, Próximos passos / Sinais positivos / O que falta saber;Próximos passos, sinais positivos e o que falta saber
+05-assistentes-de-ia;01-assistente-de-negociacao.md;07-assistente-de-negociacao.webp;Seção Entenda o resultado, Análises / Regras importantes;Histórico das análises do evento, com o link do contexto enviado à IA e o aviso para conferir
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;01-assistente-de-orcamentos.webp;Passo a passo, passos 3 e 4;Sub-aba Assistente de Orçamentos IA: receita, custo dos insumos e margem projetada, com o botão Gerar sugestões
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;02-assistente-de-orcamentos.webp;Seção Entenda a margem;Card Custo por item com a participação de cada item e o aviso dos itens sem custo
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;03-assistente-de-orcamentos.webp;Seção Estoque para girar;Estoque para girar: insumo com vencimento próximo
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;04-assistente-de-orcamentos.webp;Seção Regras importantes;Rodapé da análise: quem gerou, quando, o modelo e o link contexto enviado (.md)
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;05-assistente-de-orcamentos.webp;Seção Entenda as sugestões da IA;Sugestões da IA: substituições de maior margem com a economia no evento e o botão Aplicar troca, giro de estoque e alertas
+05-assistentes-de-ia;02-assistente-de-orcamentos.md;06-assistente-de-orcamentos.webp;Passo a passo, passo 5;Confirmação antes de aplicar a troca no orçamento
+06-inbox;01-conhecer-o-inbox.md;01-conhecer-o-inbox.webp;Seção Abrir o Inbox, antes da tabela de colunas;Inbox com a lista de conversas: assunto e trecho, cliente, evento, responsável e última mensagem
+06-inbox;01-conhecer-o-inbox.md;02-conhecer-o-inbox.webp;Seção Pesquisar e filtrar;Pesquisa, filtros Todas / Não lidas / Minhas, filtro de responsável e Ver arquivadas
+06-inbox;01-conhecer-o-inbox.md;03-conhecer-o-inbox.webp;Seção Arquivar conversas, passo 2;Conversa aberta, com o botão Arquivar no cabeçalho
+06-inbox;01-conhecer-o-inbox.md;04-conhecer-o-inbox.webp;Seção Arquivar conversas, depois do parágrafo Ver arquivadas;Lista de conversas arquivadas, com Ver ativas para voltar
+06-inbox;01-conhecer-o-inbox.md;05-conhecer-o-inbox.webp;Seção Arquivar conversas, depois do parágrafo Ver arquivadas (para trazer de volta);Conversa arquivada com o botão Reabrir
+06-inbox;02-responder-mensagem.md;01-responder-mensagem.webp;Passo a passo, passo 3;Resposta escrita no campo Responder, no fim da conversa, com o botão Enviar resposta
+06-inbox;02-responder-mensagem.md;02-responder-mensagem.webp;Passo a passo, passo 4;Inserir modelo coloca no campo Responder o texto do modelo com os dados do evento já preenchidos
+06-inbox;02-responder-mensagem.md;03-responder-mensagem.webp;"Passo a passo, depois de ""A mensagem Resposta enviada confirma o envio""";A resposta enviada aparece no fim da conversa, com o status de entrega
+06-inbox;03-nova-mensagem-pelo-evento.md;01-nova-mensagem-pelo-evento.webp;Passo a passo, passo 3;Aba Mensagens do evento ainda sem conversa, com o botão Nova mensagem
+06-inbox;03-nova-mensagem-pelo-evento.md;02-nova-mensagem-pelo-evento.webp;Passo a passo, passo 4;Janela Nova mensagem preenchida, com destinatário, assunto, modelo e mensagem
+06-inbox;03-nova-mensagem-pelo-evento.md;03-nova-mensagem-pelo-evento.webp;Seção Como a aba Mensagens mostra as conversas (uma conversa);Aba Mensagens com a conversa aberta pela nova mensagem e o campo Responder
+06-inbox;04-status-de-entrega-e-anexos.md;01-status-de-entrega-e-anexos.webp;Seção Status das mensagens enviadas, depois da tabela;Mensagem enviada com a etiqueta Entregue e os destinatários em Para
+06-inbox;04-status-de-entrega-e-anexos.md;02-status-de-entrega-e-anexos.webp;Seção Anexos, depois da lista;"Anexo da mensagem enviada (PDF do documento), com nome e tamanho; clique para baixar"
+07-cardapios;01-secoes-do-cardapio.md;01-secoes-do-cardapio.webp;Passo a passo, Criar uma seção, passos 1 e 2;Cardápios › Seções, com o botão Nova seção
+07-cardapios;01-secoes-do-cardapio.md;02-secoes-do-cardapio.webp;Passo a passo, Criar uma seção, depois do passo 3;Nova seção preenchida
+07-cardapios;01-secoes-do-cardapio.md;03-secoes-do-cardapio.webp;Seção A lista de seções;Lista de seções com itens vinculados e uso em opções
+07-cardapios;01-secoes-do-cardapio.md;04-secoes-do-cardapio.webp;Seção Excluir uma seção, depois do passo 2;Confirmação de exclusão da seção, avisando quantos itens também serão apagados
+07-cardapios;02-cadastrar-itens.md;01-cadastrar-itens.webp;Passo a passo, passos 1 e 2;Itens do cardápio, com o botão Novo item
+07-cardapios;02-cadastrar-itens.md;02-cadastrar-itens.webp;Passo a passo, depois do passo 4 (ou na seção Entenda os campos);Novo item preenchido com seção, categorias, custo, preço, porção e restrições
+07-cardapios;02-cadastrar-itens.md;03-cadastrar-itens.webp;Seção A lista de itens;Lista de itens do cardápio com seção, preço, porção e categoria
+07-cardapios;02-cadastrar-itens.md;04-cadastrar-itens.webp;Seção A lista de itens, primeiro item da lista;Seletor de categoria na linha do item, para trocar sem abrir o cadastro
+07-cardapios;02-cadastrar-itens.md;05-cadastrar-itens.webp;Seção Duplicar um item;Painel de edição do item com os botões Duplicar e Excluir no topo
+07-cardapios;03-opcoes-prontas-de-cardapio.md;01-opcoes-prontas-de-cardapio.webp;Passo a passo, passos 1 e 2;Opções de cardápio, com o botão Nova opção de cardápio
+07-cardapios;03-opcoes-prontas-de-cardapio.md;02-opcoes-prontas-de-cardapio.webp;Passo a passo, depois do passo 4 (ou seção Entenda os campos);Dados gerais da nova opção: nome, preço base, duração, formato, tags e situação
+07-cardapios;03-opcoes-prontas-de-cardapio.md;03-opcoes-prontas-de-cardapio.webp;Passo a passo, passo 5;Escolha da seção do catálogo e o botão Adicionar seção
+07-cardapios;03-opcoes-prontas-de-cardapio.md;04-opcoes-prontas-de-cardapio.webp;Passo a passo, passo 6;Seções adicionadas à opção, com os itens marcados, o título alternativo e o número de escolhas
+07-cardapios;03-opcoes-prontas-de-cardapio.md;05-opcoes-prontas-de-cardapio.webp;Seção Ajustes de cada seção, item Cliente escolhe;Aviso quando o cliente deve escolher mais itens do que os marcados na seção
+07-cardapios;03-opcoes-prontas-de-cardapio.md;06-opcoes-prontas-de-cardapio.webp;Seção Duplicar ou excluir uma opção (ou FAQ sobre a etiqueta No Banket Busca);Cards das opções de cardápio, com a etiqueta No Banket Busca
+07-cardapios;04-categorias-de-item.md;01-categorias-de-item.webp;Passo a passo, Criar uma categoria, passos 1 e 2;Lista de categorias de item com o botão Nova categoria
+07-cardapios;04-categorias-de-item.md;02-categorias-de-item.webp;Passo a passo, Criar uma categoria, depois do passo 4;Nova categoria principal preenchida
+07-cardapios;04-categorias-de-item.md;03-categorias-de-item.webp;Seção Os dois tipos de categoria;Categorias principais (tipo) e secundárias (momento) da empresa
+07-cardapios;05-importar-itens-por-csv.md;01-importar-itens-por-csv.webp;Passo a passo, passos 1 e 2;Botão Importar CSV em Itens do cardápio
+07-cardapios;05-importar-itens-por-csv.md;02-importar-itens-por-csv.webp;Passo a passo, passo 3;Tela de importação: baixe o modelo (passo 1) e envie o arquivo preenchido (passo 2)
+07-cardapios;05-importar-itens-por-csv.md;03-importar-itens-por-csv.webp;Passo a passo, passo 6;Arquivo escolhido, pronto para importar
+07-cardapios;05-importar-itens-por-csv.md;04-importar-itens-por-csv.webp;Passo a passo, passo 7 (e seção Corrigir linhas com erro);Resultado da importação: linhas importadas e a linha recusada com o motivo
+08-clientes;01-cadastrar-cliente.md;01-cadastrar-cliente.webp;Passo a passo, passos 1 e 2;Clientes, com o botão Novo cliente
+08-clientes;01-cadastrar-cliente.md;02-cadastrar-cliente.webp;Passo a passo, depois do passo 3;Novo cliente pessoa física preenchido
+08-clientes;01-cadastrar-cliente.md;03-cadastrar-cliente.webp;Seção Entenda os campos, linha Tipo;Cliente pessoa jurídica: o documento passa a ser CNPJ
+08-clientes;01-cadastrar-cliente.md;04-cadastrar-cliente.webp;Passo a passo, depois do passo 4;Cliente na lista com a mensagem Cliente cadastrado.
+08-clientes;01-cadastrar-cliente.md;05-cadastrar-cliente.webp;Seção Pesquisar e filtrar;Lista de clientes com documento, contato e número de eventos
+08-clientes;01-cadastrar-cliente.md;06-cadastrar-cliente.webp;Perguntas frequentes, Apareceu Este e-mail já está cadastrado;Aviso de e-mail já cadastrado ao tentar repetir o e-mail de um cliente
+08-clientes;02-detalhe-e-historico-do-cliente.md;01-detalhe-e-historico-do-cliente.webp;Seção Como abrir, passo 2;Lista de clientes: clique no nome para abrir o detalhe
+08-clientes;02-detalhe-e-historico-do-cliente.md;02-detalhe-e-historico-do-cliente.webp;Seção O que aparece na página;Detalhe do cliente: resumo, dados do cliente e eventos
+08-clientes;02-detalhe-e-historico-do-cliente.md;03-detalhe-e-historico-do-cliente.webp;Seção Criar um evento para o cliente, passo 1;Botão Novo evento para este cliente no detalhe do cliente
+08-clientes;02-detalhe-e-historico-do-cliente.md;04-detalhe-e-historico-do-cliente.webp;Seção Criar um evento para o cliente, passo 2;Formulário de novo evento com o cliente já selecionado
+08-clientes;03-importar-clientes-por-csv.md;01-importar-clientes-por-csv.webp;Passo a passo, passos 1 e 2;Botão Importar CSV na lista de clientes
+08-clientes;03-importar-clientes-por-csv.md;02-importar-clientes-por-csv.webp;Passo a passo, passo 3;Tela de importação de clientes: baixar o modelo e enviar o arquivo
+08-clientes;03-importar-clientes-por-csv.md;03-importar-clientes-por-csv.webp;Passo a passo, passo 6;Arquivo escolhido, pronto para importar
+08-clientes;03-importar-clientes-por-csv.md;04-importar-clientes-por-csv.webp;Seção Entenda o resultado;Resultado da importação: linhas importadas e a linha recusada com o motivo
+09-agenda-e-reunioes;01-usar-a-agenda.md;01-usar-a-agenda.webp;Passo a passo, passos 1 e 2;Agenda na visão Mês, com os eventos no dia e a barra na cor da etapa
+09-agenda-e-reunioes;01-usar-a-agenda.md;02-usar-a-agenda.webp;Passo a passo, passos 3 e 4;Setas Anterior e Próximo, Hoje, filtro de status e o botão Reuniões
+09-agenda-e-reunioes;01-usar-a-agenda.md;03-usar-a-agenda.webp;Seção O que aparece no calendário, Na visão Semana;Visão Semana: cartão do evento com etapa, título, cliente, horário, convidados e local
+09-agenda-e-reunioes;01-usar-a-agenda.md;04-usar-a-agenda.webp;Perguntas frequentes, A agenda mostra eventos recusados?;Agenda filtrada por Ganho (aprovado): só os eventos confirmados aparecem
+09-agenda-e-reunioes;01-usar-a-agenda.md;05-usar-a-agenda.webp;Dicas, item sobre o celular;"No celular, a visão Mês marca os dias com eventos; toque no dia para ver a semana"
+09-agenda-e-reunioes;02-agendar-reuniao-no-google-meet.md;01-agendar-reuniao-no-google-meet.webp;Seção Antes de começar;Aba Reuniões do evento sem a agenda Google ativa: aviso e botão Ativar agenda do Google no lugar de Agendar reunião
+09-agenda-e-reunioes;02-agendar-reuniao-no-google-meet.md;02-agendar-reuniao-no-google-meet.webp;Seção Antes de começar, depois do segundo parágrafo;Página Reuniões sem a agenda Google ativa, com o atalho para Minha conta
+09-agenda-e-reunioes;02-agendar-reuniao-no-google-meet.md;03-agendar-reuniao-no-google-meet.webp;Seção Entenda os campos;Formulário Agendar reunião preenchido (título, evento, data, horário, duração, local, participantes e descrição)
+09-agenda-e-reunioes;03-editar-e-cancelar-reuniao.md;01-editar-e-cancelar-reuniao.webp;Seção Onde encontrar as reuniões;Página Reuniões (Agenda › Reuniões) com o filtro Próximas / Passadas e as colunas da lista
+10-formularios;01-criar-e-editar-formulario.md;01-criar-e-editar-formulario.webp;Seção Criar um formulário, passos 1 e 2;Tela Formulários com o botão Novo formulário
+10-formularios;01-criar-e-editar-formulario.md;02-criar-e-editar-formulario.webp;Seção Criar um formulário, depois do passo 3;Janela Novo formulário com o nome preenchido
+10-formularios;01-criar-e-editar-formulario.md;03-criar-e-editar-formulario.webp;Seção Dados gerais;Editor do formulário: dados gerais (nome, endereço público, status, descrição e mensagem após o envio)
+10-formularios;01-criar-e-editar-formulario.md;04-criar-e-editar-formulario.webp;Seção Editar o formulário, passo 3;Seção do formulário: chave Seção ativa, setas de ordem, Obrigatória e a chave de cada pergunta
+10-formularios;01-criar-e-editar-formulario.md;05-criar-e-editar-formulario.webp;Seção Editar o formulário, passo 3, último item;Seção inicial Sempre ativa e perguntas travadas (cadeado Obrigatória)
+10-formularios;01-criar-e-editar-formulario.md;06-criar-e-editar-formulario.webp;Seção Editar o formulário, passo 4 (e tabela Perguntas personalizadas);Nova pergunta personalizada preenchida na seção Detalhes finais
+10-formularios;01-criar-e-editar-formulario.md;07-criar-e-editar-formulario.webp;Seção Editar o formulário, passo 5;"Pergunta incluída com Editar e Remover; a barra mostra Alterações não salvas"
+10-formularios;01-criar-e-editar-formulario.md;08-criar-e-editar-formulario.webp;Seção Outras ações do editor;Barra inferior do editor depois de salvar: Tudo salvo, Pré-visualizar, Respostas, Duplicar, Excluir e Salvar
+10-formularios;01-criar-e-editar-formulario.md;09-criar-e-editar-formulario.webp;Seção Outras ações do editor, item Pré-visualizar;Pré-visualização do formulário, como o cliente vê (sem envio)
+10-formularios;02-compartilhar-formulario.md;01-compartilhar-formulario.webp;Seção Copiar o link;Copiar link no card do formulário (com o aviso de link copiado)
+10-formularios;02-compartilhar-formulario.md;02-compartilhar-formulario.webp;Seção Compartilhar por QR code, WhatsApp ou site, passo 1;Botão Compartilhar no card do formulário
+10-formularios;02-compartilhar-formulario.md;03-compartilhar-formulario.webp;Seção Compartilhar por QR code, WhatsApp ou site, passo 2;Janela Compartilhar formulário: link público, WhatsApp, QR code e código para incorporar no site
+10-formularios;02-compartilhar-formulario.md;04-compartilhar-formulario.webp;Seção Copiar o link, depois do passo 2;O link público no topo do editor, com Copiar link
+10-formularios;02-compartilhar-formulario.md;05-compartilhar-formulario.webp;Seção Copiar o link, depois do parágrafo Abrir formulário;O formulário aberto pelo link público, sem login
+10-formularios;03-ver-respostas-do-formulario.md;01-ver-respostas-do-formulario.webp;Passo a passo, passo 3 (e seções Filtrar por período / Exportar em CSV);Lista de respostas do formulário com filtros de período, Exportar CSV e Ver resposta
+10-formularios;03-ver-respostas-do-formulario.md;02-ver-respostas-do-formulario.webp;Passo a passo, passo 4;Resposta completa, com as perguntas e respostas agrupadas por seção
+10-formularios;03-ver-respostas-do-formulario.md;03-ver-respostas-do-formulario.webp;Seção Onde mais a resposta aparece;Card Respostas do formulário na página do evento
+10-formularios;04-como-o-pedido-vira-evento.md;01-como-o-pedido-vira-evento.webp;Seção O que acontece no envio (antes da lista);O cliente preenche a primeira etapa do formulário público
+10-formularios;04-como-o-pedido-vira-evento.md;02-como-o-pedido-vira-evento.webp;Seção Como as respostas preenchem o briefing;Etapa de dimensionamento social: ocasião, data, convidados e verba
+10-formularios;04-como-o-pedido-vira-evento.md;03-como-o-pedido-vira-evento.webp;Seção O que acontece no envio, item 5;Tela de confirmação com a mensagem após o envio e o resumo do pedido
+10-formularios;04-como-o-pedido-vira-evento.md;04-como-o-pedido-vira-evento.webp;Seção Depois do pedido, passo 1;O pedido vira um card na coluna de entrada (Novo orçamento) do Painel de Propostas
+10-formularios;04-como-o-pedido-vira-evento.md;05-como-o-pedido-vira-evento.webp;Seção Como as respostas preenchem o briefing (depois da tabela);Resumo do evento criado: cliente, briefing preenchido e o card Respostas do formulário
+10-formularios;04-como-o-pedido-vira-evento.md;06-como-o-pedido-vira-evento.webp;Seção O que acontece no envio, item 3;Linha do tempo com o registro Pedido recebido pelo formulário
+10-formularios;05-formulario-no-banket-busca.md;01-formulario-no-banket-busca.webp;Passo a passo, passo 2;"Botão Usar no Banket Busca no card do formulário; o formulário em uso mostra o selo No Banket Busca"
+10-formularios;05-formulario-no-banket-busca.md;02-formulario-no-banket-busca.webp;Passo a passo, passo 3;"Mensagem de confirmação e o selo No Banket Busca no formulário escolhido; o anterior volta a mostrar Usar no Banket Busca"
+10-formularios;05-formulario-no-banket-busca.md;03-formulario-no-banket-busca.webp;Seção Como o pedido chega;No perfil do Banket Busca, o botão Receber orçamento sem compromisso abre o formulário escolhido
+10-formularios;05-formulario-no-banket-busca.md;04-formulario-no-banket-busca.webp;Seção Como o pedido chega, primeiro item;O formulário de captação aberto dentro do perfil do Banket Busca (com tipo, data e convidados vindos da busca, quando informados)
+11-financeiro;01-visao-geral-do-financeiro.md;01-visao-geral-do-financeiro.webp;Seção Os quatro indicadores do topo;Financeiro › Visão geral: os quatro indicadores e o fluxo de caixa mês a mês
+11-financeiro;01-visao-geral-do-financeiro.md;02-visao-geral-do-financeiro.webp;Seção Fluxo de caixa;Fluxo de caixa: entradas e saídas de cada mês, com o mês atual marcado
+11-financeiro;01-visao-geral-do-financeiro.md;03-visao-geral-do-financeiro.webp;Seção Vencidas e próximos 7 dias;Listas Vencidas e Próximos 7 dias, com o botão Receber ou Pagar em cada linha
+11-financeiro;02-lancar-conta-a-receber-ou-a-pagar.md;01-lancar-conta-a-receber-ou-a-pagar.webp;Passo a passo, passos 2 e 3;Financeiro › Contas a pagar, com o botão Nova conta a pagar
+11-financeiro;02-lancar-conta-a-receber-ou-a-pagar.md;02-lancar-conta-a-receber-ou-a-pagar.webp;Passo a passo, depois do passo 4 (ou seção Entenda os campos);Nova conta a pagar preenchida: descrição, valor, vencimento, categoria, evento, fornecedor e NF
+11-financeiro;02-lancar-conta-a-receber-ou-a-pagar.md;03-lancar-conta-a-receber-ou-a-pagar.webp;Passo a passo, depois do passo 5;Conta a receber ligada ao evento, já recebida: ao ligar Já foi recebida, aparece a data Recebida em
+11-financeiro;02-lancar-conta-a-receber-ou-a-pagar.md;04-lancar-conta-a-receber-ou-a-pagar.webp;Seção O que acontece depois;A conta lançada aparece na lista, com a situação Em aberto ou Vencida
+11-financeiro;02-lancar-conta-a-receber-ou-a-pagar.md;05-lancar-conta-a-receber-ou-a-pagar.webp;Seção Editar ou excluir uma conta;Editar conta a pagar, com o botão Excluir no topo do painel
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;01-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Registrar o recebimento ou o pagamento, passo 2;Botão Receber na linha da conta (aqui, a entrada do plano na aba Finanças do evento)
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;02-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Registrar o recebimento ou o pagamento, depois do passo 3;Painel Registrar pagamento com a data, o valor pago e a forma de pagamento
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;03-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Registrar o recebimento ou o pagamento, depois do passo 4;Entrada com a situação Recebida e a data e a forma do recebimento abaixo do vencimento
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;04-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Cancelar uma conta, passo 2;Confirmação ao cancelar uma conta: ela sai dos totais, mas continua no histórico
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;05-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Cancelar uma conta (resultado) e seção Reabrir uma conta, passo 1;Contas a pagar com o filtro Todas: a conta cancelada e a paga mostram o botão Reabrir
+11-financeiro;03-dar-baixa-cancelar-e-reabrir-conta.md;06-dar-baixa-cancelar-e-reabrir-conta.webp;Seção Reabrir uma conta, passo 2;Confirmação ao reabrir: a conta volta a ficar em aberto
+11-financeiro;04-plano-de-pagamento-do-evento.md;01-plano-de-pagamento-do-evento.webp;Seção Cadastrar o plano ao fechar o evento, passos 2 e 3;Ao mover para Aprovado: data de fechamento e a opção Cadastrar o plano de pagamento em seguida
+11-financeiro;04-plano-de-pagamento-do-evento.md;02-plano-de-pagamento-do-evento.webp;Seção Cadastrar o plano a qualquer momento, passos 1 e 2;Aba Finanças do evento, ainda sem plano, com o botão Plano de pagamento
+11-financeiro;04-plano-de-pagamento-do-evento.md;03-plano-de-pagamento-do-evento.webp;Seção Entenda os campos;Plano de pagamento preenchido: entrada e 3 parcelas mensais, com a prévia ao vivo das parcelas
+11-financeiro;04-plano-de-pagamento-do-evento.md;04-plano-de-pagamento-do-evento.webp;Seção Prévia das parcelas (mensagem de campo faltando);Prévia avisando o que falta: informe o vencimento da entrada
+11-financeiro;04-plano-de-pagamento-do-evento.md;05-plano-de-pagamento-do-evento.webp;Seção O que acontece depois;Contas a receber geradas pelo plano, com a etiqueta Plano
+11-financeiro;04-plano-de-pagamento-do-evento.md;06-plano-de-pagamento-do-evento.webp;Seção Refazer o plano;Refazer plano de pagamento: o valor sugerido já desconta a entrada recebida
+11-financeiro;05-financas-do-evento.md;01-financas-do-evento.webp;Seção Os indicadores do topo;Aba Finanças do evento: orçamento, a receber, custos (com o estoque consumido) e resultado previsto com a margem
+11-financeiro;05-financas-do-evento.md;02-financas-do-evento.webp;Seção Contas a receber do evento;Contas a receber do evento: parcelas do plano (etiqueta Plano) e a hora adicional avulsa já recebida
+11-financeiro;05-financas-do-evento.md;03-financas-do-evento.webp;Seção Contas a pagar do evento;Contas a pagar do evento: diárias pagas e a compra de insumos vencida
+11-financeiro;06-categorias-financeiras.md;01-categorias-financeiras.webp;Seção Categorias que já vêm prontas (ou Criar uma categoria, passos 1 e 2);Financeiro › Categorias, com as categorias de contas a receber e a pagar e o botão Nova categoria
+11-financeiro;06-categorias-financeiras.md;02-categorias-financeiras.webp;Seção Criar uma categoria, depois do passo 5;Nova categoria preenchida: nome, tipo A pagar e Categoria ativa
+11-financeiro;06-categorias-financeiras.md;03-categorias-financeiras.webp;Seções Editar ou desativar e Excluir;Editar categoria: altere o nome ou o tipo, desligue Categoria ativa para desativar, ou use Excluir no topo
+11-financeiro;07-filtrar-e-exportar-contas.md;01-filtrar-e-exportar-contas.webp;Seções Os totais do topo e Filtros disponíveis;Contas a receber: totais do filtro, filtros de busca, situação, vencimento e categoria
+11-financeiro;07-filtrar-e-exportar-contas.md;02-filtrar-e-exportar-contas.webp;Seção Filtros disponíveis (ou pergunta Por que não vejo as contas pagas);Filtro de situação em Pagas / recebidas
+11-financeiro;07-filtrar-e-exportar-contas.md;03-filtrar-e-exportar-contas.webp;Seção Ver as contas de um evento;"Busca por ""Ana"" com a situação Todas: o nome do evento leva à aba Finanças dele"
+11-financeiro;07-filtrar-e-exportar-contas.md;04-filtrar-e-exportar-contas.webp;Seção Exportar em CSV, passo 2;Botão Exportar CSV: baixa todas as contas do filtro atual
+12-estoque;01-cadastrar-item-de-estoque.md;01-cadastrar-item-de-estoque.webp;Passo a passo, passos 1 e 2;Estoque › Itens em estoque, ainda vazio, com o botão Novo item
+12-estoque;01-cadastrar-item-de-estoque.md;02-cadastrar-item-de-estoque.webp;Passo a passo, depois do passo 4 (ou seção Entenda os campos);Novo item de estoque preenchido: nome, tipo, categoria, unidade, quantidade inicial, mínimo, custo, local e validade
+12-estoque;01-cadastrar-item-de-estoque.md;03-cadastrar-item-de-estoque.webp;Seção A tela de itens em estoque;Itens em estoque com os indicadores do topo e a situação de cada item (Ok, Abaixo do mínimo, Vence em X dias)
+12-estoque;01-cadastrar-item-de-estoque.md;04-cadastrar-item-de-estoque.webp;Seção A tela de itens em estoque › Filtros;Clique em Abaixo do mínimo para filtrar só os itens que precisam de reposição
+12-estoque;01-cadastrar-item-de-estoque.md;05-cadastrar-item-de-estoque.webp;Seções Como o saldo funciona e Excluir um item;Editar item de estoque: sem o campo de quantidade inicial, com o botão Excluir no topo e o switch Item ativo
+12-estoque;02-registrar-movimentacao.md;01-registrar-movimentacao.webp;Passo a passo, passo 2;Botão Movimentar no topo de Itens em estoque (cada linha também tem o seu Movimentar)
+12-estoque;02-registrar-movimentacao.md;02-registrar-movimentacao.webp;Passo a passo, depois do passo 7;Entrada por compra: item com o saldo atual, tipo, motivo com a explicação, quantidade, custo, fornecedor e nota fiscal
+12-estoque;02-registrar-movimentacao.md;03-registrar-movimentacao.webp;Passo a passo, depois do passo 8;A mensagem de confirmação mostra o novo saldo do item
+12-estoque;02-registrar-movimentacao.md;04-registrar-movimentacao.webp;Seção Como cada tipo altera o saldo › Regras;Uma saída maior que o saldo é recusada: registre uma contagem antes
+12-estoque;03-motivos-de-movimentacao.md;01-motivos-de-movimentacao.webp;Seção Motivos de saída (ou Por que ligar a saída ao evento);Saída Consumo em evento: o evento é obrigatório e a saída guarda o custo médio do momento
+12-estoque;03-motivos-de-movimentacao.md;02-motivos-de-movimentacao.webp;Seção Motivos de saída;Saída Perda / vencimento / descarte: a justificativa passa a ser obrigatória
+12-estoque;03-motivos-de-movimentacao.md;03-motivos-de-movimentacao.webp;Seção Contagem;"Contagem: só a quantidade contada; o sistema registra a diferença e o campo de motivo não aparece"
+12-estoque;04-historico-de-movimentacoes.md;01-historico-de-movimentacoes.webp;Passo a passo, passo 1 (ou seção Entenda as colunas);Estoque › Movimentações: todas as entradas, saídas e contagens, com motivo, saldo após, custo e detalhes
+12-estoque;04-historico-de-movimentacoes.md;02-historico-de-movimentacoes.webp;Passo a passo, passo 2;Histórico filtrado por um item: saldo inicial, compra, consumo no evento e o custo médio de cada movimento
+12-estoque;04-historico-de-movimentacoes.md;03-historico-de-movimentacoes.webp;Seção Entenda as colunas, depois da tabela;A compra que gerou conta a pagar mostra a etiqueta No financeiro
+12-estoque;05-itens-do-cardapio-no-estoque.md;01-itens-do-cardapio-no-estoque.webp;Passo a passo, passos 1 e 2;Cardápios › Itens do cardápio: clique em Editar no item
+12-estoque;05-itens-do-cardapio-no-estoque.md;02-itens-do-cardapio-no-estoque.webp;Passo a passo, passo 3;Switch Gerenciado no estoque ligado no cadastro do item do cardápio
+12-estoque;05-itens-do-cardapio-no-estoque.md;03-itens-do-cardapio-no-estoque.webp;Passo a passo, depois do passo 4;O item aparece em Itens em estoque com a etiqueta Cardápio, categoria Cardápio, unidade em kg e saldo zero
+12-estoque;05-itens-do-cardapio-no-estoque.md;04-itens-do-cardapio-no-estoque.webp;Passo a passo, depois do passo 4 (parágrafo da coluna Estoque);Na lista de itens do cardápio, a coluna Estoque mostra o saldo do item ligado (clique para abrir no estoque)
+12-estoque;06-estoque-na-lista-de-compras.md;01-estoque-na-lista-de-compras.webp;Seção Onde ver, passos 2 e 3;"Sub-aba Lista de compras do evento: o resumo do topo conta os itens já em estoque; a coluna Estoque fica à direita da tabela (role a tabela para o lado)"
+12-estoque;06-estoque-na-lista-de-compras.md;02-estoque-na-lista-de-compras.webp;Seção O que cada situação significa;Coluna Estoque: Faltam 2,4 kg (arroz ligado ao estoque), Faltam 84 un (refrigerante, pelo mesmo nome), Em estoque nas linhas avulsas e — nos itens não controlados
+12-estoque;07-lancar-compra-no-financeiro.md;01-lancar-compra-no-financeiro.webp;Passo a passo, depois do passo 5;Compra com Lançar conta a pagar no financeiro: valor sugerido (quantidade × custo), vencimento, forma e categoria
+12-estoque;07-lancar-compra-no-financeiro.md;02-lancar-compra-no-financeiro.webp;Passo a passo, depois do passo 6;Confirmação: movimentação registrada e conta lançada no financeiro
+12-estoque;07-lancar-compra-no-financeiro.md;03-lancar-compra-no-financeiro.webp;Seção Como a conta é criada;A conta criada pela compra em Financeiro › Contas a pagar, com a etiqueta Estoque e a descrição montada pelo sistema
+13-staff;01-servicos-e-funcoes.md;01-servicos-e-funcoes.webp;Passo a passo, passos 1 e 2;Staff › Serviços e custos, com o botão Novo serviço
+13-staff;01-servicos-e-funcoes.md;02-servicos-e-funcoes.webp;Passo a passo, depois do passo 5 (ou seção Proporcional ao número de convidados);Novo serviço proporcional: 1 garçom a cada 20 convidados, mínimo 2, com a simulação para 150 convidados
+13-staff;01-servicos-e-funcoes.md;03-servicos-e-funcoes.webp;Seção Quantidade fixa por evento;Serviço com quantidade fixa por evento: 1 maître
+13-staff;01-servicos-e-funcoes.md;04-servicos-e-funcoes.webp;Seção Os cards de serviço;Cards dos serviços com cachê, auxílio, regra e etiquetas
+13-staff;02-cadastrar-profissionais.md;01-cadastrar-profissionais.webp;Passo a passo, passos 1 e 2;Staff › Profissionais, com o botão Novo profissional
+13-staff;02-cadastrar-profissionais.md;02-cadastrar-profissionais.webp;Passo a passo, depois do passo 3;Novo profissional preenchido com contato, especialidade, CPF e chave Pix
+13-staff;02-cadastrar-profissionais.md;03-cadastrar-profissionais.webp;Seção A lista de profissionais;Lista de profissionais com contato e especialidade
+14-espacos;01-cadastrar-espaco.md;01-cadastrar-espaco.webp;Passo a passo, passos 1 e 2;Lista de espaços com o botão Novo espaço
+14-espacos;01-cadastrar-espaco.md;02-cadastrar-espaco.webp;Passo a passo, depois do passo 4;Cadastro de um espaço próprio (Nosso espaço) preenchido
+14-espacos;01-cadastrar-espaco.md;03-cadastrar-espaco.webp;Passo a passo, depois do passo 5 (parágrafo sobre o detalhe que abre sozinho);Detalhe do espaço próprio logo depois de salvar, pronto para cadastrar as faixas
+14-espacos;01-cadastrar-espaco.md;04-cadastrar-espaco.webp;Seção Entenda os campos, tabela Só para Espaço de terceiro;Cadastro de um espaço de terceiro, com contato e valor de referência
+14-espacos;01-cadastrar-espaco.md;05-cadastrar-espaco.webp;Seção A lista de espaços;Lista de espaços com espaços próprios, de terceiros e um inativo
+14-espacos;01-cadastrar-espaco.md;06-cadastrar-espaco.webp;Seção O detalhe do espaço;Detalhe de um espaço de terceiro com o card Contato e locação
+14-espacos;01-cadastrar-espaco.md;07-cadastrar-espaco.webp;Seção O detalhe do espaço;Detalhe de um espaço próprio com os dados, as faixas de locação e os eventos neste espaço
+14-espacos;02-faixas-de-locacao.md;01-faixas-de-locacao.webp;Passo a passo, passo 3;Card Faixas de locação no detalhe do espaço, com o botão Nova faixa
+14-espacos;02-faixas-de-locacao.md;02-faixas-de-locacao.webp;Passo a passo, depois do passo 4;Nova faixa de locação preenchida
+14-espacos;02-faixas-de-locacao.md;03-faixas-de-locacao.webp;Seção Exemplo;Faixas de locação do Salão Jardim cadastradas
+14-espacos;02-faixas-de-locacao.md;04-faixas-de-locacao.webp;Seção Regras, primeiro item;Aviso ao cadastrar uma faixa que se sobrepõe a outra
+15-templates;01-criar-template.md;01-criar-template.webp;Passo a passo, passos 1 e 2;Lista de templates com o botão Novo template e o Editar do template padrão
+15-templates;01-criar-template.md;02-criar-template.webp;Passo a passo, passo 3;Topo do editor: nome, descrição, tags e o botão Salvar
+15-templates;01-criar-template.md;03-criar-template.webp;Passo a passo, passo 4;Card Identidade visual com o logotipo, as fontes e as cores
+15-templates;01-criar-template.md;04-criar-template.webp;Passo a passo, passo 5;Card Página capa: incluir capa, imagem de fundo, título e conteúdo, com a miniatura ao lado
+15-templates;01-criar-template.md;05-criar-template.webp;Passo a passo, passo 6;Card Página conteúdo: imagem de fundo, título do cabeçalho, introdução e rodapé com o logotipo
+15-templates;01-criar-template.md;06-criar-template.webp;Passo a passo, passo 7;Card Página contracapa preenchido, com a miniatura da página final
+15-templates;01-criar-template.md;07-criar-template.webp;Duplicar e excluir;Lista com o Template padrão e a variação Template Elegante, criada com Duplicar
+15-templates;02-identidade-visual-com-ia.md;01-identidade-visual-com-ia.webp;Sugerir as fontes, passo 3;Botão Sugerir fontes com IA no card Identidade visual, com o logotipo já escolhido
+15-templates;02-identidade-visual-com-ia.md;02-identidade-visual-com-ia.webp;Sugerir as fontes, passo 5;Fontes sugeridas pela IA, com o aviso explicando a escolha
+15-templates;02-identidade-visual-com-ia.md;03-identidade-visual-com-ia.webp;Capturar as cores, passo 2;Cores capturadas do logotipo: fundo claro, texto escuro e a cor da marca nos títulos
+15-templates;03-imagens-de-fundo-com-ia.md;01-imagens-de-fundo-com-ia.webp;Passo a passo, passo 3;Botão Gerar com IA abaixo do campo de imagem de fundo da capa
+15-templates;03-imagens-de-fundo-com-ia.md;02-imagens-de-fundo-com-ia.webp;Passo a passo, passo 4;Aviso de geração e o quadro Gerando… na galeria da capa
+15-templates;03-imagens-de-fundo-com-ia.md;03-imagens-de-fundo-com-ia.webp;Passo a passo, passo 5;Imagem pronta na galeria, com o aviso para clicar e usar
+15-templates;03-imagens-de-fundo-com-ia.md;04-imagens-de-fundo-com-ia.webp;Passo a passo, passo 6;Imagem da galeria escolhida: ela aparece no campo de imagem de fundo e na miniatura da capa
+15-templates;04-blocos-de-informacao.md;01-blocos-de-informacao.webp;Criar um bloco, passos 2 e 3;Blocos de informação: a lista agrupada por página à direita e o botão Novo bloco
+15-templates;04-blocos-de-informacao.md;02-blocos-de-informacao.webp;Criar um bloco, passos 4 e 5;Novo bloco Degustação preenchido, com a pré-visualização da formatação
+15-templates;04-blocos-de-informacao.md;03-blocos-de-informacao.webp;Editar, reordenar e excluir;Bloco salvo: Degustação aparece na lista, em Condições gerais
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;01-pdf-de-exemplo-e-template-padrao.webp;Ver a pré-visualização na tela;Pré-visualização com a proposta de exemplo no fim da página de edição: capa, conteúdo e contracapa
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;02-pdf-de-exemplo-e-template-padrao.webp;Gerar o PDF de exemplo, passo 2;Botão PDF de exemplo no topo do editor do template
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;03-pdf-de-exemplo-e-template-padrao.webp;Gerar o PDF de exemplo, passo 3;Página de conteúdo do PDF de exemplo, com cardápio e valores fictícios
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;04-pdf-de-exemplo-e-template-padrao.webp;Gerar o PDF de exemplo, depois da lista de opções;Pergunta Gerar o exemplo sem salvar?, com as opções Voltar e salvar e Gerar mesmo assim
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;05-pdf-de-exemplo-e-template-padrao.webp;Definir o template padrão, passo 2;Chave Template padrão das novas propostas ligada no topo do template
+15-templates;05-pdf-de-exemplo-e-template-padrao.md;06-pdf-de-exemplo-e-template-padrao.webp;Definir o template padrão, depois do passo 3;Lista de templates: o padrão aparece primeiro, com a marca Padrão
+16-documentos;01-criar-modelo-de-documento.md;01-criar-modelo-de-documento.webp;Criar um modelo, passo 2;Lista de modelos em Documentos, com o botão Novo modelo
+16-documentos;01-criar-modelo-de-documento.md;02-criar-modelo-de-documento.webp;Criar um modelo, passo 3;Novo modelo com nome, descrição e título do documento preenchidos
+16-documentos;01-criar-modelo-de-documento.md;03-criar-modelo-de-documento.webp;Seção Escrever o conteúdo, antes da tabela de botões;Card Conteúdo com a barra de formatação acima do texto do modelo
+16-documentos;01-criar-modelo-de-documento.md;04-criar-modelo-de-documento.webp;Seção Escrever o conteúdo, depois do parágrafo da Prévia;Prévia do documento com dados de exemplo, atualizada enquanto você escreve
+16-documentos;01-criar-modelo-de-documento.md;05-criar-modelo-de-documento.webp;Seção Identidade visual;Card Identidade visual com logotipo no cabeçalho, rodapé, fontes e cores capturadas do logo
+16-documentos;01-criar-modelo-de-documento.md;06-criar-modelo-de-documento.webp;Seção Assinaturas e situação do modelo;Opções de assinaturas, testemunhas e modelo ativo no fim do card Conteúdo
+16-documentos;01-criar-modelo-de-documento.md;07-criar-modelo-de-documento.webp;Seção Outras ações;Modelo salvo, com PDF de exemplo, Duplicar e Excluir no topo
+16-documentos;02-variaveis-e-campos-extras.md;01-variaveis-e-campos-extras.webp;Como usar, passo 3;Variáveis do sistema agrupadas por empresa, cliente, evento, orçamento e documento
+16-documentos;02-variaveis-e-campos-extras.md;02-variaveis-e-campos-extras.webp;Seção Campos extras, depois das regras;Campos preenchidos ao gerar: as variáveis próprias data_degustacao e pessoas_degustacao viram campos extras
+16-documentos;02-variaveis-e-campos-extras.md;03-variaveis-e-campos-extras.webp;Seção Campos extras, no fim das regras;Na lista de modelos, a linha Campos ao gerar mostra os campos extras de cada modelo
+16-documentos;03-gerar-documento-no-evento.md;01-gerar-documento-no-evento.webp;Passo a passo, passo 3;Aba Documentos do evento, com o botão Gerar documento
+16-documentos;03-gerar-documento-no-evento.md;02-gerar-documento-no-evento.webp;Passo a passo, passo 5;Gerar documento: modelo escolhido e campos extras em Informações para preencher
+16-documentos;03-gerar-documento-no-evento.md;03-gerar-documento-no-evento.webp;Passo a passo, depois do passo 6;Documento gerado com número, na lista da aba Documentos
+16-documentos;04-baixar-e-enviar-documento.md;01-baixar-e-enviar-documento.webp;Seção Abrir e baixar, passo 2;Linha do documento com o título (abre o PDF), Baixar e Enviar
+16-documentos;04-baixar-e-enviar-documento.md;02-baixar-e-enviar-documento.webp;Seção Abrir e baixar, depois do nome do arquivo;PDF gerado do Termo de degustação, com logotipo, número e os dados do evento
+16-documentos;04-baixar-e-enviar-documento.md;03-baixar-e-enviar-documento.webp;Seção Enviar por e-mail, passo 2;Painel Enviar documento por e-mail preenchido
+16-documentos;04-baixar-e-enviar-documento.md;04-baixar-e-enviar-documento.webp;Seção Enviar por e-mail, depois do passo 3;Confirmação do envio do documento por e-mail
+16-documentos;04-baixar-e-enviar-documento.md;05-baixar-e-enviar-documento.webp;Seção Excluir um documento, passo 2;Confirmação antes de excluir um documento
+17-pesquisas;01-entender-nps-e-csat.md;01-entender-nps-e-csat.webp;Seção NPS: recomendação de 0 a 10, depois das zonas;NPS calculado com a zona de classificação, na Visão geral
+17-pesquisas;01-entender-nps-e-csat.md;02-entender-nps-e-csat.webp;Seção CSAT: satisfação de 1 a 5 por aspecto;CSAT: % de satisfeitos e média por aspecto
+17-pesquisas;02-configurar-questionario.md;01-configurar-questionario.webp;Seção O questionário inicial (ou Como acessar);Questionário e e-mail: a lista de perguntas e o botão Nova pergunta
+17-pesquisas;02-configurar-questionario.md;02-configurar-questionario.webp;Seção Adicionar uma pergunta, depois do passo 7;Nova pergunta de satisfação (nota de 1 a 5) preenchida
+17-pesquisas;02-configurar-questionario.md;03-configurar-questionario.webp;Seção Editar, reordenar e desativar, item Reordenar;A pergunta nova reposicionada com as setas (ou arrastando a linha)
+17-pesquisas;02-configurar-questionario.md;04-configurar-questionario.webp;Seção Editar, reordenar e desativar, item Editar;Editar pergunta de escolha única: opções uma por linha, Obrigatória e Ativa
+17-pesquisas;02-configurar-questionario.md;05-configurar-questionario.webp;Seção Textos e e-mail;Card Textos e e-mail: título, introdução, agradecimento, e-mail e lembrete
+17-pesquisas;03-enviar-pesquisa.md;01-enviar-pesquisa.webp;Passo a passo, passos 1 e 2 (e seção Lembrete de eventos sem pesquisa);Visão geral das Pesquisas com o botão Enviar pesquisa e o lembrete de eventos realizados sem pesquisa
+17-pesquisas;03-enviar-pesquisa.md;02-enviar-pesquisa.webp;Passo a passo, depois do passo 6;Painel Enviar pesquisa de satisfação com o evento escolhido, destinatário e mensagem do modelo
+17-pesquisas;03-enviar-pesquisa.md;03-enviar-pesquisa.webp;Seção O que acontece depois / Reenviar ou copiar o link;Pesquisa enviada aparece em Respostas como Aguardando, com Copiar link e Reenviar
+17-pesquisas;03-enviar-pesquisa.md;04-enviar-pesquisa.webp;Seção O que acontece depois;Linha do tempo do evento com o envio da pesquisa e a resposta com o NPS
+17-pesquisas;04-o-que-o-cliente-ve.md;01-o-que-o-cliente-ve.webp;Seção Como é a página;Topo da página da pesquisa: empresa, título, evento, introdução e a pergunta de NPS
+17-pesquisas;04-o-que-o-cliente-ve.md;02-o-que-o-cliente-ve.webp;Seção Como o cliente responde a cada tipo;NPS de 0 a 10 e notas de 1 a 5 marcadas pelo cliente
+17-pesquisas;04-o-que-o-cliente-ve.md;03-o-que-o-cliente-ve.webp;Seção Como o cliente responde a cada tipo, depois da tabela;Escolha única, respostas abertas, autorização de depoimento e o botão Enviar respostas
+17-pesquisas;04-o-que-o-cliente-ve.md;04-o-que-o-cliente-ve.webp;Seção Depois de enviar;Tela de agradecimento depois do envio
+17-pesquisas;04-o-que-o-cliente-ve.md;05-o-que-o-cliente-ve.webp;Seção Mensagens que o cliente pode ver;Mensagem Pesquisa indisponível para um link incorreto
+17-pesquisas;04-o-que-o-cliente-ve.md;06-o-que-o-cliente-ve.webp;Perguntas frequentes, A página funciona no celular?;A página da pesquisa no celular
+17-pesquisas;05-indicadores-da-pesquisa.md;01-indicadores-da-pesquisa.webp;Seção Os indicadores do topo;Visão geral das Pesquisas: filtros e indicadores do topo
+17-pesquisas;05-indicadores-da-pesquisa.md;02-indicadores-da-pesquisa.webp;Seção Como acessar (visão da página inteira);Visão geral completa: NPS, CSAT por aspecto, perguntas de escolha e comentários recentes
+17-pesquisas;05-indicadores-da-pesquisa.md;03-indicadores-da-pesquisa.webp;Seção Recomendação (NPS);Card Recomendação (NPS): faixa de detratores, neutros e promotores e as colunas de 0 a 10
+17-pesquisas;05-indicadores-da-pesquisa.md;04-indicadores-da-pesquisa.webp;Seção Satisfação por aspecto (CSAT);Card Satisfação por aspecto (CSAT)
+17-pesquisas;05-indicadores-da-pesquisa.md;05-indicadores-da-pesquisa.webp;Seção Perguntas de escolha;Card Perguntas de escolha
+17-pesquisas;05-indicadores-da-pesquisa.md;06-indicadores-da-pesquisa.webp;Seção Comentários recentes;Card Comentários recentes
+17-pesquisas;06-ver-respostas.md;01-ver-respostas.webp;Seção Lista de pesquisas enviadas;Lista de pesquisas enviadas com a resposta, o NPS e Ver respostas
+17-pesquisas;06-ver-respostas.md;02-ver-respostas.webp;Seção Respostas de uma pesquisa;Respostas de uma pesquisa: NPS, notas, escolhas e textos do cliente
+17-pesquisas;06-ver-respostas.md;03-ver-respostas.webp;Seção Respostas por pergunta;Por pergunta: distribuição das notas de uma pergunta de 1 a 5 e a lista de respostas
+17-pesquisas;06-ver-respostas.md;04-ver-respostas.webp;Seção Respostas por pergunta, depois dos filtros (ou Dicas);Por pergunta com uma pergunta aberta: os comentários dos clientes
+17-pesquisas;06-ver-respostas.md;05-ver-respostas.webp;Seção Respostas de uma pesquisa, depois do parágrafo sobre o card No Banket Busca;Card No Banket Busca no detalhe da resposta
+17-pesquisas;07-avaliacao-no-banket-busca.md;01-avaliacao-no-banket-busca.webp;Seção Ver, responder e ocultar uma avaliação, depois do passo 6;Card No Banket Busca: nota, depoimento autorizado, resposta pública da empresa e a opção de ocultar
+17-pesquisas;07-avaliacao-no-banket-busca.md;02-avaliacao-no-banket-busca.webp;Seção Quando o depoimento aparece (ou depois do passo 4 de Ver, responder e ocultar);O depoimento e a resposta da empresa no perfil público do Banket Busca
+18-banket-busca;01-o-que-e-o-banket-busca.md;01-o-que-e-o-banket-busca.webp;Seção Onde fica no sistema;Página do Banket Busca com a situação do perfil, as etapas e a parte Exclusivo Banket
+18-banket-busca;01-o-que-e-o-banket-busca.md;02-o-que-e-o-banket-busca.webp;Seção Como funciona, depois do passo 3;Perfil público do buffet no Banket Busca, com fotos, selo Cliente Banket e o quadro Peça um orçamento
+18-banket-busca;02-perfil-simples-e-personalizado.md;01-perfil-simples-e-personalizado.webp;Seção Limites do plano;Lista de etapas com Cardápios e Disponibilidade incluídos no plano e o contador de fotos do plano (Prime: 60)
+18-banket-busca;02-perfil-simples-e-personalizado.md;02-perfil-simples-e-personalizado.webp;Seção O que cada nível oferece, depois da tabela;Cards dos planos pagos, todos com o Banket Busca Personalizado
+18-banket-busca;02-perfil-simples-e-personalizado.md;03-perfil-simples-e-personalizado.webp;Perguntas frequentes, No Perfil Simples o cliente consegue falar comigo?;Perfil Simples: quadro Fale com o buffet com o botão Ver contatos (sem formulário de orçamento)
+18-banket-busca;03-etapa-1-dados-da-empresa.md;01-etapa-1-dados-da-empresa.webp;Passo a passo, depois do passo 2;Etapa Dados da empresa com os dados vindos de Configurações › Empresa
+18-banket-busca;03-etapa-1-dados-da-empresa.md;02-etapa-1-dados-da-empresa.webp;Passo a passo, depois do passo 4;Instagram, site e descrição preenchidos na etapa 1
+18-banket-busca;03-etapa-1-dados-da-empresa.md;03-etapa-1-dados-da-empresa.webp;Passo a passo, depois do passo 6;Etapa 1 salva e concluída, com a confirmação no topo
+18-banket-busca;04-etapa-2-eventos-e-servicos.md;01-etapa-2-eventos-e-servicos.webp;Passo a passo, passo 1;Etapa Eventos e serviços antes de marcar os tipos
+18-banket-busca;04-etapa-2-eventos-e-servicos.md;02-etapa-2-eventos-e-servicos.webp;Passo a passo, depois do passo 2 (ou seção Limites do plano);Tipos de evento marcados, com o contador do limite do plano
+18-banket-busca;04-etapa-2-eventos-e-servicos.md;03-etapa-2-eventos-e-servicos.webp;Passo a passo, depois do passo 3;Tipos de serviço marcados
+18-banket-busca;04-etapa-2-eventos-e-servicos.md;04-etapa-2-eventos-e-servicos.webp;Passo a passo, depois do passo 4;Opções de cardápio (restrições alimentares) marcadas
+18-banket-busca;05-etapa-3-regiao-de-atendimento.md;01-etapa-3-regiao-de-atendimento.webp;Passo a passo, passo 2;Cidade do buffet com a lista de cidades para escolher
+18-banket-busca;05-etapa-3-regiao-de-atendimento.md;02-etapa-3-regiao-de-atendimento.webp;Passo a passo, depois do passo 3;Espaço próprio com o endereço preenchido pelo CEP
+18-banket-busca;05-etapa-3-regiao-de-atendimento.md;03-etapa-3-regiao-de-atendimento.webp;Passo a passo, depois do passo 4;Atendimento em domicílio com raio de 25 km e outra cidade atendida
+18-banket-busca;05-etapa-3-regiao-de-atendimento.md;04-etapa-3-regiao-de-atendimento.webp;Perguntas frequentes, O endereço do meu espaço aparece no perfil?;Área de atendimento no perfil público: espaço próprio, domicílio com raio e outras cidades
+18-banket-busca;06-etapa-4-capacidade.md;01-etapa-4-capacidade.webp;Passo a passo, depois do passo 4;Etapa Capacidade com mínimo e máximo de convidados e a faixa da busca
+18-banket-busca;07-etapa-5-fotos.md;01-etapa-5-fotos.webp;Passo a passo, passo 2;Etapa Fotos e galeria com a área de envio e o limite de fotos do plano
+18-banket-busca;07-etapa-5-fotos.md;02-etapa-5-fotos.webp;Passo a passo, depois do passo 3;Fotos escolhidas em miniatura, com o grupo preenchido, antes de enviar
+18-banket-busca;07-etapa-5-fotos.md;03-etapa-5-fotos.webp;Passo a passo, depois do passo 5;Galeria com as fotos em grupos, a capa, as setas de ordem, a legenda e o grupo
+18-banket-busca;07-etapa-5-fotos.md;04-etapa-5-fotos.webp;Seção Como as fotos aparecem no perfil;Seção Fotos do perfil público com as fotos separadas por grupo
+18-banket-busca;08-etapa-6-revisar-e-publicar.md;01-etapa-6-revisar-e-publicar.webp;Passo a passo, depois do passo 3;Revisão com o resumo de cada etapa e o card como aparece na busca
+18-banket-busca;08-etapa-6-revisar-e-publicar.md;02-etapa-6-revisar-e-publicar.webp;Seção Prévia do perfil;"Prévia do perfil com a faixa ""ainda não publicado, só você vê esta página"""
+18-banket-busca;08-etapa-6-revisar-e-publicar.md;03-etapa-6-revisar-e-publicar.webp;Passo a passo, passo 5;Aceite dos termos marcado e o botão Publicar perfil
+18-banket-busca;08-etapa-6-revisar-e-publicar.md;04-etapa-6-revisar-e-publicar.webp;Passo a passo, depois do passo 6;Perfil publicado: situação Publicado e o botão Ver perfil público
+18-banket-busca;08-etapa-6-revisar-e-publicar.md;05-etapa-6-revisar-e-publicar.webp;Passo a passo, depois do passo 6;Perfil publicado aberto em busca.banket.com.br
+18-banket-busca;09-endereco-do-perfil.md;01-endereco-do-perfil.webp;Seção Nos planos pagos, passo 2;Campo Endereço do perfil com a varinha Sugerir endereços com IA
+18-banket-busca;09-endereco-do-perfil.md;02-endereco-do-perfil.webp;Seção Nos planos pagos, depois do passo 2;Sugestões de endereço geradas pela varinha de IA
+18-banket-busca;10-cardapios-no-perfil.md;01-cardapios-no-perfil.webp;Seção Como o cardápio aparece;Seção Cardápios do perfil com as opções públicas, sem preços
+18-banket-busca;10-cardapios-no-perfil.md;02-cardapios-no-perfil.webp;Seção Como o cardápio aparece;"Ver cardápio: seções e itens do Cardápio Clássico, com ""escolha N"" e restrições"
+18-banket-busca;10-cardapios-no-perfil.md;03-cardapios-no-perfil.webp;Seção Disponibilidade na data;"Disponibilidade na data buscada: ""Disponível em 20/06/2027"""
+18-banket-busca;11-receber-pedidos-pelo-busca.md;01-receber-pedidos-pelo-busca.webp;Seção O que o cliente vê no perfil › Perfil Personalizado com formulário ativo;Quadro Peça um orçamento com Receber orçamento sem compromisso, Falar no WhatsApp e Ver outros contatos
+18-banket-busca;11-receber-pedidos-pelo-busca.md;02-receber-pedidos-pelo-busca.webp;Seção O que o cliente vê no perfil, depois da lista;Ver outros contatos: WhatsApp, telefone, e-mail, Instagram e site do buffet
+18-banket-busca;11-receber-pedidos-pelo-busca.md;03-receber-pedidos-pelo-busca.webp;Seção O que acontece quando o cliente envia o formulário, antes do passo 1;Formulário do buffet aberto numa janela sobre o perfil
+18-banket-busca;11-receber-pedidos-pelo-busca.md;04-receber-pedidos-pelo-busca.webp;Seção O que acontece quando o cliente envia o formulário, antes do passo 1;Última etapa do formulário preenchida pelo cliente, pronta para enviar
+18-banket-busca;11-receber-pedidos-pelo-busca.md;05-receber-pedidos-pelo-busca.webp;Seção O que acontece quando o cliente envia o formulário, depois do passo 5;Confirmação do pedido enviado para o cliente
+18-banket-busca;11-receber-pedidos-pelo-busca.md;06-receber-pedidos-pelo-busca.webp;Seção O que acontece quando o cliente envia o formulário, depois do passo 1;Pedido do Ricardo Nogueira na coluna de entrada do Painel de Propostas
+18-banket-busca;11-receber-pedidos-pelo-busca.md;07-receber-pedidos-pelo-busca.webp;Perguntas frequentes, Como sei que um evento veio do Banket Busca?;"Linha do tempo do evento com ""Pedido recebido pelo Banket Busca"""
+18-banket-busca;12-desempenho-do-perfil.md;01-desempenho-do-perfil.webp;Seção Como abrir, passo 2;Botão Desempenho no topo da página do Banket Busca
+18-banket-busca;12-desempenho-do-perfil.md;02-desempenho-do-perfil.webp;Seção No Perfil Personalizado;Desempenho do Perfil Personalizado: indicadores, visualizações por dia, Do perfil ao contrato e Resposta e região
+18-banket-busca;13-como-os-resultados-sao-ordenados.md;01-como-os-resultados-sao-ordenados.webp;Seção 2. A ordem dos resultados;Resultados da busca por casamento em São Paulo, com filtros, ordenação e os primeiros cards em Destaque
+18-banket-busca;13-como-os-resultados-sao-ordenados.md;02-como-os-resultados-sao-ordenados.webp;Seção 2. A ordem dos resultados, depois da citação;"""Como ordenamos os resultados"" aberto na lista"
+18-banket-busca;14-reivindicar-perfil.md;01-reivindicar-perfil.webp;Seção Como encontrar o perfil, primeiro item;"Quadro ""É o proprietário deste buffet?"" com o link Reivindicar perfil, no perfil de um buffet importado"
+18-banket-busca;14-reivindicar-perfil.md;02-reivindicar-perfil.webp;Seção Como encontrar o perfil, segundo item;"Botão ""Meu buffet já está aqui: assumir o perfil"" na página inicial da vitrine"
+18-banket-busca;14-reivindicar-perfil.md;03-reivindicar-perfil.webp;Seção Como encontrar o perfil, segundo item;Encontre o seu buffet: busca pelo nome com os resultados enquanto digita
+18-banket-busca;14-reivindicar-perfil.md;04-reivindicar-perfil.webp;Seção Passo a passo do pedido, passo 1;As duas opções: Assumir e completar o perfil (recomendado) ou Remover o buffet do Banket Busca
+18-banket-busca;14-reivindicar-perfil.md;05-reivindicar-perfil.webp;Seção Passo a passo do pedido, passos 2 a 4;Seus dados: nome, cargo, e-mail, WhatsApp, mensagem e a confirmação de responsável (pedido não enviado)
+19-configuracoes;01-dados-da-empresa.md;01-dados-da-empresa.webp;Passo a passo, passo 1;Configurações › Empresa, a primeira tela do menu Configurações
+19-configuracoes;01-dados-da-empresa.md;02-dados-da-empresa.webp;Passo a passo, passo 2;Card Dados da empresa preenchido: tipo, CNPJ, nomes, contatos, endereço e logotipo
+19-configuracoes;01-dados-da-empresa.md;03-dados-da-empresa.webp;Endereço pelo CEP, passo 2;Endereço preenchido pelo CEP, com a mensagem Endereço encontrado. Confira e informe o número.
+19-configuracoes;01-dados-da-empresa.md;04-dados-da-empresa.webp;Tenant da conta;Tenant da conta com o botão Copiar
+19-configuracoes;01-dados-da-empresa.md;05-dados-da-empresa.webp;Logotipo;Campo Logotipo com o logotipo salvo e as opções Trocar e Remover
+19-configuracoes;02-parametros-comerciais.md;01-parametros-comerciais.webp;Passo a passo, passo 2;Card Parâmetros comerciais: validade da proposta, idades das crianças e espaço padrão
+19-configuracoes;02-parametros-comerciais.md;02-parametros-comerciais.webp;Passo a passo, passo 3;Card Assinatura da proposta com nome, cargo e telefone de quem assina
+19-configuracoes;02-parametros-comerciais.md;03-parametros-comerciais.webp;Passo a passo, passo 4;Botão Salvar no fim da página Empresa
+19-configuracoes;03-tempo-de-resposta-aos-pedidos.md;01-tempo-de-resposta-aos-pedidos.webp;Passo a passo, passo 2;Tempo de resposta aos pedidos e o Cumprimento nos últimos 90 dias, no card Parâmetros comerciais
+19-configuracoes;04-avisos-no-whatsapp.md;01-avisos-no-whatsapp.webp;Passo a passo, passo 2;Card Avisos no WhatsApp ainda sem número cadastrado
+19-configuracoes;04-avisos-no-whatsapp.md;02-avisos-no-whatsapp.webp;Passo a passo, passos 3 a 6;Avisos no WhatsApp preenchidos: celular com DDD, avisos ligados e os quatro tipos marcados
+19-configuracoes;05-usuarios-e-convites.md;01-usuarios-e-convites.webp;Convidar um usuário, passos 1 e 2;Configurações › Usuários com o botão Convidar usuário
+19-configuracoes;05-usuarios-e-convites.md;02-usuarios-e-convites.webp;Convidar um usuário, passo 3;Painel Convidar usuário preenchido com nome, e-mail e papel Usuário
+19-configuracoes;05-usuarios-e-convites.md;03-usuarios-e-convites.webp;Convidar um usuário, depois do passo 4;Convite enviado: Juliana Rocha aparece em Convites pendentes, com Reenviar e Cancelar
+19-configuracoes;05-usuarios-e-convites.md;04-usuarios-e-convites.webp;Reenviar ou cancelar um convite;Confirmação antes de cancelar um convite pendente
+19-configuracoes;06-papeis-e-permissoes.md;01-papeis-e-permissoes.webp;Resumo dos papéis;Os três papéis disponíveis no convite: Proprietário, Administrador e Usuário
+19-configuracoes;07-ocasioes.md;01-ocasioes.webp;Criar uma ocasião, passos 1 e 2;Configurações › Ocasiões: a matriz com as chaves Corporativo e Social e o botão Nova ocasião
+19-configuracoes;07-ocasioes.md;02-ocasioes.webp;Criar uma ocasião, passo 3;Painel Nova ocasião preenchido: nome Bodas, ligada ao tipo Social, com descrição
+19-configuracoes;07-ocasioes.md;03-ocasioes.webp;Ligar e desligar tipos direto na lista;Bodas na lista: as chaves de Corporativo e Social ligam e desligam o tipo na hora
+19-configuracoes;08-etapas-do-funil.md;01-etapas-do-funil.webp;Criar uma etapa, passos 1 e 2;Configurações › Etapas do funil: as etapas na ordem das colunas, com a função e o número de eventos
+19-configuracoes;08-etapas-do-funil.md;02-etapas-do-funil.webp;Criar uma etapa, passo 3;Painel Nova etapa preenchido com nome, função e cor (exemplo, não salvo)
+19-configuracoes;08-etapas-do-funil.md;03-etapas-do-funil.webp;Editar e excluir, passo 2;Painel de edição da etapa Em negociação, com os botões Excluir e Salvar
+19-configuracoes;08-etapas-do-funil.md;04-etapas-do-funil.webp;Mudar a ordem;Alça de arrastar e botões de mover para cima e para baixo na lista de etapas
+19-configuracoes;08-etapas-do-funil.md;05-etapas-do-funil.webp;Intervalo de trabalho do funil;Card Intervalo de trabalho do funil com as opções 1 mês, 3 meses, 6 meses e Sem limite
+19-configuracoes;09-formatos-de-servico.md;01-formatos-de-servico.webp;Criar um formato, passos 1 e 2;Configurações › Formatos de serviço com os cinco formatos iniciais e o botão Novo formato
+19-configuracoes;09-formatos-de-servico.md;02-formatos-de-servico.webp;Criar um formato, passo 3;Painel Novo formato com nome e descrição (exemplo, não salvo)
+19-configuracoes;09-formatos-de-servico.md;03-formatos-de-servico.webp;Editar ou excluir, passo 2;Painel de edição de um formato, com Excluir e Salvar
+19-configuracoes;10-modelos-de-email.md;01-modelos-de-email.webp;Criar um modelo, passos 1 e 2;Configurações › Modelos de e-mail com o modelo Proposta padrão e o botão Novo modelo
+19-configuracoes;10-modelos-de-email.md;02-modelos-de-email.webp;Criar um modelo, passos 3 e 4;Novo modelo Retorno após degustação com assunto, mensagem e os chips de variáveis
+19-configuracoes;10-modelos-de-email.md;03-modelos-de-email.webp;Criar um modelo, passo 5;Prévia com dados de exemplo: as variáveis já trocadas pelos dados
+19-configuracoes;10-modelos-de-email.md;04-modelos-de-email.webp;Modelo padrão e modelos ativos;"Modelo salvo na lista, com a ação Definir como padrão; o modelo atual aparece com a marca Padrão"
+20-planos-e-assinatura;01-planos-do-banket.md;01-planos-do-banket.webp;Ver os planos no sistema, passos 1 e 2;"Página Planos com os cards do Essencial, Profissional e Prime; no menu, o card do plano em teste"
+20-planos-e-assinatura;01-planos-do-banket.md;02-planos-do-banket.webp;Ver os planos no sistema, passo 2;Card Uso do seu plano, com o quanto a empresa usa de cada limite
+20-planos-e-assinatura;01-planos-do-banket.md;03-planos-do-banket.webp;Ver os planos no sistema, passo 2;Tabela Compare os planos: módulos, limites e recursos do Banket Busca por plano
+20-planos-e-assinatura;01-planos-do-banket.md;04-planos-do-banket.webp;O que acontece quando um recurso não está no seu plano;Painel que abre ao clicar num recurso fora do plano, com o botão Ver planos
+20-planos-e-assinatura;01-planos-do-banket.md;05-planos-do-banket.webp;Ver os planos no sistema, passo 1;Configurações › Financeiro: card Seu plano com o botão Comparar planos
+20-planos-e-assinatura;02-teste-gratis-de-30-dias.md;01-teste-gratis-de-30-dias.webp;Durante o teste;Card do teste no rodapé do menu: Teste do Prime, dias restantes e o botão Assinar
+20-planos-e-assinatura;02-teste-gratis-de-30-dias.md;02-teste-gratis-de-30-dias.webp;Durante o teste;Durante o teste, cada card tem Trocar o teste para este plano
+20-planos-e-assinatura;02-teste-gratis-de-30-dias.md;03-teste-gratis-de-30-dias.webp;Durante o teste;Card Seu plano durante o teste: Prime, Em teste e a data final
+20-planos-e-assinatura;02-teste-gratis-de-30-dias.md;04-teste-gratis-de-30-dias.webp;Durante o teste;Outro plano selecionado no card Assinar, com o botão Trocar o plano do teste
+20-planos-e-assinatura;03-contratar-assinatura.md;01-contratar-assinatura.webp;Passo a passo, passo 1;Na página Planos, Assinar este plano leva a Configurações › Financeiro com o plano selecionado
+20-planos-e-assinatura;03-contratar-assinatura.md;02-contratar-assinatura.webp;Passo a passo, passo 2;Card Assinar: plano, recorrência, forma de pagamento e quando cobrar
+20-planos-e-assinatura;03-contratar-assinatura.md;03-contratar-assinatura.webp;Passo a passo, passos 3 e 4;Prime anual no cartão, cobrando agora: o botão vira Ir para o pagamento
+20-planos-e-assinatura;03-contratar-assinatura.md;04-contratar-assinatura.webp;Passo a passo, tabela do passo 4;Cartão cobrando no fim do teste: o botão vira Cadastrar cartão
+20-planos-e-assinatura;03-contratar-assinatura.md;05-contratar-assinatura.webp;Passo a passo, tabela do passo 4;Pix mensal cobrando agora: o botão vira Gerar Pix
+20-planos-e-assinatura;03-contratar-assinatura.md;06-contratar-assinatura.webp;Passo a passo, tabela do passo 4;Pix no fim do teste: o botão vira Assinar com Pix
+20-planos-e-assinatura;05-trocar-de-plano.md;01-trocar-de-plano.webp;Durante o teste grátis, passo 2;Botão Trocar o teste para este plano no card do Profissional
+20-planos-e-assinatura;05-trocar-de-plano.md;02-trocar-de-plano.webp;Durante o teste grátis, outra forma;Em Configurações › Financeiro: selecione o plano e clique em Trocar o plano do teste
+20-planos-e-assinatura;07-faturas-e-cartao.md;01-faturas-e-cartao.webp;Card Seu plano;Card Seu plano com a situação Em teste e a data em Teste grátis até
+20-planos-e-assinatura;07-faturas-e-cartao.md;02-faturas-e-cartao.webp;Card Faturas;Card Faturas ainda sem cobranças (aparecem depois da primeira fatura)
+20-planos-e-assinatura;07-faturas-e-cartao.md;03-faturas-e-cartao.webp;Card Uso do plano;Card Uso do plano com uma barra por limite
+20-planos-e-assinatura;07-faturas-e-cartao.md;04-faturas-e-cartao.webp;Card Histórico do plano;Card Histórico do plano com as mudanças, a data e quem fez
+20-planos-e-assinatura;09-limites-do-plano.md;01-limites-do-plano.webp;Onde acompanhar o uso;"Configurações › Financeiro, card Uso do plano: cada limite no formato ""2 de 15"""
+21-suporte;01-abrir-chamado.md;01-abrir-chamado.webp;Passo a passo, passo 2;Página Suporte com o botão Novo chamado
+21-suporte;01-abrir-chamado.md;02-abrir-chamado.webp;Seção Entenda os campos (ou Passo a passo, passo 3);Drawer Novo chamado preenchido
+21-suporte;01-abrir-chamado.md;03-abrir-chamado.webp;Passo a passo, depois do passo 4;Chamado aberto, com a mensagem de confirmação
+21-suporte;01-abrir-chamado.md;04-abrir-chamado.webp;Seção A lista de chamados;Lista de chamados com Nº, Assunto, Tipo, Situação e Última atualização
+21-suporte;02-acompanhar-e-responder-chamado.md;01-acompanhar-e-responder-chamado.webp;Seção Como abrir um chamado, passo 2;Clique no assunto do chamado para abri-lo
+21-suporte;02-acompanhar-e-responder-chamado.md;02-acompanhar-e-responder-chamado.webp;Seção O que aparece na página;Página do chamado: cabeçalho, descrição e conversa ainda sem respostas
+21-suporte;02-acompanhar-e-responder-chamado.md;03-acompanhar-e-responder-chamado.webp;Seção Responder ou complementar o chamado;Campo Nova mensagem preenchido e botão Enviar mensagem
+21-suporte;02-acompanhar-e-responder-chamado.md;04-acompanhar-e-responder-chamado.webp;Seção Responder ou complementar o chamado, depois do passo 2;Conversa do chamado com a nova mensagem

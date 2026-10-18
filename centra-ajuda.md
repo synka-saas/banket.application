@@ -3,7 +3,7 @@
 > Você está rodando a partir de `/var/www/banket` (raiz do monorepo). Todos os caminhos abaixo são relativos a essa raiz.
 
 ## Contexto
-Vou construir a central de ajuda (knowledge base) do Banket em `help/`. Ela é um projeto **separado** da plataforma (`platform/`), mas exige **login obrigatório** e reaproveita a sessão que já existe na plataforma.
+Vou construir a central de ajuda (knowledge base) do Banket em `help/`. Ela é um projeto **separado** do app (`app.banket.com.br`), mas exige **login obrigatório** e reaproveita a sessão que já existe na plataforma.
 
 O diretório `help/` já contém:
 
