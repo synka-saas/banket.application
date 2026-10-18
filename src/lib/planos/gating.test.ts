@@ -38,9 +38,11 @@ describe('limiteEm', () => {
 });
 
 describe('nivelEm e ErroPlano', () => {
-  it('gratuito versus cliente', () => {
+  it('Perfil Simples (gratuito) versus Personalizado (cliente) pelo recurso busca_personalizado', () => {
     expect(nivelEm(base)).toBe('gratuito');
-    expect(nivelEm({ ...base, gratuito: false })).toBe('cliente');
+    // Essencial: plano pago, mas Busca igual ao gratuito
+    expect(nivelEm({ ...base, gratuito: false })).toBe('gratuito');
+    expect(nivelEm({ ...base, gratuito: false, recursos: { ...base.recursos, busca_personalizado: true } })).toBe('cliente');
     expect(nivelEm(null)).toBe('cliente');
   });
 

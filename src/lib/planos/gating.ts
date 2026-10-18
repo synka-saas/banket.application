@@ -92,8 +92,11 @@ export function limiteEm(ent: Entitlements | null, recurso: string): number {
   return v;
 }
 
-/** Empresa cliente (plano pago, em teste ou ativo) ou gratuita. Sem plano conta como cliente. */
-export const nivelEm = (ent: Entitlements | null): 'gratuito' | 'cliente' => (ent?.gratuito ? 'gratuito' : 'cliente');
+/**
+ * Nível do perfil no Banket Busca: 'cliente' = Perfil Personalizado (recurso busca_personalizado: Profissional, Prime,
+ * Completo); 'gratuito' = Perfil Simples (planos Busca e Essencial). Sem plano conta como personalizado.
+ */
+export const nivelEm = (ent: Entitlements | null): 'gratuito' | 'cliente' => (podeUsarEm(ent, 'busca_personalizado') ? 'cliente' : 'gratuito');
 
 // ---------- atalhos com banco ----------
 

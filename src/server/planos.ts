@@ -8,7 +8,7 @@ import { isAdmin, type SessionUser } from '../lib/auth';
 import { UserError } from '../lib/forms';
 import { invalidateMembership, invalidateTenant } from '../lib/membership';
 import { appUrl, sendMail } from '../lib/mail';
-import { ErroPlano, entitlements, invalidar, type Entitlements } from '../lib/planos/gating';
+import { ErroPlano, entitlements, invalidar, nivelEm, podeUsarEm, type Entitlements } from '../lib/planos/gating';
 import { escolherExcedentes } from '../lib/planos/excedentes';
 import { avisoDoDia, deveRebaixar, emSaoPaulo, fimDoTrial, recusaVigente, type AvisoTrial } from '../lib/planos/trial';
 import type { HwestaEntitlements } from '../lib/hwesta/types';
@@ -135,10 +135,19 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
     [tenantId, de, paraPlanoId, meta.motivo, meta.origem, meta.usuarioId ?? null, JSON.stringify(meta.dados ?? {})]
   );
   invalidar(tenantId);
-  await sincronizarNivel(db, tenantId, destino.gratuito ? 'gratuito' : 'cliente');
+  // O Banket Busca segue os recursos do plano: Perfil Simples (Busca, Essencial) ou Personalizado (Profissional, Prime)
+  const ent = await entitlements(tenantId, db);
+  await sincronizarNivel(db, tenantId, nivelEm(ent));
   if (destino.gratuito) await aplicarExcedentes(db, tenantId);
-  else if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
-  if (!destino.gratuito) await atualizarEnderecosPeloNome(db, tenantId);
+  else {
+    if (origemGratuita) await restaurarAposUpgrade(db, tenantId);
+    if (podeUsarEm(ent, 'busca_personalizado')) {
+      await restaurarBusca(db, tenantId);
+      await atualizarEnderecosPeloNome(db, tenantId);
+    } else {
+      await aplicarExcedentesBusca(db, tenantId);
+    }
+  }
   return { de, para: paraPlanoId };
 }
 
@@ -188,7 +197,12 @@ export async function restaurarAposUpgrade(db: Db, tenantId: string): Promise<vo
     [tenantId]
   );
   await db.query('UPDATE tenants SET plano_rebaixado_em = NULL WHERE id = $1', [tenantId]);
-  // Banket Busca: fotos voltam ao perfil e os tipos guardados voltam aos arrays
+  await restaurarBusca(db, tenantId);
+  invalidateTenant(tenantId);
+}
+
+/** Banket Busca no Perfil Personalizado: fotos voltam ao perfil e os tipos guardados voltam aos arrays. */
+async function restaurarBusca(db: Db, tenantId: string): Promise<void> {
   await db.query('UPDATE busca_fotos SET bloqueado_plano_em = NULL WHERE tenant_id = $1 AND bloqueado_plano_em IS NOT NULL', [tenantId]);
   await db.query(
     `UPDATE busca_perfis
@@ -198,7 +212,6 @@ export async function restaurarAposUpgrade(db: Db, tenantId: string): Promise<vo
       WHERE tenant_id = $1 AND excedentes <> '{}'::jsonb`,
     [tenantId]
   );
-  invalidateTenant(tenantId);
 }
 
 const limiteNumerico = (ent: Entitlements, recurso: string): number | null => {

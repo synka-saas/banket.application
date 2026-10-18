@@ -588,6 +588,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `044_busca_simples_personalizado` | Busca em dois níveis: Essencial com os recursos do Busca do gratuito (Perfil Simples); `busca_personalizado` em Profissional, Prime e Completo; `busca_perfis.nivel` passa a seguir o recurso |
 | `043_formulario_busca` | `formularios.usar_no_busca` (índice único parcial por empresa): o formulário que abre no pedido de orçamento do perfil no Banket Busca |
 | `040_empresa_endereco` | endereço da empresa desmembrado em `tenants` (CEP, logradouro, número, complemento, bairro, cidade, UF); o texto antigo vai para o logradouro |
 | `039_assinatura_stripe` | espelho do Stripe em `tenants`, `assinatura_faturas`, `stripe_events`; motivos `plano_escolhido`/`inadimplencia`, funil `checkout_iniciado`, `plano_avisos.chave` 80; `fn_tenant_entitlements` com origem e assinatura |
@@ -1079,8 +1080,15 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - Filtros e período (selects de listagem, dashboard): aplicam na hora, não precisam de confirmação.
 
 ### Planos e gating — `/planos`, `/busca` (`lib/planos/*`, `server/planos.ts`, `server/agendador.ts`)
-- **Modelo**: o Banket Busca é uma funcionalidade liberada por plano. **Plano Busca** (gratuito, `publico = false`):
-  só o menu Banket Busca, 1 usuário, 5 fotos gerais (sem grupos), 3 tipos de evento e 3 de serviço, sem cardápio no perfil, aviso de pedido
+- **Modelo**: o Banket Busca é uma funcionalidade do Banket (não uma plataforma de mídia; decisão de 18/10/2026), em
+  dois níveis: **Perfil Simples** (plano Busca e **Essencial**: 5 fotos gerais sem grupos, 3 tipos de evento e 3 de
+  serviço, sem selo, prioridade, cardápio, agenda nem endereço com o nome; o cliente vê os contatos) e **Perfil
+  Personalizado** (recurso `busca_personalizado`: Profissional, Prime e Completo). `busca_perfis.nivel` = `gratuito`
+  (Simples) ou `cliente` (Personalizado), por `nivelEm` (recurso, não o `gratuito` do plano); `trocarPlano` aplica os
+  limites do Busca (`aplicarExcedentesBusca`) ao ir para o Simples e os devolve (`restaurarBusca`) ao ir para o
+  Personalizado. No site, os cards trazem "Banket Busca Simples" (Essencial) e "Banket Busca Personalizado"
+  (Profissional e Prime), e a seção `#banket-busca` (antes de "Para quem é") explica os dois perfis.
+  **Plano Busca** (gratuito, `publico = false`): só o menu Banket Busca, 1 usuário, o Perfil Simples, aviso de pedido
   só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
   **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031. Detalhes em `PLANO.md`.
 - **Gating**: nunca leia `planos` para decidir; use `podeUsar`/`limite`/`exigir`/`exigirLimite`/`exigirLimiteDb` de
@@ -1132,7 +1140,7 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 - **Card** (`BuffetCard`): o card inteiro e o botão "Ver detalhes" levam ao perfil (sem seleção múltipla). A página de
   busca guarda a URL completa (filtros, ordem, página) em `sessionStorage` (`banket-busca-ultima`); o "Voltar aos
   resultados" do perfil usa essa URL (sem ela, cai nos critérios principais).
-- **Pedido de orçamento no perfil**: buffet **pagante** = perfil `nivel = 'cliente'` (plano pago ou em teste) com
+- **Pedido de orçamento no perfil**: buffet **pagante** = perfil `nivel = 'cliente'` (Perfil Personalizado) com
   formulário ativo → botão **Obter orçamento** abre um modal com o formulário do buffet (o marcado `usar_no_busca`, senão
   o ativo mais antigo) num `<iframe>` de `APP_URL/f/<slug>?busca=<perfil>&tipo=&data=&convidados=` (`perfilCompleto` →
   `formularioSlug`). Os demais (gratuito, importados, pagante sem formulário) mostram **Ver contatos**: modal com
