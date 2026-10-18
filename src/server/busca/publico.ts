@@ -513,8 +513,11 @@ export const ehRobo = (userAgent: string | null) => !userAgent || ROBO.test(user
 /** Soma métricas do dia (fuso SP). Contador de sistema: nunca falha a página. */
 export type CampoMetrica = 'aparicoes' | 'visualizacoes' | 'cliques_orcamento' | 'cliques_contato';
 
+const CAMPOS_METRICA: readonly CampoMetrica[] = ['aparicoes', 'visualizacoes', 'cliques_orcamento', 'cliques_contato'];
+
 export async function registrarMetrica(perfilIds: string[], campo: CampoMetrica, userAgent: string | null): Promise<void> {
-  if (!perfilIds.length || ehRobo(userAgent)) return;
+  // O nome da coluna entra no SQL: só os da lista
+  if (!perfilIds.length || ehRobo(userAgent) || !CAMPOS_METRICA.includes(campo)) return;
   try {
     await withSystem((db) =>
       db.query(

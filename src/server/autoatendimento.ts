@@ -26,27 +26,41 @@ const VALIDADE: Record<TipoToken, string> = {
 };
 
 /** Emite um token de uso único (invalida os anteriores do mesmo tipo) e devolve o valor em claro para o link. */
-async function emitirToken(db: Db, tipo: TipoToken, usuarioId: string, email: string): Promise<string> {
-  await db.query(
-    `UPDATE auth_tokens SET usado_em = now() WHERE usuario_id = $1 AND tipo = $2 AND usado_em IS NULL`,
-    [usuarioId, tipo]
-  );
+async function emitirToken(
+  db: Db,
+  tipo: TipoToken,
+  usuarioId: string,
+  email: string,
+  opcoes: { payload?: Record<string, unknown>; invalidarAnteriores?: boolean } = {}
+): Promise<string> {
+  if (opcoes.invalidarAnteriores !== false) {
+    await db.query(
+      `UPDATE auth_tokens SET usado_em = now() WHERE usuario_id = $1 AND tipo = $2 AND usado_em IS NULL`,
+      [usuarioId, tipo]
+    );
+  }
   const token = generateToken();
   await db.query(
-    `INSERT INTO auth_tokens (tipo, token_hash, email, usuario_id, expira_em)
-     VALUES ($1, $2, lower($3), $4, now() + $5::interval)`,
-    [tipo, hashToken(token), email, usuarioId, VALIDADE[tipo]]
+    `INSERT INTO auth_tokens (tipo, token_hash, email, usuario_id, expira_em, payload)
+     VALUES ($1, $2, lower($3), $4, now() + $5::interval, $6)`,
+    [tipo, hashToken(token), email, usuarioId, VALIDADE[tipo], JSON.stringify(opcoes.payload ?? {})]
   );
   return token;
 }
 
+/**
+ * Dados de um cadastro ainda não confirmado. Ficam no token de verificação, não na conta: quem refaz o cadastro com o
+ * e-mail de outra pessoa não troca a senha da conta; a senha só vale quando o dono do e-mail abre aquele link.
+ */
+type CadastroPendente = { nome?: string; senha_hash?: string; origem?: OrigemCadastro };
+
 /** Consome um token válido (uso único) e devolve o usuário dono dele. */
 async function consumirToken(db: Db, tipo: TipoToken, token: string | null) {
   if (!token) return null;
-  const { rows } = await db.query<{ id: string; usuario_id: string; email: string }>(
+  const { rows } = await db.query<{ id: string; usuario_id: string; email: string; payload: CadastroPendente }>(
     `UPDATE auth_tokens SET usado_em = now()
       WHERE token_hash = $1 AND tipo = $2 AND usado_em IS NULL AND expira_em > now()
-      RETURNING id, usuario_id, email`,
+      RETURNING id, usuario_id, email, payload`,
     [hashToken(token), tipo]
   );
   return rows[0] ?? null;
@@ -93,14 +107,13 @@ export async function cadastrarConta(input: z.infer<typeof cadastroSchema>, orig
     if (rows[0]?.verificado) {
       throw new UserError('Já existe uma conta com este e-mail. Faça login ou recupere sua senha.');
     } else if (rows[0]) {
-      // Cadastro anterior nunca confirmado: atualiza os dados e reenvia a confirmação
+      // Cadastro anterior nunca confirmado: os dados novos vão só no token desta confirmação (ver CadastroPendente).
+      // Os links anteriores continuam valendo, cada um com a senha de quem fez aquele cadastro.
       id = rows[0].id;
-      await db.query(`UPDATE usuarios SET nome = $2, senha_hash = crypt($3, gen_salt('bf')), origem_cadastro = $4, updated_at = now() WHERE id = $1`, [
-        id,
-        input.nome,
-        input.senha,
-        origem,
-      ]);
+      const { rows: hash } = await db.query<{ h: string }>(`SELECT crypt($1, gen_salt('bf')) AS h`, [input.senha]);
+      const payload: CadastroPendente = { nome: input.nome, senha_hash: hash[0].h, origem };
+      const token = await emitirToken(db, 'verificacao_email', id, input.email, { payload, invalidarAnteriores: false });
+      return { usuario: { id, nome: input.nome, email: input.email }, token };
     } else {
       const novo = await db.query<{ id: string }>(
         `INSERT INTO usuarios (nome, email, senha_hash, origem_cadastro) VALUES ($1, $2, crypt($3, gen_salt('bf')), $4) RETURNING id`,
@@ -121,7 +134,16 @@ export async function reenviarVerificacao(email: string): Promise<void> {
       [email.trim()]
     );
     if (!rows[0]) return null;
-    return { ...rows[0], token: await emitirToken(db, 'verificacao_email', rows[0].id, rows[0].email) };
+    // Reenvia o cadastro pendente mais recente (mesma senha e nome) sem derrubar os outros links
+    const { rows: pendente } = await db.query<{ payload: CadastroPendente }>(
+      `SELECT payload FROM auth_tokens
+        WHERE usuario_id = $1 AND tipo = 'verificacao_email' AND usado_em IS NULL AND expira_em > now()
+        ORDER BY created_at DESC LIMIT 1`,
+      [rows[0].id]
+    );
+    const payload = pendente[0]?.payload ?? {};
+    const token = await emitirToken(db, 'verificacao_email', rows[0].id, rows[0].email, { payload, invalidarAnteriores: false });
+    return { ...rows[0], nome: payload.nome ?? rows[0].nome, token };
   });
   if (dados) await enviarVerificacao(dados.nome, dados.email, dados.token, origemCadastro(dados.origem_cadastro));
 }
@@ -131,9 +153,20 @@ export async function verificarEmail(token: string | null): Promise<OnboardingUs
   return withSystem(async (db) => {
     const t = await consumirToken(db, 'verificacao_email', token);
     if (!t) return null;
+    const p = t.payload ?? {};
+    // Só o cadastro deste link vale: aplica a senha e o nome dele e derruba os outros links pendentes
     const { rows } = await db.query<OnboardingUser>(
-      `UPDATE usuarios SET email_verificado_em = COALESCE(email_verificado_em, now()), updated_at = now()
+      `UPDATE usuarios SET email_verificado_em = COALESCE(email_verificado_em, now()),
+              senha_hash = CASE WHEN email_verificado_em IS NULL THEN COALESCE($2, senha_hash) ELSE senha_hash END,
+              nome = CASE WHEN email_verificado_em IS NULL THEN COALESCE($3, nome) ELSE nome END,
+              origem_cadastro = CASE WHEN email_verificado_em IS NULL THEN COALESCE($4, origem_cadastro) ELSE origem_cadastro END,
+              updated_at = now()
         WHERE id = $1 RETURNING id, nome, email`,
+      [t.usuario_id, p.senha_hash ?? null, p.nome ?? null, p.origem ?? null]
+    );
+    await db.query(
+      `UPDATE auth_tokens SET usado_em = now()
+        WHERE usuario_id = $1 AND tipo IN ('verificacao_email', 'reset_senha', 'link_acesso') AND usado_em IS NULL`,
       [t.usuario_id]
     );
     return rows[0] ?? null;
@@ -169,7 +202,18 @@ export async function autenticar(email: string, senha: string): Promise<Resultad
     [email.trim(), senha]
   );
   const u = rows[0];
-  if (!u) return { tipo: 'invalido' };
+  if (!u) {
+    // Cadastro refeito e ainda não confirmado: a senha nova está no token pendente
+    const { rows: pendente } = await systemQuery<{ email: string }>(
+      `SELECT u.email FROM usuarios u JOIN auth_tokens t ON t.usuario_id = u.id
+        WHERE lower(u.email) = lower($1) AND u.email_verificado_em IS NULL
+          AND t.tipo = 'verificacao_email' AND t.usado_em IS NULL AND t.expira_em > now()
+          AND t.payload ? 'senha_hash' AND t.payload->>'senha_hash' = crypt($2, t.payload->>'senha_hash')
+        LIMIT 1`,
+      [email.trim(), senha]
+    );
+    return pendente[0] ? { tipo: 'nao_verificado', email: pendente[0].email } : { tipo: 'invalido' };
+  }
   if (!u.verificado) return { tipo: 'nao_verificado', email: u.email };
   const sessao = await sessaoDoUsuario(u.id);
   if (sessao) return { tipo: 'sessao', usuario: sessao };

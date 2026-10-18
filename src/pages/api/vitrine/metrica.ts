@@ -15,8 +15,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     /* corpo inválido: ignora */
   }
   const perfil = typeof corpo.perfil === 'string' && /^[0-9a-f-]{36}$/i.test(corpo.perfil) ? corpo.perfil : null;
-  const campo = typeof corpo.tipo === 'string' ? CAMPOS[corpo.tipo] : undefined;
-  if (perfil && campo && permitir(`metrica:${ipDaRequisicao(request, clientAddress)}:${perfil}:${campo}`, 1, 30 * 60_000)) {
+  const campo = typeof corpo.tipo === 'string' && Object.hasOwn(CAMPOS, corpo.tipo) ? CAMPOS[corpo.tipo] : undefined;
+  const ip = ipDaRequisicao(request, clientAddress);
+  // Primeiro o limite por IP (60 por minuto), depois a contagem única por perfil: UUIDs inventados não enchem o limitador
+  if (!perfil || !campo || !permitir(`metrica-ip:${ip}`, 60, 60_000)) return new Response(null, { status: 204 });
+  if (permitir(`metrica:${ip}:${perfil}:${campo}`, 1, 30 * 60_000)) {
     await registrarMetrica([perfil], campo, request.headers.get('user-agent'));
   }
   return new Response(null, { status: 204 });

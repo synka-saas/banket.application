@@ -80,15 +80,27 @@ export async function entrarComGoogle(tokens: TokensGoogle): Promise<ResultadoLo
       [perfil.sub]
     );
     if (porSub.rows[0]) return porSub.rows[0];
-    const porEmail = await db.query<{ id: string; nome: string; email: string; vinculado: boolean }>(
-      `SELECT u.id, u.nome, u.email, g.usuario_id IS NOT NULL AS vinculado
+    const porEmail = await db.query<{ id: string; nome: string; email: string; vinculado: boolean; verificado: boolean }>(
+      `SELECT u.id, u.nome, u.email, g.usuario_id IS NOT NULL AS vinculado, u.email_verificado_em IS NOT NULL AS verificado
          FROM usuarios u LEFT JOIN usuario_google g ON g.usuario_id = u.id
         WHERE lower(u.email) = $1 FOR UPDATE OF u`,
       [perfil.email]
     );
     if (porEmail.rows[0]) {
       if (porEmail.rows[0].vinculado) throw new UserError('Este e-mail já está vinculado a outra conta Google. Entre com e-mail e senha.');
-      // Quem comprova o e-mail pelo Google está com a conta confirmada
+      if (!porEmail.rows[0].verificado) {
+        // Cadastro nunca confirmado: a senha foi escolhida por quem digitou este e-mail, que pode não ser o dono.
+        // Quem comprova o e-mail pelo Google assume a conta: senha aleatória e links pendentes derrubados.
+        await db.query(`UPDATE usuarios SET senha_hash = crypt($2, gen_salt('bf')) WHERE id = $1`, [
+          porEmail.rows[0].id,
+          crypto.randomBytes(32).toString('base64url'),
+        ]);
+        await db.query(
+          `UPDATE auth_tokens SET usado_em = now()
+            WHERE usuario_id = $1 AND tipo IN ('verificacao_email', 'reset_senha', 'link_acesso') AND usado_em IS NULL`,
+          [porEmail.rows[0].id]
+        );
+      }
       await db.query('UPDATE usuarios SET email_verificado_em = COALESCE(email_verificado_em, now()), updated_at = now() WHERE id = $1', [porEmail.rows[0].id]);
       return porEmail.rows[0];
     }

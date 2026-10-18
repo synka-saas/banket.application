@@ -29,3 +29,13 @@ describe('rateLimit', () => {
     expect(ipDaRequisicao(new Request('http://x'), '127.0.0.1')).toBe('127.0.0.1');
   });
 });
+
+describe('rateLimit: grupos', () => {
+  it('encher um grupo não zera os contadores de outro nem os de janela longa', () => {
+    const t0 = 5_000_000;
+    for (let i = 0; i < 3; i++) permitir('rlgrupo-login:x', 3, 15 * 60_000, t0);
+    expect(permitir('rlgrupo-login:x', 3, 15 * 60_000, t0 + 1)).toBe(false);
+    for (let i = 0; i < 25_000; i++) permitir(`rlgrupo-metrica:${i}`, 1, 60_000, t0 + 2 * 60_000);
+    expect(permitir('rlgrupo-login:x', 3, 15 * 60_000, t0 + 2 * 60_000)).toBe(false);
+  });
+});
