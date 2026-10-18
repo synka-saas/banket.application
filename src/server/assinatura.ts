@@ -898,6 +898,39 @@ async function tratarAssinatura(evento: Stripe.Event): Promise<string | null> {
   return tenantId;
 }
 
+/**
+ * Estorno total ou contestação de um pagamento da assinatura: a empresa volta ao plano Busca na hora (a assinatura é
+ * encerrada no Stripe antes, para não cobrar de novo). Estorno parcial só fica no log, para a equipe avaliar.
+ */
+async function tratarEstorno(evento: Stripe.Event): Promise<string | null> {
+  const s = stripe();
+  const contestacao = evento.type === 'charge.dispute.created';
+  const objeto = evento.data.object as Stripe.Dispute | Stripe.Charge;
+  const charge = contestacao ? await s.charges.retrieve(idDe((objeto as Stripe.Dispute).charge)!) : await s.charges.retrieve((objeto as Stripe.Charge).id);
+  const tenantId = await resolverTenant(charge);
+  if (!tenantId) return null;
+  if (!contestacao && !charge.refunded) {
+    console.warn('[stripe] estorno parcial (sem rebaixar)', charge.id, tenantId, charge.amount_refunded / 100);
+    return tenantId;
+  }
+  console.warn(`[stripe] ${contestacao ? 'CONTESTAÇÃO' : 'ESTORNO TOTAL'}: rebaixando`, charge.id, tenantId);
+  const c = await withSystem((db) => carregarCobranca(db, tenantId));
+  if (!c || c.gratuito) return tenantId;
+  const assinatura = c.stripe_assinatura_id;
+  if (assinatura) {
+    // Sem encerrar no Stripe a cobrança seguiria; falhou → erro, e o Stripe reenvia o evento
+    if (temAssinatura(c)) await encerrarNoStripe(assinatura);
+    await soltarAssinatura(tenantId, assinatura);
+  }
+  const rebaixou = await withSystem((db) =>
+    rebaixarParaBusca(db, tenantId, contestacao ? 'inadimplencia' : 'cancelamento', 'stripe', {
+      stripe_assinatura_id: assinatura, charge: charge.id, motivo: contestacao ? 'contestacao' : 'estorno',
+    })
+  );
+  if (rebaixou) await avisar(tenantId, 'rebaixada_estorno', charge.id, { planoNome: c.plano_nome ?? '' });
+  return tenantId;
+}
+
 /** Processa um evento já verificado. Devolve a empresa (para o registro) ou null. */
 export async function processarEventoStripe(evento: Stripe.Event): Promise<string | null> {
   const tipo = evento.type;
@@ -933,10 +966,7 @@ export async function processarEventoStripe(evento: Stripe.Event): Promise<strin
     if (rows[0]?.stripe_assinatura_id) await sincronizarAssinatura(await buscarAssinatura(rows[0].stripe_assinatura_id));
     return tenantId;
   }
-  if (tipo === 'charge.dispute.created') {
-    console.warn('[stripe] CONTESTAÇÃO aberta', (evento.data.object as Stripe.Dispute).id);
-    return resolverTenant(evento.data.object);
-  }
+  if (tipo === 'charge.dispute.created' || tipo === 'charge.refunded') return tratarEstorno(evento);
   return null;
 }
 
@@ -1018,9 +1048,10 @@ export async function varrerCobranca(agora = new Date()): Promise<{ rebaixadas: 
 // E-mails de cobrança (owner/admin), com dedup em plano_avisos
 // ---------------------------------------------------------------------------
 
-type Aviso = 'ativada' | 'pagamento_falhou' | 'fatura_pix' | 'cancelamento_agendado' | 'rebaixada_inadimplencia' | 'rebaixada_cancelamento';
+type Aviso = 'ativada' | 'pagamento_falhou' | 'fatura_pix' | 'cancelamento_agendado' | 'rebaixada_inadimplencia' | 'rebaixada_cancelamento' | 'rebaixada_estorno';
 const CHAVE: Record<Aviso, string> = {
   ativada: 'at', pagamento_falhou: 'pf', fatura_pix: 'px', cancelamento_agendado: 'cn', rebaixada_inadimplencia: 'ri', rebaixada_cancelamento: 'rc',
+  rebaixada_estorno: 're',
 };
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -1080,6 +1111,15 @@ async function avisar(tenantId: string, aviso: Aviso, ref: string, ctx: { valor?
           assunto: 'Sua assinatura foi encerrada',
           titulo: 'Assinatura encerrada',
           corpo: [`A assinatura do plano ${plano} da ${empresa} foi encerrada e a empresa voltou ao plano Busca. Nada foi apagado: assine quando quiser voltar.`],
+          cta: { texto: 'Ver planos', url: appUrl('/planos') },
+        },
+        rebaixada_estorno: {
+          assunto: 'Sua assinatura foi encerrada',
+          titulo: 'Pagamento estornado',
+          corpo: [
+            `O pagamento da assinatura do plano ${plano} da ${empresa} foi estornado ou contestado junto ao cartão, então a assinatura foi encerrada e a empresa voltou ao plano Busca.`,
+            'Nada foi apagado. Se foi um engano, fale com a gente respondendo este e-mail ou assine de novo.',
+          ],
           cta: { texto: 'Ver planos', url: appUrl('/planos') },
         },
       };
