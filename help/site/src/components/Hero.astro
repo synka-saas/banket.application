@@ -1,0 +1,30 @@
+---
+// Cabeçalho azul do protótipo (heroStyle "Azul"). Na home mostra o título grande.
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+
+interface Props { home?: boolean }
+const { home = false } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+<header class="hero" data-noprint>
+  <div class="container hero-inner">
+    <nav class="hero-nav" aria-label="Principal">
+      <a href={base} class="hero-brand">
+        <Logo variant="white" height={30} />
+        <span class="hero-sep" aria-hidden="true"></span>
+        <span class="hero-brand-label">Central de ajuda</span>
+      </a>
+      <div class="hero-actions">
+        <a href="#suporte" class="hero-link">Fale com o suporte</a>
+        <a href="/dashboard" class="btn btn-secondary">Voltar para a plataforma<Icon name="arrow-up-right" size={18} /></a>
+      </div>
+    </nav>
+    {home && (
+      <div class="hero-title">
+        <h1>Como podemos ajudar?</h1>
+        <p>Guias passo a passo para configurar sua conta e operar os serviços dos seus imóveis no Yosp.</p>
+      </div>
+    )}
+  </div>
+</header>

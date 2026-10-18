@@ -1,0 +1,6 @@
+/* Minimal element defaults */
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{margin:0;font-family:var(--font-sans);font-size:var(--text-md);line-height:var(--lh-normal);color:var(--text-body);background:var(--surface-app)}
+a{color:var(--text-link);text-decoration:none}
+a:hover{color:var(--text-link-hover)}
+*,*::before,*::after{box-sizing:border-box}

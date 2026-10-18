@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/tokens/base.css">
+  <link rel="stylesheet" href="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/styles.css">
+  <script src="_ds/yosp-design-system-33aece54-ee35-427f-a00c-df4eef77cdfc/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>body{margin:0;background:var(--surface-app)}a{color:var(--text-link);text-decoration:none}a:hover{color:var(--text-link-hover)}@media print{[data-noprint]{display:none !important}}</style>
+</helmet>
+<div style="min-height:100vh; display:flex; flex-direction:column; font-family:var(--font-sans); color:var(--fg-1); background:var(--surface-app)">
+
+  <header data-noprint="true" style="position:relative; background: {{ hero.bg }}; border-bottom: 1px solid {{ hero.bd }}">
+    <div style="max-width:1128px; margin:0 auto; padding:20px 24px 60px; box-sizing:border-box">
+      <nav style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; min-height:48px">
+        <a href="#/" onClick="{{ goHome }}" style="display:flex; align-items:center; gap:14px; color: {{ hero.fg }}">
+          <x-import component-from-global-scope="YospDesignSystem_33aece.Logo" variant="{{ hero.logo }}" height="{{ 30 }}" hint-size="82px,30px"></x-import>
+          <span style="width:1px; height:20px; background: {{ hero.sep }}"></span>
+          <span style="font-size:16px; font-weight:400; color: {{ hero.fg }}">Central de ajuda</span>
+        </a>
+        <div style="display:flex; align-items:center; gap:24px">
+          <a href="#suporte" onClick="{{ goSupport }}" style="font-size:15px; color: {{ hero.fg }}" style-hover="text-decoration:underline">Fale com o suporte</a>
+          <x-import component-from-global-scope="YospDesignSystem_33aece.Button" variant="{{ hero.btn }}" icon-right="arrow-up-right" hint-size="150px,40px">Acessar o Yosp</x-import>
+        </div>
+      </nav>
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:56px 0 8px">
+          <h1 style="margin:0; font-size:48px; font-weight:500; line-height:1.15; letter-spacing:-0.02em; color: {{ hero.fg }}; text-wrap:balance">Como podemos ajudar?</h1>
+          <span style="font-size:18px; line-height:1.5; color: {{ hero.fg2 }}; max-width:560px; text-wrap:pretty">Guias passo a passo para configurar sua conta e operar a limpeza dos seus imóveis no Yosp.</span>
+        </div>
+      </sc-if>
+    </div>
+  </header>
+
+  <div data-noprint="true" style="position:relative; z-index:5; width:100%; max-width:1128px; margin:-28px auto 0; padding:0 24px; box-sizing:border-box">
+    <div ref="{{ searchRef }}" style="position:relative; max-width: {{ searchMax }}; margin:0 auto; background:var(--surface-card); border-radius:var(--radius-md)">
+      <x-import component-from-global-scope="YospDesignSystem_33aece.Input" icon="search" placeholder="Busque por agendamento, checklist, prestador…" value="{{ q }}" on-change="{{ onQ }}" trailing-icon="{{ qTrail }}" on-trailing-click="{{ clearQ }}" dc-props="{{ inputExtra }}" hint-size="100%,56px"></x-import>
+      <sc-if value="{{ showDrop }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; top:calc(100% + 8px); left:0; right:0; display:flex; flex-direction:column; padding:8px; background:var(--surface-card); border:1px solid var(--border-1); border-radius:var(--radius-lg); box-shadow:var(--shadow-pop); max-height:440px; overflow:auto">
+          <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+            <span style="padding:8px 12px 6px; font-size:13px; color:var(--fg-2)">{{ resultsLabel }}</span>
+            <sc-for list="{{ results }}" as="r" hint-placeholder-count="0">
+              <a href="{{ r.href }}" onClick="{{ r.go }}" style="display:flex; align-items:flex-start; gap:12px; padding:10px 12px; border-radius:var(--radius-md); color:var(--fg-1)" style-hover="background:var(--gray-50); color:var(--fg-1)">
+                <span style="display:flex; padding-top:2px; color:var(--blue-500)"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="file-text" size="{{ 18 }}" hint-size="18px,18px"></x-import></span>
+                <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                  <span style="font-size:15px; font-weight:500; line-height:1.4">{{ r.t }}</span>
+                  <span style="font-size:13px; color:var(--fg-2)">{{ r.cat }}</span>
+                </span>
+              </a>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:28px 16px; text-align:center">
+              <span style="font-size:15px; font-weight:500">{{ noResultsTitle }}</span>
+              <span style="font-size:14px; color:var(--fg-2)">Tente outras palavras ou navegue pelas categorias.</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <main style="flex:1; width:100%; max-width:1128px; margin:0 auto; padding:40px 24px 56px; box-sizing:border-box; display:flex; flex-direction:column; gap:40px">
+
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <section data-screen-label="Início" style="column-width:320px; column-count: {{ cols }}; column-gap:20px">
+        <sc-for list="{{ homeCats }}" as="c" hint-placeholder-count="6">
+          <div style="break-inside:avoid; margin-bottom:20px">
+            <x-import component-from-global-scope="YospDesignSystem_33aece.Card" dc-props="{{ homeCard }}" hint-size="100%,300px">
+              <a href="{{ c.href }}" onClick="{{ c.go }}" style="display:flex; align-items:flex-start; gap:16px; color:var(--fg-1)" style-hover="color:var(--blue-500)">
+                <x-import component-from-global-scope="YospDesignSystem_33aece.IconTile" icon="{{ c.icon }}" size="{{ 44 }}" hint-size="44px,44px"></x-import>
+                <span style="display:flex; flex-direction:column; gap:4px; min-width:0">
+                  <span style="font-size:20px; font-weight:500; line-height:1.3; letter-spacing:-0.01em">{{ c.title }}</span>
+                  <span style="font-size:14px; line-height:1.45; color:var(--fg-2); text-wrap:pretty">{{ c.desc }}</span>
+                </span>
+              </a>
+              <div style="display:flex; flex-direction:column; padding-top:4px">
+                <sc-for list="{{ c.top }}" as="a" hint-placeholder-count="4">
+                  <a href="{{ a.href }}" onClick="{{ a.go }}" style="padding:7px 0; font-size:15px; font-weight:400; line-height:1.45; color:var(--fg-1); text-wrap:pretty" style-hover="color:var(--blue-500)">{{ a.t }}</a>
+                </sc-for>
+              </div>
+              <a href="{{ c.href }}" onClick="{{ c.go }}" style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; font-size:14px; font-weight:500; color:var(--blue-500)" style-hover="color:var(--blue-700)">{{ c.seeAll }}<x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="arrow-right" size="{{ 16 }}" hint-size="16px,16px"></x-import></a>
+            </x-import>
+          </div>
+        </sc-for>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ notHome }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; min-height:40px">
+        <nav aria-label="Navegação estrutural" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:14px">
+          <sc-for list="{{ crumbs }}" as="cr" hint-placeholder-count="2">
+            <sc-if value="{{ cr.notFirst }}"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="chevron-right" size="{{ 14 }}" color="var(--fg-3)" hint-size="14px,14px"></x-import></sc-if>
+            <sc-if value="{{ cr.isLink }}"><a href="{{ cr.href }}" onClick="{{ cr.go }}" style="color:var(--fg-2)" style-hover="color:var(--fg-1)">{{ cr.label }}</a></sc-if>
+            <sc-if value="{{ cr.isLast }}"><span style="color:var(--fg-1)">{{ cr.label }}</span></sc-if>
+          </sc-for>
+        </nav>
+        <sc-if value="{{ isArt }}" hint-placeholder-val="{{ false }}">
+          <div data-noprint="true" style="display:flex; align-items:center; gap:8px">
+            <sc-if value="{{ copied }}"><span style="font-size:13px; color:var(--green-700); padding-right:4px">Link copiado</span></sc-if>
+            <x-import component-from-global-scope="YospDesignSystem_33aece.IconButton" icon="link" label="Copiar link" size="md" shape="square" on-click="{{ copyLink }}" hint-size="40px,40px"></x-import>
+            <x-import component-from-global-scope="YospDesignSystem_33aece.IconButton" icon="printer" label="Imprimir" size="md" shape="square" on-click="{{ print }}" hint-size="40px,40px"></x-import>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCat }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Categoria" style="display:flex; flex-direction:column; gap:28px; margin-top:-16px">
+        <div style="display:flex; align-items:flex-start; gap:20px">
+          <x-import component-from-global-scope="YospDesignSystem_33aece.IconTile" icon="{{ cat.icon }}" size="{{ 56 }}" hint-size="56px,56px"></x-import>
+          <div style="display:flex; flex-direction:column; gap:8px; min-width:0">
+            <h1 style="margin:0; font-size:36px; font-weight:500; line-height:1.15; letter-spacing:-0.02em">{{ cat.title }}</h1>
+            <span style="font-size:16px; color:var(--fg-2); text-wrap:pretty">{{ cat.desc }} · {{ cat.countLabel }}</span>
+          </div>
+        </div>
+        <x-import component-from-global-scope="YospDesignSystem_33aece.Card" dc-props="{{ flushCard }}" hint-size="100%,600px">
+          <div style="display:flex; flex-direction:column; gap:1px; background:var(--border-1)">
+            <sc-for list="{{ cat.articles }}" as="a" hint-placeholder-count="5">
+              <a href="{{ a.href }}" onClick="{{ a.go }}" style="display:flex; align-items:center; gap:20px; padding:24px 28px; background:var(--surface-card); color:var(--fg-1)" style-hover="background:var(--gray-50); color:var(--fg-1)">
+                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px">
+                  <span style="font-size:18px; font-weight:500; line-height:1.35">{{ a.t }}</span>
+                  <span style="font-size:15px; line-height:1.55; color:var(--fg-2); text-wrap:pretty">{{ a.ex }}</span>
+                  <span style="display:flex; align-items:center; gap:6px; margin-top:2px; font-size:13px; color:var(--fg-2)"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="clock" size="{{ 14 }}" hint-size="14px,14px"></x-import>{{ a.meta }}</span>
+                </span>
+                <span style="display:flex; color:var(--fg-3)"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="chevron-right" size="{{ 20 }}" hint-size="20px,20px"></x-import></span>
+              </a>
+            </sc-for>
+          </div>
+        </x-import>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ isArt }}" hint-placeholder-val="{{ false }}">
+      <section data-screen-label="Artigo" style="display:flex; align-items:flex-start; gap:28px; flex-wrap:wrap; margin-top:-16px">
+        <div style="flex:1 1 600px; min-width:0; display:flex; flex-direction:column; gap:20px">
+          <x-import component-from-global-scope="YospDesignSystem_33aece.Card" dc-props="{{ articleCard }}" hint-size="100%,900px">
+            <article style="display:flex; flex-direction:column; max-width:720px">
+              <h1 style="margin:0 0 14px; font-size:36px; font-weight:500; line-height:1.15; letter-spacing:-0.02em; text-wrap:balance">{{ art.t }}</h1>
+              <span style="font-size:18px; line-height:1.55; color:var(--fg-2); text-wrap:pretty">{{ art.ex }}</span>
+              <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:20px 0 28px; padding-bottom:24px; border-bottom:1px solid var(--border-1); font-size:13px; color:var(--fg-2)">
+                <x-import component-from-global-scope="YospDesignSystem_33aece.Badge" tone="brand" hint-size="120px,24px">{{ art.catTitle }}</x-import>
+                <span style="display:flex; align-items:center; gap:6px"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="clock" size="{{ 14 }}" hint-size="14px,14px"></x-import>{{ art.minLabel }}</span>
+                <span style="display:flex; align-items:center; gap:6px"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="calendar" size="{{ 14 }}" hint-size="14px,14px"></x-import>{{ art.upLabel }}</span>
+              </div>
+
+              <sc-for list="{{ art.blocks }}" as="b" hint-placeholder-count="4">
+                <sc-if value="{{ b.isH }}"><h2 id="{{ b.id }}" style="margin:28px 0 14px; font-size:22px; font-weight:500; line-height:1.3; letter-spacing:-0.01em; scroll-margin-top:24px">{{ b.text }}</h2></sc-if>
+                <sc-if value="{{ b.isP }}"><div style="margin:0 0 18px; font-size:16px; line-height:1.7; text-wrap:pretty"><sc-for list="{{ b.segs }}" as="sg"><sc-if value="{{ sg.b }}"><strong style="font-weight:500">{{ sg.t }}</strong></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></div></sc-if>
+                <sc-if value="{{ b.isSteps }}">
+                  <div style="display:flex; flex-direction:column; gap:14px; margin:4px 0 22px">
+                    <sc-for list="{{ b.items }}" as="s">
+                      <div style="display:grid; grid-template-columns:28px minmax(0,1fr); gap:14px; align-items:start">
+                        <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:var(--blue-50); color:var(--blue-700); font-size:13px; font-weight:500; font-variant-numeric:tabular-nums">{{ s.n }}</span>
+                        <span style="font-size:16px; line-height:1.6; padding-top:2px; text-wrap:pretty"><sc-for list="{{ s.segs }}" as="sg"><sc-if value="{{ sg.b }}"><strong style="font-weight:500">{{ sg.t }}</strong></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ b.isList }}">
+                  <div style="display:flex; flex-direction:column; gap:10px; margin:0 0 22px">
+                    <sc-for list="{{ b.items }}" as="s">
+                      <div style="display:grid; grid-template-columns:16px minmax(0,1fr); gap:10px; align-items:start">
+                        <span style="width:6px; height:6px; margin:10px 0 0 4px; border-radius:50%; background:var(--blue-500)"></span>
+                        <span style="font-size:16px; line-height:1.6; text-wrap:pretty"><sc-for list="{{ s.segs }}" as="sg"><sc-if value="{{ sg.b }}"><strong style="font-weight:500">{{ sg.t }}</strong></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ b.isDefs }}">
+                  <div style="display:flex; flex-direction:column; gap:1px; margin:4px 0 24px; background:var(--border-1); border:1px solid var(--border-1); border-radius:var(--radius-lg); overflow:hidden">
+                    <sc-for list="{{ b.items }}" as="d">
+                      <div style="display:grid; grid-template-columns:minmax(0,190px) minmax(0,1fr); gap:20px; align-items:start; padding:16px 20px; background:var(--surface-card)">
+                        <span style="display:flex; padding-top:1px">
+                          <sc-if value="{{ d.hasTone }}"><x-import component-from-global-scope="YospDesignSystem_33aece.Badge" tone="{{ d.tone }}" dot="{{ true }}" hint-size="120px,24px">{{ d.label }}</x-import></sc-if>
+                          <sc-if value="{{ d.noTone }}"><span style="font-size:15px; font-weight:500; line-height:1.5">{{ d.label }}</span></sc-if>
+                        </span>
+                        <span style="font-size:15px; line-height:1.6; color:var(--fg-1); text-wrap:pretty"><sc-for list="{{ d.segs }}" as="sg"><sc-if value="{{ sg.b }}"><strong style="font-weight:500">{{ sg.t }}</strong></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ b.isNote }}">
+                  <div style="margin:4px 0 22px">
+                    <x-import component-from-global-scope="YospDesignSystem_33aece.Banner" tone="{{ b.tone }}" hint-size="100%,52px"><span style="line-height:1.55"><sc-for list="{{ b.segs }}" as="sg"><sc-if value="{{ sg.b }}"><strong style="font-weight:500">{{ sg.t }}</strong></sc-if><sc-if value="{{ sg.plain }}"><span>{{ sg.t }}</span></sc-if></sc-for></span></x-import>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ b.isShot }}">
+                  <figure style="display:flex; flex-direction:column; gap:10px; margin:6px 0 26px">
+                    <div style="position:relative; width:100%; aspect-ratio:16 / 10; border:1px solid var(--border-1); border-radius:var(--radius-lg); background:var(--gray-50); overflow:hidden">
+                      <image-slot id="{{ b.slotId }}" shape="rounded" radius="14" placeholder="{{ b.placeholder }}" style="position:absolute; inset:0"></image-slot>
+                    </div>
+                    <figcaption style="font-size:13px; color:var(--fg-2)">{{ b.caption }}</figcaption>
+                  </figure>
+                </sc-if>
+              </sc-for>
+
+              <div data-noprint="true" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:20px; padding-top:24px; border-top:1px solid var(--border-1)">
+                <sc-if value="{{ fbNone }}" hint-placeholder-val="{{ true }}">
+                  <span style="font-size:15px; font-weight:500">Este artigo foi útil?</span>
+                  <div style="display:flex; gap:8px">
+                    <x-import component-from-global-scope="YospDesignSystem_33aece.Button" variant="secondary" size="sm" icon-left="thumbs-up" on-click="{{ fbYes }}" hint-size="72px,32px">Sim</x-import>
+                    <x-import component-from-global-scope="YospDesignSystem_33aece.Button" variant="secondary" size="sm" icon-left="thumbs-down" on-click="{{ fbNo }}" hint-size="72px,32px">Não</x-import>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ fbDone }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:flex; align-items:center; gap:8px; font-size:15px; color:var(--fg-1)"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="circle-check" size="{{ 18 }}" color="var(--green-500)" hint-size="18px,18px"></x-import>{{ fbText }}</span>
+                </sc-if>
+              </div>
+            </article>
+          </x-import>
+
+          <div data-noprint="true" style="display:flex; gap:16px; flex-wrap:wrap">
+            <sc-if value="{{ art.hasPrev }}">
+              <a href="{{ art.prev.href }}" onClick="{{ art.prev.go }}" style="flex:1 1 240px; display:flex; flex-direction:column; gap:6px; padding:18px 20px; background:var(--surface-card); border:1px solid var(--border-1); border-radius:var(--radius-lg); color:var(--fg-1)" style-hover="border-color:var(--gray-300); color:var(--fg-1)">
+                <span style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--fg-2)"><x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="arrow-left" size="{{ 14 }}" hint-size="14px,14px"></x-import>Anterior</span>
+                <span style="font-size:16px; font-weight:500; line-height:1.4">{{ art.prev.t }}</span>
+              </a>
+            </sc-if>
+            <sc-if value="{{ art.noPrev }}"><span style="flex:1 1 240px"></span></sc-if>
+            <sc-if value="{{ art.hasNext }}">
+              <a href="{{ art.next.href }}" onClick="{{ art.next.go }}" style="flex:1 1 240px; display:flex; flex-direction:column; align-items:flex-end; gap:6px; padding:18px 20px; text-align:right; background:var(--surface-card); border:1px solid var(--border-1); border-radius:var(--radius-lg); color:var(--fg-1)" style-hover="border-color:var(--gray-300); color:var(--fg-1)">
+                <span style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--fg-2)">Próximo<x-import component-from-global-scope="YospDesignSystem_33aece.Icon" name="arrow-right" size="{{ 14 }}" hint-size="14px,14px"></x-import></span>
+                <span style="font-size:16px; font-weight:500; line-height:1.4">{{ art.next.t }}</span>
+              </a>
+            </sc-if>
+            <sc-if value="{{ art.noNext }}"><span style="flex:1 1 240px"></span></sc-if>
+          </div>
+        </div>
+
+        <aside data-noprint="true" style="flex:0 1 272px; min-width:240px; position:sticky; top:24px; display:flex; flex-direction:column; gap:32px; padding-top:8px">
+          <sc-if value="{{ art.hasToc }}">
+            <div style="display:flex; flex-direction:column; gap:12px">
+              <span style="font-size:14px; font-weight:500">Nesta página</span>
+              <div style="display:flex; flex-direction:column; border-left:1px solid var(--border-1)">
+                <sc-for list="{{ art.toc }}" as="h">
+                  <a href="{{ h.href }}" onClick="{{ h.go }}" style="margin-left:-1px; padding:6px 0 6px 14px; border-left:1px solid transparent; font-size:14px; line-height:1.4; color:var(--fg-2)" style-hover="color:var(--fg-1); border-left-color:var(--gray-400)">{{ h.text }}</a>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <div style="display:flex; flex-direction:column; gap:12px">
+            <span style="font-size:14px; font-weight:500">{{ art.catTitle }}</span>
+            <div style="display:flex; flex-direction:column; gap:2px">
+              <sc-for list="{{ art.siblings }}" as="sb">
+                <sc-if value="{{ sb.active }}"><span style="padding:8px 12px; border-radius:var(--radius-md); background:var(--blue-50); font-size:14px; line-height:1.4; color:var(--blue-700); font-weight:500">{{ sb.t }}</span></sc-if>
+                <sc-if value="{{ sb.inactive }}"><a href="{{ sb.href }}" onClick="{{ sb.go }}" style="padding:8px 12px; border-radius:var(--radius-md); font-size:14px; line-height:1.4; color:var(--fg-2)" style-hover="background:var(--gray-100); color:var(--fg-1)">{{ sb.t }}</a></sc-if>
+              </sc-for>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </sc-if>
+
+    <section id="suporte" data-noprint="true" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; padding:28px; background:var(--surface-card); border:1px solid var(--border-1); border-radius:var(--radius-lg)">
+      <x-import component-from-global-scope="YospDesignSystem_33aece.IconTile" icon="message-square-text" size="{{ 48 }}" hint-size="48px,48px"></x-import>
+      <div style="flex:1 1 320px; display:flex; flex-direction:column; gap:4px; min-width:0">
+        <span style="font-size:20px; font-weight:500; line-height:1.3">Não encontrou o que procurava?</span>
+        <span style="font-size:15px; line-height:1.5; color:var(--fg-2); text-wrap:pretty">Fale com nossa equipe pelo e-mail ou pela área Suporte do painel. Tenha em mãos o ID da sua conta, em Minha conta › Dados da conta.</span>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap">
+        <x-import component-from-global-scope="YospDesignSystem_33aece.Button" variant="secondary" size="lg" icon-left="mail" on-click="{{ mailSupport }}" hint-size="220px,48px">suporte@yosp.com.br</x-import>
+        <x-import component-from-global-scope="YospDesignSystem_33aece.Button" size="lg" icon-left="message-square-text" on-click="{{ mailSupport }}" hint-size="200px,48px">Falar com o suporte</x-import>
+      </div>
+    </section>
+  </main>
+
+  <footer data-noprint="true" style="border-top:1px solid var(--border-1)">
+    <div style="max-width:1128px; margin:0 auto; padding:24px; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:14px; color:var(--fg-2)">
+      <div style="display:flex; align-items:center; gap:12px">
+        <x-import component-from-global-scope="YospDesignSystem_33aece.Logo" variant="black" height="{{ 22 }}" hint-size="60px,22px"></x-import>
+        <span>© 2026 Yosp · Central de ajuda</span>
+      </div>
+      <span>{{ totalLabel }}</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;heroStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Azul&quot;,&quot;Suave&quot;],&quot;default&quot;:&quot;Azul&quot;,&quot;tsType&quot;:&quot;'Azul'|'Suave'&quot;,&quot;section&quot;:&quot;Visual&quot;},&quot;homeColumns&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;2&quot;,&quot;3&quot;],&quot;default&quot;:&quot;2&quot;,&quot;tsType&quot;:&quot;'2'|'3'&quot;,&quot;section&quot;:&quot;Visual&quot;},&quot;showScreenshots&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Conteúdo&quot;}}">
+class Component extends DCLogic {
+  state = { path: [], q: '', open: false, fb: null, copied: false };
+  searchRef = React.createRef();
+
+  cats = [
+    { id: 'primeiros-passos', icon: 'compass', title: 'Primeiros passos', desc: 'Configure sua conta e deixe a operação pronta para a primeira faxina.', articles: [
+      { id: 'conheca-o-painel', t: 'Conheça o painel do Yosp', ex: 'Um tour pelas áreas do painel do gestor e pelo que cada uma resolve na operação do dia.', min: 4, up: '02/10/2026', blocks: [
+        ['p', 'O painel reúne toda a operação dos seus imóveis em um só lugar. A navegação fica na barra lateral, à esquerda, e cada área cuida de uma parte do trabalho.'],
+        ['shot', 'Visão geral do painel: barra lateral e dashboard Operação de hoje'],
+        ['h', 'Áreas do painel'],
+        ['defs', [['Dashboard', null, 'Mostra a **operação de hoje**: faxinas agendadas, em andamento, concluídas, atrasadas e sem prestador.'], ['Agenda', null, 'Todos os agendamentos em lista ou em semana, com visão **por imóvel** e **por prestador**.'], ['Imóveis', null, 'Seu portfólio, com checklists vinculados, estoque e histórico de cada imóvel.'], ['Prestadores', null, 'Profissionais de faxina, zeladoria e manutenção vinculados à sua conta.'], ['Minha conta', null, 'Dados da empresa, faturamento, usuários, logística, permissões, atividades e suporte.']]],
+        ['h', 'Primeiros ajustes recomendados'],
+        ['list', ['Preencha os **dados da sua conta** e carregue o logotipo da empresa.', 'Cadastre os **tipos de serviço** que sua equipe executa.', 'Cadastre seus **imóveis** e vincule um checklist a cada um.', 'Convide seus **prestadores** e os demais usuários do painel.']],
+        ['note', 'Ative o **tour guiado** em Minha conta › Dados da conta › Preferências para ver dicas interativas enquanto navega.', 'brand']
+      ] },
+      { id: 'roteiro-implantacao', t: 'Do cadastro à primeira faxina: roteiro de implantação', ex: 'A ordem recomendada de configuração para colocar sua operação no ar sem retrabalho.', min: 5, up: '29/09/2026', blocks: [
+        ['p', 'Cada etapa depende da anterior: o checklist precisa de um imóvel, e o agendamento precisa de um checklist e de um prestador ativo. Siga esta ordem na primeira configuração.'],
+        ['steps', ['Configure os **dados da conta**: tipo de conta, CNPJ ou CPF, endereço e logotipo.', 'Cadastre os **tipos de serviço**, como Limpeza pós-hospedagem e Limpeza pesada.', 'Cadastre os **imóveis** com endereço completo e, se usar grupos, defina o grupo de cada um.', 'Crie um **checklist** por cômodo e vincule-o aos imóveis.', 'Adicione os **prestadores** e aguarde a conclusão das etapas de ativação.', 'Crie o **primeiro agendamento** e acompanhe a execução pelo dashboard.']],
+        ['note', 'Você pode voltar a qualquer etapa depois. Alterações em um checklist valem para as próximas faxinas, não para as que já foram concluídas.', 'brand']
+      ] },
+      { id: 'dados-da-conta', t: 'Como configurar os dados da sua conta', ex: 'Preencha os dados da empresa, o endereço e o logotipo que identificam sua conta.', min: 3, up: '25/09/2026',
+        steps: ['Acesse **Minha conta › Dados da conta**.', 'Em **Tipo de conta**, escolha **Pessoa física** ou **Pessoa jurídica**.', 'Preencha CNPJ (ou CPF), razão social, nome fantasia, e-mail corporativo e telefone comercial.', 'Informe o CEP e complete número e complemento do endereço.', 'Clique em **Carregar logo** para enviar o logotipo, em PNG ou SVG de até 2 MB.', 'Clique em **Salvar alterações**.'],
+        tip: 'O campo **Tenant (ID da conta)** não pode ser editado. Informe esse código sempre que falar com o suporte.' },
+      { id: 'tour-guiado', t: 'Como ativar o tour guiado', ex: 'Exiba dicas interativas enquanto navega pelas páginas do painel.', min: 1, up: '12/09/2026',
+        steps: ['Acesse **Minha conta › Dados da conta**.', 'No card **Preferências**, ative **Tour guiado**.', 'Navegue pelas páginas: as dicas aparecem na primeira visita a cada área.'] }
+    ] },
+    { id: 'operacao-do-dia', icon: 'layout-grid', title: 'Operação do dia', desc: 'Acompanhe o dashboard e resolva o que precisa de atenção hoje.', articles: [
+      { id: 'indicadores-dashboard', t: 'Entenda os indicadores do dashboard', ex: 'O que significa cada número da Operação de hoje e quando agir sobre ele.', min: 3, up: '01/10/2026', blocks: [
+        ['p', 'O dashboard resume a operação do dia em cinco indicadores. Os números mudam conforme os prestadores iniciam e concluem as faxinas.'],
+        ['defs', [['Faxinas hoje', 'brand', 'Total de faxinas agendadas para hoje em todos os imóveis.'], ['Em andamento', 'orange', 'Faxinas que o prestador já iniciou e ainda não concluiu.'], ['Concluídas', 'success', 'Faxinas finalizadas hoje, com checklist e fotos enviados.'], ['Atrasadas', 'danger', 'Faxinas que passaram do horário de início sem serem iniciadas. A legenda mostra o atraso, como **+39 min de atraso**.'], ['Sem prestador', 'warning', 'Faxinas de hoje que ainda não têm um profissional atribuído.']]],
+        ['note', '**Atrasadas** e **Sem prestador** são os indicadores que pedem ação imediata. Os próximos artigos desta categoria mostram como resolver cada caso.', 'brand']
+      ] },
+      { id: 'faxina-atrasada', t: 'O que fazer quando uma faxina está atrasada', ex: 'Como identificar o atraso, falar com o prestador e reagendar se for preciso.', min: 3, up: '30/09/2026',
+        steps: ['No dashboard, localize a faxina com o status **Atrasada**. O tempo de atraso aparece ao lado do horário.', 'Abra a faxina e confira o prestador atribuído e o contato dele.', 'Fale com o prestador para confirmar se a faxina vai começar.', 'Se não for possível, **reagende** a faxina ou **atribua outro prestador**.'],
+        tip: 'Ative a **confirmação de agendamento** para reduzir atrasos: o prestador precisa confirmar data e hora antes do dia da faxina.' },
+      { id: 'sem-prestador', t: 'Como resolver faxinas sem prestador', ex: 'Atribua um profissional às faxinas que ainda estão descobertas.', min: 2, up: '30/09/2026',
+        steps: ['No dashboard, confira o indicador **Sem prestador** e localize a faxina na lista de hoje.', 'Abra a faxina e clique em **Atribuir prestador**.', 'Escolha um profissional disponível no horário e confirme.'],
+        tip: 'O prestador recebe uma notificação. Se a confirmação de agendamento estiver ativa, a faxina fica **Aguardando confirmação** até ele aceitar.' },
+      { id: 'equipe-em-campo', t: 'Acompanhe a equipe em campo', ex: 'Veja quem está trabalhando agora, em qual imóvel e a avaliação média de cada profissional.', min: 2, up: '18/09/2026',
+        steps: ['No dashboard, role até o card **Equipe em campo**.', 'Confira o imóvel em que cada prestador está e a nota média dele.', 'Clique no nome do prestador para ver a faxina em andamento.'] },
+      { id: 'atividades-recentes', t: 'Acompanhe as atividades recentes', ex: 'Entenda o feed de eventos: faxinas iniciadas, concluídas, confirmadas e atribuídas.', min: 2, up: '15/09/2026',
+        steps: ['No dashboard, veja o card **Atividades recentes**.', 'Cada evento mostra o que aconteceu, o imóvel e quando, como **Faxina concluída em Tatuapé Praça Silvio Romero · há 21 h**.', 'Para o histórico completo, com filtros, acesse **Minha conta › Atividades**.'] }
+    ] },
+    { id: 'agenda', icon: 'calendar-days', title: 'Agenda e agendamentos', desc: 'Crie, confirme e ajuste as faxinas de todos os seus imóveis.', articles: [
+      { id: 'novo-agendamento', t: 'Como criar um novo agendamento', ex: 'Agende uma faxina escolhendo imóvel, serviço, data, horário e prestador.', min: 4, up: '03/10/2026', blocks: [
+        ['p', 'Um agendamento liga um imóvel e um tipo de serviço a uma data, um horário e um prestador. O checklist vinculado ao imóvel é enviado automaticamente ao prestador.'],
+        ['h', 'Antes de começar'],
+        ['list', ['O imóvel precisa estar cadastrado e ter um **checklist vinculado**.', 'O tipo de serviço precisa existir em **Tipos de serviço**.', 'O prestador precisa estar com status **Ativo**.']],
+        ['h', 'Passo a passo'],
+        ['steps', ['Acesse **Agenda** na barra lateral.', 'Clique em **Novo agendamento**.', 'Escolha o **imóvel** e o **tipo de serviço**.', 'Defina **data** e **horário de início**.', 'Selecione o **prestador**. Se ainda não souber quem vai, deixe em branco e atribua depois.', 'Clique em **Salvar agendamento**.']],
+        ['shot', 'Formulário de novo agendamento'],
+        ['h', 'Depois de salvar'],
+        ['p', 'O agendamento aparece na agenda como **Confirmado** ou, se a confirmação de agendamento estiver ativa, como **Aguardando confirmação** até o prestador aceitar.'],
+        ['note', 'Agendamentos sem prestador entram no indicador **Sem prestador** do dashboard no dia da faxina.', 'warning']
+      ] },
+      { id: 'status-agendamento', t: 'Entenda os status de um agendamento', ex: 'Do agendamento à conclusão: o que cada status significa e quando ele muda.', min: 3, up: '01/10/2026', blocks: [
+        ['p', 'O status mostra em que ponto o agendamento está. Ele muda automaticamente conforme o prestador confirma, inicia e conclui a faxina.'],
+        ['defs', [['Aguardando confirmação', 'warning', 'O prestador foi notificado e ainda não confirmou data e hora.'], ['Confirmado', 'brand', 'O prestador aceitou. A faxina está garantida na agenda.'], ['Pendente', 'warning', 'Chegou o dia, e a faxina ainda não foi iniciada.'], ['Em andamento', 'orange', 'O prestador iniciou a faxina e está preenchendo o checklist.'], ['Concluída', 'success', 'Checklist preenchido e fotos enviadas.'], ['Atrasada', 'danger', 'O horário de início passou e a faxina não foi iniciada.'], ['Cancelada', 'neutral', 'O agendamento foi cancelado por um usuário do painel.']]],
+        ['note', 'Todas as mudanças de status ficam registradas em **Minha conta › Atividades**, com data, hora e autor.', 'brand']
+      ] },
+      { id: 'visoes-da-agenda', t: 'Visualize a agenda por imóvel ou por prestador', ex: 'Alterne entre lista e semana para planejar a ocupação dos imóveis e da equipe.', min: 2, up: '22/09/2026',
+        steps: ['Acesse **Agenda**.', 'No seletor de visualização, escolha **Lista**, **Semana por imóvel** ou **Semana por prestador**.', 'Use as setas ao lado do período, como **28 set – 4 out 2026**, para mudar de semana.', 'Clique em um agendamento para ver detalhes ou editar.'],
+        tip: 'A visão **Semana por prestador** ajuda a equilibrar a carga de trabalho e a encontrar horários livres antes de atribuir uma faxina.' },
+      { id: 'reagendar-ou-cancelar', t: 'Como reagendar ou cancelar uma faxina', ex: 'Altere data, horário ou prestador, ou cancele um agendamento que não vai acontecer.', min: 2, up: '19/09/2026',
+        steps: ['Na **Agenda**, clique no agendamento.', 'Para reagendar, clique em **Editar**, altere data, horário ou prestador e clique em **Salvar alterações**.', 'Para cancelar, clique em **Cancelar agendamento** e confirme.'],
+        tip: 'O prestador é notificado nos dois casos. Faxinas em andamento ou concluídas não podem ser canceladas.', tipTone: 'warning' },
+      { id: 'confirmacao-de-agendamento', t: 'Ative a confirmação de agendamento', ex: 'Exija que o prestador confirme data e hora antes de a faxina ficar Confirmada.', min: 2, up: '16/09/2026',
+        steps: ['Acesse **Minha conta › Logística**.', 'Ative **Confirmação de agendamento**.', 'A partir de agora, novos agendamentos começam como **Aguardando confirmação** e passam a **Confirmado** quando o prestador aceitar.'],
+        tip: 'Agendamentos criados antes da ativação mantêm o status atual.' },
+      { id: 'exportar-agendamentos', t: 'Como exportar os agendamentos filtrados', ex: 'Gere um arquivo com os agendamentos do período, imóvel ou prestador que você filtrar.', min: 1, up: '10/09/2026',
+        steps: ['Acesse **Agenda** e escolha a visão **Lista**.', 'Aplique os filtros de período, imóvel, prestador ou status.', 'Clique em **Exportar dados filtrados**.'],
+        tip: 'O arquivo é gerado com os mesmos filtros aplicados na tela.' }
+    ] },
+    { id: 'imoveis', icon: 'building-2', title: 'Imóveis', desc: 'Cadastre seu portfólio e organize os imóveis em grupos.', articles: [
+      { id: 'cadastrar-imovel', t: 'Como cadastrar um imóvel', ex: 'Adicione um imóvel com nome, endereço e grupo para começar a agendar faxinas.', min: 3, up: '27/09/2026',
+        steps: ['Acesse **Imóveis** na barra lateral.', 'Clique em **Novo imóvel**.', 'Informe um nome fácil de reconhecer, como **Apartamento Executivo 24**.', 'Preencha o endereço completo. O mapa é posicionado automaticamente.', 'Se o agrupamento estiver ativo, escolha o **grupo** do imóvel.', 'Clique em **Salvar**.'],
+        tip: 'Depois de salvar, vincule um checklist ao imóvel. Sem checklist, não é possível criar agendamentos para ele.' },
+      { id: 'grupos-de-imoveis', t: 'Como organizar imóveis em grupos', ex: 'Agrupe imóveis por região, proprietário ou padrão de limpeza.', min: 3, up: '24/09/2026',
+        steps: ['Acesse **Minha conta › Logística**.', 'Ative **Agrupamento de imóveis**. O grupo **Padrão** é criado automaticamente.', 'Clique em **Novo grupo** e defina nome, descrição e cor.', 'Em **Imóveis**, edite cada imóvel e escolha o grupo dele.'],
+        tip: 'Cada imóvel pertence a apenas um grupo, e pelo menos um grupo precisa existir enquanto o agrupamento estiver ativo.' },
+      { id: 'vincular-checklist', t: 'Como vincular um checklist a um imóvel', ex: 'Defina qual checklist o prestador recebe ao fazer a faxina de cada imóvel.', min: 2, up: '21/09/2026',
+        steps: ['Acesse **Imóveis** e localize o imóvel.', 'No card do imóvel, clique em **Checklists**.', 'Selecione o checklist e clique em **Vincular**.'],
+        tip: 'Um mesmo checklist pode ser vinculado a vários imóveis. O card do checklist mostra quantos imóveis estão vinculados.' },
+      { id: 'estoque-do-imovel', t: 'Controle o estoque e o enxoval do imóvel', ex: 'Registre os itens de reposição de cada imóvel e acompanhe o que precisa ser comprado.', min: 3, up: '14/09/2026',
+        steps: ['Acesse **Imóveis** e clique em **Estoque** no card do imóvel.', 'Adicione os itens e a quantidade mínima de cada um.', 'Ao fim de cada faxina, o prestador informa o que foi reposto.'],
+        tip: 'Para controlar o enxoval de todos os imóveis, ative **Gestão de lavanderia** em **Minha conta › Logística**.' },
+      { id: 'historico-do-imovel', t: 'Consulte o histórico de um imóvel', ex: 'Veja todas as faxinas, fotos e avaliações já registradas em um imóvel.', min: 2, up: '08/09/2026',
+        steps: ['Acesse **Imóveis** e clique em **Histórico** no card do imóvel.', 'Filtre por período ou tipo de serviço.', 'Clique em uma faxina para ver o checklist preenchido e as fotos de cada cômodo.'] }
+    ] },
+    { id: 'checklists', icon: 'list-checks', title: 'Checklists', desc: 'Defina o padrão de cada faxina, cômodo por cômodo.', articles: [
+      { id: 'criar-checklist', t: 'Como criar um checklist por cômodo', ex: 'Monte o roteiro da faxina com cômodos, itens e fotos obrigatórias.', min: 5, up: '02/10/2026', blocks: [
+        ['p', 'O checklist é o roteiro que o prestador segue durante a faxina. Ele é organizado por **cômodos**, e cada cômodo tem seus **itens**.'],
+        ['h', 'Crie o checklist'],
+        ['steps', ['Acesse **Checklists** e clique em **Novo checklist**.', 'Dê um nome e uma descrição, como **Faxina completa do imóvel**.', 'Em **Cômodos**, adicione cada ambiente: Sala, Cozinha, Banheiro, Quarto 1…', 'Selecione um cômodo e adicione os itens, como **Aspirar ou varrer o piso** e **Limpar vidros e espelhos**.', 'Clique em **Salvar checklist**.']],
+        ['shot', 'Edição de checklist: cômodos à esquerda, itens do cômodo à direita'],
+        ['h', 'Boas práticas'],
+        ['list', ['Escreva cada item como uma ação, começando por um verbo.', 'Mantenha de 4 a 8 itens por cômodo. Listas longas aumentam o tempo de faxina.', 'Exija foto nos itens que mais geram reclamação dos hóspedes.']],
+        ['note', 'Depois de salvar, vincule o checklist aos imóveis em **Imóveis › Checklists**.', 'brand']
+      ] },
+      { id: 'fotos-obrigatorias', t: 'Como exigir fotos nos itens do checklist', ex: 'Garanta evidência visual dos itens mais importantes de cada cômodo.', min: 2, up: '26/09/2026',
+        steps: ['Abra o checklist em **Checklists** e clique em **Editar**.', 'Selecione o cômodo e o item.', 'Ative **Foto obrigatória**.', 'Clique em **Salvar checklist**.'],
+        tip: 'O prestador só consegue concluir a faxina depois de enviar todas as fotos obrigatórias. As fotos ficam no histórico do imóvel.' },
+      { id: 'checklist-com-assistente', t: 'Crie um checklist com o assistente', ex: 'Descreva o imóvel e receba uma sugestão de cômodos e itens para revisar.', min: 2, up: '23/09/2026',
+        steps: ['Acesse **Checklists**.', 'Clique em **Criar checklist com o assistente**.', 'Descreva o imóvel: quantidade de quartos, banheiros e áreas especiais.', 'Revise os cômodos e itens sugeridos, ajuste o que for preciso e clique em **Salvar checklist**.'],
+        tip: 'Revise sempre a sugestão antes de vincular o checklist aos imóveis.' },
+      { id: 'perguntas-de-negocio', t: 'Adicione perguntas de negócio ao fim da faxina', ex: 'Colete informações extras do prestador, como itens danificados ou objetos esquecidos.', min: 2, up: '17/09/2026',
+        steps: ['Acesse **Checklists** e abra a aba **Perguntas**.', 'Clique em **Nova pergunta**.', 'Escreva a pergunta e escolha o tipo de resposta.', 'Salve. A pergunta aparece no fim de cada faxina para o prestador responder.'] },
+      { id: 'compartilhar-checklist', t: 'Compartilhe um checklist por link', ex: 'Envie o checklist para um prestador ou dono de imóvel revisar antes da faxina.', min: 1, up: '09/09/2026',
+        steps: ['Acesse **Checklists**.', 'No checklist desejado, clique no ícone **Copiar link**.', 'Envie o link por e-mail ou mensagem.'] }
+    ] },
+    { id: 'prestadores', icon: 'wrench', title: 'Prestadores e serviços', desc: 'Cadastre sua equipe de campo e os tipos de serviço que ela executa.', articles: [
+      { id: 'adicionar-prestador', t: 'Como adicionar um prestador', ex: 'Convide um profissional de faxina, zeladoria ou manutenção para sua conta.', min: 3, up: '28/09/2026', blocks: [
+        ['p', 'Prestadores são os profissionais que executam as faxinas. Eles não acessam o painel: recebem os agendamentos e preenchem os checklists pelo celular.'],
+        ['h', 'Passo a passo'],
+        ['steps', ['Acesse **Prestadores** na barra lateral.', 'Clique em **Adicionar prestador**.', 'Informe nome, e-mail e celular.', 'Clique em **Enviar convite**.']],
+        ['shot', 'Lista de prestadores com status e etapas de ativação'],
+        ['h', 'Etapas de ativação'],
+        ['p', 'O prestador passa por três etapas antes de poder receber faxinas. O progresso aparece na lista de prestadores.'],
+        ['defs', [['1. Convite enviado', null, 'O prestador recebeu o convite por e-mail e celular.'], ['2. Cadastro completo', null, 'O prestador aceitou o convite e informou CPF e dados pessoais.'], ['3. Ativo', 'success', 'O prestador já pode ser atribuído a faxinas.']]],
+        ['note', 'Enquanto as três etapas não forem concluídas, o prestador aparece como **Pendente** e não pode ser atribuído a agendamentos.', 'warning']
+      ] },
+      { id: 'atribuir-prestador', t: 'Como atribuir um prestador a uma faxina', ex: 'Escolha quem vai executar cada faxina, na criação do agendamento ou depois.', min: 2, up: '25/09/2026',
+        steps: ['Abra o agendamento na **Agenda**.', 'Clique em **Atribuir prestador**.', 'Escolha um prestador **Ativo** e confirme.'],
+        tip: 'Use a visão **Semana por prestador** para conferir a disponibilidade antes de atribuir.' },
+      { id: 'tipos-de-servico', t: 'Configure os tipos de serviço', ex: 'Cadastre os serviços que sua equipe executa, como limpeza pós-hospedagem ou zeladoria.', min: 2, up: '19/09/2026',
+        steps: ['Acesse **Prestadores › Tipos de serviço**.', 'Clique em **Novo tipo de serviço**.', 'Dê um nome claro, como **Limpeza pós-hospedagem**, **Limpeza pesada**, **Limpeza urgente** ou **Zeladoria/manutenção**.', 'Clique em **Salvar**.'] },
+      { id: 'avaliacoes', t: 'Como funcionam as avaliações dos prestadores', ex: 'Entenda a nota média de cada profissional e onde ela aparece.', min: 2, up: '11/09/2026', blocks: [
+        ['p', 'Cada faxina concluída pode receber uma avaliação de 1 a 5. A nota do prestador é a média das avaliações recebidas, exibida com uma casa decimal, como **4,6**.'],
+        ['p', 'As avaliações aparecem no dashboard assim que a primeira faxina do dia termina e ficam registradas no histórico de cada imóvel.']
+      ] }
+    ] },
+    { id: 'usuarios-e-permissoes', icon: 'shield-check', title: 'Usuários e permissões', desc: 'Controle quem acessa o painel e o que cada perfil pode fazer.', articles: [
+      { id: 'adicionar-usuario', t: 'Como adicionar um usuário', ex: 'Convide uma pessoa para o painel e defina o nível de acesso dela.', min: 2, up: '20/09/2026',
+        steps: ['Acesse **Minha conta › Usuários**.', 'Clique em **Adicionar usuário**.', 'Informe nome e e-mail e escolha o **nível de acesso**.', 'Clique em **Enviar convite**.'],
+        tip: 'O usuário aparece como **Pendente** até aceitar o convite. Prestadores não são usuários do painel: cadastre-os em **Prestadores**.' },
+      { id: 'niveis-de-acesso', t: 'Entenda os níveis de acesso', ex: 'Proprietário da conta, administrador, anfitrião e dono do imóvel: o que cada um pode fazer.', min: 3, up: '18/09/2026', blocks: [
+        ['p', 'O nível de acesso define o que cada usuário vê e faz no painel. As ações de cada nível podem ser ajustadas em **Minha conta › Permissões**.'],
+        ['defs', [['Proprietário da conta', 'brand', 'Acesso total, incluindo faturamento. Cada conta tem um único proprietário.'], ['Administrador', 'brand', 'Gerencia imóveis, agenda, prestadores e usuários.'], ['Anfitrião', 'brand', 'Acompanha a agenda e a operação dos imóveis sob sua responsabilidade.'], ['Dono do imóvel', 'warning', 'Visualiza a agenda e o histórico dos próprios imóveis.']]],
+        ['note', 'Um dono de imóvel pode ficar cadastrado com status **Sem acesso**, apenas para fins de registro.', 'brand']
+      ] },
+      { id: 'permissoes-por-modulo', t: 'Como configurar permissões por módulo', ex: 'Ajuste o que cada nível de acesso pode visualizar, criar, editar e excluir.', min: 4, up: '15/09/2026', blocks: [
+        ['p', 'As permissões são organizadas por **módulo** (Dashboard, Imóveis, Checklists, Equipe, Relatórios e Agenda) e por **ação** (Visualizar, Criar, Editar e Excluir).'],
+        ['h', 'Passo a passo'],
+        ['steps', ['Acesse **Minha conta › Permissões**.', 'Localize o módulo que deseja ajustar.', 'Marque ou desmarque a ação na coluna de cada nível de acesso.', 'Clique em **Salvar alterações**.']],
+        ['shot', 'Matriz de permissões por módulo e nível de acesso'],
+        ['h', 'Quem pode alterar'],
+        ['p', 'Somente o **Proprietário da conta** e os **Administradores** podem editar permissões.'],
+        ['note', 'As permissões do Proprietário da conta não podem ser alteradas.', 'warning']
+      ] },
+      { id: 'registro-de-atividades', t: 'Consulte o registro de atividades', ex: 'Saiba quem criou, atribuiu, alterou ou cancelou cada agendamento.', min: 2, up: '12/09/2026',
+        steps: ['Acesse **Minha conta › Atividades**.', 'Filtre por período, usuário ou tipo de evento: **Criação**, **Atribuição**, **Mudança de status** ou **Cancelamento**.', 'Clique em um evento para ver os detalhes.'] }
+    ] },
+    { id: 'assinatura', icon: 'credit-card', title: 'Assinatura e faturamento', desc: 'Acompanhe seu plano, a forma de pagamento e as faturas.', articles: [
+      { id: 'forma-de-pagamento', t: 'Como escolher a forma de pagamento', ex: 'Pague a assinatura por PIX ou cartão de crédito.', min: 2, up: '30/09/2026',
+        steps: ['Acesse **Minha conta › Faturamento**.', 'Em **Escolha a forma de pagamento**, selecione **PIX** ou **Cartão de crédito**.', 'Para PIX, leia o QR Code no app do seu banco. Para cartão, preencha os dados e confirme.'],
+        tip: 'A próxima cobrança é agendada assim que a forma de pagamento for confirmada.' },
+      { id: 'alterar-plano', t: 'Como alterar seu plano', ex: 'Mude de plano quando o número de imóveis da sua operação crescer.', min: 2, up: '22/09/2026',
+        steps: ['Acesse **Minha conta › Faturamento**.', 'No resumo da assinatura, clique em **Alterar plano**.', 'Escolha o novo plano e confirme.'],
+        tip: 'O plano **Essencial** cobre até 10 imóveis por **R$ 89,90** por mês.' },
+      { id: 'historico-de-faturas', t: 'Consulte o histórico de faturas', ex: 'Veja datas, valores e status de todas as cobranças da assinatura.', min: 1, up: '13/09/2026',
+        steps: ['Acesse **Minha conta › Faturamento**.', 'Role até **Histórico de faturas**.', 'Clique em **Ver** para abrir uma fatura.'] },
+      { id: 'cancelar-assinatura', t: 'Como cancelar a assinatura', ex: 'Saiba quem pode cancelar e como fazer a solicitação.', min: 2, up: '05/09/2026',
+        steps: ['Acesse **Minha conta › Suporte**.', 'Abra uma solicitação com o assunto **Cancelamento de assinatura**.', 'Nossa equipe confirma o cancelamento por e-mail.'],
+        tip: 'Somente o **Proprietário da conta** pode solicitar o cancelamento.', tipTone: 'warning' }
+    ] },
+    { id: 'perfil-e-seguranca', icon: 'circle-user-round', title: 'Perfil e segurança', desc: 'Mantenha seus dados de acesso atualizados e sua conta protegida.', articles: [
+      { id: 'alterar-senha', t: 'Como alterar sua senha', ex: 'Troque a senha de acesso ao painel a qualquer momento.', min: 1, up: '26/09/2026',
+        steps: ['Clique no seu nome, no rodapé da barra lateral, e escolha **Meu perfil**.', 'Em **Segurança**, clique em **Alterar senha**.', 'Informe a senha atual e a nova senha duas vezes.', 'Clique em **Salvar alterações**.'] },
+      { id: 'verificacao-em-duas-etapas', t: 'Ative a verificação em duas etapas (2FA)', ex: 'Adicione uma camada extra de proteção ao entrar no painel.', min: 2, up: '21/09/2026',
+        steps: ['Acesse **Meu perfil › Segurança**.', 'Ative **Verificação em duas etapas**.', 'Leia o QR Code com um aplicativo autenticador.', 'Digite o código de 6 dígitos para confirmar.'],
+        tip: 'Guarde os códigos de recuperação em um lugar seguro. Eles permitem entrar se você perder o celular.' },
+      { id: 'entrar-com-google', t: 'Como entrar com sua conta Google', ex: 'Acesse o painel sem senha usando o mesmo e-mail cadastrado no Yosp.', min: 1, up: '14/09/2026',
+        steps: ['Na tela de login, clique em **Continuar com Google**.', 'Escolha a conta Google com o mesmo e-mail do seu usuário no Yosp.'],
+        tip: 'Se o e-mail da conta Google for diferente, o acesso não é liberado. Peça a um administrador para atualizar seu e-mail em **Usuários**.' },
+      { id: 'dados-do-perfil', t: 'Atualize seus dados de perfil', ex: 'Altere nome, foto e telefone exibidos para sua equipe.', min: 1, up: '07/09/2026',
+        steps: ['Acesse **Meu perfil**.', 'Edite nome, telefone e foto.', 'Clique em **Salvar alterações**.'] }
+    ] }
+  ];
+
+  all = this.cats.flatMap(c => c.articles.map(a => ({ c, a, hay: this.norm([c.title, a.t, a.ex, (a.steps || []).join(' '), a.tip || '', JSON.stringify(a.blocks || [])].join(' ').replace(/\*\*/g, '')) })));
+
+  norm(s) { return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+
+  parse() { const h = (window.location.hash || '').replace(/^#\/?/, ''); return h && !h.startsWith('suporte') ? h.split('/').filter(Boolean) : []; }
+
+  componentDidMount() {
+    this.onPop = () => this.setState({ path: this.parse(), q: '', open: false, fb: null });
+    this.onDown = (e) => { const el = this.searchRef.current; if (!el) return; this.setState({ open: el.contains(e.target) }); };
+    window.addEventListener('popstate', this.onPop);
+    document.addEventListener('mousedown', this.onDown);
+    this.setState({ path: this.parse() });
+  }
+  componentWillUnmount() { window.removeEventListener('popstate', this.onPop); document.removeEventListener('mousedown', this.onDown); }
+
+  go(p) {
+    try { window.history.pushState(null, '', '#/' + p); } catch (e) {}
+    this.setState({ path: p ? p.split('/') : [], q: '', open: false, fb: null, copied: false });
+    window.scrollTo(0, 0);
+  }
+  nav(p) { return (e) => { if (e && e.preventDefault) e.preventDefault(); this.go(p); }; }
+  link(p) { return { href: '#/' + p, go: this.nav(p) }; }
+
+  segs(t) { return String(t).split(/\*\*(.+?)\*\*/).map((s, i) => ({ t: s, b: i % 2 === 1, plain: i % 2 === 0 })).filter(s => s.t); }
+
+  blocks(a, showShots) {
+    const raw = a.blocks || [['h', 'Passo a passo'], ['steps', a.steps || []], a.tip ? ['note', a.tip, a.tipTone || 'brand'] : null].filter(Boolean);
+    return raw.map(([k, x, y], i) => {
+      const o = { key: i, isH: k === 'h', isP: k === 'p', isSteps: k === 'steps', isList: k === 'list', isDefs: k === 'defs', isNote: k === 'note', isShot: k === 'shot' && showShots };
+      if (k === 'h') { o.text = x; o.id = 'secao-' + i; }
+      if (k === 'p' || k === 'note') o.segs = this.segs(x);
+      if (k === 'note') o.tone = y || 'brand';
+      if (k === 'steps') o.items = x.map((s, j) => ({ n: j + 1, segs: this.segs(s) }));
+      if (k === 'list') o.items = x.map(s => ({ segs: this.segs(s) }));
+      if (k === 'defs') o.items = x.map(([l, tone, t]) => ({ label: l, tone: tone || 'neutral', hasTone: !!tone, noTone: !tone, segs: this.segs(t) }));
+      if (k === 'shot') { o.caption = x; o.placeholder = 'Arraste a captura de tela: ' + x; o.slotId = 'kb-' + a.id + '-' + i; }
+      return o;
+    });
+  }
+
+  renderVals() {
+    const p = this.props;
+    const soft = (p.heroStyle ?? 'Azul') === 'Suave';
+    const hero = soft
+      ? { bg: 'var(--gradient-canvas)', bd: 'var(--border-1)', fg: 'var(--fg-1)', fg2: 'var(--fg-2)', sep: 'var(--border-2)', logo: 'blue', btn: 'primary' }
+      : { bg: 'var(--blue-500)', bd: 'var(--blue-500)', fg: '#FFFFFF', fg2: 'var(--blue-50)', sep: 'rgba(255,255,255,.45)', logo: 'white', btn: 'secondary' };
+    const showShots = p.showScreenshots ?? true;
+    const cols = String(p.homeColumns ?? '2');
+
+    const [cid, aid] = this.state.path;
+    const cat = this.cats.find(c => c.id === cid);
+    const idx = cat && aid ? cat.articles.findIndex(a => a.id === aid) : -1;
+    const a = idx >= 0 ? cat.articles[idx] : null;
+    const isArt = !!a, isCat = !!cat && !a, isHome = !cat;
+    const plural = (n, s, pl) => n + ' ' + (n === 1 ? s : pl);
+
+    const homeCats = this.cats.map(c => ({
+      ...this.link(c.id), id: c.id, icon: c.icon, title: c.title, desc: c.desc,
+      top: c.articles.slice(0, 4).map(x => ({ t: x.t, ...this.link(c.id + '/' + x.id) })),
+      seeAll: 'Ver todos os ' + c.articles.length + ' artigos'
+    }));
+
+    const crumbs = [{ label: 'Central de ajuda', ...this.link('') }];
+    if (cat) crumbs.push({ label: cat.title, ...this.link(cat.id) });
+    if (a) crumbs.push({ label: a.t, ...this.link(cat.id + '/' + a.id) });
+    crumbs.forEach((c, i) => { c.notFirst = i > 0; c.isLast = i === crumbs.length - 1; c.isLink = !c.isLast; });
+
+    const catVals = cat ? {
+      icon: cat.icon, title: cat.title, desc: cat.desc, countLabel: plural(cat.articles.length, 'artigo', 'artigos'),
+      articles: cat.articles.map(x => ({ t: x.t, ex: x.ex, meta: x.min + ' min de leitura · Atualizado em ' + x.up, ...this.link(cat.id + '/' + x.id) }))
+    } : { icon: 'folder', title: '', desc: '', countLabel: '', articles: [] };
+
+    const empty = { t: '', href: '#/', go: null };
+    let artVals = { t: '', ex: '', catTitle: '', minLabel: '', upLabel: '', blocks: [], toc: [], hasToc: false, siblings: [], prev: empty, next: empty, hasPrev: false, noPrev: true, hasNext: false, noNext: true };
+    if (a) {
+      const blocks = this.blocks(a, showShots);
+      const toc = blocks.filter(b => b.isH).map(b => ({ text: b.text, href: '#' + b.id, go: (e) => { e.preventDefault(); const el = document.getElementById(b.id); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' }); } }));
+      const prev = cat.articles[idx - 1], next = cat.articles[idx + 1];
+      artVals = {
+        t: a.t, ex: a.ex, catTitle: cat.title, minLabel: a.min + ' min de leitura', upLabel: 'Atualizado em ' + a.up,
+        blocks, toc, hasToc: toc.length > 1,
+        siblings: cat.articles.map(x => ({ t: x.t, active: x.id === a.id, inactive: x.id !== a.id, ...this.link(cat.id + '/' + x.id) })),
+        prev: prev ? { t: prev.t, ...this.link(cat.id + '/' + prev.id) } : empty,
+        next: next ? { t: next.t, ...this.link(cat.id + '/' + next.id) } : empty,
+        hasPrev: !!prev, noPrev: !prev, hasNext: !!next, noNext: !next
+      };
+    }
+
+    const q = this.state.q.trim();
+    let results = [];
+    if (q.length >= 2) {
+      const terms = this.norm(q).split(/\s+/).filter(Boolean);
+      results = this.all
+        .filter(x => terms.every(w => x.hay.includes(w)))
+        .map(x => ({ x, s: terms.filter(w => this.norm(x.a.t).includes(w)).length }))
+        .sort((m, n) => n.s - m.s).slice(0, 6)
+        .map(({ x }) => ({ t: x.a.t, cat: x.c.title, ...this.link(x.c.id + '/' + x.a.id) }));
+    }
+    const showDrop = this.state.open && q.length >= 2;
+
+    return {
+      hero, cols, isHome, notHome: !isHome, isCat, isArt,
+      homeCats, crumbs, cat: catVals, art: artVals,
+      searchMax: isHome ? '680px' : '100%',
+      q: this.state.q, qTrail: this.state.q ? 'x' : '',
+      onQ: (e) => this.setState({ q: e.target.value, open: true }),
+      clearQ: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ q: '', open: false }); },
+      inputExtra: { style: { height: 56 } },
+      showDrop, results, hasResults: results.length > 0, noResults: results.length === 0,
+      resultsLabel: plural(results.length, 'artigo encontrado', 'artigos encontrados'),
+      noResultsTitle: 'Nenhum artigo encontrado para “' + q + '”',
+      homeCard: { padding: 28 },
+      flushCard: { padding: 0, style: { overflow: 'hidden' } },
+      articleCard: { padding: 48, bodyStyle: { gap: 0 } },
+      fbNone: !this.state.fb, fbDone: !!this.state.fb,
+      fbText: this.state.fb === 'sim' ? 'Obrigado pelo retorno.' : 'Obrigado. Se ainda precisar de ajuda, fale com nossa equipe abaixo.',
+      fbYes: () => this.setState({ fb: 'sim' }), fbNo: () => this.setState({ fb: 'nao' }),
+      copied: this.state.copied,
+      copyLink: () => { try { navigator.clipboard.writeText(window.location.href); } catch (e) {} this.setState({ copied: true }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied: false }), 2000); },
+      print: () => window.print(),
+      goHome: this.nav(''),
+      goSupport: (e) => { e.preventDefault(); const el = document.getElementById('suporte'); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior: 'smooth' }); },
+      mailSupport: () => { window.location.href = 'mailto:suporte@yosp.com.br'; },
+      totalLabel: plural(this.all.length, 'artigo', 'artigos') + ' em ' + this.cats.length + ' categorias',
+      searchRef: this.searchRef
+    };
+  }
+}
+</script>
+</body>
+</html>

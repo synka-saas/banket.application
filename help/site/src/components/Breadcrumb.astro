@@ -1,0 +1,14 @@
+---
+import Icon from './Icon.astro';
+
+interface Props { items: { label: string; href?: string }[] }
+const { items } = Astro.props;
+---
+<nav class="crumbs" aria-label="Navegação estrutural">
+  {items.map((it, i) => (
+    <>
+      {i > 0 && <span class="sep" aria-hidden="true"><Icon name="chevron-right" size={14} /></span>}
+      {it.href ? <a href={it.href}>{it.label}</a> : <span aria-current="page">{it.label}</span>}
+    </>
+  ))}
+</nav>

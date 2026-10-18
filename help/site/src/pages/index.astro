@@ -1,0 +1,33 @@
+---
+// Home (pública): busca + cards de categoria com os 4 primeiros artigos.
+import Base from '../layouts/Base.astro';
+import IconTile from '../components/IconTile.astro';
+import Icon from '../components/Icon.astro';
+import { getCategories } from '../lib/content';
+
+const cats = await getCategories();
+---
+<Base title="Central de ajuda" home description="Guias passo a passo para configurar sua conta e operar os serviços dos seus imóveis no Yosp.">
+  <section class="home-cats" aria-label="Categorias">
+    {cats.map((c) => (
+      <div class="home-cat">
+        <div class="card">
+          <a href={c.url} class="home-cat-head">
+            <IconTile icon={c.icon} size={44} />
+            <span class="home-cat-head-text">
+              <span class="home-cat-title">{c.title}</span>
+              {c.description && <span class="home-cat-desc">{c.description}</span>}
+            </span>
+          </a>
+          <div class="home-cat-links">
+            {c.articles.slice(0, 4).map((a) => <a href={a.url}>{a.title}</a>)}
+          </div>
+          <a href={c.url} class="see-all">
+            {c.articles.length === 1 ? 'Ver o artigo' : `Ver todos os ${c.articles.length} artigos`}
+            <Icon name="arrow-right" size={16} />
+          </a>
+        </div>
+      </div>
+    ))}
+  </section>
+</Base>

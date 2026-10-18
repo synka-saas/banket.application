@@ -1,0 +1,26 @@
+/* Yosp — elevation, glass, gradients, motion */
+:root{
+--shadow-none:none;
+--shadow-xs:0 1px 2px rgba(19,16,28,.04);
+--shadow-pop:0 8px 24px rgba(19,16,28,.08),0 1px 2px rgba(19,16,28,.06);
+--shadow-glass:0 20px 60px rgba(22,82,249,.10);
+--blur-glass:20px; /* @kind other */
+
+--gradient-canvas:radial-gradient(60% 50% at 50% 35%,var(--canvas-2) 0%,rgba(220,228,252,0) 70%),linear-gradient(180deg,var(--canvas-0) 0%,var(--canvas-1) 55%,var(--canvas-0) 100%); /* @kind color */
+
+--gradient-glass-card:linear-gradient(180deg,rgba(255,255,255,.75) 0%,rgba(232,238,254,.55) 100%); /* @kind color */
+
+--gradient-ai-border:linear-gradient(135deg,var(--blue-500) 0%,var(--blue-300) 55%,var(--yellow-500) 100%); /* @kind color */
+
+--gradient-photo-wash:linear-gradient(180deg,rgba(22,82,249,.10) 0%,rgba(22,82,249,.35) 100%); /* @kind color */
+
+--stripe-pattern:repeating-linear-gradient(135deg,var(--blue-200) 0 6px,var(--blue-100) 6px 12px); /* @kind color */
+
+--ease-out:cubic-bezier(.2,.8,.2,1); /* @kind other */
+--ease-in-out:cubic-bezier(.4,0,.2,1); /* @kind other */
+
+--dur-fast:120ms; /* @kind other */
+--dur-base:200ms; /* @kind other */
+--dur-slow:320ms; /* @kind other */
+
+}

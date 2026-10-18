@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import IconTile from '../components/IconTile.astro';
+import Icon from '../components/Icon.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+<Base title="Página não encontrada">
+  <div class="card">
+    <div class="empty">
+      <IconTile icon="file-question" size={56} tone="neutral" shape="circle" />
+      <span class="empty-title">Página não encontrada</span>
+      <span class="empty-desc">O endereço pode ter mudado ou o artigo foi removido. Use a busca acima ou volte para o início da central de ajuda.</span>
+      <a class="btn btn-primary" href={base}><Icon name="arrow-left" size={18} />Voltar para o início</a>
+    </div>
+  </div>
+</Base>

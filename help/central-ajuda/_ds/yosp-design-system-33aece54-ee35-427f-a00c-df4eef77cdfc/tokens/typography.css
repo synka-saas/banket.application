@@ -1,0 +1,31 @@
+/* Yosp — typography. Brand typeface: General Sans (self-hosted, tokens/fonts.css). */
+:root{
+--font-sans:"General Sans",-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",sans-serif;
+--font-display:"General Sans",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+--font-mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+--fw-light:300; /* @kind font */
+--fw-regular:400; /* @kind font */
+--fw-medium:500; /* @kind font */
+--fw-semibold:600; /* @kind font */
+
+/* Product scale (1440 desktop) */
+--text-2xs:11px;--text-xs:12px;--text-sm:14px;--text-md:16px;--text-lg:20px;--text-xl:24px;--text-2xl:28px;--text-3xl:36px;
+/* Editorial / marketing scale */
+--text-display-sm:48px;--text-display-md:64px;--text-display-lg:96px;--text-display-xl:160px;
+--lh-tight:1.15; /* @kind font */
+--lh-snug:1.3; /* @kind font */
+--lh-normal:1.5; /* @kind font */
+
+--tracking-tight:-0.02em; /* @kind font */
+--tracking-normal:0; /* @kind font */
+--tracking-caps:0.02em; /* @kind font */
+
+/* Semantic roles */
+--type-page-title:var(--fw-medium) var(--text-xl)/var(--lh-tight) var(--font-sans);
+--type-card-title:var(--fw-medium) var(--text-lg)/var(--lh-snug) var(--font-sans);
+--type-kpi:var(--fw-medium) var(--text-2xl)/var(--lh-tight) var(--font-sans);
+--type-body:var(--fw-regular) var(--text-md)/var(--lh-normal) var(--font-sans);
+--type-label:var(--fw-regular) var(--text-sm)/var(--lh-snug) var(--font-sans);
+--type-caption:var(--fw-regular) var(--text-xs)/var(--lh-snug) var(--font-sans);
+--type-overline:var(--fw-medium) var(--text-sm)/var(--lh-snug) var(--font-sans);
+}

@@ -1,0 +1,164 @@
+---
+// Tela de entrada da Central de Ajuda.
+//
+// O nginx do container entrega este HTML (com status 401) no lugar de qualquer
+// página protegida quando não há sessão válida. A URL pedida continua na barra
+// do navegador, então, depois de entrar, basta recarregar para ver o conteúdo:
+// não existe parâmetro de redirecionamento (e, portanto, nada de open redirect).
+//
+// Usa os endpoints de autenticação que a plataforma já expõe no mesmo host
+// (/api/auth/login, /api/auth/mfa/verify, /api/auth/refresh): os cookies de
+// sessão são os mesmos do painel. Também pode ser aberta direto em /ajuda/entrar/.
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+---
+<Base title="Entrar" search={false} support={false}>
+  <div class="auth">
+    <div class="card">
+      <div class="auth-checking" data-checking>
+        <Icon name="loader-circle" size={18} />Verificando sua sessão…
+      </div>
+
+      <div class="auth-head" data-step-head hidden>
+        <h1>Entre para continuar</h1>
+        <p>A Central de ajuda é exclusiva para clientes Yosp. Use o mesmo e-mail e senha do painel.</p>
+      </div>
+
+      <div class="auth-error" role="alert" hidden data-error>
+        <Icon name="circle-alert" size={18} /><span data-error-text></span>
+      </div>
+
+      <form data-login hidden novalidate>
+        <label class="field">
+          <span class="field-label">E-mail</span>
+          <span class="field-input"><input type="email" name="email" autocomplete="username" required /></span>
+        </label>
+        <label class="field">
+          <span class="field-label"><span>Senha</span><a href="/forgot-password">Esqueci minha senha</a></span>
+          <span class="field-input"><input type="password" name="password" autocomplete="current-password" required /></span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg btn-block">Entrar</button>
+      </form>
+
+      <form data-mfa hidden novalidate>
+        <div class="auth-head">
+          <h1>Verificação em duas etapas</h1>
+          <p>Digite o código de 6 dígitos do seu aplicativo autenticador ou um código de backup.</p>
+        </div>
+        <label class="field">
+          <span class="field-label">Código</span>
+          <span class="field-input"><input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" required /></span>
+        </label>
+        <button type="submit" class="btn btn-primary btn-lg btn-block">Verificar</button>
+      </form>
+
+      <div class="auth-alt" data-alt hidden>
+        <a class="btn btn-secondary btn-lg btn-block" href="/api/auth/google">Continuar com Google</a>
+        <div class="auth-links">
+          <a href="/magic-link">Entrar com link de acesso</a>
+          <a href="/">Ir para o painel</a>
+        </div>
+        <p class="auth-note">Ao entrar com Google ou com link de acesso, você vai para o painel. Depois, abra a Central de ajuda de novo.</p>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  const base = import.meta.env.BASE_URL;
+  const atLoginPage = window.location.pathname.replace(/\/+$/, '/') === `${base}entrar/`;
+  const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const loginForm = $<HTMLFormElement>('[data-login]');
+  const mfaForm = $<HTMLFormElement>('[data-mfa]');
+  const errorBox = $('[data-error]');
+
+  // Depois de entrar: na própria /entrar/ vai para o início; numa página protegida, recarrega a mesma URL.
+  const proceed = () => (atLoginPage ? window.location.assign(base) : window.location.reload());
+
+  const showError = (msg: string) => {
+    $('[data-error-text]').textContent = msg;
+    errorBox.hidden = false;
+  };
+  const showStep = (step: 'login' | 'mfa') => {
+    $('[data-checking]').hidden = true;
+    $('[data-step-head]').hidden = step !== 'login';
+    loginForm.hidden = step !== 'login';
+    mfaForm.hidden = step !== 'mfa';
+    $('[data-alt]').hidden = step !== 'login';
+    (step === 'login' ? loginForm : mfaForm).querySelector('input')?.focus();
+  };
+
+  async function post(url: string, body?: object) {
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let data: any = {};
+    try { data = await r.json(); } catch { /* corpo vazio */ }
+    return { ok: r.ok, status: r.status, data };
+  }
+
+  // O access token dura 15 min; com o refresh_token ainda válido a plataforma emite um novo.
+  // A trava em sessionStorage evita laço de recarga se a sessão renovada continuar sem acesso.
+  async function tryResume(): Promise<boolean> {
+    const KEY = 'yosp-ajuda-refresh';
+    try {
+      const last = Number(sessionStorage.getItem(KEY) || 0);
+      if (Date.now() - last < 30_000) return false;
+      sessionStorage.setItem(KEY, String(Date.now()));
+    } catch { /* storage bloqueado: segue sem trava */ }
+    if (atLoginPage) {
+      // Já tem sessão? (rota protegida mínima do nginx)
+      const r = await fetch(`${base}_sessao`, { method: 'HEAD', credentials: 'same-origin' }).catch(() => null);
+      if (r?.ok) return true;
+    }
+    const r = await post('/api/auth/refresh').catch(() => null);
+    return !!r?.ok;
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.hidden = true;
+    const fd = new FormData(loginForm);
+    const email = String(fd.get('email') || '').trim();
+    const password = String(fd.get('password') || '');
+    if (!email || !password) return showError('Informe e-mail e senha.');
+    const btn = loginForm.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    btn.disabled = true;
+    try {
+      const r = await post('/api/auth/login', { email, password });
+      if (r.ok && r.data.mfaRequired) return showStep('mfa');
+      if (r.ok && r.data.success) return proceed();
+      showError(r.data.error || 'Não foi possível entrar. Tente novamente.');
+    } catch {
+      showError('Erro de conexão. Tente novamente.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  mfaForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.hidden = true;
+    const raw = String(new FormData(mfaForm).get('code') || '');
+    const digits = raw.replace(/[-\s]/g, '');
+    const code = /^\d{6}$/.test(digits) ? digits : raw.trim();
+    if (!code) return showError('Informe o código.');
+    const btn = mfaForm.querySelector<HTMLButtonElement>('button[type=submit]')!;
+    btn.disabled = true;
+    try {
+      const r = await post('/api/auth/mfa/verify', { code });
+      if (r.ok && r.data.success) return proceed();
+      if (r.data.sessionExpired) showStep('login');
+      showError(r.data.error || 'Código inválido.');
+    } catch {
+      showError('Erro de conexão. Tente novamente.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  tryResume().then((ok) => (ok ? proceed() : showStep('login')));
+</script>

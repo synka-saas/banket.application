@@ -1,0 +1,11 @@
+---
+// IconTile do Design System: quadrado tingido com ícone (raio = 25% do lado).
+import Icon from './Icon.astro';
+
+interface Props { icon: string; size?: number; tone?: 'brand' | 'neutral'; shape?: 'square' | 'circle' }
+const { icon, size = 40, tone = 'brand', shape = 'square' } = Astro.props;
+const radius = shape === 'circle' ? '50%' : `${Math.round(size * 0.25)}px`;
+---
+<span class="icon-tile" data-tone={tone} style={`width:${size}px;height:${size}px;border-radius:${radius}`}>
+  <Icon name={icon} size={Math.round(size * 0.5)} />
+</span>

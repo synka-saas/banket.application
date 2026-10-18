@@ -1,0 +1,44 @@
+---
+// Listagem de uma categoria (tela "Categoria" do protótipo).
+import Base from '../../layouts/Base.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
+import IconTile from '../../components/IconTile.astro';
+import Icon from '../../components/Icon.astro';
+import { getCategories, plural, formatDate, type Category } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const cats = await getCategories();
+  return cats.map((cat) => ({ params: { categoria: cat.slug }, props: { cat } }));
+}
+
+const { cat } = Astro.props as { cat: Category };
+const base = import.meta.env.BASE_URL;
+---
+<Base title={cat.title} description={cat.description}>
+  <div class="crumb-row">
+    <Breadcrumb items={[{ label: 'Central de ajuda', href: base }, { label: cat.title }]} />
+  </div>
+  <section class="cat-section">
+    <div class="cat-head">
+      <IconTile icon={cat.icon} size={56} />
+      <div class="cat-head-text">
+        <h1>{cat.title}</h1>
+        <p>{cat.description ? `${cat.description} · ` : ''}{plural(cat.articles.length, 'artigo', 'artigos')}</p>
+      </div>
+    </div>
+    <div class="card card-flush">
+      <div class="cat-list">
+        {cat.articles.map((a) => (
+          <a href={a.url} class="cat-item">
+            <span class="cat-item-text">
+              <span class="cat-item-title">{a.title}</span>
+              {a.description && <span class="cat-item-ex">{a.description}</span>}
+              <span class="cat-item-meta"><Icon name="clock" size={14} />{a.minutes} min de leitura · Atualizado em {formatDate(a.updatedAt)}</span>
+            </span>
+            <span class="cat-item-chev"><Icon name="chevron-right" size={20} /></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

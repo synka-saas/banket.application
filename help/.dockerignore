@@ -1,0 +1,11 @@
+# Contexto do build da Central de Ajuda: só site/ e support/ (+ nginx/).
+central-ajuda
+auth
+scripts
+releases
+.git
+**/node_modules
+**/dist
+**/.astro
+**/.DS_Store
+*.log
