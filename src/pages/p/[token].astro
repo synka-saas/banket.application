@@ -6,6 +6,7 @@ import FormularioLayout from '../../layouts/FormularioLayout.astro';
 import { contentTypeFor, readFile } from '../../lib/storage';
 import { formToObject, userMessage } from '../../lib/forms';
 import { ipDaRequisicao, permitir } from '../../lib/rateLimit';
+import { lerTokenSessao, verifySession } from '../../lib/auth';
 import { ROTULOS_NOTA, campoPergunta, pesquisaPublica, responderPesquisa } from '../../server/pesquisas';
 
 const token = Astro.params.token ?? '';
@@ -27,7 +28,11 @@ if (pesquisa && !respondida && Astro.request.method === 'POST') {
     enviado = formToObject(await Astro.request.formData(), multiplas);
     try {
       // Honeypot: campo invisível que só robôs preenchem
-      if (!(typeof enviado._website === 'string' && enviado._website.trim())) await responderPesquisa(pesquisa, enviado, ip);
+      if (!(typeof enviado._website === 'string' && enviado._website.trim())) {
+        // Quem responde logado no Banket (ex.: um usuário da própria empresa) não conta como avaliação no Busca
+        const sessao = await verifySession(lerTokenSessao(Astro.cookies));
+        await responderPesquisa(pesquisa, enviado, ip, { usuarioId: sessao?.id ?? null });
+      }
       respondida = true;
     } catch (err) {
       erro = userMessage(err, 'Não foi possível enviar suas respostas. Tente novamente.');

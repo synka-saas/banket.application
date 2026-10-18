@@ -176,6 +176,16 @@ const valoresDoEvento = (e: ContextoEvento, empresa: string, token: string) => (
   link_pesquisa: linkPesquisa(token),
 });
 
+/** A pesquisa só vale para evento fechado (etapa "aprovado") que já aconteceu: a mesma regra da lista de envio. */
+async function exigirEventoRealizado(db: Db, eventoId: string): Promise<void> {
+  const { rows } = await db.query<{ ok: boolean }>(
+    `SELECT s.variante = 'aprovado' AND e.data_evento < (now() AT TIME ZONE 'America/Sao_Paulo')::date AS ok
+       FROM eventos e JOIN status_orcamento s ON s.id = e.status_id WHERE e.id = $1`,
+    [eventoId]
+  );
+  if (!rows[0]?.ok) throw new UserError('A pesquisa só pode ser enviada para eventos fechados que já aconteceram.', 'evento_id');
+}
+
 /** Link do evento (um por evento): reaproveita o existente ou cria um novo token. */
 async function obterEnvio(db: Db, tenantId: string, eventoId: string, clienteId: string | null) {
   await db.query(
@@ -202,6 +212,7 @@ export const envioSchema = z.object({
  */
 export async function enviarPesquisa(db: Db, user: SessionUser, input: z.infer<typeof envioSchema>): Promise<{ delivered: boolean }> {
   const e = await contextoEvento(db, input.evento_id);
+  await exigirEventoRealizado(db, input.evento_id);
   const envio = await obterEnvio(db, user.tenantId, input.evento_id, e.cliente_id);
   if (envio.respondida_em) throw new UserError('O cliente já respondeu a pesquisa deste evento.');
   const empresa = await carregarEmpresa(db);
@@ -232,6 +243,7 @@ export async function enviarPesquisa(db: Db, user: SessionUser, input: z.infer<t
 /** Link da pesquisa para copiar e mandar por outro canal (WhatsApp): cria o link sem enviar e-mail. */
 export async function linkDoEvento(db: Db, user: SessionUser, eventoId: string): Promise<string> {
   const e = await contextoEvento(db, eventoId);
+  await exigirEventoRealizado(db, eventoId);
   const envio = await obterEnvio(db, user.tenantId, eventoId, e.cliente_id);
   return linkPesquisa(envio.token);
 }
@@ -351,7 +363,37 @@ export async function pesquisaPublica(token: string): Promise<PesquisaPublica | 
 }
 
 /** Grava as respostas (uma vez por link) e registra na linha do tempo do evento. */
-export async function responderPesquisa(pub: PesquisaPublica, dados: Record<string, unknown>, ip: string): Promise<void> {
+/**
+ * A resposta conta como avaliação pública no Banket Busca? Só a de um cliente de fato: evento fechado e realizado,
+ * destinatários e cliente que não são usuários da empresa, e quem responde não está logado como usuário dela.
+ * A resposta continua valendo para os indicadores internos (NPS, CSAT) em qualquer caso.
+ */
+async function valeNoBusca(db: Db, envioId: string, eventoId: string, respondente: string | null): Promise<boolean> {
+  const { rows } = await db.query<{ ok: boolean }>(
+    `SELECT s.variante = 'aprovado' AND e.data_evento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+            AND NOT EXISTS (SELECT 1 FROM tenant_usuarios tu WHERE tu.tenant_id = e.tenant_id AND tu.usuario_id = $3::uuid)
+            AND NOT EXISTS (
+              SELECT 1 FROM tenant_usuarios tu JOIN usuarios u ON u.id = tu.usuario_id
+               WHERE tu.tenant_id = e.tenant_id
+                 AND (lower(u.email) = ANY (SELECT lower(x) FROM unnest(pe.enviado_para) x)
+                      OR lower(u.email) = lower(c.email) OR lower(u.email) = lower(e.responsavel_email))
+            ) AS ok
+       FROM pesquisa_envios pe
+       JOIN eventos e ON e.id = pe.evento_id
+       JOIN status_orcamento s ON s.id = e.status_id
+       LEFT JOIN clientes c ON c.id = e.cliente_id
+      WHERE pe.id = $1 AND e.id = $2`,
+    [envioId, eventoId, respondente]
+  );
+  return Boolean(rows[0]?.ok);
+}
+
+export async function responderPesquisa(
+  pub: PesquisaPublica,
+  dados: Record<string, unknown>,
+  ip: string,
+  opcoes: { usuarioId?: string | null } = {}
+): Promise<void> {
   let respostas;
   try {
     respostas = validarRespostas(pub.perguntas, dados);
@@ -373,7 +415,10 @@ export async function responderPesquisa(pub: PesquisaPublica, dados: Record<stri
     }
     const nps = respostas.find((r) => r.pergunta.tipo === 'nps')?.nota ?? null;
     // Avaliação no Banket Busca: nota = média CSAT (ou NPS convertido); depoimento só com autorização
-    const av = avaliacaoDaPesquisa(respostas.map((r) => ({ tipo: r.pergunta.tipo, texto: r.pergunta.texto, nota: r.nota, opcoes: r.opcoes, resposta: r.texto })));
+    const calculada = avaliacaoDaPesquisa(respostas.map((r) => ({ tipo: r.pergunta.tipo, texto: r.pergunta.texto, nota: r.nota, opcoes: r.opcoes, resposta: r.texto })));
+    const av = (await valeNoBusca(db, pub.envioId, pub.eventoId, opcoes.usuarioId ?? null))
+      ? calculada
+      : { nota: null, depoimento: null };
     const { rows: [cli] } = await db.query<{ nome: string | null; titulo: string }>(
       'SELECT c.nome, e.titulo FROM eventos e LEFT JOIN clientes c ON c.id = e.cliente_id WHERE e.id = $1',
       [pub.eventoId]
