@@ -1,7 +1,7 @@
 // Envio da proposta ao cliente por e-mail, com o PDF da versão em anexo.
 // Assunto e mensagem partem dos modelos da empresa (Configurações › Modelos de e-mail) com variáveis.
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { UserError, optionalUuid, requiredText } from '../lib/forms';
 import { formatMoney } from '../lib/money';
@@ -60,7 +60,7 @@ async function contextoEnvio(db: Db, eventoId: string, numero: number) {
 }
 
 export async function rascunhoEnvio(db: Db, eventoId: string, numero: number): Promise<RascunhoEnvio> {
-  const [ctx, empresa] = await Promise.all([contextoEnvio(db, eventoId, numero), carregarEmpresa(db)]);
+  const [ctx, empresa] = await emSequencia([() => contextoEnvio(db, eventoId, numero), () => carregarEmpresa(db)]);
   const valores = {
     nome_cliente: ctx.responsavel_nome ?? ctx.cliente_nome ?? '',
     evento: ctx.titulo ?? 'seu evento',

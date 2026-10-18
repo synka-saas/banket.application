@@ -9,6 +9,11 @@ import { ROTULOS_STATUS, type ConversaDetalhe } from '../../server/conversas';
 import type { ModeloPronto } from '../../server/emailModelos';
 import '../../styles/inbox.css';
 
+// E-mail recebido no iframe isolado: sem imagens e estilos remotos, para abrir a mensagem não avisar o remetente
+// (pixel de rastreio) nem revelar o IP de quem lê. Imagens embutidas (data:, cid:) continuam.
+const CSP_EMAIL = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">`;
+const comImagensBloqueadas = (html: string) => CSP_EMAIL + html;
+
 interface Props {
   conversa: ConversaDetalhe;
   modelos: ModeloPronto[];
@@ -102,7 +107,7 @@ const classeStatus: Record<string, string> = { entregue: 'badge-success', devolv
             {m.html && m.direcao === 'entrada' && (
               <details class="mensagem-formatado">
                 <summary>Ver e-mail formatado</summary>
-                <iframe class="mensagem-html" sandbox="" srcdoc={m.html} title={`E-mail de ${m.de}`} loading="lazy"></iframe>
+                <iframe class="mensagem-html" sandbox="" srcdoc={comImagensBloqueadas(m.html)} title={`E-mail de ${m.de}`} loading="lazy"></iframe>
               </details>
             )}
             {m.anexos.length > 0 && (

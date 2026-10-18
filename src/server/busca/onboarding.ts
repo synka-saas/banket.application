@@ -10,7 +10,7 @@ import { UserError, checkbox, optionalInt, optionalText, requiredText } from '..
 import { cnpjValido, cpfValido, somenteDigitos } from '../../lib/documento';
 import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO, filtrarSlugs } from '../../lib/busca/catalogos';
 import { cepValido } from '../../lib/busca/geo';
-import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, MAX_SLUGS_ANTIGOS, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
+import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, MAX_SLUGS_ANTIGOS, RAIOS_DOMICILIO, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
 import { openAiJson } from '../../lib/openai';
 import { ErroPlano, entitlements, exigir, limite, podeUsar } from '../../lib/planos/gating';
@@ -261,7 +261,8 @@ export const regiaoSchema = z
   .superRefine((d, ctx) => {
     if (!d.espaco_proprio && !d.atende_domicilio) ctx.addIssue({ code: 'custom', message: 'Marque espaço próprio, atendimento em domicílio ou os dois.', path: ['espaco_proprio'] });
     if (d.espaco_proprio && !d.logradouro) ctx.addIssue({ code: 'custom', message: 'Informe o endereço do espaço.', path: ['logradouro'] });
-    if (d.atende_domicilio && !(d.raio_km && d.raio_km >= 1 && d.raio_km <= 500)) ctx.addIssue({ code: 'custom', message: 'Escolha o raio de atendimento.', path: ['raio_km'] });
+    // Os raios da tela; a busca pré-filtra a 200 km, então raio maior nunca chegaria aos resultados
+    if (d.atende_domicilio && !(d.raio_km && RAIOS_DOMICILIO.includes(d.raio_km))) ctx.addIssue({ code: 'custom', message: 'Escolha o raio de atendimento.', path: ['raio_km'] });
   });
 
 export async function salvarRegiao(db: Db, user: SessionUser, input: z.infer<typeof regiaoSchema>) {

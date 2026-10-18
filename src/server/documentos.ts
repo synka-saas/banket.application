@@ -2,7 +2,7 @@
 // com a identidade visual do próprio modelo (logo, rodapé, fontes, cores; A4 branco). Modelos são editados por
 // owner/admin; qualquer usuário gera documentos.
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { exigirLimiteDb } from '../lib/planos/gating';
 import { CONTAGEM_SQL } from './planos';
@@ -255,7 +255,7 @@ export async function excluirModelo(db: Db, id: string): Promise<string | null> 
 // Variáveis a partir do evento
 // ---------------------------------------------------------------------------
 export async function valoresDoEvento(db: Db, eventoId: string): Promise<Record<string, string>> {
-  const [e, empresa] = await Promise.all([carregarEvento(db, eventoId), carregarEmpresa(db)]);
+  const [e, empresa] = await emSequencia([() => carregarEvento(db, eventoId), () => carregarEmpresa(db)]);
   const { rows: cli } = await db.query<{ endereco: string | null }>('SELECT endereco FROM clientes WHERE id = $1', [e.cliente_id]);
   const { rows: orc } = await db.query<{ versao_atual: number; valor_total: number }>(
     'SELECT versao_atual, valor_total FROM orcamentos WHERE evento_id = $1',

@@ -1,6 +1,6 @@
 // Orçamento versionado do evento: criação, versões congeladas, salvamento com recálculo no servidor.
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { UserError } from '../lib/forms';
 import { dataCurta, faixaHorario, horasTexto } from '../lib/datas';
@@ -703,7 +703,7 @@ export async function contextoOrcamento(db: Db, eventoId: string, versaoParam: s
   const numero = orcamento.versoes.some((v) => v.numero === pedida) ? pedida : orcamento.versao_atual;
   const versao = await carregarVersao(db, eventoId, numero);
   // Espaços para o select da seção Locação: ativos mais o que a versão já usa (mesmo inativo)
-  const [refs, espacos] = await Promise.all([referenciasLocacao(db), espacosParaSelecao(db, versao.conteudo.locacao.espaco_id)]);
+  const [refs, espacos] = await emSequencia([() => referenciasLocacao(db), () => espacosParaSelecao(db, versao.conteudo.locacao.espaco_id)]);
   return { evento, orcamento, versao, refs, espacos };
 }
 

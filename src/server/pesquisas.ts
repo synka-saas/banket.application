@@ -2,7 +2,7 @@
 // por e-mail dentro da conversa do evento (Inbox) com link público /p/<token>, coleta das respostas e indicadores.
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import { systemQuery, withTenant, type Db } from '../lib/db';
+import { emSequencia, systemQuery, withTenant, type Db } from '../lib/db';
 import { isAdmin, type SessionUser } from '../lib/auth';
 import { UserError, checkbox, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
@@ -339,11 +339,11 @@ export async function pesquisaPublica(token: string): Promise<PesquisaPublica | 
   return withTenant(alvo.tenant_id, async (db) => {
     const { rows: env } = await db.query<{ evento_id: string; respondida_em: Date | null }>('SELECT evento_id, respondida_em FROM pesquisa_envios WHERE id = $1', [alvo.id]);
     if (!env[0]) return null;
-    const [config, empresa, e, perguntas] = await Promise.all([
-      carregarConfig(db),
-      carregarEmpresa(db),
-      contextoEvento(db, env[0].evento_id),
-      listarPerguntas(db, { somenteAtivas: true }),
+    const [config, empresa, e, perguntas] = await emSequencia([
+      () => carregarConfig(db),
+      () => carregarEmpresa(db),
+      () => contextoEvento(db, env[0].evento_id),
+      () => listarPerguntas(db, { somenteAtivas: true }),
     ]);
     const valores = valoresDoEvento(e, empresa.nome, token);
     const v = (t: string | null) => (t ? aplicarVariaveis(t, valores) : null);

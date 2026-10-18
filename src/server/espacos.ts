@@ -1,7 +1,7 @@
 // Espaços de eventos: próprios (locação por faixa de convidados) e de terceiros (dados gerais e valor de referência).
 // As faixas de locação pertencem a um espaço próprio e alimentam o cálculo da locação no orçamento.
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import { exigirLimiteDb } from '../lib/planos/gating';
 import { CONTAGEM_SQL } from './planos';
 import { UserError, checkbox, optionalEmail, optionalInt, optionalMoney, optionalText, requiredText } from '../lib/forms';
@@ -92,14 +92,14 @@ export async function listarEspacos(
   const params = [filtros.busca, filtros.tipo];
   const where = `WHERE ($1::text IS NULL OR e.nome ILIKE $1 OR e.cidade ILIKE $1 OR e.endereco ILIKE $1)
                    AND ($2::text IS NULL OR e.tipo = $2)`;
-  const [lista, count] = await Promise.all([
-    db.query<Espaco>(
+  const [lista, count] = await emSequencia([
+    () => db.query<Espaco>(
       `SELECT ${COLUNAS} FROM espacos e ${where}
         ORDER BY ${orderBy(ord, ORDEM_ESPACOS, 'e.ativo DESC, e.tipo, e.ordem, lower(e.nome)')}
         LIMIT $3 OFFSET $4`,
       [...params, page.pageSize, page.offset]
     ),
-    db.query<{ total: number }>(`SELECT count(*) AS total FROM espacos e ${where}`, params),
+    () => db.query<{ total: number }>(`SELECT count(*) AS total FROM espacos e ${where}`, params),
   ]);
   return { rows: lista.rows, total: count.rows[0].total };
 }
@@ -176,9 +176,9 @@ export async function espacoPadraoId(db: Db): Promise<string | null> {
  * faixas. Faixas sem espaço (gravadas pela versão anterior do código) contam como do espaço padrão.
  */
 export async function referenciasLocacao(db: Db): Promise<ReferenciasLocacao> {
-  const [espacos, faixas] = await Promise.all([
-    db.query<EspacoRef>('SELECT id, nome, tipo, valor_referencia, ativo FROM espacos ORDER BY tipo, ordem, lower(nome)'),
-    db.query<Omit<FaixaLocacaoRef, 'descricao'>>(
+  const [espacos, faixas] = await emSequencia([
+    () => db.query<EspacoRef>('SELECT id, nome, tipo, valor_referencia, ativo FROM espacos ORDER BY tipo, ordem, lower(nome)'),
+    () => db.query<Omit<FaixaLocacaoRef, 'descricao'>>(
       `SELECT f.id, COALESCE(f.espaco_id, c.espaco_padrao_id) AS espaco_id, f.min_convidados, f.max_convidados, f.valor
          FROM faixas_locacao f CROSS JOIN configuracoes_tenant c
         ORDER BY f.min_convidados`

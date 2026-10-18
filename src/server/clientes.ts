@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import { cnpjValido, cpfValido, somenteDigitos } from '../lib/documento';
 import { UserError, optionalEmail, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
@@ -51,15 +51,15 @@ export async function listarClientes(
            OR (regexp_replace($1, '[^0-9]', '', 'g') <> ''
                AND c.documento LIKE '%' || regexp_replace($1, '[^0-9]', '', 'g') || '%'))
       AND ($2::text IS NULL OR c.tipo_pessoa = $2)`;
-  const [{ rows }, count] = await Promise.all([
-    db.query<ClienteRow>(
+  const [{ rows }, count] = await emSequencia([
+    () => db.query<ClienteRow>(
       `SELECT c.*, (SELECT count(*) FROM eventos e WHERE e.cliente_id = c.id) AS total_eventos
          FROM clientes c ${where}
         ORDER BY ${orderBy(ord, ORDEM_CLIENTES, 'lower(c.nome)')}
         LIMIT $3 OFFSET $4`,
       [...params, page.pageSize, page.offset]
     ),
-    db.query<{ total: number }>(`SELECT count(*) AS total FROM clientes c ${where}`, params),
+    () => db.query<{ total: number }>(`SELECT count(*) AS total FROM clientes c ${where}`, params),
   ]);
   return { rows, total: count.rows[0].total };
 }

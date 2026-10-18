@@ -6,6 +6,7 @@ import CampoCidade from '../CampoCidade.astro';
 import Acoes from './Acoes.astro';
 import { mascararCep } from '../../../lib/mascaras';
 import type { PerfilBusca } from '../../../server/busca/perfil';
+import { RAIOS_DOMICILIO } from '../../../lib/busca/onboarding';
 interface CidadeValor {
   nome: string;
   uf: string;
@@ -18,7 +19,7 @@ interface Props {
   extras: CidadeValor[];
 }
 const { perfil: p, editor, cidadeBase, extras } = Astro.props;
-const RAIOS = [10, 25, 50, 100];
+const RAIOS = RAIOS_DOMICILIO;
 ---
 
 <form method="post" data-form-sujo data-regiao>

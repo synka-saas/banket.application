@@ -4,7 +4,7 @@
 // Permissões: owner/admin veem todas as conversas da empresa; usuário comum, só as suas (usuario_id).
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
-import type { Db } from '../lib/db';
+import { emSequencia, type Db } from '../lib/db';
 import { isAdmin, type SessionUser } from '../lib/auth';
 import { UserError, optionalText, optionalUuid, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
@@ -146,14 +146,14 @@ export async function listarConversas(
                    AND ($6::uuid IS NULL OR c.evento_id = $6)
                    ${f.filtro === 'nao_lidas' ? 'AND c.nao_lidas > 0' : ''}
                    ${f.filtro === 'minhas' ? 'AND c.usuario_id = $2::uuid' : ''}`;
-  const [lista, count] = await Promise.all([
-    db.query<ConversaResumo>(
+  const [lista, count] = await emSequencia([
+    () => db.query<ConversaResumo>(
       `${SELECT_RESUMO} ${where}
         ORDER BY c.ultima_mensagem_em DESC NULLS LAST, c.created_at DESC
         LIMIT $7 OFFSET $8`,
       [...params, page.pageSize, page.offset]
     ),
-    db.query<{ total: number }>(
+    () => db.query<{ total: number }>(
       `SELECT count(*) AS total FROM conversas c JOIN eventos e ON e.id = c.evento_id
          LEFT JOIN clientes cl ON cl.id = COALESCE(c.cliente_id, e.cliente_id) ${where}`,
       params

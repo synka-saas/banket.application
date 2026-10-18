@@ -110,3 +110,13 @@ export function gravarMetrica(text: string, params: unknown[]): void {
   if (metricasPool.waitingCount > 50) return;
   metricasPool.query(text, params).catch((err) => console.error('[busca] métrica:', err.message));
 }
+
+/**
+ * Várias consultas no mesmo client, uma depois da outra (um client do pg não roda duas ao mesmo tempo; Promise.all
+ * no mesmo `db` gera aviso hoje e erro no pg 9). Mesmo formato de retorno do Promise.all.
+ */
+export async function emSequencia<T extends readonly unknown[]>(passos: { [K in keyof T]: () => Promise<T[K]> }): Promise<T> {
+  const resultados: unknown[] = [];
+  for (const passo of passos as readonly (() => Promise<unknown>)[]) resultados.push(await passo());
+  return resultados as unknown as T;
+}

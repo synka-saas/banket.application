@@ -164,6 +164,9 @@ export function problemaNoSlug(slug: string): string | null {
   return null;
 }
 
+/** Raios de atendimento em domicílio oferecidos na etapa Região (km); o servidor só aceita estes. */
+export const RAIOS_DOMICILIO = [10, 25, 50, 100];
+
 /** Endereços antigos guardados por perfil (redirecionam 301): só os mais recentes, para ninguém acumular nomes. */
 export const MAX_SLUGS_ANTIGOS = 3;
 

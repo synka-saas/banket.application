@@ -96,6 +96,7 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
               p.tipos_evento, p.tipos_servico, p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio,
               p.capacidade_min, p.capacidade_max, p.nivel, p.nota_media, p.total_avaliacoes, p.tempo_resposta_texto,
               p.instagram, p.site, p.updated_at, p.publicado,
+              fn_tenant_pode(p.tenant_id, 'busca_fotos_tags') AS grupos_fotos,
               (t.origem_cadastro = 'importacao' AND NOT EXISTS (SELECT 1 FROM tenant_usuarios tu WHERE tu.tenant_id = t.id)) AS reivindicavel
          FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id LEFT JOIN busca_cidades c ON c.id = p.cidade_id
         WHERE (p.slug = $1 OR p.id::text = $1 OR $1 = ANY(p.slugs_antigos))
@@ -114,7 +115,8 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
       restricoes: p.restricoes, atende_domicilio: p.atende_domicilio, raio_km: p.raio_km, espaco_proprio: p.espaco_proprio,
       capacidade_min: p.capacidade_min, capacidade_max: p.capacidade_max, nivel: p.nivel, nota_media: p.nota_media,
       total_avaliacoes: p.total_avaliacoes, tempo_resposta_texto: p.tempo_resposta_texto, instagram: p.instagram, site: p.site,
-      fotos: fotos.rows.map((f) => ({ url: urlMidia(p.tenant_id, f.path)!, legenda: f.legenda, tags: f.tags })),
+      // Grupos de fotos são recurso pago: sem ele (rebaixado ao Perfil Simples), a galeria sai sem grupos
+      fotos: fotos.rows.map((f) => ({ url: urlMidia(p.tenant_id, f.path)!, legenda: f.legenda, tags: p.grupos_fotos ? f.tags : [] })),
       atualizado_em: p.updated_at,
       publicado: p.publicado,
       reivindicavel: p.reivindicavel,

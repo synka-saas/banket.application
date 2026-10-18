@@ -2,7 +2,7 @@
 import { avisarWhatsapp } from './whatsapp';
 import { TEMPO_RESPOSTA_PADRAO, rotuloTempo } from '../lib/tempoResposta';
 import { z } from 'zod';
-import { systemQuery, withTenant, type Db } from '../lib/db';
+import { emSequencia, systemQuery, withTenant, type Db } from '../lib/db';
 import { sendMail } from '../lib/mail';
 import { exigirLimiteDb } from '../lib/planos/gating';
 import { CONTAGEM_SQL, destinatarios } from './planos';
@@ -234,8 +234,8 @@ const WHERE_RESPOSTAS = `WHERE r.formulario_id = $1
 
 export async function listarRespostas(db: Db, formularioId: string, page: PageParams, filtro: FiltroRespostas = {}) {
   const params = [formularioId, filtro.de ?? null, filtro.ate ?? null];
-  const [lista, total] = await Promise.all([
-    db.query<RespostaRow>(
+  const [lista, total] = await emSequencia([
+    () => db.query<RespostaRow>(
       `SELECT r.id, r.created_at, r.dados, e.id AS evento_id, e.titulo AS evento_titulo,
               (SELECT d->>'valor' FROM jsonb_array_elements(r.dados) d WHERE d->>'chave' = 'nome') AS nome,
               (SELECT d->>'valor' FROM jsonb_array_elements(r.dados) d WHERE d->>'chave' = 'email') AS email,
@@ -247,7 +247,7 @@ export async function listarRespostas(db: Db, formularioId: string, page: PagePa
         LIMIT $4 OFFSET $5`,
       [...params, page.pageSize, page.offset]
     ),
-    db.query<{ total: number }>(`SELECT count(*)::int AS total FROM formulario_respostas r ${WHERE_RESPOSTAS}`, params),
+    () => db.query<{ total: number }>(`SELECT count(*)::int AS total FROM formulario_respostas r ${WHERE_RESPOSTAS}`, params),
   ]);
   return { rows: lista.rows, total: total.rows[0].total };
 }
