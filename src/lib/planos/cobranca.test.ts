@@ -42,6 +42,23 @@ describe('estadoCobranca', () => {
     expect(estadoCobranca(d, sp('2026-10-17T15:00')).estado).toBe('trial');
     expect(estadoCobranca({ ...d, trialAte: null }, sp('2026-10-17T15:00')).estado).toBe('manual');
   });
+
+  it('1ª fatura cobrada no fim do teste e nunca paga: vale a regra do teste, não os 7 dias da fatura', () => {
+    const d: DadosCobranca = {
+      ...base, trialAte: '2026-10-15', assinaturaId: 'sub_1', assinaturaStatus: 'active', teveFaturaPaga: false,
+      faturaAberta: { vencimento: '2026-10-23', motivo: 'subscription_cycle' },
+    };
+    expect(estadoCobranca(d, sp('2026-10-16T11:00')).estado).toBe('trial');
+    expect(estadoCobranca(d, sp('2026-10-16T12:00'))).toEqual({ estado: 'rebaixar', motivo: 'trial_encerrado' });
+    // Já pagou antes: é renovação, valem os prazos da fatura
+    expect(estadoCobranca({ ...d, teveFaturaPaga: true }, sp('2026-10-16T12:00')).estado).toBe('ativa');
+  });
+
+  it('assinatura encerrada sem nunca ter pago: segue o teste, não rebaixa por cancelamento', () => {
+    const d: DadosCobranca = { ...base, trialAte: '2026-10-20', assinaturaId: 'sub_1', assinaturaStatus: 'canceled', teveFaturaPaga: false };
+    expect(estadoCobranca(d, sp('2026-10-17T15:00')).estado).toBe('trial');
+    expect(estadoCobranca({ ...d, teveFaturaPaga: true }, sp('2026-10-17T15:00')).motivo).toBe('cancelamento');
+  });
 });
 
 describe('datas', () => {

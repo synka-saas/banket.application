@@ -3,7 +3,7 @@
 // o usuário (`iniciarTrial`/`recusarTrial`), o Manager Hwesta (`aplicarDoManager`) e o agendador (`varrerTrials`).
 // As funções recebem `db` (withTenant da própria empresa ou withSystem no agendador/HCP): as linhas tocadas são
 // sempre da empresa (tenants, tenant_usuarios, tenant_plano_historico, plano_avisos).
-import { withSystem, type Db } from '../lib/db';
+import { systemQuery, withSystem, type Db } from '../lib/db';
 import { isAdmin, type SessionUser } from '../lib/auth';
 import { UserError } from '../lib/forms';
 import { invalidateMembership, invalidateTenant } from '../lib/membership';
@@ -264,7 +264,7 @@ export async function iniciarTrial(db: Db, user: SessionUser, planoId: string): 
   );
   await trocarPlano(db, user.tenantId, plano.id, { motivo: 'trial_iniciado', origem: 'app', usuarioId: user.id, dados: { trial_ate: ate }, manterTrial: true });
   await registrarUpsell(db, user, 'trial_iniciado', null, { plano: plano.slug });
-  enviarEmailTrial(db, user.tenantId, 'inicio', { planoNome: plano.nome, ate }).catch((err) => console.error('[planos] e-mail de início do teste:', err));
+  await depoisDoCommit(user.tenantId, `trial:${ate}:inicio`, db, () => enviarEmailTrial(user.tenantId, 'inicio', { planoNome: plano.nome, ate }));
   return { ate, plano };
 }
 
@@ -309,8 +309,8 @@ export async function rebaixarParaBusca(
   if (!troca) return false;
   await registrarUpsell(db, { id: null, tenantId }, 'rebaixado', null, { motivo, plano_anterior: ent.planoSlug });
   if (motivo === 'trial_encerrado') {
-    enviarEmailTrial(db, tenantId, 'fim', { planoNome: ent.planoNome ?? '', ate: ent.trialAte ?? '' }).catch((err) =>
-      console.error('[planos] e-mail de fim do teste:', err)
+    await depoisDoCommit(tenantId, `trial:${ent.trialAte ?? ''}:fim`, db, () =>
+      enviarEmailTrial(tenantId, 'fim', { planoNome: ent.planoNome ?? '', ate: ent.trialAte ?? '' })
     );
   }
   return true;
@@ -326,13 +326,32 @@ export async function verificarTrialVencido(ent: Entitlements): Promise<boolean>
 }
 
 /**
- * Varredura do agendador: rebaixa testes vencidos (D+1 12h) e envia os avisos D-7, D-1 e D0 (9h), com dedup em
- * plano_avisos. Cada empresa num try/catch. Devolve contadores para o log.
+ * E-mail que só pode sair se a transação de quem chama for confirmada. Grava a chave em plano_avisos dentro da
+ * transação (dedup: a mesma chave nunca sai duas vezes) e envia por outra conexão alguns segundos depois, só se a
+ * chave estiver gravada (rollback = nada sai). Nunca usa o client da transação.
  */
-export async function varrerTrials(db: Db, agora = new Date()): Promise<{ rebaixadas: number; avisos: number }> {
+async function depoisDoCommit(tenantId: string, chave: string, db: Db, enviar: () => Promise<void>): Promise<void> {
+  const k = chave.slice(0, 80);
+  const { rowCount } = await db.query('INSERT INTO plano_avisos (tenant_id, chave) VALUES ($1, $2) ON CONFLICT DO NOTHING', [tenantId, k]);
+  if (!rowCount) return;
+  setTimeout(async () => {
+    try {
+      const { rowCount: gravada } = await systemQuery('SELECT 1 FROM plano_avisos WHERE tenant_id = $1 AND chave = $2', [tenantId, k]);
+      if (gravada) await enviar();
+    } catch (err) {
+      console.error('[planos] e-mail após o commit:', k, err);
+    }
+  }, 3_000).unref?.();
+}
+
+/**
+ * Varredura do agendador: rebaixa testes vencidos (D+1 12h) e envia os avisos D-7, D-1 e D0 (9h), com dedup em
+ * plano_avisos. Uma transação por empresa (um erro numa não desfaz as outras) e e-mail só depois do commit.
+ */
+export async function varrerTrials(agora = new Date()): Promise<{ rebaixadas: number; avisos: number }> {
   // Com assinatura no Stripe (mesmo a 1ª fatura Pix ainda em aberto), o rebaixamento é do server/assinatura.ts
   // (cancela no Stripe antes) e os avisos do teste não fazem sentido: a empresa já contratou.
-  const { rows } = await db.query<{ id: string; trial_ate: string; plano_nome: string }>(
+  const { rows } = await systemQuery<{ id: string; trial_ate: string; plano_nome: string }>(
     `SELECT t.id, to_char(t.trial_ate, 'YYYY-MM-DD') AS trial_ate, p.nome AS plano_nome
        FROM tenants t JOIN planos p ON p.id = t.plano_id
       WHERE t.trial_ate IS NOT NULL AND NOT p.gratuito AND t.status = 'active' AND t.stripe_assinatura_id IS NULL`
@@ -342,17 +361,17 @@ export async function varrerTrials(db: Db, agora = new Date()): Promise<{ rebaix
   for (const t of rows) {
     try {
       if (deveRebaixar(t.trial_ate, agora)) {
-        if (await rebaixarParaBusca(db, t.id, 'trial_encerrado', 'agendador')) rebaixadas++;
+        if (await withSystem((db) => rebaixarParaBusca(db, t.id, 'trial_encerrado', 'agendador'))) rebaixadas++;
         continue;
       }
       const aviso = avisoDoDia(t.trial_ate, agora);
       if (!aviso) continue;
-      const { rowCount } = await db.query(
-        'INSERT INTO plano_avisos (tenant_id, chave) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [t.id, `trial:${t.trial_ate}:${aviso}`]
-      );
+      const { rowCount } = await systemQuery('INSERT INTO plano_avisos (tenant_id, chave) VALUES ($1, $2) ON CONFLICT DO NOTHING', [
+        t.id,
+        `trial:${t.trial_ate}:${aviso}`,
+      ]);
       if (!rowCount) continue;
-      await enviarEmailTrial(db, t.id, aviso, { planoNome: t.plano_nome, ate: t.trial_ate });
+      await enviarEmailTrial(t.id, aviso, { planoNome: t.plano_nome, ate: t.trial_ate });
       avisos++;
     } catch (err) {
       console.error(`[planos] varredura do trial falhou para ${t.id}:`, err);
@@ -431,8 +450,8 @@ export async function destinatarios(db: Db, tenantId: string): Promise<{ nome: s
 
 const dataBR = (iso: string) => (iso ? iso.split('-').reverse().join('/') : '');
 
-async function enviarEmailTrial(db: Db, tenantId: string, tipo: AvisoTrial | 'inicio' | 'fim', ctx: { planoNome: string; ate: string }): Promise<void> {
-  const pessoas = await destinatarios(db, tenantId);
+async function enviarEmailTrial(tenantId: string, tipo: AvisoTrial | 'inicio' | 'fim', ctx: { planoNome: string; ate: string }): Promise<void> {
+  const pessoas = await withSystem((db) => destinatarios(db, tenantId));
   if (!pessoas.length) return;
   const empresa = pessoas[0].empresa;
   const textos: Record<typeof tipo, { assunto: string; titulo: string; paragrafos: (nome: string) => string[]; cta: { texto: string; url: string } }> = {

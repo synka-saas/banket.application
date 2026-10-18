@@ -4,7 +4,6 @@
 // perfis do Busca (a cada hora) e o aviso de prazo vencendo no WhatsApp (server/busca/respostas.ts). Idempotente: as
 // duas cores do blue-green podem rodar ao mesmo tempo (dedup em plano_avisos e troca de plano com FOR UPDATE).
 // Iniciado uma vez no módulo do middleware; o guard em globalThis segura o HMR do dev.
-import { withSystem } from '../lib/db';
 import { varrerCobranca } from './assinatura';
 import { varrerTrials } from './planos';
 import { atualizarRespostasBusca, avisarPrazosVencendo } from './busca/respostas';
@@ -16,7 +15,7 @@ let ultimaTaxa = 0;
 
 async function tique(): Promise<void> {
   try {
-    const r = await withSystem((db) => varrerTrials(db, new Date()));
+    const r = await varrerTrials(new Date());
     if (r.rebaixadas || r.avisos) console.log(`[agendador] trials: ${r.rebaixadas} rebaixada(s), ${r.avisos} aviso(s)`);
   } catch (err) {
     console.error('[agendador] varredura falhou:', err);

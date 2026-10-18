@@ -81,6 +81,7 @@ export interface Cobranca {
   fatura_valor: number | null;
   fatura_vencimento: string | null;
   fatura_motivo: string | null;
+  fatura_paga: boolean;
   fatura_pix: boolean;
 }
 
@@ -94,7 +95,9 @@ const SQL_COBRANCA = `
          t.forma_pagamento, t.cartao_bandeira, t.cartao_final, t.periodo_fim, t.cancelar_no_fim, t.cancelar_em,
          p.preco_mensal, p.preco_anual,
          f.stripe_id AS fatura_id, f.valor_restante AS fatura_valor, to_char(f.vencimento, 'YYYY-MM-DD') AS fatura_vencimento,
-         f.motivo AS fatura_motivo, COALESCE(f.cobranca = 'send_invoice', false) AS fatura_pix
+         f.motivo AS fatura_motivo, COALESCE(f.cobranca = 'send_invoice', false) AS fatura_pix,
+         EXISTS (SELECT 1 FROM assinatura_faturas fp WHERE fp.tenant_id = t.id AND fp.assinatura_id = t.stripe_assinatura_id
+                    AND fp.status = 'paid' AND fp.valor > 0) AS fatura_paga
     FROM tenants t
     LEFT JOIN planos p ON p.id = t.plano_id
     LEFT JOIN planos pp ON pp.id = t.plano_pendente_id
@@ -119,6 +122,7 @@ export function estadoDe(c: Cobranca, agora = new Date()): { estado: EstadoCobra
       assinaturaId: c.stripe_assinatura_id,
       assinaturaStatus: c.stripe_assinatura_status,
       faturaAberta: c.fatura_vencimento ? { vencimento: c.fatura_vencimento, motivo: c.fatura_motivo } : null,
+      teveFaturaPaga: c.fatura_paga,
     },
     agora
   );
@@ -278,6 +282,11 @@ export async function iniciarCheckout(user: SessionUser, pedido: PedidoCheckout)
     });
     const { clienteId } = await obterOuCriarCliente(tenantId);
     const s = stripe();
+    // Checkout aberto em outra aba (vale 24 h): expira antes de abrir outro ou contratar por Pix, para nunca nascerem
+    // duas assinaturas da mesma empresa.
+    for await (const aberta of s.checkout.sessions.list({ customer: clienteId, status: 'open', limit: 20 })) {
+      await s.checkout.sessions.expire(aberta.id).catch((err) => console.error('[assinatura] não expirou o checkout', aberta.id, err));
+    }
 
     // Contratação Pix anterior com a 1ª fatura em aberto: troca pela nova (não deixa duas cobranças).
     if (c.stripe_assinatura_id && temAssinatura(c)) {
@@ -352,7 +361,20 @@ export async function iniciarCheckout(user: SessionUser, pedido: PedidoCheckout)
   });
 }
 
-/** Troca de plano com assinatura (o Stripe calcula o ajuste proporcional, cobrado na próxima fatura). */
+/** Valor mensal equivalente de um preço do Stripe (anual ÷ 12), em centavos. */
+function mensalDoPreco(p: Stripe.Price | null | undefined): number {
+  const valor = p?.unit_amount ?? 0;
+  return p?.recurring?.interval === 'year' ? valor / 12 : valor;
+}
+
+/**
+ * Troca de plano com assinatura.
+ * - Subida (o novo custa mais por mês) com a assinatura já cobrando: a diferença proporcional é faturada na hora
+ *   (`always_invoice`). No cartão, com `pending_if_incomplete`, a troca só vale se o pagamento passar e o plano sobe
+ *   em seguida; no Pix, a fatura fica em aberto e o plano novo entra quando ela for paga (promoverPlano, pelo
+ *   webhook), ficando em `plano_pendente_id` até lá.
+ * - Descida, ou assinatura ainda em teste no Stripe: o ajuste vai para a próxima fatura e o plano muda na hora.
+ */
 export async function trocarPlanoDaAssinatura(user: SessionUser, planoId: string, ciclo: Ciclo): Promise<Plano> {
   exigirAdmin(user);
   const tenantId = user.tenantId;
@@ -365,19 +387,39 @@ export async function trocarPlanoDaAssinatura(user: SessionUser, planoId: string
       return { c, ...(await precoDoPlano(db, planoId, ciclo)) };
     });
     const s = stripe();
-    const atual = await s.subscriptions.retrieve(c.stripe_assinatura_id!);
+    const atual = await s.subscriptions.retrieve(c.stripe_assinatura_id!, { expand: ['items.data.price'] });
     const item = atual.items.data[0];
     if (item?.price?.id === precoId) throw new UserError('Este já é o seu plano atual.');
+    const novoPreco = await s.prices.retrieve(precoId);
+    const subida = mensalDoPreco(novoPreco) > mensalDoPreco(item?.price);
+    const cobrarAgora = subida && atual.status !== 'trialing';
+    const pix = atual.collection_method === 'send_invoice';
+
     const nova = await s.subscriptions.update(atual.id, {
       items: [{ id: item.id, price: precoId }],
-      proration_behavior: 'create_prorations',
+      proration_behavior: cobrarAgora ? 'always_invoice' : 'create_prorations',
+      ...(cobrarAgora && !pix ? { payment_behavior: 'pending_if_incomplete' as const } : {}),
       metadata: { ...atual.metadata, plano_id: plano.id },
     });
+    if (cobrarAgora && !pix && nova.pending_update) {
+      throw new UserError('O pagamento da diferença não foi aprovado. Confira o cartão em "Cartão e recibos" e tente de novo.');
+    }
+
+    if (cobrarAgora && pix) {
+      // Plano novo só depois de paga a fatura da diferença (webhook invoice.paid → promoverPlano)
+      await withTenant(tenantId, async (db) => {
+        await db.query('UPDATE tenants SET cobranca_intervalo = $2, plano_pendente_id = $3 WHERE id = $1', [tenantId, ciclo, plano.id]);
+      });
+      invalidar(tenantId);
+      const aberta = (await s.invoices.list({ subscription: atual.id, status: 'open', limit: 1 })).data[0];
+      if (aberta) await sincronizarFatura(aberta);
+      return plano;
+    }
+
     await withTenant(tenantId, async (db) => {
       await db.query('UPDATE tenants SET cobranca_intervalo = $2 WHERE id = $1', [tenantId, ciclo]);
-      const anterior = c.preco_mensal ?? 0;
       await trocarPlano(db, tenantId, plano.id, {
-        motivo: Number(plano.preco_mensal ?? 0) >= Number(anterior) ? 'upgrade' : 'downgrade',
+        motivo: subida ? 'upgrade' : 'downgrade',
         origem: 'stripe',
         usuarioId: user.id,
         dados: { stripe_assinatura_id: atual.id, ciclo },
@@ -623,6 +665,14 @@ export async function sincronizarFatura(inv: Stripe.Invoice): Promise<{ tenantId
   return { tenantId };
 }
 
+async function temFaturaAberta(tenantId: string, assinaturaId: string): Promise<boolean> {
+  const { rows } = await systemQuery(
+    `SELECT 1 FROM assinatura_faturas WHERE tenant_id = $1 AND assinatura_id = $2 AND status = 'open' AND valor > 0 LIMIT 1`,
+    [tenantId, assinaturaId]
+  );
+  return rows.length > 0;
+}
+
 async function teveFaturaPaga(tenantId: string, assinaturaId: string, excetoFatura?: string): Promise<boolean> {
   const { rows } = await systemQuery(
     `SELECT 1 FROM assinatura_faturas WHERE tenant_id = $1 AND assinatura_id = $2 AND status = 'paid' AND valor > 0
@@ -639,8 +689,9 @@ async function teveFaturaPaga(tenantId: string, assinaturaId: string, excetoFatu
 export async function promoverPlano(tenantId: string, sub: Stripe.Subscription, planoId: string | null, inv: Stripe.Invoice | null = null): Promise<boolean> {
   if (!planoId || !['active', 'trialing', 'past_due'].includes(sub.status)) return false;
   if (sub.collection_method === 'send_invoice' && sub.status !== 'trialing') {
+    // Pix: precisa de fatura paga e nenhuma em aberto (ex.: a diferença de uma subida de plano ainda não paga)
     const paga = (inv?.status === 'paid' && (inv.amount_paid ?? 0) > 0) || (await teveFaturaPaga(tenantId, sub.id));
-    if (!paga) return false;
+    if (!paga || (await temFaturaAberta(tenantId, sub.id))) return false;
   }
   return withTenant(tenantId, async (db) => {
     const { rows } = await db.query<{ plano_id: string | null; gratuito: boolean | null }>(
@@ -664,13 +715,28 @@ export async function promoverPlano(tenantId: string, sub: Stripe.Subscription, 
   });
 }
 
-/** Cancela a assinatura na hora e anula as faturas abertas (rebaixamento ou contratação abandonada). */
+/**
+ * Cancela a assinatura na hora e anula as faturas abertas (rebaixamento ou contratação abandonada). Antes de anular,
+ * cancela o Pix pendente da fatura (o QR deixa de ser pagável). Fatura que não pôde ser anulada aborta o
+ * cancelamento: se ela foi paga nesse meio-tempo, quem pagou não perde o plano.
+ */
 async function encerrarNoStripe(assinaturaId: string): Promise<void> {
   if (!cobrancaConfigurada()) return;
   const s = stripe();
   for await (const inv of s.invoices.list({ subscription: assinaturaId, status: 'open', limit: 20 })) {
-    const anulada = await s.invoices.voidInvoice(inv.id!).catch(() => null);
-    if (anulada) await sincronizarFatura(anulada);
+    const pix = inv.metadata?.banket_pix_pi;
+    if (pix) {
+      const pi = await s.paymentIntents.retrieve(pix).catch(() => null);
+      if (pi?.status === 'succeeded') throw new Error(`fatura ${inv.id} com Pix pago: cancelamento abortado`);
+      if (pi && ['requires_action', 'requires_payment_method', 'requires_confirmation'].includes(pi.status)) await s.paymentIntents.cancel(pi.id);
+    }
+    try {
+      await sincronizarFatura(await s.invoices.voidInvoice(inv.id!));
+    } catch (err) {
+      const atual = await s.invoices.retrieve(inv.id!);
+      await sincronizarFatura(atual);
+      if (atual.status !== 'void') throw new Error(`fatura ${inv.id} não foi anulada (status ${atual.status}): cancelamento abortado`, { cause: err });
+    }
   }
   const sub = await s.subscriptions
     .cancel(assinaturaId, { invoice_now: false, prorate: false })
@@ -701,19 +767,42 @@ const MOTIVO_HISTORICO: Record<MotivoRebaixamento, 'trial_encerrado' | 'inadimpl
  * Recalcula o estado da empresa e, se for o caso, rebaixa para o plano Busca: cancela no Stripe primeiro (assinatura
  * e faturas abertas), solta a assinatura e troca o plano (com excedentes e e-mail). Idempotente.
  */
+/** Atualiza o espelho local com a assinatura e as faturas recentes direto do Stripe (e promove se já foi paga). */
+async function atualizarDoStripe(assinaturaId: string): Promise<void> {
+  const sub = await buscarAssinatura(assinaturaId);
+  for await (const inv of stripe().invoices.list({ subscription: assinaturaId, limit: 10 })) await sincronizarFatura(inv);
+  const sinc = await sincronizarAssinatura(sub);
+  if (sinc && !sinc.ignorada) await promoverPlano(sinc.tenantId, sub, sinc.planoId);
+}
+
 export async function avaliarEmpresa(tenantId: string, origem: 'agendador' | 'stripe' | 'app' = 'agendador', agora = new Date()): Promise<EstadoCobranca | null> {
-  const c = await withSystem((db) => carregarCobranca(db, tenantId));
+  let c = await withSystem((db) => carregarCobranca(db, tenantId));
   if (!c) return null;
-  const { estado, motivo } = estadoDe(c, agora);
+  let { estado, motivo } = estadoDe(c, agora);
   if (estado !== 'rebaixar' || !motivo) return estado;
+  // O espelho local pode estar atrasado (webhook atrasado ou perdido): antes de qualquer ação destrutiva, confere a
+  // assinatura e as faturas no Stripe e decide de novo. Sem resposta do Stripe, tenta na próxima varredura.
+  if (c.stripe_assinatura_id && cobrancaConfigurada()) {
+    try {
+      await atualizarDoStripe(c.stripe_assinatura_id);
+    } catch (err) {
+      console.error('[assinatura] rebaixamento adiado: Stripe não respondeu', tenantId, err);
+      return estado;
+    }
+    c = await withSystem((db) => carregarCobranca(db, tenantId));
+    if (!c) return null;
+    ({ estado, motivo } = estadoDe(c, agora));
+    if (estado !== 'rebaixar' || !motivo) return estado;
+  }
   const assinatura = c.stripe_assinatura_id;
   if (assinatura) {
     if (temAssinatura(c)) {
       try {
         await encerrarNoStripe(assinatura);
       } catch (err) {
-        // Sem o Stripe não dá para ficar: o rebaixamento segue e a reconciliação corrige o espelho.
-        console.error('[assinatura] rebaixamento: falha ao cancelar no Stripe', tenantId, err);
+        // Assinatura que não pôde ser encerrada (ou fatura paga agora): não rebaixa enquanto ela pode estar cobrando
+        console.error('[assinatura] rebaixamento adiado: falha ao cancelar no Stripe', tenantId, err);
+        return estado;
       }
     }
     await soltarAssinatura(tenantId, assinatura);
@@ -822,6 +911,16 @@ export async function processarEventoStripe(evento: Stripe.Event): Promise<strin
     }
     if (sessao.subscription) {
       const sub = await buscarAssinatura(idDe(sessao.subscription)!);
+      if (tenantId) {
+        const { rows } = await systemQuery<{ stripe_assinatura_id: string | null; stripe_assinatura_status: string | null }>(
+          'SELECT stripe_assinatura_id, stripe_assinatura_status FROM tenants WHERE id = $1',
+          [tenantId]
+        );
+        const outra = rows[0];
+        if (outra?.stripe_assinatura_id && outra.stripe_assinatura_id !== sub.id && ASSINATURA_VIVA.has(outra.stripe_assinatura_status ?? '')) {
+          console.error('[stripe] ASSINATURA DUPLICADA: a empresa já tem', outra.stripe_assinatura_id, 'e concluiu o checkout de', sub.id, tenantId);
+        }
+      }
       const sinc = await sincronizarAssinatura(sub);
       if (sinc && !sinc.ignorada) await promoverPlano(sinc.tenantId, sub, sinc.planoId);
     }
@@ -863,6 +962,13 @@ export async function varrerCobranca(agora = new Date()): Promise<{ rebaixadas: 
   for (const p of pendentes) {
     if (!passouDoPrazo(p.vencimento, agora) || !cobrancaConfigurada()) continue;
     try {
+      // A fatura pode ter sido paga sem o webhook chegar: confere no Stripe antes de desfazer a contratação
+      const atual = await stripe().invoices.retrieve(p.stripe_id);
+      await sincronizarFatura(atual);
+      if (atual.status !== 'open') {
+        await atualizarDoStripe(p.assinatura_id);
+        continue;
+      }
       await encerrarNoStripe(p.assinatura_id);
       await soltarAssinatura(p.tenant_id, p.assinatura_id);
       abandonadas++;

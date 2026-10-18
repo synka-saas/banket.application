@@ -22,6 +22,8 @@ export interface DadosCobranca {
   assinaturaStatus: string | null;
   /** Fatura em aberto mais antiga da assinatura atual */
   faturaAberta?: { vencimento: string | null; motivo: string | null } | null;
+  /** A assinatura atual já teve alguma fatura paga com valor? (ausente = sim, para quem não informa) */
+  teveFaturaPaga?: boolean;
 }
 
 /** Status do Stripe em que a assinatura terminou (não volta). */
@@ -43,8 +45,10 @@ export function estadoCobranca(d: DadosCobranca, agora = new Date()): { estado: 
 
   const status = d.assinaturaStatus ?? '';
   // 1ª fatura ainda em aberto: a contratação não se concretizou (no Pix a assinatura nasce "active" no Stripe antes
-  // do pagamento), então vale a regra do teste, como se não houvesse assinatura.
-  const primeiraEmAberto = d.faturaAberta?.motivo === 'subscription_create';
+  // do pagamento), então vale a regra do teste, como se não houvesse assinatura. Vale também para a primeira fatura
+  // cobrada no fim do teste ("subscription_cycle"): sem nenhuma fatura paga, a assinatura ainda não pagou nada.
+  const nuncaPagou = d.teveFaturaPaga === false;
+  const primeiraEmAberto = d.faturaAberta?.motivo === 'subscription_create' || (Boolean(d.faturaAberta) && nuncaPagou);
   const viva = Boolean(d.assinaturaId) && ASSINATURA_VIVA.has(status) && !primeiraEmAberto;
 
   if (viva) {
@@ -57,7 +61,8 @@ export function estadoCobranca(d: DadosCobranca, agora = new Date()): { estado: 
     return { estado: status === 'trialing' ? 'trial' : 'ativa' };
   }
 
-  if (d.assinaturaId && ASSINATURA_ENCERRADA.has(status) && !primeiraEmAberto) {
+  // Assinatura encerrada sem nunca ter pago (contratação desfeita): segue a regra do teste, não rebaixa por cancelamento
+  if (d.assinaturaId && ASSINATURA_ENCERRADA.has(status) && !primeiraEmAberto && !nuncaPagou) {
     return { estado: 'rebaixar', motivo: 'cancelamento' };
   }
 

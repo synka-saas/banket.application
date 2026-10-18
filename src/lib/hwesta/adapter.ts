@@ -141,6 +141,16 @@ const adapter: HwestaAdapter = {
     if (ent.plan_slug) {
       const { rows } = await systemQuery('SELECT 1 FROM planos WHERE slug = $1 AND ativo', [ent.plan_slug]);
       if (!rows.length) throw new HwestaError(`Plano "${ent.plan_slug}" não existe no catálogo do Banket.`, 409);
+      // Com assinatura viva no Stripe, o plano é o da assinatura: trocar daqui deixaria a cobrança correndo (e o
+      // webhook seguinte desfaria a troca). Primeiro a assinatura é cancelada.
+      const { rows: atual } = await systemQuery<{ slug: string | null; status: string | null }>(
+        `SELECT p.slug, t.stripe_assinatura_status AS status FROM tenants t LEFT JOIN planos p ON p.id = t.plano_id
+          WHERE t.id = $1 AND t.stripe_assinatura_id IS NOT NULL`,
+        [accountId]
+      );
+      if (atual[0] && ['active', 'trialing', 'past_due', 'unpaid'].includes(atual[0].status ?? '') && atual[0].slug !== ent.plan_slug) {
+        throw new HwestaError('A empresa tem uma assinatura ativa no Stripe. Cancele a assinatura antes de trocar o plano pelo Manager.', 409);
+      }
     }
     return aplicarDoManager(accountId, ent);
   },
