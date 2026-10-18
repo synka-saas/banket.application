@@ -416,7 +416,9 @@ derivada cujo item saiu do orçamento desaparece.
 ### Formulários de captação
 
 **`formularios`** — `nome`, `descricao`, `slug` (**UNIQUE global**, regex `^[a-z0-9]+(-[a-z0-9]+)*$`; a página pública
-`/f/<slug>` descobre o tenant pelo slug), `ativo`, `config JSONB` (só os ajustes sobre o modelo), `mensagem_sucesso`.
+`/f/<slug>` descobre o tenant pelo slug), `ativo`, `config JSONB` (só os ajustes sobre o modelo), `mensagem_sucesso`,
+`usar_no_busca` (formulário do pedido de orçamento no Banket Busca; no máximo um por empresa — sem marca, vale o ativo
+mais antigo).
 **`formulario_respostas`** — `formulario_id`, `evento_id`, `cliente_id`, `dados JSONB` (snapshot legível
 `[{secao, chave, rotulo, valor}]`), `ip`.
 
@@ -586,6 +588,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `043_formulario_busca` | `formularios.usar_no_busca` (índice único parcial por empresa): o formulário que abre no pedido de orçamento do perfil no Banket Busca |
 | `040_empresa_endereco` | endereço da empresa desmembrado em `tenants` (CEP, logradouro, número, complemento, bairro, cidade, UF); o texto antigo vai para o logradouro |
 | `039_assinatura_stripe` | espelho do Stripe em `tenants`, `assinatura_faturas`, `stripe_events`; motivos `plano_escolhido`/`inadimplencia`, funil `checkout_iniciado`, `plano_avisos.chave` 80; `fn_tenant_entitlements` com origem e assinatura |
 | `038_busca_reivindicacao` | `auth_tokens.tipo` aceita `reivindicacao`; `busca_reivindicacoes` (fila da equipe) e `busca_exclusoes` (buffets que saíram), só conexão de sistema |
@@ -958,11 +961,20 @@ reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
   matriz de Configurações › Ocasiões. O valor é o id da ocasião. Sem nenhuma ocasião ligada ao tipo, a pergunta não
   aparece nem é exigida (`perguntaExibida`). `montarFormulario(config, ocasioes)` recebe as opções; sem elas a
   pergunta fica vazia.
+- **Dados de contato no navegador**: nome, e-mail, WhatsApp e tipo do evento (B2B/B2C) ficam em `localStorage`
+  (`banket-contato`) ao avançar da primeira etapa e ao enviar; o próximo formulário (outro buffet no Busca ou outro
+  formulário no mesmo host) já começa preenchido, com o aviso "Preenchemos com os dados do seu último pedido · Não sou eu"
+  (que apaga). **Aberto pelo Banket Busca** (`?busca=<perfil>`): layout embutido (`FormularioLayout embutido`), natureza,
+  data e convidados vêm da busca, e o envio leva `_perfil`/`_tipo`.
 - Envio público (`POST /api/public/formularios/:slug`): resolve o tenant pelo slug (sistema), valida contra a
   configuração atual e, dentro de `withTenant`: reaproveita o cliente pelo e-mail (ou cria, PJ se B2B), converte as
   respostas no briefing (tipo pelo `slug` da natureza, ocasião pelo id — chaves antigas `casamento|debutante|aniversario`
   ainda caem no nome —, formato por nome), cria o evento com `origem = 'formulario'` no status de
-  entrada e grava o snapshot em `formulario_respostas`.
+  entrada e grava o snapshot em `formulario_respostas`. Com `_perfil` de um perfil **da mesma empresa** (a RLS confere),
+  o evento nasce com `origem = 'busca'` (timeline "Pedido recebido pelo Banket Busca"), o pedido vai para
+  `busca_pedidos` e owner/admin recebem o e-mail "Novo pedido pelo Banket Busca" com o link do evento.
+- **Usar no Banket Busca**: ação no card do formulário (`/formularios`, `usarNoBusca`); o card escolhido mostra o selo
+  "No Banket Busca".
 
 ### Staff — `/staff/profissionais`, `/staff/servicos` (`server/staff.ts`)
 Serviços/funções com custo e regra de dimensionamento (usados no orçamento) e base de profissionais com especialidade,
@@ -1117,7 +1129,14 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   atendimento, nota, raio) → `ordenar` (clientes com `busca_prioridade` sempre antes; depois completude 30%,
   avaliação 30%, taxa de resposta 20%, distância 20%; `BUSCA_RANKING_PESOS` sobrescreve) → "Mostrar mais" de 12 em 12.
   Selo, prioridade, cardápio e disponibilidade vêm de `fn_tenant_pode` (plano), nunca do navegador.
-- **Seleção múltipla** em `sessionStorage` (até 5 buffets, `MAX_SELECAO`), barra fixa com o link do pedido.
+- **Card** (`BuffetCard`): o card inteiro e o botão "Ver detalhes" levam ao perfil (sem seleção múltipla). A página de
+  busca guarda a URL completa (filtros, ordem, página) em `sessionStorage` (`banket-busca-ultima`); o "Voltar aos
+  resultados" do perfil usa essa URL (sem ela, cai nos critérios principais).
+- **Pedido de orçamento no perfil**: buffet **pagante** = perfil `nivel = 'cliente'` (plano pago ou em teste) com
+  formulário ativo → botão **Obter orçamento** abre um modal com o formulário do buffet (o marcado `usar_no_busca`, senão
+  o ativo mais antigo) num `<iframe>` de `APP_URL/f/<slug>?busca=<perfil>&tipo=&data=&convidados=` (`perfilCompleto` →
+  `formularioSlug`). Os demais (gratuito, importados, pagante sem formulário) mostram **Ver contatos**: modal com
+  WhatsApp (`wa.me`), telefone, e-mail, Instagram e site do perfil (`contatos`). A página `/orcamento` ficou sem links.
 - **Sem preço** (decisão de 16/10/2026): nenhuma menção a preço na vitrine (card, perfil, card lateral, landings,
   JSON-LD sem `priceRange`/`makesOffer`). Não há pacotes.
 - **Perfil**: cliente (recurso `busca_cardapios`) mostra a seção **Cardápios** com as opções de cardápio **ativas e

@@ -66,17 +66,24 @@ test.describe('Banket Busca: vitrine', () => {
     await expect(page.locator('[data-buffet]').first()).toBeVisible();
   });
 
-  test('seleção múltipla monta o pedido para vários buffets (máximo 5)', async ({ page }) => {
-    await page.goto(`${V}/buscar?tipo=aniversario&cidade=santo-andre-sp`);
-    const caixas = page.locator('[data-selecionar]');
-    await caixas.nth(0).check();
-    await caixas.nth(1).check();
-    const barra = page.locator('[data-barra-selecao]');
-    await expect(barra).toContainText('2 buffets selecionados');
-    const href = await barra.locator('[data-pedir-selecao]').getAttribute('href');
-    expect(href).toMatch(/orcamento\?tipo=aniversario&cidade=santo-andre-sp&buffets=[a-z-]+,[a-z-]+$/);
-    await barra.getByRole('button', { name: 'Limpar' }).click();
-    await expect(barra).toBeHidden();
+  test('perfil: pagante abre o formulário no modal; não pagante mostra os contatos', async ({ page }) => {
+    // Pagante = nível cliente (plano pago ou teste) com formulário ativo; o formulário marcado para o Busca vem primeiro
+    const pagante = psql(`SELECT p.slug || '|' || f.slug FROM busca_perfis p JOIN formularios f ON f.tenant_id = p.tenant_id AND f.ativo
+                            WHERE p.publicado AND p.nivel = 'cliente' ORDER BY f.usar_no_busca DESC, f.created_at LIMIT 1`).split('|');
+    await page.goto(`${V}/buffet/${pagante[0]}?tipo=casamento&data=2027-05-20&convidados=120`);
+    await expect(page.locator('[data-abrir-contatos]')).toHaveCount(0);
+    await page.locator('.vp-aside [data-abrir-orcamento]').click();
+    await expect(page.locator('[data-modal-orcamento]')).toBeVisible();
+    await expect(page.locator('[data-frame-orcamento]')).toHaveAttribute('src', new RegExp(`/f/${pagante[1]}\\?busca=[0-9a-f-]{36}&tipo=casamento&data=2027-05-20&convidados=120$`));
+    const form = page.frameLocator('[data-frame-orcamento]');
+    await expect(form.locator('input[name="natureza"][value="B2C"]')).toBeChecked();
+    await page.locator('[data-modal-orcamento] [data-fechar-modal]').click();
+
+    const gratuito = psql(`SELECT slug FROM busca_perfis WHERE publicado AND nivel = 'gratuito' AND whatsapp IS NOT NULL LIMIT 1`);
+    await page.goto(`${V}/buffet/${gratuito}`);
+    await expect(page.locator('[data-abrir-orcamento]')).toHaveCount(0);
+    await page.locator('.vp-aside [data-abrir-contatos]').click();
+    await expect(page.locator('.vp-contato', { hasText: 'WhatsApp' })).toHaveAttribute('href', /^https:\/\/wa\.me\/55\d{10,11}$/);
   });
 
   test('perfil: cliente mostra cardápios e JSON-LD; nenhuma menção a preço; gratuito sem cardápio', async ({ page }) => {
@@ -183,4 +190,15 @@ test.describe('Banket Busca: vitrine no celular', () => {
     await gaveta.getByRole('button', { name: 'Ver buffets' }).click();
     await page.waitForURL(/local=domicilio/);
   });
+});
+
+// Sem o beforeEach acima: a sessão guarda a última busca para o "Voltar aos resultados" do perfil
+test('busca: o card leva ao perfil (sem seleção) e o perfil volta para a mesma busca', async ({ page }) => {
+  const busca = `${V}/buscar?cidade=sao-paulo-sp&ordem=avaliacao`;
+  await page.goto(busca);
+  await expect(page.locator('[data-selecionar], [data-barra-selecao]')).toHaveCount(0);
+  const card = page.locator('[data-buffet]').first();
+  await card.locator('.bcard-acoes a', { hasText: 'Ver detalhes' }).click();
+  await page.waitForURL(/\/buffet\//);
+  await expect(page.locator('[data-voltar-busca]')).toHaveAttribute('href', new RegExp(`${busca.replace(/[?.]/g, '\\$&')}$`));
 });

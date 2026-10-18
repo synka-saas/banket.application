@@ -46,7 +46,7 @@ const perfilUrl = appUrl(`/vitrine/buffet/${p.slug}${p.publicado ? '' : '?previa
   </section>
   <section class="onb-cartao">
     <h2>Como o seu buffet aparece na busca</h2>
-    <div style="pointer-events:none"><BuffetCard item={card} compacto /></div>
+    <div style="pointer-events:none"><BuffetCard item={card} /></div>
     <a class="btn btn-outline btn-sm" href={perfilUrl} target="_blank" rel="noopener"><Icon name="eye" size={16} /> {p.publicado ? 'Ver perfil público' : 'Ver prévia do perfil'}</a>
     <span class="field-hint">Completude do perfil: <strong class="tabular">{p.completude}%</strong>. Perfis mais completos sobem no ranking.</span>
   </section>

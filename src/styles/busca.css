@@ -347,11 +347,6 @@ body.vitrine {
   box-shadow: var(--shadow-md);
 }
 
-.bcard.selecionado {
-  border-color: var(--terracotta-500);
-  box-shadow: 0 0 0 1px var(--terracotta-500), var(--shadow-md);
-}
-
 .bcard-foto {
   position: relative;
   display: block;
@@ -497,7 +492,7 @@ body.vitrine {
   color: var(--text-muted);
 }
 
-/* Rodapé em duas linhas: convidados em cima, seleção e botão embaixo (sempre na mesma posição em todos os cards) */
+/* Rodapé em duas linhas: convidados em cima, "Ver detalhes" embaixo (sempre na mesma posição em todos os cards) */
 .bcard-rodape {
   margin-top: auto;
   display: flex;
@@ -529,26 +524,6 @@ body.vitrine {
   justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
-}
-
-.bcard-acoes .bcard-selecionar {
-  margin-right: auto;
-}
-
-.bcard-selecionar {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  font-size: var(--fs-14);
-  color: var(--text-body);
-  cursor: pointer;
-}
-
-.bcard-selecionar input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--terracotta-600);
 }
 
 /* ── Seções da home ───────────────────────────────────────────────────────── */
@@ -1142,38 +1117,6 @@ body.vitrine {
   justify-content: center;
 }
 
-/* Barra de seleção múltipla */
-.vsel {
-  position: fixed;
-  left: 50%;
-  bottom: 16px;
-  z-index: 60;
-  transform: translateX(-50%);
-  width: min(720px, calc(100vw - 32px));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 10px 10px 16px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: var(--shadow-lg);
-}
-
-.vsel-texto {
-  font-size: var(--fs-14);
-  font-weight: var(--fw-medium);
-  color: var(--text-strong);
-}
-
-.vsel-acoes {
-  display: flex;
-  gap: 8px;
-}
-
 /* ── Perfil ───────────────────────────────────────────────────────────────── */
 .vp-galeria {
   display: grid;
@@ -1515,6 +1458,139 @@ body.vitrine {
   font-size: var(--fs-12);
   text-align: center;
   color: var(--text-muted);
+}
+
+.vp-aside-texto {
+  margin: 0;
+  font-size: var(--fs-14);
+  color: var(--text-secondary);
+}
+
+/* Modais do perfil: formulário de orçamento (iframe do formulário do buffet) e contatos. Celular: tela cheia. */
+.vp-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: var(--bg-surface);
+  color: var(--text-body);
+}
+
+.vp-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.vp-modal::backdrop {
+  background: var(--bg-overlay);
+  backdrop-filter: blur(2px);
+}
+
+.vp-modal-cabeca {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 12px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.vp-modal-cabeca span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vp-modal-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--bg-surface);
+}
+
+.vp-modal-corpo {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.vp-modal-nota {
+  margin: 16px 0 0;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.vp-contatos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vp-contato {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-body);
+  text-decoration: none;
+  word-break: break-word;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.vp-contato:hover {
+  border-color: var(--border-strong);
+  background: var(--clay-25);
+}
+
+.vp-contato > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vp-contato small {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.vp-contato-seta {
+  flex: none;
+  color: var(--text-muted);
+}
+
+@media (min-width: 769px) {
+  .vp-modal {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(480px, calc(100vw - 48px));
+    height: auto;
+    max-height: calc(100vh - 48px);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .vp-modal--form {
+    width: min(720px, calc(100vw - 48px));
+    height: min(820px, calc(100vh - 48px));
+  }
 }
 
 .vp-movel-nome {

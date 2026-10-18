@@ -1,13 +1,13 @@
 ---
 // Lista de resultados (busca e landings): título com a contagem, ordenação, filtros (lateral no desktop, gaveta no
-// celular), chips removíveis, cards, "Mostrar mais", estado vazio com sugestões reais e seleção múltipla.
+// celular), chips removíveis, cards, "Mostrar mais" e estado vazio com sugestões reais. A URL da busca fica na sessão
+// para o "Voltar aos resultados" do perfil voltar exatamente a ela.
 import Icon from '../ui/Icon.astro';
 import BuffetCard from './BuffetCard.astro';
 import Filtros from './Filtros.astro';
 import { ORDENS, POR_PAGINA, chipsDosFiltros, queryDaBusca, semFiltrosSecundarios, temFiltrosSecundarios, type Criterios } from '../../lib/busca/filtros';
 import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../lib/busca/catalogos';
 import { caminhoVitrine } from '../../lib/busca/url';
-import { MAX_SELECAO } from '../../server/busca/vitrine';
 import type { ResultadoBusca } from '../../server/busca/publico';
 
 interface Props {
@@ -37,7 +37,7 @@ const SUGESTOES: Record<string, { rotulo: string; icone: string; crit: Criterios
 const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${c.convidados ? ` atende ${c.convidados} convidados` : ' atende'}${c.tipo ? ` para ${rotuloEvento(c.tipo).toLowerCase()}` : ''}${dataBR ? ` em ${dataBR}` : ''} com esses filtros.`;
 ---
 
-<div class="vr" data-resultados data-max={MAX_SELECAO} data-base-orcamento={caminhoVitrine('/orcamento')} data-query={queryDaBusca({ tipo: c.tipo, cidade: c.cidade, data: c.data, convidados: c.convidados })}>
+<div class="vr" data-resultados>
   <div class="vr-cabeca">
     <div>
       <h1 class="vr-titulo">{titulo ?? contagem}</h1>
@@ -123,18 +123,9 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
     </div>
   </dialog>
 
-  <div class="vsel" hidden data-barra-selecao role="region" aria-label="Buffets selecionados">
-    <span class="vsel-texto" data-selecao-texto aria-live="polite"></span>
-    <div class="vsel-acoes">
-      <button type="button" class="btn btn-ghost btn-md" data-limpar-selecao>Limpar</button>
-      <a class="btn btn-primary btn-md" href="#" data-pedir-selecao><Icon name="send" size={16} /> <span data-pedir-texto>Pedir orçamento</span></a>
-    </div>
-  </div>
 </div>
 
 <script>
-  import { toast } from '../../lib/ui';
-
   const raiz = document.querySelector<HTMLElement>('[data-resultados]');
   if (raiz) {
     // Com JavaScript, filtros e ordenação aplicam na hora (o botão fica para quem não tem JS)
@@ -159,64 +150,11 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
     raiz.querySelector('[data-fechar-filtros]')?.addEventListener('click', () => gaveta.close());
     raiz.querySelector('[data-aplicar-gaveta]')?.addEventListener('click', () => enviar(gaveta.querySelector('form')!));
 
-    // Seleção múltipla: guarda na sessão do navegador (sobrevive a "Mostrar mais" e à troca de filtros)
-    const CHAVE = 'banket-busca-selecao';
-    const max = Number(raiz.dataset.max ?? 5);
-    const barra = raiz.querySelector<HTMLElement>('[data-barra-selecao]')!;
-    const texto = raiz.querySelector<HTMLElement>('[data-selecao-texto]')!;
-    const pedir = raiz.querySelector<HTMLAnchorElement>('[data-pedir-selecao]')!;
-    const pedirTexto = raiz.querySelector<HTMLElement>('[data-pedir-texto]')!;
-    const ler = (): { slug: string; nome: string }[] => {
-      try {
-        return JSON.parse(sessionStorage.getItem(CHAVE) ?? '[]');
-      } catch {
-        return [];
-      }
-    };
-    const gravar = (lista: { slug: string; nome: string }[]) => {
-      try {
-        sessionStorage.setItem(CHAVE, JSON.stringify(lista));
-      } catch {
-        /* navegação privada: a seleção vale só nesta página */
-      }
-    };
-    let selecao = ler();
-    const atualizar = () => {
-      for (const card of raiz.querySelectorAll<HTMLElement>('[data-buffet]')) {
-        const marcado = selecao.some((s) => s.slug === card.dataset.buffet);
-        card.classList.toggle('selecionado', marcado);
-        const caixa = card.querySelector<HTMLInputElement>('[data-selecionar]');
-        if (caixa) caixa.checked = marcado;
-      }
-      barra.hidden = selecao.length === 0;
-      texto.textContent = selecao.length === 1 ? '1 buffet selecionado' : `${selecao.length} buffets selecionados`;
-      pedirTexto.textContent = selecao.length > 1 ? `Pedir orçamento para ${selecao.length}` : 'Pedir orçamento';
-      const q = raiz.dataset.query ?? '';
-      pedir.href = `${raiz.dataset.baseOrcamento}${q ? `${q}&` : '?'}buffets=${selecao.map((s) => s.slug).join(',')}`;
-    };
-    raiz.addEventListener('change', (e) => {
-      const caixa = e.target as HTMLInputElement;
-      if (!caixa.matches('[data-selecionar]')) return;
-      const card = caixa.closest<HTMLElement>('[data-buffet]')!;
-      const slug = card.dataset.buffet!;
-      if (caixa.checked) {
-        if (selecao.length >= max) {
-          caixa.checked = false;
-          toast(`Você pode pedir orçamento para até ${max} buffets de uma vez.`, 'info');
-          return;
-        }
-        selecao = [...selecao.filter((s) => s.slug !== slug), { slug, nome: card.dataset.nome ?? slug }];
-      } else {
-        selecao = selecao.filter((s) => s.slug !== slug);
-      }
-      gravar(selecao);
-      atualizar();
-    });
-    raiz.querySelector('[data-limpar-selecao]')?.addEventListener('click', () => {
-      selecao = [];
-      gravar(selecao);
-      atualizar();
-    });
-    atualizar();
+    // Última busca (com filtros, ordem e página): o "Voltar aos resultados" do perfil volta para ela
+    try {
+      sessionStorage.setItem('banket-busca-ultima', window.location.pathname + window.location.search);
+    } catch {
+      /* sem armazenamento: o perfil volta com os critérios principais */
+    }
   }
 </script>

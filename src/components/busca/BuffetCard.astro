@@ -1,6 +1,7 @@
 ---
 // Card de buffet nos resultados e nos destaques (layout-busca/BuffetCard): foto, selo "Cliente Banket", nota, região,
-// distância, tags, capacidade e as ações (selecionar para pedir a vários + pedir orçamento). O Busca não divulga preço.
+// distância, tags, capacidade e "Ver detalhes" (o card inteiro também leva ao perfil, onde se pede o orçamento ou se vê
+// os contatos). O Busca não divulga preço.
 import Icon from '../ui/Icon.astro';
 import { formatarDistancia } from '../../lib/busca/geo';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
@@ -11,16 +12,13 @@ import type { ItemResultado } from '../../server/busca/publico';
 interface Props {
   item: ItemResultado;
   criterios?: Partial<Criterios>;
-  /** Destaques da home: sem seleção múltipla */
-  compacto?: boolean;
   /** Prioridade de carregamento da foto (primeiros cards) */
   primeiro?: boolean;
 }
 
-const { item, criterios = {}, compacto = false, primeiro = false } = Astro.props;
+const { item, criterios = {}, primeiro = false } = Astro.props;
 const query = queryDaBusca({ tipo: criterios.tipo, cidade: criterios.cidade, data: criterios.data, convidados: criterios.convidados });
 const perfilUrl = caminhoVitrine(`/buffet/${item.slug}`) + query;
-const pedirUrl = caminhoVitrine('/orcamento') + (query ? `${query}&` : '?') + `buffets=${item.slug}`;
 const regiao = [item.bairro, item.cidade].filter(Boolean).join(', ') || null;
 const distancia = formatarDistancia(item.distanciaKm);
 const tags = [
@@ -35,7 +33,7 @@ const capacidade =
 const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 ---
 
-<article class:list={['bcard', { 'bcard--compacto': compacto }]} data-buffet={item.slug} data-nome={item.nome}>
+<article class="bcard" data-buffet={item.slug} data-nome={item.nome}>
   <a href={perfilUrl} class="bcard-foto" tabindex="-1" aria-hidden="true">
     <img src={item.foto ?? FOTO_PADRAO} alt="" loading={primeiro ? 'eager' : 'lazy'} decoding="async" width="560" height="420" />
     {item.disponibilidade === 'disponivel' && <span class="bcard-disponivel"><span class="bcard-ponto" aria-hidden="true"></span>Disponível na data</span>}
@@ -67,13 +65,7 @@ const nota = item.notaMedia?.toLocaleString('pt-BR', { minimumFractionDigits: 1,
         </div>
       )}
       <div class="bcard-acoes">
-        {!compacto && (
-          <label class="bcard-selecionar">
-            <input type="checkbox" data-selecionar={item.slug} aria-label={`Selecionar ${item.nome} para pedir orçamento`} />
-            <span>Selecionar</span>
-          </label>
-        )}
-        <a href={pedirUrl} class="btn btn-primary btn-md" data-pedir={item.slug}>Pedir orçamento</a>
+        <a href={perfilUrl} class="btn btn-primary btn-md" tabindex="-1" aria-hidden="true">Ver detalhes</a>
       </div>
     </div>
   </div>

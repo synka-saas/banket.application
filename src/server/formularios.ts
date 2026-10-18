@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { systemQuery, withTenant, type Db } from '../lib/db';
 import { sendMail } from '../lib/mail';
 import { exigirLimiteDb } from '../lib/planos/gating';
-import { CONTAGEM_SQL } from './planos';
+import { CONTAGEM_SQL, destinatarios } from './planos';
+import { appUrl } from '../lib/mail';
+import { TIPOS_EVENTO } from '../lib/busca/catalogos';
 import { UserError, optionalText, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
 import {
@@ -80,6 +82,10 @@ export interface FormularioResumo {
   descricao: string | null;
   slug: string;
   ativo: boolean;
+  /** Marcado pela empresa para o pedido de orçamento do Banket Busca */
+  usar_no_busca: boolean;
+  /** É o formulário que abre no Banket Busca (o marcado ou, sem marca, o ativo mais antigo) */
+  no_busca: boolean;
   secoes_ativas: number;
   perguntas_ativas: number;
   respostas: number;
@@ -88,7 +94,8 @@ export interface FormularioResumo {
 
 export async function listarFormularios(db: Db, busca: string | null): Promise<FormularioResumo[]> {
   const { rows } = await db.query(
-    `SELECT f.id, f.nome, f.descricao, f.slug, f.ativo, f.config,
+    `SELECT f.id, f.nome, f.descricao, f.slug, f.ativo, f.usar_no_busca, f.config,
+            f.id = (SELECT b.id FROM formularios b WHERE b.ativo ORDER BY b.usar_no_busca DESC, b.created_at, b.id LIMIT 1) AS no_busca,
             count(r.id)::int AS respostas, max(r.created_at) AS ultima_resposta
        FROM formularios f
        LEFT JOIN formulario_respostas r ON r.formulario_id = f.id
@@ -105,6 +112,16 @@ export async function listarFormularios(db: Db, busca: string | null): Promise<F
       perguntas_ativas: secoes.reduce((acc, s) => acc + s.perguntas.filter((p) => p.ativa).length, 0),
     };
   });
+}
+
+/** Marca o formulário que abre no pedido de orçamento do Banket Busca (um por empresa; precisa estar ativo). */
+export async function usarNoBusca(db: Db, id: string): Promise<string> {
+  const { rows } = await db.query<{ nome: string; ativo: boolean }>('SELECT nome, ativo FROM formularios WHERE id = $1', [id]);
+  if (!rows[0]) throw new UserError('Formulário não encontrado.');
+  if (!rows[0].ativo) throw new UserError('Ative o formulário antes de usá-lo no Banket Busca.');
+  await db.query('UPDATE formularios SET usar_no_busca = false WHERE usar_no_busca AND id <> $1', [id]);
+  await db.query('UPDATE formularios SET usar_no_busca = true, updated_at = now() WHERE id = $1', [id]);
+  return rows[0].nome;
 }
 
 export interface FormularioDetalhe {
@@ -393,23 +410,79 @@ async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
   });
 }
 
+/** Pedido vindo do perfil público do Banket Busca: o perfil (unidade) que recebeu e o tipo de evento da busca. */
+export interface OrigemBusca {
+  perfilId: string;
+  tipo: string | null;
+}
+
+/** Registra o pedido do Banket Busca em busca_pedidos (base das avaliações). */
+async function registrarPedidoBusca(db: Db, tenantId: string, origem: OrigemBusca, r: Respostas, eventoId: string, clienteId: string, ip: string) {
+  const b2b = r.natureza === 'B2B';
+  const numero = (v: unknown) => (typeof v === 'string' && /^\d+$/.test(v.trim()) ? Number(v.trim()) : 0);
+  const convidados = b2b ? numero(r.b2b_participantes) : numero(r.b2c_adultos) + numero(r.b2c_criancas);
+  const data = texto(b2b ? r.b2b_data : r.b2c_data);
+  const tipo = TIPOS_EVENTO.some((t) => t.slug === origem.tipo) ? origem.tipo! : b2b ? 'corporativo' : 'outros';
+  await db.query(
+    `INSERT INTO busca_pedidos (tenant_id, perfil_id, grupo_id, evento_id, cliente_id, tipo_evento, data_evento, convidados,
+                                nome, email, whatsapp, aceite_contato, ip)
+     VALUES ($1, $2, gen_random_uuid(), $3, $4, $5, $6, $7, $8, $9, $10, true, $11)`,
+    [tenantId, origem.perfilId, eventoId, clienteId, tipo, data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : null,
+     convidados > 0 ? convidados : null, String(r.nome).slice(0, 255), String(r.email).trim().toLowerCase().slice(0, 255),
+     texto(r.whatsapp)?.replace(/\D/g, '').slice(0, 20) ?? null, ip.slice(0, 64)]
+  );
+}
+
+/** Aviso de pedido novo pelo Banket Busca para owner/admin (melhor esforço: o pedido já está no kanban). */
+async function avisarPedidoBusca(pessoas: { nome: string; email: string }[], perfil: string, eventoId: string, r: Respostas) {
+  const resumo = [texto(r.nome), texto(r.natureza === 'B2B' ? r.b2b_data : r.b2c_data)?.split('-').reverse().join('/')].filter(Boolean).join(' · ');
+  for (const p of pessoas) {
+    const { html, text } = emailLayout({
+      titulo: 'Novo pedido de orçamento pelo Banket Busca',
+      paragrafos: [
+        `Olá, ${p.nome.split(/\s+/)[0]}!`,
+        `${perfil} recebeu um pedido de orçamento pelo Banket Busca${resumo ? ` (${resumo})` : ''}. Ele já está na coluna de entrada do Painel de Propostas, com o e-mail e o WhatsApp do cliente.`,
+        'Quem responde primeiro costuma fechar o evento.',
+      ],
+      cta: { texto: 'Abrir o pedido', url: appUrl(`/eventos/${eventoId}`) },
+      rodape: 'Você recebeu este aviso porque é proprietário ou administrador da empresa no Banket.',
+    });
+    await sendMail({ to: p.email, subject: `Novo pedido pelo Banket Busca — ${perfil}`, html, text }).catch((err: unknown) =>
+      console.error('Falha ao avisar o pedido do Banket Busca:', err)
+    );
+  }
+}
+
 /**
  * Registra um pedido vindo do formulário público: valida as respostas contra a configuração atual,
  * reutiliza o cliente pelo e-mail (ou cria), cria o evento no status de entrada e guarda o snapshot.
+ * Vindo do Banket Busca (`busca`), o evento tem origem 'busca', o pedido fica em busca_pedidos e owner/admin recebem
+ * um e-mail.
  */
-export async function receberResposta(formulario: FormularioPublico, dados: Record<string, unknown>, ip: string) {
+export async function receberResposta(formulario: FormularioPublico, dados: Record<string, unknown>, ip: string, busca: OrigemBusca | null = null) {
   const respostas = validarRespostas(formulario.secoes, dados);
+  const aviso: { perfil: string | null; pessoas: { nome: string; email: string }[] } = { perfil: null, pessoas: [] };
   return withTenant(formulario.tenantId, async (db) => {
     const clienteId = await clienteDoPedido(db, formulario.tenantId, respostas);
     const briefing = await briefingDoPedido(db, respostas, clienteId);
-    const eventoId = await criarEvento(db, { tenantId: formulario.tenantId, id: null }, briefing, null, 'formulario');
+    // O perfil precisa ser da empresa do formulário (a RLS esconde os das outras)
+    const perfil = busca && UUID.test(busca.perfilId)
+      ? (await db.query<{ nome: string }>('SELECT nome FROM busca_perfis WHERE id = $1', [busca.perfilId])).rows[0]?.nome ?? null
+      : null;
+    const eventoId = await criarEvento(db, { tenantId: formulario.tenantId, id: null }, briefing, null, perfil ? 'busca' : 'formulario');
     await db.query(
       `INSERT INTO formulario_respostas (tenant_id, formulario_id, evento_id, cliente_id, dados, ip)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [formulario.tenantId, formulario.id, eventoId, clienteId, JSON.stringify(resumirRespostas(formulario.secoes, respostas)), ip]
     );
+    if (perfil && busca) {
+      await registrarPedidoBusca(db, formulario.tenantId, busca, respostas, eventoId, clienteId, ip);
+      aviso.perfil = perfil;
+      aviso.pessoas = await destinatarios(db, formulario.tenantId);
+    }
     return eventoId;
   }).then(async (eventoId) => {
+    if (aviso.perfil) await avisarPedidoBusca(aviso.pessoas, aviso.perfil, eventoId, respostas);
     // Confirmação para quem preencheu (UX-072): melhor esforço, o pedido já foi registrado
     const email = typeof respostas.email === 'string' ? respostas.email.trim() : '';
     const nome = typeof respostas.nome === 'string' ? respostas.nome.trim().split(/\s+/)[0] : '';

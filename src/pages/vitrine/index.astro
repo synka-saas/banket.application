@@ -121,7 +121,7 @@ const DESCRICAO_SERVICO: Record<string, string> = {
         <a class="btn btn-text btn-md" href={v('/buscar')}>Ver todos <Icon name="arrow-right" size={16} /></a>
       </div>
       <ul class="vh-grade-cards">
-        {lista.map((b) => <li><BuffetCard item={b} compacto /></li>)}
+        {lista.map((b) => <li><BuffetCard item={b} /></li>)}
       </ul>
     </section>
   )}

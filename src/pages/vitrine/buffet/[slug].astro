@@ -9,11 +9,12 @@ import { rotuloEvento, rotuloRestricao, rotuloServico } from '../../../lib/busca
 import { FOTO_PADRAO, buscaUrl, caminhoVitrine } from '../../../lib/busca/url';
 import { queryDaBusca } from '../../../lib/busca/filtros';
 import { jsonLdPerfil } from '../../../lib/busca/seo';
-import { hojeSaoPaulo } from '../../../lib/datas';
 import { perfilCompleto, registrarMetrica } from '../../../server/busca/publico';
 import { cachePublico, criteriosDaUrl } from '../../../server/busca/vitrine';
 import { lerTokenSessao, verifySession } from '../../../lib/auth';
 import { getMembership } from '../../../lib/membership';
+import { appUrl } from '../../../lib/mail';
+import { mascararTelefone } from '../../../lib/mascaras';
 
 const criterios = criteriosDaUrl(Astro.url);
 // Prévia (?previa=1): só para quem está logado na empresa dona do perfil; sem cache e fora do índice
@@ -51,7 +52,6 @@ const nomesGrupos = [...new Set(fotos.flatMap((f) => f.tags.slice(0, 1)))];
 const gruposFotos = nomesGrupos.length
   ? [...nomesGrupos.map((g) => ({ nome: g, fotos: fotos.filter((f) => f.tags[0] === g) })), { nome: 'Mais fotos', fotos: fotos.filter((f) => !f.tags.length).slice(5) }].filter((g) => g.fotos.length)
   : fotos.length > 5 ? [{ nome: null as string | null, fotos: fotos.slice(5) }] : [];
-const tipoInicial = criterios.tipo && p.tipos_evento.includes(criterios.tipo) ? criterios.tipo : p.tipos_evento[0];
 const totalAv = Object.values(p.distribuicao).reduce((a, b) => a + b, 0);
 const fatos = [
   capacidade && { icone: 'users', rotulo: 'Capacidade', valor: capacidade },
@@ -66,6 +66,26 @@ const ld = jsonLdPerfil({
   totalAvaliacoes: p.total_avaliacoes, avaliacoes: p.avaliacoes,
 });
 const descricaoSeo = (p.descricao ?? `Buffet em ${local}.`).slice(0, 155);
+// Pedido de orçamento: buffet pagante (plano pago ou teste) com formulário abre o formulário dele num modal (o pedido cai
+// no kanban do buffet); os demais mostram os contatos. O formulário fica no host do app e já recebe o que veio da busca.
+const urlFormulario = p.formularioSlug
+  ? appUrl(`/f/${p.formularioSlug}`) + '?' + new URLSearchParams(Object.entries({
+      busca: p.id, tipo: criterios.tipo ?? '', data: criterios.data ?? '', convidados: criterios.convidados ? String(criterios.convidados) : '',
+    }).filter(([, valor]) => valor)).toString()
+  : null;
+const digitos = (v: string | null | undefined) => (v ?? '').replace(/\D/g, '');
+const contatos = p.contatos
+  ? [
+      digitos(p.contatos.whatsapp).length >= 10 && { icone: 'brand-whatsapp', rotulo: 'WhatsApp', valor: mascararTelefone(p.contatos.whatsapp!), href: `https://wa.me/55${digitos(p.contatos.whatsapp)}`, externo: true },
+      digitos(p.contatos.telefone).length >= 10 && { icone: 'phone', rotulo: 'Telefone', valor: mascararTelefone(p.contatos.telefone!), href: `tel:+55${digitos(p.contatos.telefone)}`, externo: false },
+      p.contatos.email && { icone: 'mail', rotulo: 'E-mail', valor: p.contatos.email, href: `mailto:${p.contatos.email}`, externo: false },
+      p.contatos.instagram && {
+        icone: 'brand-instagram', rotulo: 'Instagram', valor: p.contatos.instagram.startsWith('http') ? p.contatos.instagram.replace(/^https?:\/\/(www\.)?/, '') : p.contatos.instagram,
+        href: p.contatos.instagram.startsWith('http') ? p.contatos.instagram : `https://instagram.com/${p.contatos.instagram.replace(/^@/, '')}`, externo: true,
+      },
+      p.contatos.site && { icone: 'world', rotulo: 'Site', valor: p.contatos.site.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), href: /^https?:\/\//.test(p.contatos.site) ? p.contatos.site : `https://${p.contatos.site}`, externo: true },
+    ].filter(Boolean) as { icone: string; rotulo: string; valor: string; href: string; externo: boolean }[]
+  : [];
 const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' });
 ---
 
@@ -77,7 +97,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
     </div>
   )}
   <div class="vitrine-secao" style="padding-top:16px">
-    <a class="voltar" href={v('/buscar') + busca}><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
+    <a class="voltar" href={v('/buscar') + busca} data-voltar-busca><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
 
     {fotos.length > 0 ? (
       <div class={`vp-galeria vp-galeria--${Math.min(fotos.length, 5)}`}>
@@ -129,7 +149,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
         {p.cardapios.length > 0 && (
           <section class="vp-secao" aria-labelledby="h-cardapios">
             <h2 id="h-cardapios">Cardápios</h2>
-            <p style="margin-bottom:12px;color:var(--text-secondary)">Opções de cardápio do buffet. Peça orçamento para montar o seu.</p>
+            <p style="margin-bottom:12px;color:var(--text-secondary)">Opções de cardápio do buffet. Peça um orçamento para montar o seu.</p>
             <ul class="vp-pacotes">
               {p.cardapios.map((k) => (
                 <li class="vp-pacote">
@@ -144,7 +164,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
                       </>
                     ))}
                   </details>
-                  <a class="btn btn-outline btn-sm" style="align-self:flex-start" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}&cardapio=${encodeURIComponent(k.nome)}`}>Pedir orçamento com este cardápio</a>
+                  {urlFormulario && <button type="button" class="btn btn-outline btn-sm" style="align-self:flex-start" data-abrir-orcamento>Obter orçamento</button>}
                 </li>
               ))}
             </ul>
@@ -219,31 +239,98 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
         )}
       </div>
 
-      <aside class="vp-aside" aria-label="Pedir orçamento">
-        <h2 class="vp-aside-titulo">Peça um orçamento</h2>
+      <aside class="vp-aside" aria-label={urlFormulario ? 'Pedir orçamento' : 'Contatos do buffet'}>
+        <h2 class="vp-aside-titulo">{urlFormulario ? 'Peça um orçamento' : 'Fale com o buffet'}</h2>
         {p.disponibilidade === 'disponivel' && <span class="badge badge-success vp-disp"><span class="bcard-ponto" aria-hidden="true"></span>Disponível em {dataBR}</span>}
         {p.disponibilidade === 'indisponivel' && <span class="badge badge-warning vp-disp">Data ocupada na agenda em {dataBR}</span>}
         {p.disponibilidade === 'consultar' && <span class="badge vp-disp">Consultar disponibilidade</span>}
-        <form method="get" action={v('/orcamento')} class="fbusca" style="gap:12px">
-          <input type="hidden" name="buffets" value={p.slug} />
-          {criterios.cidade && <input type="hidden" name="cidade" value={criterios.cidade} />}
-          <div class="field">
-            <label for="vp-tipo">Tipo de evento</label>
-            <select id="vp-tipo" name="tipo">{p.tipos_evento.map((t) => <option value={t} selected={t === tipoInicial}>{rotuloEvento(t)}</option>)}</select>
-          </div>
-          <div class="form-grid">
-            <div class="field"><label for="vp-data">Data</label><input id="vp-data" name="data" type="date" min={hojeSaoPaulo()} value={criterios.data ?? ''} /></div>
-            <div class="field"><label for="vp-conv">Convidados</label><input id="vp-conv" name="convidados" type="number" inputmode="numeric" min="1" max="5000" value={criterios.convidados ?? ''} /></div>
-          </div>
-          <button type="submit" class="btn btn-primary btn-large btn-block">Pedir orçamento</button>
-        </form>
-        <span class="vp-aside-nota">Grátis e sem compromisso{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
+        {urlFormulario ? (
+          <>
+            <p class="vp-aside-texto">Conte como será o seu evento. O pedido vai direto para a equipe do buffet.</p>
+            <button type="button" class="btn btn-primary btn-large btn-block" data-abrir-orcamento>Obter orçamento</button>
+            <span class="vp-aside-nota">Grátis e sem compromisso{p.tempo_resposta_texto ? ` · ${p.tempo_resposta_texto.toLowerCase()}` : ''}</span>
+          </>
+        ) : (
+          <>
+            <p class="vp-aside-texto">Combine data, cardápio e valores direto com o buffet.</p>
+            <button type="button" class="btn btn-primary btn-large btn-block" data-abrir-contatos>Ver contatos</button>
+          </>
+        )}
       </aside>
     </div>
   </div>
 
   <div class="vp-movel">
     <span class="vp-movel-nome">{p.nome}</span>
-    <a class="btn btn-primary btn-large" href={`${v('/orcamento')}${busca ? `${busca}&` : '?'}buffets=${p.slug}`}>Pedir orçamento</a>
+    {urlFormulario
+      ? <button type="button" class="btn btn-primary btn-large" data-abrir-orcamento>Obter orçamento</button>
+      : <button type="button" class="btn btn-primary btn-large" data-abrir-contatos>Ver contatos</button>}
   </div>
+
+  {urlFormulario && (
+    <dialog class="vp-modal vp-modal--form" aria-labelledby="vp-modal-orc" data-modal-orcamento data-src={urlFormulario}>
+      <div class="vp-modal-cabeca">
+        <span id="vp-modal-orc">Orçamento · {p.nome}</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-fechar-modal aria-label="Fechar"><Icon name="x" size={18} /></button>
+      </div>
+      <iframe class="vp-modal-frame" title={`Formulário de orçamento de ${p.nome}`} data-frame-orcamento></iframe>
+    </dialog>
+  )}
+  {!urlFormulario && (
+    <dialog class="vp-modal" aria-labelledby="vp-modal-contatos" data-modal-contatos>
+      <div class="vp-modal-cabeca">
+        <span id="vp-modal-contatos">Contatos · {p.nome}</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-fechar-modal aria-label="Fechar"><Icon name="x" size={18} /></button>
+      </div>
+      <div class="vp-modal-corpo">
+        {contatos.length > 0 ? (
+          <>
+            <ul class="vp-contatos">
+              {contatos.map((c) => (
+                <li>
+                  <a class="vp-contato" href={c.href} target={c.externo ? '_blank' : undefined} rel={c.externo ? 'noopener nofollow' : undefined}>
+                    <span class="vp-fato-ico"><Icon name={c.icone} size={18} /></span>
+                    <span><small>{c.rotulo}</small>{c.valor}</span>
+                    <Icon name="external-link" size={16} class="vp-contato-seta" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p class="vp-modal-nota">Diga que encontrou o buffet no Banket Busca.</p>
+          </>
+        ) : (
+          <p class="vp-modal-nota">Este buffet ainda não informou contatos no Banket Busca.</p>
+        )}
+      </div>
+    </dialog>
+  )}
 </VitrineLayout>
+
+<script>
+  // Voltar aos resultados com a busca completa (filtros, ordem e página guardados na sessão pela página de busca)
+  const voltar = document.querySelector<HTMLAnchorElement>('[data-voltar-busca]');
+  try {
+    const ultima = sessionStorage.getItem('banket-busca-ultima');
+    if (voltar && ultima) voltar.href = ultima;
+  } catch {
+    // sem armazenamento: fica o link com os critérios principais
+  }
+
+  // Modais: formulário de orçamento (carregado só ao abrir) e contatos
+  const orcamento = document.querySelector<HTMLDialogElement>('[data-modal-orcamento]');
+  const contatos = document.querySelector<HTMLDialogElement>('[data-modal-contatos]');
+  document.addEventListener('click', (e) => {
+    const alvo = e.target as HTMLElement;
+    if (alvo.closest('[data-abrir-orcamento]') && orcamento) {
+      const frame = orcamento.querySelector<HTMLIFrameElement>('[data-frame-orcamento]')!;
+      if (!frame.src) frame.src = orcamento.dataset.src!;
+      orcamento.showModal();
+    } else if (alvo.closest('[data-abrir-contatos]') && contatos) {
+      contatos.showModal();
+    } else if (alvo.closest('[data-fechar-modal]')) {
+      alvo.closest('dialog')?.close();
+    } else if (alvo instanceof HTMLDialogElement) {
+      alvo.close(); // clique no fundo
+    }
+  });
+</script>

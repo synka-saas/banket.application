@@ -297,7 +297,7 @@ export interface EventoDetalhe extends Omit<EventoInput, 'cliente_novo'> {
   espaco_tipo: 'proprio' | 'terceiro' | null;
   valor_orcamento: number | null;
   tem_orcamento: boolean;
-  origem: 'manual' | 'formulario';
+  origem: 'manual' | 'formulario' | 'busca';
   created_at: Date;
 }
 
@@ -416,7 +416,7 @@ export async function criarEvento(
   user: Pick<SessionUser, 'tenantId'> & { id: string | null },
   input: EventoInput,
   clienteNovo: ReturnType<typeof clienteNovoDoFormulario> | null,
-  origem: 'manual' | 'formulario' = 'manual'
+  origem: 'manual' | 'formulario' | 'busca' = 'manual'
 ): Promise<string> {
   const clienteId = clienteNovo ? await salvarCliente(db, user.tenantId, null, clienteNovo) : input.cliente_id!;
   await validarReferencias(db, input, clienteId);
@@ -434,8 +434,8 @@ export async function criarEvento(
   await registrarTimeline(
     db,
     { tenantId: user.tenantId, eventoId, usuarioId: origem === 'manual' ? user.id : null },
-    origem === 'formulario' ? 'formulario' : 'criado',
-    origem === 'formulario' ? 'Pedido recebido pelo formulário' : 'Evento cadastrado'
+    origem === 'manual' ? 'criado' : 'formulario',
+    origem === 'busca' ? 'Pedido recebido pelo Banket Busca' : origem === 'formulario' ? 'Pedido recebido pelo formulário' : 'Evento cadastrado'
   );
   return eventoId;
 }

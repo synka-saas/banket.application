@@ -9,9 +9,11 @@ interface Props {
   empresa: string;
   logo?: string | null;
   subtitulo?: string;
+  /** Dentro do modal do Banket Busca (iframe): ocupa a moldura inteira, sem o cartão flutuante */
+  embutido?: boolean;
 }
 
-const { title, empresa, logo, subtitulo } = Astro.props;
+const { title, empresa, logo, subtitulo, embutido = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -23,7 +25,7 @@ const { title, empresa, logo, subtitulo } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title} | {empresa}</title>
   </head>
-  <body class="fp-body">
+  <body class:list={['fp-body', { 'fp-body--embutido': embutido }]}>
     <main class="fp-app">
       <header class="fp-header">
         {logo ? <img src={logo} alt={empresa} class="fp-logo" /> : <span class="fp-empresa">{empresa}</span>}
@@ -59,6 +61,20 @@ const { title, empresa, logo, subtitulo } = Astro.props;
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+  }
+
+  .fp-body--embutido {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .fp-body--embutido .fp-app {
+    max-width: none;
+    min-height: 100vh;
+    max-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .fp-header {

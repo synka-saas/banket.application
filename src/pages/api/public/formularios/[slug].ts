@@ -23,10 +23,12 @@ export const POST: APIRoute = async ({ params, request, clientAddress }) => {
       return Response.json({ error: 'Dados inválidos.' }, { status: 400 });
     }
     // Honeypot: campo invisível que só robôs preenchem. Responde como sucesso para não dar pistas.
-    const { _website, ...respostas } = dados as Record<string, unknown>;
+    const { _website, _perfil, _tipo, ...respostas } = dados as Record<string, unknown>;
     if (typeof _website === 'string' && _website.trim()) return Response.json({ ok: true });
 
-    await receberResposta(formulario, respostas, ip);
+    // Pedido feito no perfil do Banket Busca: o servidor confere se o perfil é da empresa do formulário
+    const busca = typeof _perfil === 'string' && _perfil ? { perfilId: _perfil, tipo: typeof _tipo === 'string' ? _tipo : null } : null;
+    await receberResposta(formulario, respostas, ip, busca);
     return Response.json({ ok: true });
   } catch (err) {
     return Response.json({ error: userMessage(err, 'Não foi possível enviar o formulário. Tente novamente.') }, { status: 400 });

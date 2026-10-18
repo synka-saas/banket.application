@@ -7,6 +7,7 @@ import { contentTypeFor, readFile } from '../../lib/storage';
 import { formularioPublico } from '../../server/formularios';
 import { perguntaExibida } from '../../lib/formularios/modelo';
 import { lerTokenSessao, verifySession } from '../../lib/auth';
+import { TIPOS_EVENTO } from '../../lib/busca/catalogos';
 
 // Prévia para o dono (UX-076): com sessão da mesma empresa, mostra também formulário inativo, sem aceitar envio.
 // A rota é pública, então a sessão é lida direto do cookie (sem exigir login).
@@ -27,6 +28,13 @@ if (formulario?.empresa.logo_path) {
 if (!formulario) Astro.response.status = 404;
 
 const secoes = formulario ? formulario.secoes.filter((s) => s.ativa) : [];
+// Aberto pelo perfil do Banket Busca (modal com iframe): perfil que recebe o pedido e o que já veio da busca
+const q = Astro.url.searchParams;
+const perfilBusca = /^[0-9a-f-]{36}$/i.test(q.get('busca') ?? '') ? q.get('busca') : null;
+const tipoBusca = TIPOS_EVENTO.find((t) => t.slug === q.get('tipo')) ?? null;
+const naturezaBusca = tipoBusca ? (tipoBusca.natureza === 'corporativo' ? 'B2B' : 'B2C') : null;
+const dataBusca = /^\d{4}-\d{2}-\d{2}$/.test(q.get('data') ?? '') ? q.get('data') : null;
+const convidadosBusca = /^\d{1,5}$/.test(q.get('convidados') ?? '') ? q.get('convidados') : null;
 const mensagemSucesso =
   formulario?.mensagem_sucesso ||
   'Seu pedido foi recebido. Nossa equipe vai analisar as informações e entrar em contato em breve.';
@@ -41,7 +49,7 @@ const mensagemSucesso =
     </div>
   </FormularioLayout>
 ) : (
-  <FormularioLayout title={formulario.nome} empresa={formulario.empresa.nome} logo={logo} subtitulo={formulario.nome}>
+  <FormularioLayout title={formulario.nome} empresa={formulario.empresa.nome} logo={logo} subtitulo={formulario.nome} embutido={Boolean(perfilBusca)}>
     <div class="fp-andamento">
       <p class="fp-etapa-info" id="fp-etapa-info" aria-live="polite"></p>
       <div class="fp-progresso"><div class="fp-progresso-barra" id="fp-progresso"></div></div>
@@ -53,7 +61,18 @@ const mensagemSucesso =
         <p><strong>Pré-visualização</strong> · é assim que o cliente vê a última versão salva. Os envios ficam desativados aqui.</p>
       </div>
     )}
-    <form id="fp-form" class="fp-conteudo" novalidate data-slug={Astro.params.slug} data-previa={previa ? '1' : undefined}>
+    <form
+      id="fp-form"
+      class="fp-conteudo"
+      novalidate
+      data-slug={Astro.params.slug}
+      data-previa={previa ? '1' : undefined}
+      data-perfil={perfilBusca ?? undefined}
+      data-tipo={tipoBusca?.slug}
+      data-natureza={naturezaBusca ?? undefined}
+      data-data={dataBusca ?? undefined}
+      data-convidados={convidadosBusca ?? undefined}
+    >
       <input type="text" name="_website" class="fp-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
       {secoes.map((s, i) => (
@@ -63,6 +82,13 @@ const mensagemSucesso =
             <h2>{s.titulo}</h2>
           </div>
           <p class="fp-etapa-descricao">{s.descricao}</p>
+          {i === 0 && (
+            <p class="fp-contato-salvo" data-contato-salvo hidden>
+              <Icon name="user" size={16} />
+              <span>Preenchemos com os dados do seu último pedido.</span>
+              <button type="button" data-contato-esquecer>Não sou eu</button>
+            </p>
+          )}
 
           <div class="fp-perguntas">
             {s.perguntas.filter(perguntaExibida).map((p) => (
@@ -275,8 +301,76 @@ const mensagemSucesso =
       }
     }
 
+    // ---------- Dados de contato guardados no navegador ----------
+    // Nome, e-mail, WhatsApp e tipo do evento se repetem em todos os formulários: ficam no localStorage para o
+    // próximo pedido (outro buffet no Banket Busca ou outro formulário) já começar preenchido.
+    const CHAVE_CONTATO = 'banket-contato';
+    const CAMPOS_CONTATO = ['nome', 'email', 'whatsapp', 'natureza'];
+    function preencher(nome: string, v: string, sobrescrever = false) {
+      const campos = [...form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`)];
+      if (!campos.length || !v) return false;
+      if (campos[0].type === 'radio') {
+        if (!sobrescrever && campos.some((c) => c.checked)) return false;
+        const alvo = campos.find((c) => c.value === v);
+        if (alvo) alvo.checked = true;
+        return Boolean(alvo);
+      }
+      if (!sobrescrever && campos[0].value.trim()) return false;
+      campos[0].value = v;
+      return true;
+    }
+    function guardarContato() {
+      try {
+        const dados: Record<string, string> = {};
+        for (const nome of CAMPOS_CONTATO) {
+          const v = valor(nome);
+          if (typeof v === 'string' && v) dados[nome] = v;
+        }
+        if (dados.nome && dados.email) localStorage.setItem(CHAVE_CONTATO, JSON.stringify(dados));
+      } catch {
+        // sem armazenamento (janela privada): cada pedido pede de novo
+      }
+    }
+    function restaurarContato() {
+      try {
+        const dados = JSON.parse(localStorage.getItem(CHAVE_CONTATO) ?? 'null') as Record<string, string> | null;
+        if (!dados) return;
+        let usou = false;
+        for (const nome of CAMPOS_CONTATO) if (dados[nome] && preencher(nome, dados[nome])) usou = true;
+        const aviso = form.querySelector<HTMLElement>('[data-contato-salvo]');
+        if (aviso && usou) aviso.hidden = false;
+      } catch {
+        // dado inválido: ignora
+      }
+    }
+    form.querySelector('[data-contato-esquecer]')?.addEventListener('click', () => {
+      try {
+        localStorage.removeItem(CHAVE_CONTATO);
+      } catch {
+        // nada a limpar
+      }
+      for (const nome of CAMPOS_CONTATO) {
+        form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`).forEach((c) => {
+          if (c.type === 'radio') c.checked = false;
+          else c.value = '';
+        });
+      }
+      form.querySelector<HTMLElement>('[data-contato-salvo]')!.hidden = true;
+      salvarRascunho();
+      mostrar();
+      form.querySelector<HTMLInputElement>('[name="nome"]')?.focus();
+    });
+    /** O que já veio da busca do Banket Busca: tipo do evento (natureza), data e convidados. */
+    function preencherDaBusca() {
+      const d = form.dataset;
+      if (d.natureza) preencher('natureza', d.natureza);
+      if (d.data) ['b2b_data', 'b2c_data'].forEach((n) => preencher(n, d.data!));
+      if (d.convidados) ['b2b_participantes', 'b2c_adultos'].forEach((n) => preencher(n, d.convidados!));
+    }
+
     function coletar(): Record<string, unknown> {
       const dados: Record<string, unknown> = { _website: valor('_website') ?? '' };
+      if (form.dataset.perfil) Object.assign(dados, { _perfil: form.dataset.perfil, _tipo: form.dataset.tipo ?? '' });
       for (const etapa of caminho()) {
         etapa.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
           if (!el.hidden) dados[el.dataset.pergunta!] = valor(el.dataset.pergunta!);
@@ -350,6 +444,7 @@ const mensagemSucesso =
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error ?? 'Não foi possível enviar. Tente novamente.');
         montarResumo();
+        guardarContato();
         limparRascunho();
         etapas.forEach((e) => e.classList.remove('ativa'));
         sucesso.classList.add('ativa');
@@ -368,6 +463,7 @@ const mensagemSucesso =
     btnAvancar.addEventListener('click', () => {
       const lista = caminho();
       if (!validar(lista[atual])) return;
+      if (lista[atual].querySelector('[name="email"]')) guardarContato();
       if (atual === lista.length - 1) return void enviar();
       atual += 1;
       mostrar();
@@ -399,12 +495,41 @@ const mensagemSucesso =
     form.addEventListener('change', salvarRascunho);
 
     restaurarRascunho();
+    restaurarContato();
+    preencherDaBusca();
     atualizarCondicionais();
     mostrar();
   }
 </script>
 
 <style>
+  .fp-contato-salvo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--bg-accent-subtle);
+    font-size: var(--fs-13);
+    color: var(--text-body);
+  }
+
+  .fp-contato-salvo[hidden] {
+    display: none;
+  }
+
+  .fp-contato-salvo button {
+    margin-left: auto;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: var(--fw-medium);
+    color: var(--text-link);
+    cursor: pointer;
+  }
+
   /* Formulário público: a voz do buffet para o cliente final, com os fundamentos do design system
      (campos de 48px, cartões selecionáveis, barra de progresso, erros em vinho). */
 

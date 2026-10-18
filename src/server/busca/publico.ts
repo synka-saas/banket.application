@@ -381,6 +381,13 @@ export interface PerfilCompleto extends PerfilPublico {
   disponibilidade: 'disponivel' | 'indisponivel' | 'consultar' | null;
   /** Datas ocupadas nos próximos 90 dias (só cliente com agenda) */
   datasOcupadas: string[];
+  /**
+   * Pedido de orçamento: buffet em plano pago ou em teste (nível 'cliente') com formulário ativo recebe pelo formulário
+   * (o marcado para o Busca ou o ativo mais antigo), e o pedido cai no kanban dele; os demais mostram os contatos.
+   */
+  formularioSlug: string | null;
+  /** Canais do perfil para "Ver contatos" (só quando não há formulário) */
+  contatos: { whatsapp: string | null; telefone: string | null; email: string | null; instagram: string | null; site: string | null } | null;
 }
 
 /** Perfil completo para a página pública: avaliações, cardápios (cliente Banket) e disponibilidade na data pedida. */
@@ -389,7 +396,10 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
   if (!base) return null;
   return leituraPublica(async (db) => {
     const { rows: [p] } = await db.query(
-      `SELECT p.id, p.logradouro, p.numero, p.aceita_menor, p.sincronizar_agenda,
+      `SELECT p.id, p.logradouro, p.numero, p.aceita_menor, p.sincronizar_agenda, p.whatsapp, p.telefone, p.email_contato,
+              CASE WHEN p.nivel = 'cliente' THEN (
+                SELECT f.slug FROM formularios f WHERE f.tenant_id = p.tenant_id AND f.ativo
+                 ORDER BY f.usar_no_busca DESC, f.created_at, f.id LIMIT 1) END AS formulario,
               fn_tenant_pode(p.tenant_id, 'busca_selo') AS selo,
               fn_tenant_pode(p.tenant_id, 'busca_disponibilidade') AS agenda,
               fn_tenant_pode(p.tenant_id, 'busca_cardapios') AS cardapios,
@@ -450,6 +460,10 @@ export async function perfilCompleto(slug: string, data: string | null, previaDo
       avaliacoes: avs.rows, distribuicao, cardapios,
       disponibilidade: disponibilidade({ usaAgenda, ocupado: data != null && datasOcupadas.includes(data) }, data),
       datasOcupadas: usaAgenda ? datasOcupadas : [],
+      formularioSlug: p.formulario ?? null,
+      contatos: p.formulario
+        ? null
+        : { whatsapp: p.whatsapp, telefone: p.telefone, email: p.email_contato, instagram: base.instagram, site: base.site },
     };
   });
 }

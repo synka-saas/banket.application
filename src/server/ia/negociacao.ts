@@ -96,7 +96,7 @@ export async function contextoNegociacao(db: Db, user: SessionUser, eventoId: st
       `Estilo gastronômico: ${[e.estilo_principal, e.estilo_secundario].filter(Boolean).join(' / ') || '—'}`,
       `Bebidas: alcoólicas ${e.bebidas_alcoolicas ?? '—'}; sem álcool ${e.bebidas_sem_alcool ?? '—'}`,
       `Restrições alimentares: ${restricoes.join(', ') || 'nenhuma'}`,
-      `Origem do pedido: ${e.origem === 'formulario' ? 'formulário do site' : 'cadastro manual'} em ${dataBr(e.created_at)}`,
+      `Origem do pedido: ${e.origem === 'busca' ? 'Banket Busca' : e.origem === 'formulario' ? 'formulário do site' : 'cadastro manual'} em ${dataBr(e.created_at)}`,
       `Etapa atual do funil: ${e.status_nome} (desde ${dataBr(desdeEtapa)})${e.motivo_perda ? ` · motivo da perda: ${e.motivo_perda}` : ''}`,
     ]),
     '',
