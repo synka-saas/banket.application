@@ -1,5 +1,4 @@
 ---
-import { permitir } from '../../lib/rateLimit';
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import SectionCard from '../../components/ui/SectionCard.astro';
@@ -21,6 +20,7 @@ import { whatsappConfigurado } from '../../lib/whatsapp';
 import { TIPOS_AVISO, avisarWhatsapp, ultimosAvisos } from '../../server/whatsapp';
 import { cumprimentoDaEmpresa } from '../../server/busca/respostas';
 import { mascararTelefone } from '../../lib/mascaras';
+import { permitir } from '../../lib/rateLimit';
 
 const { tenantId } = Astro.locals.user;
 // Plano sem Configurações (plano Busca): só os dados da empresa; os parâmetros da proposta seguem no formulário, ocultos

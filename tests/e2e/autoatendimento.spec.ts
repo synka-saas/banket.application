@@ -73,11 +73,13 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page).toHaveURL(/\/auth\/validacao/);
     await expect(page.locator('.auth-alert-error')).toContainText('Confirme seu e-mail');
 
-    // Reenvio gera um novo link; o anterior deixa de valer
+    // Reenvio manda um novo link com o mesmo cadastro (os anteriores continuam valendo até a confirmação)
     await page.getByRole('button', { name: 'Reenviar e-mail de confirmação' }).click();
     await expect(page.locator('.auth-alert-success')).toBeVisible();
 
     await page.goto(ultimoLink('/auth/verificar', email));
+    // Abrir o link não consome o token: só o botão confirma
+    await page.getByRole('button', { name: 'Confirmar e-mail' }).click();
     await expect(page).toHaveURL(/\/auth\/cadastro-complemento\?validado=1/);
     await expect(page.getByRole('heading', { name: 'E-mail validado' })).toBeVisible();
     await expect(page.getByLabel('E-mail')).toHaveValue(email);
@@ -104,7 +106,7 @@ test.describe.serial('Cadastro self-service', () => {
     await page.getByRole('button', { name: 'Finalizar e acessar a plataforma' }).click();
     // Cadastro pelo site: a empresa nasce no plano Busca e escolhe o plano; a escolha inicia o teste de 30 dias
     await expect(page).toHaveURL(/\/planos\?teste=1/, { timeout: 15_000 });
-    await page.locator('.plano-card').filter({ hasText: 'Profissional' }).getByRole('button', { name: 'Escolher e testar 30 dias' }).click();
+    await page.locator('.plano-card').filter({ has: page.locator('.plano-card-nome', { hasText: /^Profissional$/ }) }).getByRole('button', { name: 'Escolher e testar 30 dias' }).click();
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
     await expect(page.locator('.user-role')).toContainText('Proprietário');
 
@@ -152,12 +154,14 @@ test.describe.serial('Cadastro self-service', () => {
     await expect(page.locator('.auth-alert-success')).toBeVisible();
     const link = ultimoLink('/auth/entrar', email);
     await page.goto(link);
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.locator('.user-name')).toContainText('Teste Autoatendimento');
 
     // Uso único
     await page.goto('/auth/logout');
     await page.goto(link);
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/auth\/link-acesso/);
     await expect(page.locator('.auth-alert-error')).toContainText('inválido');
   });

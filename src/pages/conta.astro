@@ -5,7 +5,7 @@ import Button from '../components/ui/Button.astro';
 import SectionCard from '../components/ui/SectionCard.astro';
 import Icon from '../components/ui/Icon.astro';
 import { handleFormPost } from '../lib/actions';
-import { ROLE_LABELS } from '../lib/auth';
+import { ROLE_LABELS, setSessionCookie, signSession } from '../lib/auth';
 import { REGRA_SENHA } from '../lib/senha';
 import { empresasDoUsuario } from '../server/autoatendimento';
 import { atualizarPerfil, carregarPerfil, perfilSchema, trocarSenha } from '../server/conta';
@@ -22,7 +22,9 @@ if (Astro.request.method === 'POST') {
     }
     if (data._action === 'senha') {
       await trocarSenha(user.id, String(data.senha_atual ?? ''), String(data.senha ?? ''), String(data.confirma_senha ?? ''));
-      return 'Senha alterada.';
+      // As outras sessões caíram; esta continua com um cookie emitido agora
+      setSessionCookie(Astro.cookies, await signSession(user));
+      return 'Senha alterada. As outras sessões abertas foram encerradas.';
     }
     await atualizarPerfil(user.id, user.tenantId, perfilSchema.parse(data));
     return 'Dados da conta atualizados.';

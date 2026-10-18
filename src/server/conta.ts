@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { systemQuery } from '../lib/db';
 import { UserError, optionalText, requiredText } from '../lib/forms';
 import { validarSenha } from '../lib/senha';
-import { invalidateMembership } from '../lib/membership';
+import { invalidateMembership, invalidateUsuario } from '../lib/membership';
 import { invalidarEmpresas } from './autoatendimento';
 
 export const perfilSchema = z.object({
@@ -44,8 +44,10 @@ export async function trocarSenha(usuarioId: string, senhaAtual: string, nova: s
     [usuarioId, senhaAtual]
   );
   if (!rows[0]?.confere) throw new UserError('A senha atual não confere.', 'senha_atual');
-  await systemQuery(`UPDATE usuarios SET senha_hash = crypt($2, gen_salt('bf')), updated_at = now() WHERE id = $1`, [
+  // Derruba as outras sessões; quem trocou recebe um cookie novo (conta.astro)
+  await systemQuery(`UPDATE usuarios SET senha_hash = crypt($2, gen_salt('bf')), sessoes_revogadas_em = now(), updated_at = now() WHERE id = $1`, [
     usuarioId,
     nova,
   ]);
+  invalidateUsuario(usuarioId);
 }

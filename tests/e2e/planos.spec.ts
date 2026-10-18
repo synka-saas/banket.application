@@ -75,7 +75,7 @@ test.describe.serial('Planos e gating', () => {
     test.setTimeout(90_000);
     await login(page, GRATUITO);
     await page.goto('/planos?teste=1');
-    const card = page.locator('.plano-card').filter({ hasText: 'Profissional' });
+    const card = page.locator('.plano-card').filter({ has: page.locator('.plano-card-nome', { hasText: /^Profissional$/ }) });
     await expect(page.getByRole('heading', { name: 'Escolha o plano para começar' })).toBeVisible();
     await card.getByRole('button', { name: 'Escolher e testar 30 dias' }).click();
     await expect(page).toHaveURL(/\/dashboard/);

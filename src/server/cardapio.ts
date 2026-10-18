@@ -19,6 +19,7 @@ import { orderBy, type Ordenacao } from '../lib/ordenacao';
 import { parseMoney } from '../lib/money';
 import { UNIDADES_PORCAO, type UnidadePorcao } from '../lib/calculo/orcamento';
 import { sincronizarItemCardapio } from './estoque';
+import { conferirReferencias } from './referencias';
 
 export const RESTRICOES = {
   vegetariana: 'Vegetariana',
@@ -216,6 +217,12 @@ export async function listarItens(
 }
 
 export async function salvarItem(db: Db, tenantId: string, id: string | null, input: ItemInput) {
+  await conferirReferencias(db, [
+    ['catalogo_secoes', input.secao_id, 'Seção não encontrada.'],
+    ['categorias_item', input.categoria_principal_id, 'Categoria principal inválida.'],
+    ['categorias_item', input.categoria_secundaria_id, 'Categoria secundária inválida.'],
+    ['formatos_servico', input.formato_servico_id, 'Formato de serviço inválido.'],
+  ]);
   const values = [
     input.nome,
     input.secao_id,
@@ -436,6 +443,7 @@ export async function carregarOpcao(db: Db, id: string): Promise<OpcaoDetalhe> {
 }
 
 export async function salvarOpcao(db: Db, tenantId: string, id: string | null, input: OpcaoInput): Promise<string> {
+  await conferirReferencias(db, [['formatos_servico', input.formato_servico_id, 'Formato de serviço inválido.']]);
   const values = [
     input.nome,
     input.descricao,

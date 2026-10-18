@@ -1,5 +1,4 @@
 // Formulários públicos de captação: configuração (a partir do modelo), página pública e respostas.
-import { permitir } from '../lib/rateLimit';
 import { avisarWhatsapp } from './whatsapp';
 import { TEMPO_RESPOSTA_PADRAO, rotuloTempo } from '../lib/tempoResposta';
 import { z } from 'zod';
@@ -27,6 +26,7 @@ import { clienteSchema, salvarCliente } from './clientes';
 import { criarEvento, eventoSchema } from './eventos';
 import { espacoPadraoId } from './espacos';
 import { emailLayout } from './emails';
+import { permitir } from '../lib/rateLimit';
 
 // ---------------------------------------------------------------------------
 // Ocasiões por fluxo: as perguntas "Ocasião" de cada fluxo listam as ocasiões ligadas ao tipo

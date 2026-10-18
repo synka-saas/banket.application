@@ -34,6 +34,8 @@ export interface SessionUser {
   email: string;
   tenantId: string;
   role: Role;
+  /** Instante de emissão do JWT (segundos), para conferir contra usuarios.sessoes_revogadas_em */
+  emitidaEm?: number;
 }
 
 let secretKey: Uint8Array | null = null;
@@ -76,6 +78,7 @@ export async function verifySession(token: string | undefined): Promise<SessionU
       email: String(payload.email ?? ''),
       tenantId: payload.tenant_id,
       role: normalizeRole(payload.role as string),
+      emitidaEm: typeof payload.iat === 'number' ? payload.iat : 0,
     };
   } catch {
     return null;

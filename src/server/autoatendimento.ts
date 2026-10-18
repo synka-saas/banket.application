@@ -3,6 +3,7 @@
 // Tudo aqui roda na conexão de sistema: quem chama ainda não tem sessão (ou ainda não tem empresa).
 import { z } from 'zod';
 import { systemQuery, withSystem, type Db } from '../lib/db';
+import { invalidateUsuario } from '../lib/membership';
 import { normalizeRole, type OnboardingUser, type Role, type SessionUser } from '../lib/auth';
 import { UserError, requiredText } from '../lib/forms';
 import { validarSenha } from '../lib/senha';
@@ -383,9 +384,11 @@ export async function redefinirSenha(token: string | null, senha: string, confir
     // Quem recebeu o link comprovou o e-mail
     await db.query(
       `UPDATE usuarios SET senha_hash = crypt($2, gen_salt('bf')), email_verificado_em = COALESCE(email_verificado_em, now()),
-              updated_at = now() WHERE id = $1`,
+              sessoes_revogadas_em = now(), updated_at = now() WHERE id = $1`,
       [t.usuario_id, senha]
     );
+    // Senha nova: as sessões abertas (inclusive a de quem pediu a recuperação por suspeita) caem
+    invalidateUsuario(t.usuario_id);
     await db.query(`UPDATE auth_tokens SET usado_em = now() WHERE usuario_id = $1 AND tipo IN ('reset_senha', 'link_acesso') AND usado_em IS NULL`, [
       t.usuario_id,
     ]);

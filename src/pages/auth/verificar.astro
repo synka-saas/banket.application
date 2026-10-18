@@ -1,0 +1,38 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { setFlash } from '../../lib/flash';
+import { inicioAposLogin } from '../../lib/busca/url';
+import { setOnboardingCookie, setSessionCookie, signOnboarding, signSession } from '../../lib/auth';
+import { sessaoDoUsuario, verificarEmail } from '../../server/autoatendimento';
+
+// Link do e-mail de confirmação: valida a conta e segue para o cadastro da empresa. Como no link de acesso, abrir o link
+// só mostra o botão; o token é consumido no POST.
+const token = Astro.url.searchParams.get('token');
+
+if (Astro.request.method === 'POST') {
+  const usuario = await verificarEmail(token);
+  if (!usuario) {
+    setFlash(Astro.cookies, 'error', 'Este link de confirmação é inválido ou expirou. Faça login para receber um novo.');
+    return Astro.redirect('/auth/login');
+  }
+  // Conta que já tem empresa (ex.: aceitou um convite antes de confirmar): entra direto
+  const sessao = await sessaoDoUsuario(usuario.id);
+  if (sessao) {
+    setSessionCookie(Astro.cookies, await signSession(sessao));
+    return Astro.redirect(inicioAposLogin(Astro.url));
+  }
+  setOnboardingCookie(Astro.cookies, await signOnboarding(usuario));
+  return Astro.redirect('/auth/cadastro-complemento?validado=1');
+}
+---
+
+<AuthLayout title="Confirmar e-mail" showOverlay={false}>
+  <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
+  <h1 class="auth-title">Confirme seu e-mail</h1>
+  <p class="auth-subtitle">Falta um passo: confirme o e-mail para ativar a conta e cadastrar a sua empresa.</p>
+  <form class="auth-form" method="post">
+    <Button variant="primary" size="large" type="submit">Confirmar e-mail</Button>
+  </form>
+  <div class="auth-links"><a href="/auth/login">Voltar ao login</a></div>
+</AuthLayout>

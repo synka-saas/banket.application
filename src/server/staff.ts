@@ -16,6 +16,7 @@ import {
 import type { PageParams } from '../lib/pagination';
 import type { RegraStaff } from '../lib/calculo/staff';
 import { orderBy, type Ordenacao } from '../lib/ordenacao';
+import { conferirReferencias } from './referencias';
 
 // ---------------------------------------------------------------------------
 // Serviços e custos
@@ -177,6 +178,7 @@ export async function listarProfissionais(
 }
 
 export async function salvarProfissional(db: Db, tenantId: string, id: string | null, input: ProfissionalInput) {
+  await conferirReferencias(db, [['staff_servicos', input.servico_id, 'Especialidade inválida.']]);
   const values = [input.nome, input.email, input.telefone, input.documento, input.servico_id, input.chave_pix, input.observacoes, input.ativo];
   if (id) {
     const res = await db.query(
@@ -196,6 +198,7 @@ export async function salvarProfissional(db: Db, tenantId: string, id: string | 
 }
 
 export async function atualizarEspecialidade(db: Db, id: string, servicoId: string | null) {
+  await conferirReferencias(db, [['staff_servicos', servicoId, 'Especialidade inválida.']]);
   const res = await db.query('UPDATE profissionais SET servico_id = $1, updated_at = now() WHERE id = $2', [servicoId, id]);
   if (!res.rowCount) throw new UserError('Profissional não encontrado.');
 }

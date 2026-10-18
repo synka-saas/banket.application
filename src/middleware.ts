@@ -85,11 +85,14 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
   if (isPublic(pathname)) return next();
 
   const session = await verifySession(lerTokenSessao(context.cookies));
-  const membership = session ? await getMembership(session.id, session.tenantId) : null;
+  const vinculo = session ? await getMembership(session.id, session.tenantId) : null;
+  // Sessão emitida antes de uma troca ou redefinição de senha não vale mais (cookie roubado deixa de funcionar)
+  const revogada = Boolean(session && vinculo?.sessoesRevogadasEm && (session.emitidaEm ?? 0) < vinculo.sessoesRevogadasEm);
+  const membership = revogada ? null : vinculo;
   const user = session && membership ? { ...session, role: membership.role, nome: membership.nome } : null;
   if (session && !membership) {
     clearSessionCookie(context.cookies);
-    setFlash(context.cookies, 'error', 'Seu acesso a esta empresa foi desativado.');
+    setFlash(context.cookies, 'error', revogada ? 'A senha da conta mudou. Entre de novo.' : 'Seu acesso a esta empresa foi desativado.');
   }
   if (!user) {
     if (pathname.startsWith('/api/')) {

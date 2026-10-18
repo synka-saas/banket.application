@@ -1,0 +1,37 @@
+---
+import AuthLayout from '../../layouts/AuthLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { setFlash } from '../../lib/flash';
+import { inicioAposLogin } from '../../lib/busca/url';
+import { setOnboardingCookie, setSessionCookie, signOnboarding, signSession } from '../../lib/auth';
+import { entrarComLink } from '../../server/autoatendimento';
+
+// Link de acesso recebido por e-mail (uso único). Abrir o link só mostra o botão: o token é consumido no POST, para que
+// verificadores de link do e-mail (que abrem a página antes da pessoa) não gastem o link, e outro site não consiga
+// logar alguém numa conta alheia (o POST passa pela checagem de origem do Astro).
+const token = Astro.url.searchParams.get('token');
+
+if (Astro.request.method === 'POST') {
+  const r = await entrarComLink(token);
+  if (r.tipo === 'sessao') {
+    setSessionCookie(Astro.cookies, await signSession(r.usuario));
+    return Astro.redirect(inicioAposLogin(Astro.url));
+  }
+  if (r.tipo === 'onboarding') {
+    setOnboardingCookie(Astro.cookies, await signOnboarding(r.usuario));
+    return Astro.redirect('/auth/cadastro-complemento');
+  }
+  setFlash(Astro.cookies, 'error', 'Este link de acesso é inválido, expirou ou já foi usado. Peça um novo.');
+  return Astro.redirect('/auth/link-acesso');
+}
+---
+
+<AuthLayout title="Entrar" showOverlay={false}>
+  <img src="/logo-dark.png" alt="Banket" class="auth-logo-center" />
+  <h1 class="auth-title">Entrar no Banket</h1>
+  <p class="auth-subtitle">Use o botão abaixo para entrar com o link enviado ao seu e-mail.</p>
+  <form class="auth-form" method="post">
+    <Button variant="primary" size="large" type="submit">Entrar</Button>
+  </form>
+  <div class="auth-links"><a href="/auth/login">Voltar ao login</a></div>
+</AuthLayout>

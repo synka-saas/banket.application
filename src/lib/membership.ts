@@ -10,6 +10,8 @@ interface Membership {
   nome: string;
   /** tenants.status: 'active' | 'suspended' | 'canceled' */
   tenantStatus: string;
+  /** usuarios.sessoes_revogadas_em em segundos: sessão emitida antes não vale (troca ou redefinição de senha) */
+  sessoesRevogadasEm: number | null;
 }
 
 const TTL_MS = 30_000;
@@ -20,8 +22,8 @@ export async function getMembership(usuarioId: string, tenantId: string): Promis
   const hit = cache.get(key);
   if (hit && hit.expires > Date.now()) return hit.value;
 
-  const { rows } = await systemQuery<{ role: string; nome: string; tenant_status: string }>(
-    `SELECT tu.role, u.nome, t.status AS tenant_status
+  const { rows } = await systemQuery<{ role: string; nome: string; tenant_status: string; revogadas: number | null }>(
+    `SELECT tu.role, u.nome, t.status AS tenant_status, (floor(extract(epoch FROM u.sessoes_revogadas_em)) - 1)::int8 AS revogadas
        FROM tenant_usuarios tu
        JOIN usuarios u ON u.id = tu.usuario_id
        JOIN tenants t ON t.id = tu.tenant_id
@@ -29,7 +31,7 @@ export async function getMembership(usuarioId: string, tenantId: string): Promis
     [usuarioId, tenantId]
   );
   const value = rows[0]
-    ? { role: normalizeRole(rows[0].role), nome: rows[0].nome, tenantStatus: rows[0].tenant_status }
+    ? { role: normalizeRole(rows[0].role), nome: rows[0].nome, tenantStatus: rows[0].tenant_status, sessoesRevogadasEm: rows[0].revogadas }
     : null;
   cache.set(key, { value, expires: Date.now() + TTL_MS });
   return value;
@@ -38,6 +40,11 @@ export async function getMembership(usuarioId: string, tenantId: string): Promis
 /** Chamar após alterar papel/status de um usuário para refletir na hora. */
 export function invalidateMembership(usuarioId: string, tenantId: string) {
   cache.delete(`${usuarioId}:${tenantId}`);
+}
+
+/** Derruba o cache de um usuário em todas as empresas (ex.: sessões revogadas pela troca de senha). */
+export function invalidateUsuario(usuarioId: string) {
+  for (const key of cache.keys()) if (key.startsWith(`${usuarioId}:`)) cache.delete(key);
 }
 
 /** Derruba o cache de todos os usuários de uma empresa (suspensão/reativação pelo Manager). */
