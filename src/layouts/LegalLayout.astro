@@ -108,6 +108,50 @@ const { title, atualizadoEm } = Astro.props;
     color: var(--text-heading);
   }
 
+  /* Tabela (planos nos Termos): rola na horizontal em telas estreitas */
+  .legal-tabela {
+    margin: var(--space-2) 0 var(--space-4);
+    overflow-x: auto;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+  }
+
+  .legal-tabela table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: var(--fs-13);
+    line-height: 1.5;
+  }
+
+  .legal-tabela th,
+  .legal-tabela td {
+    padding: var(--space-3);
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .legal-tabela tbody tr:last-child th,
+  .legal-tabela tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .legal-tabela thead th {
+    background: var(--clay-25);
+    color: var(--text-secondary);
+    font-weight: var(--fw-medium);
+  }
+
+  .legal-tabela tbody th {
+    color: var(--text-heading);
+    font-weight: var(--fw-medium);
+  }
+
+  .legal-tabela .tabular {
+    white-space: nowrap;
+  }
+
   .legal-card a,
   .legal-rodape a {
     color: var(--text-link);
