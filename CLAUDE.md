@@ -588,6 +588,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `045_planos_descricoes` | descrições dos planos sem o termo "Concierge", com Banket Busca Simples/Personalizado |
 | `044_busca_simples_personalizado` | Busca em dois níveis: Essencial com os recursos do Busca do gratuito (Perfil Simples); `busca_personalizado` em Profissional, Prime e Completo; `busca_perfis.nivel` passa a seguir o recurso |
 | `043_formulario_busca` | `formularios.usar_no_busca` (índice único parcial por empresa): o formulário que abre no pedido de orçamento do perfil no Banket Busca |
 | `040_empresa_endereco` | endereço da empresa desmembrado em `tenants` (CEP, logradouro, número, complemento, bairro, cidade, UF); o texto antigo vai para o logradouro |
@@ -1088,6 +1089,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   limites do Busca (`aplicarExcedentesBusca`) ao ir para o Simples e os devolve (`restaurarBusca`) ao ir para o
   Personalizado. No site, os cards trazem "Banket Busca Simples" (Essencial) e "Banket Busca Personalizado"
   (Profissional e Prime), e a seção `#banket-busca` (antes de "Para quem é") explica os dois perfis.
+  Os cards de `/planos` no app mostram os destaques de cada plano (`DESTAQUES_PLANO` em `lib/planos/recursos.ts`, mesmo
+  texto do site), com o Banket Busca Simples ou Personalizado.
   **Plano Busca** (gratuito, `publico = false`): só o menu Banket Busca, 1 usuário, o Perfil Simples, aviso de pedido
   só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
   **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031. Detalhes em `PLANO.md`.

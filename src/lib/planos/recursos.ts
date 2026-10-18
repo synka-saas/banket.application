@@ -101,3 +101,41 @@ export const BENEFICIOS: Record<string, { titulo: string; texto: string }> = {
   usuarios: { titulo: 'Mais pessoas na equipe', texto: 'Convide vendedores, operação e financeiro com papéis diferentes.' },
   historico_meses: { titulo: 'Histórico completo', texto: 'Planos pagos mantêm visíveis todas as mensagens e todos os pedidos, sem recorte de 3 meses.' },
 };
+
+/**
+ * Destaques de cada plano nos cards de /planos (mesmo texto dos cards do site banket.com.br). O Banket Busca entra como
+ * Simples no Essencial e Personalizado no Profissional e no Prime (migration 044). A comparação completa vem do catálogo.
+ */
+export const DESTAQUES_PLANO: Record<string, { rotulo: string; itens: string[] }> = {
+  essencial: {
+    rotulo: 'Inclui',
+    itens: [
+      'Orçamento versionado com PDF para download',
+      'Lista de compras automática do evento',
+      'Contrato em PDF com os dados do evento',
+      'Painel de Propostas com as etapas padrão',
+      'Agenda, espaços e staff calculado por convidados',
+      'Banket Busca Simples: perfil público com até 5 fotos',
+    ],
+  },
+  profissional: {
+    rotulo: 'Tudo do Essencial, mais',
+    itens: [
+      'Envio da proposta pelo sistema, com respostas no Inbox',
+      'Painel de Propostas personalizável',
+      'Estoque com alertas e lista de compras com o que já tem',
+      'Reuniões com Google Meet direto do evento',
+      'Assistentes de IA de negociação e de orçamentos',
+      'Banket Busca Personalizado: selo, prioridade, cardápios, agenda e pedido de orçamento no perfil',
+    ],
+  },
+  prime: {
+    rotulo: 'Tudo do Profissional, mais',
+    itens: [
+      'Templates, cardápios, formulários e contratos ilimitados',
+      'Vários espaços, com agenda por salão',
+      'IA sem limite mensal e fundos da proposta criados por IA',
+      'Banket Busca Personalizado: selo, prioridade, cardápios, agenda e pedido de orçamento no perfil',
+    ],
+  },
+};

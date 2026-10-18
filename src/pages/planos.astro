@@ -10,7 +10,7 @@ import { handleFormPost } from '../lib/actions';
 import { isAdmin } from '../lib/auth';
 import { withTenant } from '../lib/db';
 import { brl } from '../lib/forms';
-import { RECURSOS, type GrupoRecurso } from '../lib/planos/recursos';
+import { DESTAQUES_PLANO, RECURSOS, type GrupoRecurso } from '../lib/planos/recursos';
 import { cobrancaConfigurada } from '../lib/stripe';
 import { escolherPlanoNoTeste, iniciarTrial, listarPlanos, ofertaDeTrial, registrarUpsell, usoDosLimites } from '../server/planos';
 
@@ -105,6 +105,12 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
             <span class="plano-card-periodo">/mês</span>
           </p>
           {p.preco_anual != null && <p class="plano-card-anual">ou {brl(p.preco_anual)}/ano (2 meses grátis)</p>}
+          {DESTAQUES_PLANO[p.slug] && (
+            <div class="plano-card-destaques">
+              <span class="eyebrow">{DESTAQUES_PLANO[p.slug].rotulo}</span>
+              <ul>{DESTAQUES_PLANO[p.slug].itens.map((t) => <li><Icon name="check" size={16} />{t}</li>)}</ul>
+            </div>
+          )}
           <div class="plano-card-acoes">
             {!admin ? null : podeTestar ? (
               <form method="post">
@@ -287,6 +293,40 @@ const usoVisivel = Object.entries(uso).filter(([, u]) => u.limite > 0);
 
   .plano-card-anual {
     margin: 0;
+  }
+
+  /* Destaques do plano (mesmo texto dos cards do site), entre o preço e as ações */
+  .plano-card-destaques {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .plano-card-destaques ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .plano-card-destaques li {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    font-size: var(--fs-13);
+    line-height: 1.45;
+    color: var(--text-body);
+  }
+
+  .plano-card-destaques li :global(svg) {
+    flex: none;
+    margin-top: 1px;
+    color: var(--terracotta-600);
   }
 
   .plano-card-acoes {
