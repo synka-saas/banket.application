@@ -74,10 +74,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
               { label: 'Última resposta', value: f.ultima_resposta ? dataBR(f.ultima_resposta) : '—' },
             ]}
           >
-            <span slot="status" class="formulario-selos">
-              {f.no_busca && <span class="badge badge-accent" title="Abre no pedido de orçamento do seu perfil no Banket Busca">No Banket Busca</span>}
-              <span class:list={['badge', { 'badge-success': f.ativo }]}>{f.ativo ? 'Ativo' : 'Inativo'}</span>
-            </span>
+            <span slot="status" class:list={['badge', { 'badge-success': f.ativo }]}>{f.ativo ? 'Ativo' : 'Inativo'}</span>
             <div class="link-publico">
               <span class="link-icone"><Icon name="link" size={16} stroke={1.75} /></span>
               <span class="link-url" title={url}>{url}</span>
@@ -93,6 +90,11 @@ const pad = (n: number) => String(n).padStart(2, '0');
                 <a class="btn btn-text btn-sm" href={`/f/${f.slug}?previa=1`} target="_blank" rel="noopener">
                   <Icon name="eye" size={15} stroke={1.75} class="btn-icon" />Pré-visualizar
                 </a>
+                {f.no_busca && (
+                  <span class="formulario-no-busca" title="Os pedidos de orçamento do seu perfil no Banket Busca abrem este formulário">
+                    <Icon name="banket" size={15} stroke={1.75} />No Banket Busca
+                  </span>
+                )}
                 {f.ativo && !f.no_busca && (
                   <form method="post" style="display:contents">
                     <input type="hidden" name="_action" value="usar_no_busca" />
@@ -216,10 +218,18 @@ const pad = (n: number) => String(n).padStart(2, '0');
 </script>
 
 <style>
-  .formulario-selos {
+  /* Formulário escolhido para o Banket Busca: selo no lugar da ação "Usar no Banket Busca" (o cabeçalho fica livre) */
+  .formulario-no-busca {
     display: inline-flex;
-    flex-wrap: wrap;
+    align-items: center;
     gap: 6px;
+    min-height: var(--control-h-sm);
+    padding: 0 10px;
+    border-radius: var(--radius-full);
+    background: var(--bg-accent-subtle);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-accent);
   }
 
   /* Estado vazio dentro de um card, como nas demais listas em cartões */
