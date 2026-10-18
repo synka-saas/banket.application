@@ -47,6 +47,7 @@ Na primeira vez, as duas últimas checagens (endereço público) falham, porque 
 
 ```bash
 sudo cp help/nginx/host-banket-ajuda.conf /etc/nginx/conf.d/banket-ajuda.conf
+sudo mkdir -p /var/cache/nginx/banket_ajuda && sudo chown www-data:www-data /var/cache/nginx/banket_ajuda
 sudo cp /etc/nginx/sites-enabled/app.banket.com.br.conf /root/app.banket.com.br.conf.bak-$(date +%Y%m%d%H%M)
 # cole o conteúdo de help/nginx/host-app.banket.com.br.locations.conf dentro do server { … } de 443,
 # logo antes de "location / {"
