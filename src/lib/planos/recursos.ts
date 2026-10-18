@@ -91,20 +91,20 @@ export const BENEFICIOS: Record<string, { titulo: string; texto: string }> = {
   reunioes: { titulo: 'Reuniões com Google Meet', texto: 'Agende degustações e visitas na sua agenda Google, com convite ao cliente.' },
   ia: { titulo: 'Assistentes de IA', texto: 'Temperatura da negociação, objeções e trocas de maior margem no orçamento.' },
   configuracoes: { titulo: 'Configurações da empresa', texto: 'Usuários, etapas do funil, ocasiões, formatos de serviço e modelos de e-mail.' },
-  busca_cardapios: { titulo: 'Cardápios detalhados no seu perfil', texto: 'No Perfil Personalizado (planos Profissional e Prime), as opções de cardápio aparecem com seções e itens, direto do catálogo, sem digitar duas vezes.' },
+  busca_cardapios: { titulo: 'Cardápios detalhados no seu perfil', texto: 'No Perfil Personalizado (todos os planos pagos), as opções de cardápio aparecem com seções e itens, direto do catálogo, sem digitar duas vezes.' },
   busca_disponibilidade: { titulo: 'Disponibilidade em tempo real', texto: 'Quem busca vê "Disponível na data" a partir da sua agenda. No Perfil Simples aparece "Consultar disponibilidade".' },
-  busca_slug: { titulo: 'Um endereço com o nome do seu buffet', texto: 'No Perfil Personalizado (planos Profissional e Prime), o endereço do perfil leva o nome do buffet (busca.banket.com.br/buffet/seu-buffet), para divulgar no Instagram e no WhatsApp.' },
-  busca_fotos: { titulo: 'Galeria maior, em grupos', texto: 'O Perfil Simples tem 5 fotos gerais. No Perfil Personalizado, até 30 fotos no Profissional e 60 no Prime, em grupos por evento; sem limite no Master.' },
-  busca_tipos_evento: { titulo: 'Apareça em mais buscas', texto: 'No Perfil Personalizado, até 6 tipos de evento e 6 de serviço no Profissional e 10 no Prime; sem limite no Master.' },
-  busca_tipos_servico: { titulo: 'Apareça em mais buscas', texto: 'No Perfil Personalizado, até 6 tipos de evento e 6 de serviço no Profissional e 10 no Prime; sem limite no Master.' },
-  busca_prioridade: { titulo: 'Apareça primeiro', texto: 'No Perfil Personalizado (planos Profissional e Prime), o buffet aparece antes dos perfis simples em todas as buscas, com o selo Cliente Banket.' },
+  busca_slug: { titulo: 'Um endereço com o nome do seu buffet', texto: 'No Perfil Personalizado (todos os planos pagos), o endereço do perfil leva o nome do buffet (busca.banket.com.br/buffet/seu-buffet), para divulgar no Instagram e no WhatsApp.' },
+  busca_fotos: { titulo: 'Galeria maior, em grupos', texto: 'O Perfil Simples tem 5 fotos gerais. No Perfil Personalizado, até 30 fotos no Essencial e no Profissional e 60 no Prime, em grupos por evento; sem limite no Master.' },
+  busca_tipos_evento: { titulo: 'Apareça em mais buscas', texto: 'No Perfil Personalizado, até 6 tipos de evento e 6 de serviço no Essencial e no Profissional e 10 no Prime; sem limite no Master.' },
+  busca_tipos_servico: { titulo: 'Apareça em mais buscas', texto: 'No Perfil Personalizado, até 6 tipos de evento e 6 de serviço no Essencial e no Profissional e 10 no Prime; sem limite no Master.' },
+  busca_prioridade: { titulo: 'Apareça primeiro', texto: 'No Perfil Personalizado (todos os planos pagos), o buffet ganha impulso no ranking, concorre às vagas de Destaque no topo da busca e leva o selo Cliente Banket.' },
   usuarios: { titulo: 'Mais pessoas na equipe', texto: 'Convide vendedores, operação e financeiro com papéis diferentes.' },
   historico_meses: { titulo: 'Histórico completo', texto: 'Planos pagos mantêm visíveis todas as mensagens e todos os pedidos, sem recorte de 3 meses.' },
 };
 
 /**
  * Destaques de cada plano nos cards de /planos (mesmo texto dos cards do site banket.com.br). O Banket Busca entra como
- * Simples no Essencial e Personalizado no Profissional e no Prime (migration 044). A comparação completa vem do catálogo.
+ * Personalizado em todos os planos pagos (migration 048; o Simples fica só no plano Busca). A comparação completa vem do catálogo.
  */
 export const DESTAQUES_PLANO: Record<string, { rotulo: string; itens: string[] }> = {
   essencial: {
@@ -115,7 +115,7 @@ export const DESTAQUES_PLANO: Record<string, { rotulo: string; itens: string[] }
       'Contrato em PDF com os dados do evento',
       'Painel de Propostas com as etapas padrão',
       'Agenda, espaços e staff calculado por convidados',
-      'Banket Busca Simples: perfil público com até 5 fotos',
+      'Banket Busca Personalizado: selo, destaque, cardápios, agenda e pedido de orçamento no perfil',
     ],
   },
   profissional: {
@@ -126,7 +126,7 @@ export const DESTAQUES_PLANO: Record<string, { rotulo: string; itens: string[] }
       'Estoque com alertas e lista de compras com o que já tem',
       'Reuniões com Google Meet direto do evento',
       'Assistentes de IA de negociação e de orçamentos',
-      'Banket Busca Personalizado: selo, prioridade, cardápios, agenda e pedido de orçamento no perfil',
+      'Pesquisa de satisfação que vira avaliação no Banket Busca',
     ],
   },
   prime: {
@@ -135,7 +135,7 @@ export const DESTAQUES_PLANO: Record<string, { rotulo: string; itens: string[] }
       'Até 10 templates, 20 cardápios, 10 formulários e 10 modelos de contrato',
       'Até 10 espaços e 15 usuários, com agenda por salão',
       '100 análises de IA e 20 fundos da proposta por IA por mês',
-      'Banket Busca Personalizado: selo, prioridade, cardápios, agenda e pedido de orçamento no perfil',
+      'Banket Busca com até 60 fotos e 10 tipos de evento e de serviço',
     ],
   },
 };

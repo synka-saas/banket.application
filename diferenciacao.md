@@ -1,4 +1,8 @@
-# Banket Busca: diferenciação entre Perfil Simples (gratuito/Essencial) e Personalizado (Profissional/Prime/Master)
+# Banket Busca: diferenciação entre Perfil Simples (plano Busca, gratuito) e Personalizado (todos os planos pagos)
+
+> **Atualização de 18/10/2026 (migration 048):** o Essencial passou a ter o Perfil Personalizado, com os mesmos recursos
+> do Busca do Profissional (30 fotos em grupos, 6 tipos de evento e 6 de serviço). O Perfil Simples ficou só no plano
+> Busca (gratuito). Onde este documento diz "Essencial = Simples", vale a regra nova.
 
 Decisão de 18/10/2026: **o Banket Busca é uma funcionalidade do Banket, não uma plataforma de mídia.** Ele não é
 vendido à parte nem tem plano próprio pago: vem dentro dos planos do Banket, em dois níveis de perfil.
@@ -12,7 +16,7 @@ sempre consegue falar com qualquer buffet, com um toque.
 | Plano | Preço | Oferta | Perfil no Busca | Recurso / `busca_perfis.nivel` |
 |---|---|---|---|---|
 | Busca | gratuito | só pelo Busca (`/auth/cadastro?plano=busca`) | **Simples** | sem `busca_personalizado` / `gratuito` |
-| Essencial | R$ 89/mês | pública (site e app) | **Simples** (igual ao gratuito) | sem `busca_personalizado` / `gratuito` |
+| Essencial | R$ 89/mês | pública (site e app) | **Personalizado** (igual ao Profissional) | `busca_personalizado` / `cliente` |
 | Profissional | R$ 197/mês | pública | **Personalizado** | `busca_personalizado` / `cliente` |
 | Prime | R$ 297/mês | pública | **Personalizado** | `busca_personalizado` / `cliente` |
 | Master | R$ 449/mês | **não pública**: contratada pela equipe, para grandes buffets e redes | **Personalizado**, sem limites | `busca_personalizado` / `cliente` |
@@ -38,8 +42,8 @@ sempre consegue falar com qualquer buffet, com um toque.
 | Itens de estoque | — | — | 200 | 1.000 | sem limite |
 | Análises de IA por mês | — | — | 30 | 100 | sem limite |
 | Fundos de proposta por IA por mês | — | — | — | 20 | sem limite |
-| **Fotos no perfil do Busca** | 5 gerais | 5 gerais | 30, em grupos | 60, em grupos | sem limite |
-| **Tipos de evento / de serviço no Busca** | 3 / 3 | 3 / 3 | 6 / 6 | 10 / 10 | sem limite |
+| **Fotos no perfil do Busca** | 5 gerais | 30, em grupos | 30, em grupos | 60, em grupos | sem limite |
+| **Tipos de evento / de serviço no Busca** | 3 / 3 | 6 / 6 | 6 / 6 | 10 / 10 | sem limite |
 | Histórico | 3 meses | completo | completo | completo | completo |
 
 Empresas que já passam de um limite não perdem nada: o limite só impede criar novos itens ou reativar. Fotos e tipos

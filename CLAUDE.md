@@ -602,6 +602,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `048_essencial_busca_personalizado` | Essencial com os recursos do Busca do Profissional (Perfil Personalizado em todos os planos pagos; o Simples fica só no plano Busca) e descrição do plano |
 | `047_busca_ranking_avaliacoes_whatsapp` | `busca_metricas_dia.cliques_contato`, `busca_perfis.ultima_resposta_em`, tempo de resposta e avisos do WhatsApp em `configuracoes_tenant`, avaliação do Busca em `pesquisa_envios` + `busca_recalcular_avaliacoes(tenant)`, `whatsapp_mensagens` (RLS) e `whatsapp_events` (só sistema) |
 | `046_planos_precos_master` | preços (89/197/297; anual 10×), limites do Profissional e do Prime (ilimitado só no Master) e o plano Master (R$ 449, não público) |
 | `045_planos_descricoes` | descrições dos planos sem o termo "Concierge", com Banket Busca Simples/Personalizado |
@@ -1123,15 +1124,17 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 
 ### Planos e gating — `/planos`, `/busca` (`lib/planos/*`, `server/planos.ts`, `server/agendador.ts`)
 - **Modelo**: o Banket Busca é uma funcionalidade do Banket (não uma plataforma de mídia; decisão de 18/10/2026), em
-  dois níveis: **Perfil Simples** (plano Busca e **Essencial**: 5 fotos gerais sem grupos, 3 tipos de evento e 3 de
+  dois níveis: **Perfil Simples** (só o plano Busca, gratuito: 5 fotos gerais sem grupos, 3 tipos de evento e 3 de
   serviço, sem selo, prioridade, cardápio, agenda nem endereço com o nome; o cliente vê os contatos) e **Perfil
-  Personalizado** (recurso `busca_personalizado`: Profissional, Prime e Completo). `busca_perfis.nivel` = `gratuito`
+  Personalizado** (recurso `busca_personalizado`: **todos os planos pagos** — Essencial e Profissional com 30 fotos e
+  6 tipos de cada, Prime com 60 e 10, Master e Completo sem limite; migration 048). `busca_perfis.nivel` = `gratuito`
   (Simples) ou `cliente` (Personalizado), por `nivelEm` (recurso, não o `gratuito` do plano); `trocarPlano` aplica os
   limites do Busca (`aplicarExcedentesBusca`) ao ir para o Simples e os devolve (`restaurarBusca`) ao ir para o
-  Personalizado. No site, os cards trazem "Banket Busca Simples" (Essencial) e "Banket Busca Personalizado"
-  (Profissional e Prime), e a seção `#banket-busca` (antes de "Para quem é") explica os dois perfis.
+  Personalizado. No site, o card do Essencial traz "Banket Busca Personalizado", a comparação mostra o Personalizado
+  nos três planos, e a seção `#banket-busca` (antes de "Para quem é") explica os dois perfis (Simples = plano Busca
+  gratuito; Personalizado = todos os planos pagos).
   Os cards de `/planos` no app mostram os destaques de cada plano (`DESTAQUES_PLANO` em `lib/planos/recursos.ts`, mesmo
-  texto do site), com o Banket Busca Simples ou Personalizado.
+  texto do site), com o Banket Busca Personalizado.
   **Plano Busca** (gratuito, `publico = false`): só o menu Banket Busca, 1 usuário, o Perfil Simples, aviso de pedido
   só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
   **Master** (R$ 449, `publico = false`) é o único plano comercial sem limites, contratado pela equipe; no site aparece só
@@ -1476,7 +1479,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   `/etc/nginx/conf.d/banket-upstream.conf` (reescrito a cada deploy). HTTPS via Certbot. `client_max_body_size 20m`.
 - **Site institucional** (`site/`, <https://banket.com.br>): HTML estático sem build nem contêiner. É **página única**:
   todas as seções (hero, como funciona, recursos, para quem é, planos, dúvidas, contato) ficam no `index.html` e o menu
-  usa âncoras; só páginas de fato separadas ganham arquivo `.html` próprio. Documentos legais: `site/termos/`, `site/privacidade/` e `site/cookies/` (`index.html` em cada pasta, URLs `/termos/`, `/privacidade/`, `/cookies/`, caminhos absolutos para `/assets`), com o mesmo cabeçalho e rodapé da home, abas entre eles e `assets/css/legal.css`; a coluna "Legal" do rodapé da home aponta para eles. São as URLs de privacidade e termos cadastradas no app da Meta (WhatsApp). Ao mudar o cabeçalho ou o rodapé da home, replique nas três páginas. `assets/css/design-system.css` é cópia
+  usa âncoras; só páginas de fato separadas ganham arquivo `.html` próprio. Documentos legais: `site/termos/`, `site/privacidade/` e `site/cookies/` (`index.html` em cada pasta, URLs `/termos/`, `/privacidade/`, `/cookies/`, caminhos absolutos para `/assets`), com o mesmo cabeçalho e rodapé da home, abas entre eles e `assets/css/legal.css`; a coluna "Legal" do rodapé da home aponta para eles. São as URLs de privacidade e termos cadastradas no app da Meta (WhatsApp). Ao mudar o cabeçalho ou o rodapé da home, replique nas três páginas. Logo depois do topo, antes de "Como funciona", fica **O mercado** (`#mercado`, fundo branco: big numbers com fonte linkada — Abrape, IBGE e Harvard Business Review; ao atualizar um número, troque também a fonte); entre o Banket Busca e "Para quem é", o **Teste grátis** (`#teste-gratis`, faixa terracota: 30 dias sem cartão, 3 passos e CTAs). Os CTAs "Começar Grátis" dos cards de planos levam a `/register`, que o Nginx do site redireciona (302) para `https://app.banket.com.br/auth/cadastro` mantendo a query (`location ~ ^/register/?$` em `banket.com.br.conf`); o Master segue com "Falar com a equipe" (formulário de `#contato`). `assets/css/design-system.css` é cópia
   concatenada de `design-system/tokens` e `components` (recopiar quando o design system mudar); `assets/css/site.css` e
   `assets/js/site.js` são do site (JS puro: passos do "Como funciona", cobrança mensal/anual, comparação, dúvidas,
   staff, formulário, menu do celular). Nginx: `/etc/nginx/sites-enabled/banket.com.br.conf` (root em

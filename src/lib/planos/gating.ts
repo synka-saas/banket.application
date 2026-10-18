@@ -94,7 +94,7 @@ export function limiteEm(ent: Entitlements | null, recurso: string): number {
 
 /**
  * Nível do perfil no Banket Busca: 'cliente' = Perfil Personalizado (recurso busca_personalizado: Profissional, Prime,
- * Completo); 'gratuito' = Perfil Simples (planos Busca e Essencial). Sem plano conta como personalizado.
+ * Completo e todos os planos pagos); 'gratuito' = Perfil Simples (só o plano Busca). Sem plano conta como personalizado.
  */
 export const nivelEm = (ent: Entitlements | null): 'gratuito' | 'cliente' => (podeUsarEm(ent, 'busca_personalizado') ? 'cliente' : 'gratuito');
 

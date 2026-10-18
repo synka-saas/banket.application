@@ -135,7 +135,7 @@ export async function trocarPlano(db: Db, tenantId: string, paraPlanoId: string,
     [tenantId, de, paraPlanoId, meta.motivo, meta.origem, meta.usuarioId ?? null, JSON.stringify(meta.dados ?? {})]
   );
   invalidar(tenantId);
-  // O Banket Busca segue os recursos do plano: Perfil Simples (Busca, Essencial) ou Personalizado (Profissional, Prime)
+  // O Banket Busca segue os recursos do plano: Perfil Simples (plano Busca) ou Personalizado (planos pagos)
   const ent = await entitlements(tenantId, db);
   await sincronizarNivel(db, tenantId, nivelEm(ent));
   if (destino.gratuito) await aplicarExcedentes(db, tenantId);

@@ -231,3 +231,92 @@ a:hover { color: var(--text-link-hover); }
   .pl-master { flex-direction: column; align-items: stretch; padding: 24px 20px; }
   .pl-master .bk-btn { justify-content: center; }
 }
+
+/* Teste grátis de 30 dias (entre o Banket Busca e "Para quem é"): faixa na cor primária, com os passos e os CTAs */
+.tg-secao { padding: clamp(64px, 8vw, 104px) 0; background: var(--action-primary); color: var(--text-on-accent); scroll-margin-top: 72px; }
+.tg-conteudo { max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 32px clamp(40px, 6vw, 88px); align-items: center; }
+.tg-intro { display: flex; flex-direction: column; gap: 18px; }
+.tg-eyebrow { font-size: 12px; font-weight: var(--fw-medium); letter-spacing: 0.08em; text-transform: uppercase; color: var(--terracotta-100); }
+.tg-intro h2 { margin: 0; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; font-weight: var(--fw-medium); letter-spacing: -0.028em; color: var(--text-on-accent); text-wrap: balance; }
+.tg-intro p { margin: 0; max-width: 560px; font-size: 17px; line-height: 1.6; color: var(--terracotta-50); text-wrap: pretty; }
+.tg-acoes { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.tg-btn-claro { background: var(--bg-surface); color: var(--terracotta-700); border: 1px solid var(--bg-surface); box-shadow: var(--shadow-sm); }
+.tg-btn-claro:hover { background: var(--terracotta-50); color: var(--terracotta-800); }
+.tg-btn-contorno { background: transparent; color: var(--text-on-accent); border: 1px solid var(--terracotta-300); }
+.tg-btn-contorno:hover { background: var(--terracotta-700); border-color: var(--terracotta-200); color: var(--text-on-accent); }
+.tg-passos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.tg-passo { display: flex; gap: 16px; align-items: flex-start; padding: 20px 22px; background: var(--terracotta-700); border: 1px solid var(--terracotta-500); border-radius: var(--radius-lg); }
+.tg-num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--bg-surface); color: var(--terracotta-700); font-size: 15px; font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; }
+.tg-passo h3 { margin: 4px 0 4px; font-size: 16px; font-weight: var(--fw-medium); line-height: 1.35; color: var(--text-on-accent); }
+.tg-passo p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--terracotta-50); }
+.tg-garantias { grid-column: 1 / -1; list-style: none; margin: 8px 0 0; padding: 20px 0 0; border-top: 1px solid var(--terracotta-500); display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 14px; color: var(--terracotta-50); }
+.tg-garantias li { display: inline-flex; align-items: center; gap: 8px; }
+.tg-garantias li::before { content: ''; flex: none; width: 10px; height: 5px; margin: -3px 2px 0; border-left: 1.75px solid currentColor; border-bottom: 1.75px solid currentColor; transform: rotate(-45deg); }
+@media (max-width: 1023px) {
+  .tg-conteudo { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .tg-acoes .bk-btn { width: 100%; justify-content: center; }
+  .tg-passo { padding: 16px 18px; }
+}
+
+/* O mercado (big numbers com fonte), entre o Banket Busca e o teste grátis: fundo branco para separar as seções */
+.mc-secao { padding: clamp(64px, 8vw, 104px) 0; background: var(--bg-surface); border-top: 1px solid var(--border-subtle); scroll-margin-top: 72px; }
+.mc-conteudo { max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 40px); box-sizing: border-box; display: flex; flex-direction: column; gap: 44px; }
+.mc-intro { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+.mc-eyebrow { font-size: 12px; font-weight: var(--fw-medium); letter-spacing: 0.08em; text-transform: uppercase; color: var(--terracotta-700); }
+.mc-intro h2 { margin: 0; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; font-weight: var(--fw-medium); letter-spacing: -0.028em; color: var(--text-strong); text-wrap: balance; }
+.mc-intro p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--text-secondary); text-wrap: pretty; }
+.mc-numeros { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--border-default); }
+.mc-numero { display: flex; flex-direction: column; gap: 10px; padding: 28px 24px 4px 0; }
+.mc-numero + .mc-numero { padding-left: 24px; border-left: 1px solid var(--border-subtle); }
+.mc-valor { font-size: clamp(40px, 4.6vw, 56px); line-height: 1; font-weight: var(--fw-medium); letter-spacing: -0.03em; color: var(--text-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mc-rotulo { font-size: 15px; line-height: 1.5; color: var(--text-body); text-wrap: pretty; }
+.mc-fonte { margin-top: auto; padding-top: 6px; font-size: 12px; color: var(--text-muted); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+.mc-fonte:hover { color: var(--terracotta-700); }
+.mc-ponte { margin: 0; padding: 20px 24px; border-radius: var(--radius-lg); background: var(--bg-accent-subtle); font-size: 15px; line-height: 1.6; color: var(--text-body); }
+.mc-ponte a { color: var(--text-link); font-weight: var(--fw-medium); white-space: nowrap; }
+@media (max-width: 1023px) {
+  .mc-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mc-numero:nth-child(3) { padding-left: 0; border-left: 0; }
+  .mc-numero:nth-child(n + 3) { border-top: 1px solid var(--border-subtle); margin-top: 20px; }
+}
+@media (max-width: 639px) {
+  .mc-numeros { grid-template-columns: 1fr; }
+  .mc-numero, .mc-numero + .mc-numero { padding: 24px 0 4px; border-left: 0; }
+  .mc-numero + .mc-numero { border-top: 1px solid var(--border-subtle); margin-top: 0; }
+}
+
+/* Teste de cores (18/10/2026): big numbers na cor primária e teste grátis em branco. Para voltar, tirar as classes
+   mc-secao--primaria e tg-secao--clara do index.html. */
+.mc-secao--primaria { background: var(--action-primary); border-top: 0; }
+.mc-secao--primaria .mc-eyebrow { color: var(--terracotta-100); }
+.mc-secao--primaria .mc-intro h2, .mc-secao--primaria .mc-valor { color: var(--text-on-accent); }
+.mc-secao--primaria .mc-intro p, .mc-secao--primaria .mc-rotulo { color: var(--terracotta-50); }
+.mc-secao--primaria .mc-numeros { border-top-color: var(--terracotta-400); }
+.mc-secao--primaria .mc-numero + .mc-numero { border-left-color: var(--terracotta-500); }
+.mc-secao--primaria .mc-fonte { color: var(--terracotta-100); text-decoration-color: var(--terracotta-300); }
+.mc-secao--primaria .mc-fonte:hover { color: var(--text-on-accent); }
+.mc-secao--primaria .mc-ponte { background: var(--terracotta-700); color: var(--terracotta-50); }
+.mc-secao--primaria .mc-ponte a { color: var(--text-on-accent); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 1023px) {
+  .mc-secao--primaria .mc-numero:nth-child(n + 3) { border-top-color: var(--terracotta-500); }
+}
+@media (max-width: 639px) {
+  .mc-secao--primaria .mc-numero + .mc-numero { border-top-color: var(--terracotta-500); }
+}
+
+.tg-secao--clara { background: var(--bg-surface); color: var(--text-body); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+.tg-secao--clara .tg-eyebrow { color: var(--terracotta-700); }
+.tg-secao--clara .tg-intro h2 { color: var(--text-strong); }
+.tg-secao--clara .tg-intro p { color: var(--text-secondary); }
+.tg-secao--clara .tg-btn-claro { background: var(--action-primary); border-color: var(--action-primary); color: var(--text-on-accent); }
+.tg-secao--clara .tg-btn-claro:hover { background: var(--action-primary-hover); border-color: var(--action-primary-hover); color: var(--text-on-accent); }
+.tg-secao--clara .tg-btn-contorno { color: var(--text-body); border-color: var(--border-strong); }
+.tg-secao--clara .tg-btn-contorno:hover { background: var(--clay-25); border-color: var(--border-strong); color: var(--text-strong); }
+.tg-secao--clara .tg-passo { background: var(--clay-25); border-color: var(--border-default); }
+.tg-secao--clara .tg-num { background: var(--action-primary); color: var(--text-on-accent); }
+.tg-secao--clara .tg-passo h3 { color: var(--text-strong); }
+.tg-secao--clara .tg-passo p { color: var(--text-secondary); }
+.tg-secao--clara .tg-garantias { border-top-color: var(--border-subtle); color: var(--text-secondary); }
+.tg-secao--clara .tg-garantias li::before { color: var(--success); }
