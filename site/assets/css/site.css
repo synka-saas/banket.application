@@ -221,3 +221,13 @@ a:hover { color: var(--text-link-hover); }
   .bb-perfil { padding: 24px 20px; }
   .bb-acoes .bk-btn { width: 100%; justify-content: center; }
 }
+
+/* Chamada do plano Master (sem preço público), abaixo dos cards */
+.pl-master { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 32px; background: var(--clay-25); border: 1px solid var(--border-default); border-radius: 20px; }
+.pl-master-texto { display: flex; flex-direction: column; gap: 8px; max-width: 760px; }
+.pl-master h3 { margin: 0; font-size: 20px; font-weight: var(--fw-medium); color: var(--text-strong); }
+.pl-master p { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-secondary); }
+@media (max-width: 768px) {
+  .pl-master { flex-direction: column; align-items: stretch; padding: 24px 20px; }
+  .pl-master .bk-btn { justify-content: center; }
+}

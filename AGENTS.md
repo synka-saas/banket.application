@@ -474,8 +474,9 @@ quando paga), `usuario_id`, `baixa_usuario_id`.
 
 ### Planos
 
-**`planos`** — catálogo do próprio Banket (sem RLS; o papel do app só lê): `slug` (`busca` gratuito, `essencial`,
-`profissional`, `prime`, `completo` interno), `nome`, `gratuito`, `publico`, `ativo`, `ordem`, `preco_mensal/anual`,
+**`planos`** — catálogo do próprio Banket (sem RLS; o papel do app só lê): `slug` (`busca` gratuito, `essencial`
+R$ 89, `profissional` R$ 197, `prime` R$ 297, `master` R$ 449 — não público, contratado pela equipe, para grandes buffets
+e redes —, `completo` interno; anual = 10 mensalidades; ilimitado (`-1`) só no Master e no Completo, migration 046), `nome`, `gratuito`, `publico`, `ativo`, `ordem`, `preco_mensal/anual`,
 `trial_dias` (30), `recursos` JSONB (`{slug: true|false|int}`, `-1` = sem limite; slugs em `lib/planos/recursos.ts`),
 `stripe_*` (padrão Hwesta, uso futuro). Valores versionados pela migration `031`.
 **`tenants`** ganhou `plano_id`, `plano_pendente_id`, `trial_ate` (último dia do teste), `trial_iniciado_em`,
@@ -588,6 +589,7 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `046_planos_precos_master` | preços (89/197/297; anual 10×), limites do Profissional e do Prime (ilimitado só no Master) e o plano Master (R$ 449, não público) |
 | `045_planos_descricoes` | descrições dos planos sem o termo "Concierge", com Banket Busca Simples/Personalizado |
 | `044_busca_simples_personalizado` | Busca em dois níveis: Essencial com os recursos do Busca do gratuito (Perfil Simples); `busca_personalizado` em Profissional, Prime e Completo; `busca_perfis.nivel` passa a seguir o recurso |
 | `043_formulario_busca` | `formularios.usar_no_busca` (índice único parcial por empresa): o formulário que abre no pedido de orçamento do perfil no Banket Busca |
@@ -1093,7 +1095,9 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   texto do site), com o Banket Busca Simples ou Personalizado.
   **Plano Busca** (gratuito, `publico = false`): só o menu Banket Busca, 1 usuário, o Perfil Simples, aviso de pedido
   só dentro do app, histórico de 3 meses. Essencial/Profissional/Prime seguem `proposta-precificacao-planos.md`;
-  **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031. Detalhes em `PLANO.md`.
+  **Master** (R$ 449, `publico = false`) é o único plano comercial sem limites, contratado pela equipe; no site aparece só
+  como chamada abaixo dos cards. **Completo** (interno) libera tudo e é o plano das empresas anteriores à migration 031.
+  Limites e níveis por plano: `diferenciacao.md`. Detalhes em `PLANO.md`.
 - **Gating**: nunca leia `planos` para decidir; use `podeUsar`/`limite`/`exigir`/`exigirLimite`/`exigirLimiteDb` de
   `lib/planos/gating.ts` no servidor (a interface só espelha). `ErroPlano` vira 403 JSON no `jsonEndpoint` e mensagem em
   `userMessage`. Empresa **sem plano** é permissiva. Recurso novo: slug em `RECURSOS` (`recursos.ts`), valor em cada

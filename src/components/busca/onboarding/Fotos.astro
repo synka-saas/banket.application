@@ -1,6 +1,6 @@
 ---
 // Etapa 5: fotos (JPG, PNG ou WebP; comprimidas no navegador). A capa é a primeira. Plano gratuito: até 5 fotos gerais,
-// sem grupos; o que passa do limite volta com o painel de upsell. Planos pagos: fotos sem limite e em grupos (tags),
+// sem grupos; o que passa do limite volta com o painel de upsell. Perfil Personalizado: mais fotos (limite do plano) e em grupos (tags),
 // para mostrar eventos diferentes ("Casamento Ana e Pedro"). Fotos bloqueadas pelo plano (rebaixamento) aparecem
 // esmaecidas e não vão para o perfil público.
 import Icon from '../../ui/Icon.astro';
@@ -32,7 +32,7 @@ const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.len
     <input type="hidden" name="_etapa" value={ETAPA_FOTOS} />
     <h2>Enviar fotos</h2>
     <p class="onb-limite">
-      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no plano gratuito. <a href={`/busca?etapa=${ETAPA_FOTOS}&bloqueado=busca_fotos`} data-bloqueado="busca_fotos">Mais fotos e grupos por evento</a></> : <span class="tabular">{visiveis.length} fotos</span>}
+      {limitado ? <><span class="tabular">{visiveis.length} de {maxFotos} fotos</span> no seu plano.{!tags && <> <a href={`/busca?etapa=${ETAPA_FOTOS}&bloqueado=busca_fotos`} data-bloqueado="busca_fotos">Mais fotos e grupos por evento</a></>}</> : <span class="tabular">{visiveis.length} fotos</span>}
     </p>
     {restam > 0 ? (
       <>
@@ -60,7 +60,7 @@ const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.len
         </div>
       </>
     ) : (
-      <div class="onb-aviso">Você atingiu o limite de 5 fotos do plano gratuito. Exclua uma foto para enviar outra ou conheça os planos Banket, com fotos sem limite e grupos por evento.</div>
+      <div class="onb-aviso">{`Você atingiu o limite de ${maxFotos} fotos do seu plano. Exclua uma foto para enviar outra ou conheça os planos Banket, com mais fotos e grupos por evento.`}</div>
     )}
   </form>
 )}

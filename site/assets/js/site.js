@@ -188,18 +188,19 @@
   // ── Planos: cobrança mensal ou anual ────────────────────────────────────
   const cobranca = $('#seg-cobranca');
   if (cobranca) {
+    // Mensal: R$ 89 · 197 · 297. Anual: 10 mensalidades (2 meses grátis), mostrado como valor por mês
     const PRECOS = {
       anual: {
-        ess: '89', pro: '197', pri: '447',
-        essOld: 'R$ 127/mês', proOld: 'R$ 297/mês', priOld: 'R$ 597/mês',
-        essNote: 'R$ 1.068 cobrados por ano', proNote: 'R$ 2.364 cobrados por ano', priNote: 'R$ 5.364 cobrados por ano',
-        essMes: 'R$ 89/mês no anual', proMes: 'R$ 197/mês no anual', priMes: 'R$ 447/mês no anual',
+        ess: '74,17', pro: '164,17', pri: '247,50',
+        essOld: 'R$ 89/mês', proOld: 'R$ 197/mês', priOld: 'R$ 297/mês',
+        essNote: 'R$ 890 cobrados por ano', proNote: 'R$ 1.970 cobrados por ano', priNote: 'R$ 2.970 cobrados por ano',
+        essMes: 'R$ 890/ano (R$ 74,17/mês)', proMes: 'R$ 1.970/ano (R$ 164,17/mês)', priMes: 'R$ 2.970/ano (R$ 247,50/mês)',
       },
       mensal: {
-        ess: '127', pro: '297', pri: '597',
+        ess: '89', pro: '197', pri: '297',
         essOld: '', proOld: '', priOld: '',
         essNote: 'Cobrança mensal', proNote: 'Cobrança mensal', priNote: 'Cobrança mensal',
-        essMes: 'R$ 127/mês', proMes: 'R$ 297/mês', priMes: 'R$ 597/mês',
+        essMes: 'R$ 89/mês', proMes: 'R$ 197/mês', priMes: 'R$ 297/mês',
       },
     };
     const aplicarCobranca = (ciclo) => {
