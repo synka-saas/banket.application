@@ -10,7 +10,7 @@ import { html } from '../../lib/html';
 import { formatMoney } from '../../lib/money';
 import { dataCurta, hojeSaoPaulo, somarMeses } from '../../lib/datas';
 import { estaFiltrando, pageInfo, pageParams, searchTerm, withQuery } from '../../lib/pagination';
-import { listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
+import { KANBAN_POR_ETAPA, listarEventosKanban, listarEventosPaginado, filtrosDaUrl } from '../../server/eventos';
 import { INTERVALOS_KANBAN, intervaloKanbanDoForm, salvarIntervaloKanban } from '../../server/configuracoes';
 import { handleFormPost } from '../../lib/actions';
 import { isAdmin } from '../../lib/auth';
@@ -42,10 +42,14 @@ const dados = await withTenant(tenantId, async (db) => {
   const [status, tipos, formatos] = [await listarStatus(db), await listarTiposEvento(db), await listarFormatosServico(db)];
   if (visao === 'kanban') {
     const intervaloMeses = await carregarIntervaloKanban(db);
-    const cards = await listarEventosKanban(db, { ...filtros, intervaloMeses });
-    return { status, tipos, formatos, cards, lista: null, intervaloMeses };
+    // "Ver mais" de cada coluna: ?mais_<etapa>=100 (de 50 em 50)
+    const limites = Object.fromEntries(
+      status.map((st) => [st.id, Math.min(Math.max(Number.parseInt(url.searchParams.get(`mais_${st.id}`) ?? '', 10) || KANBAN_POR_ETAPA, KANBAN_POR_ETAPA), 2000)])
+    );
+    const { cards, totais } = await listarEventosKanban(db, { ...filtros, intervaloMeses }, limites);
+    return { status, tipos, formatos, cards, totais, limites, lista: null, intervaloMeses };
   }
-  return { status, tipos, formatos, cards: [], lista: await listarEventosPaginado(db, filtros, page, lerOrdenacao(url)), intervaloMeses: null };
+  return { status, tipos, formatos, cards: [], totais: new Map(), limites: {} as Record<string, number>, lista: await listarEventosPaginado(db, filtros, page, lerOrdenacao(url)), intervaloMeses: null };
 });
 
 const filtrosAtivos = [filtros.de || filtros.ate, filtros.tipoId, filtros.formatoId, filtros.statusId].filter(Boolean).length;
@@ -93,11 +97,25 @@ const ordem = new Map(dados.cards.map((c, i) => [c.id, i]));
 const statusVisiveis = filtros.statusId ? dados.status.filter((s) => s.id === filtros.statusId) : dados.status;
 const colunas = statusVisiveis.map((s) => {
   const cards = dados.cards.filter((c) => c.status_id === s.id);
+  const totais = dados.totais.get(s.id) ?? { quantidade: 0, orcamentos: 0, verba: 0 };
+  // O que ficou fora da coluna (além do limite): entra nos totais, que o script recalcula ao mover cards
+  const carregadoValor = cards.reduce((acc, c) => acc + (c.valor_orcamento ?? 0), 0);
+  const carregadoVerba = cards.reduce((acc, c) => acc + verbaSemOrcamento(c), 0);
+  const ocultos = {
+    quantidade: Math.max(totais.quantidade - cards.length, 0),
+    valor: totais.orcamentos - carregadoValor,
+    verba: totais.verba - carregadoVerba,
+  };
+  const limite = dados.limites[s.id] ?? KANBAN_POR_ETAPA;
+  const maisHref = ocultos.quantidade > 0 ? `${withQuery(url, { [`mais_${s.id}`]: String(limite + KANBAN_POR_ETAPA) })}#etapa-${s.id}` : null;
   return {
     ...s,
     cards,
-    total: cards.reduce((acc, c) => acc + (c.valor_orcamento ?? 0), 0),
-    verba: cards.reduce((acc, c) => acc + verbaSemOrcamento(c), 0),
+    quantidade: totais.quantidade,
+    total: totais.orcamentos,
+    verba: totais.verba,
+    ocultos,
+    maisHref,
   };
 });
 
@@ -220,13 +238,22 @@ const filtrando = estaFiltrando(Astro.url);
         >
           <span class="dot" style={`background:${col.cor ?? COR_ETAPA_PADRAO}`}></span>
           {col.nome}
-          <span class="kanban-etapa-qtd" data-chip-contagem>{col.cards.length}</span>
+          <span class="kanban-etapa-qtd" data-chip-contagem>{col.quantidade}</span>
         </button>
       ))}
     </div>
     <div class="kanban" data-kanban>
       {colunas.map((col, i) => (
-        <section class:list={['kanban-col', { 'mobile-ativa': i === 0 }]} data-coluna={col.id} data-status-nome={col.nome} data-variante={col.variante}>
+        <section
+          class:list={['kanban-col', { 'mobile-ativa': i === 0 }]}
+          id={`etapa-${col.id}`}
+          data-coluna={col.id}
+          data-status-nome={col.nome}
+          data-variante={col.variante}
+          data-ocultos-qtd={col.ocultos.quantidade}
+          data-ocultos-valor={col.ocultos.valor}
+          data-ocultos-verba={col.ocultos.verba}
+        >
           {/* Cabeçalho = KanbanColumn do design system: faixa de 3px no topo na cor da etapa */}
           <header class="kanban-col-header" style={`--etapa:${col.cor ?? COR_ETAPA_PADRAO}`}>
             <h2 class="kanban-col-titulo">
@@ -234,7 +261,7 @@ const filtrando = estaFiltrando(Astro.url);
               <span class="kanban-col-nome">{col.nome}</span>
             </h2>
             <span class="kanban-col-meta">
-              <span data-contagem>{pad(col.cards.length)} {col.cards.length === 1 ? 'evento' : 'eventos'}</span>
+              <span data-contagem>{pad(col.quantidade)} {col.quantidade === 1 ? 'evento' : 'eventos'}</span>
               <span data-soma title="Soma dos orçamentos">{formatMoney(col.total)}</span>
             </span>
             <span class="kanban-col-verba" data-verba-total hidden={col.verba === 0}>+ {formatMoney(col.verba)} em verba estimada</span>
@@ -287,6 +314,11 @@ const filtrando = estaFiltrando(Astro.url);
             ))}
             <p class="kanban-vazio">Nenhum evento</p>
           </div>
+          {col.maisHref && (
+            <a class="btn btn-ghost btn-sm kanban-mais" href={col.maisHref} data-kanban-mais>
+              Ver mais {Math.min(col.ocultos.quantidade, KANBAN_POR_ETAPA)} de {col.ocultos.quantidade} {col.ocultos.quantidade === 1 ? 'evento' : 'eventos'}
+            </a>
+          )}
         </section>
       ))}
     </div>
@@ -335,11 +367,13 @@ const filtrando = estaFiltrando(Astro.url);
     const atualizarTotais = () => {
       kanban.querySelectorAll<HTMLElement>('.kanban-col').forEach((col) => {
         const cards = [...col.querySelectorAll<HTMLElement>('[data-evento]')];
-        col.querySelector('[data-contagem]')!.textContent = `${String(cards.length).padStart(2, '0')} ${cards.length === 1 ? 'evento' : 'eventos'}`;
+        // Cards além do limite da coluna (não carregados) continuam nos totais
+        const qtd = cards.length + Number(col.dataset.ocultosQtd || 0);
+        col.querySelector('[data-contagem]')!.textContent = `${String(qtd).padStart(2, '0')} ${qtd === 1 ? 'evento' : 'eventos'}`;
         const chipQtd = document.querySelector(`[data-etapa-chip="${col.dataset.coluna}"] [data-chip-contagem]`);
-        if (chipQtd) chipQtd.textContent = String(cards.length);
-        col.querySelector('[data-soma]')!.textContent = formatMoney(cards.reduce((a, c) => a + Number(c.dataset.valor || 0), 0));
-        const verba = cards.reduce((a, c) => a + Number(c.dataset.verba || 0), 0);
+        if (chipQtd) chipQtd.textContent = String(qtd);
+        col.querySelector('[data-soma]')!.textContent = formatMoney(cards.reduce((a, c) => a + Number(c.dataset.valor || 0), Number(col.dataset.ocultosValor || 0)));
+        const verba = cards.reduce((a, c) => a + Number(c.dataset.verba || 0), Number(col.dataset.ocultosVerba || 0));
         const verbaEl = col.querySelector<HTMLElement>('[data-verba-total]')!;
         verbaEl.hidden = verba === 0;
         verbaEl.textContent = `+ ${formatMoney(verba)} em verba estimada`;
@@ -737,6 +771,13 @@ const filtrando = estaFiltrando(Astro.url);
 
   .kanban-cards > .kanban-vazio:first-child {
     display: flex;
+  }
+
+  /* "Ver mais" no pé da coluna, fora da área de soltar */
+  .kanban-mais {
+    width: 100%;
+    margin-top: var(--space-2);
+    justify-content: center;
   }
 
   /* Card do evento = EventCard do design system */

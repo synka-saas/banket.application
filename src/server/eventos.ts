@@ -237,13 +237,45 @@ function whereEventos(f: FiltrosEventos): { sql: string; params: unknown[] } {
   return { sql, params };
 }
 
-export async function listarEventosKanban(db: Db, filtros: FiltrosEventos): Promise<EventoCard[]> {
+/** Cards carregados por etapa no Kanban; "Ver mais" soma este tanto à coluna. */
+export const KANBAN_POR_ETAPA = 50;
+
+/** Totais de uma etapa no recorte (todos os eventos, não só os carregados). */
+export interface TotaisEtapa {
+  quantidade: number;
+  orcamentos: number;
+  verba: number;
+}
+
+/**
+ * Cards do Kanban: até `limites[status]` por etapa (padrão KANBAN_POR_ETAPA), na ordem da data. Os totais de cada
+ * etapa contam todos os eventos do recorte, para a coluna mostrar a quantidade e as somas reais.
+ */
+export async function listarEventosKanban(
+  db: Db,
+  filtros: FiltrosEventos,
+  limites: Record<string, number> = {}
+): Promise<{ cards: EventoCard[]; totais: Map<string, TotaisEtapa> }> {
   const { sql, params } = whereEventos(filtros);
+  const n = params.length;
   const { rows } = await db.query<EventoCard>(
-    `${SELECT_CARD} ${sql} ORDER BY e.data_evento NULLS LAST, e.created_at`,
+    `SELECT * FROM (
+       SELECT x.*, row_number() OVER (PARTITION BY x.status_id ORDER BY x.data_evento NULLS LAST, x.created_at) AS posicao
+         FROM (${SELECT_CARD.replace('SELECT e.id,', 'SELECT e.created_at, e.id,')} ${sql}) x
+     ) y
+     WHERE y.posicao <= COALESCE(($${n + 1}::jsonb ->> y.status_id::text)::int, $${n + 2})
+     ORDER BY y.data_evento NULLS LAST, y.created_at`,
+    [...params, JSON.stringify(limites), KANBAN_POR_ETAPA]
+  );
+  const { rows: somas } = await db.query<{ status_id: string; quantidade: number; orcamentos: number; verba: number }>(
+    `SELECT e.status_id, count(*) AS quantidade, COALESCE(sum(o.valor_total), 0) AS orcamentos,
+            COALESCE(sum(CASE WHEN o.valor_total IS NULL THEN e.verba_total END), 0) AS verba
+       FROM eventos e LEFT JOIN clientes c ON c.id = e.cliente_id LEFT JOIN orcamentos o ON o.evento_id = e.id
+       ${sql}
+      GROUP BY e.status_id`,
     params
   );
-  return rows;
+  return { cards: rows, totais: new Map(somas.map((s) => [s.status_id, s])) };
 }
 
 const ORDEM_EVENTOS: Record<string, string> = {
