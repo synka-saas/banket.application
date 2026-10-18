@@ -198,4 +198,4 @@ if (DRY) {
   console.log(`\nPortal do Cliente: configuração ${c.id} criada`);
 }
 console.log('\nPronto. Webhook: https://app.banket.com.br/api/webhooks/stripe (eventos invoice.*, customer.subscription.*,');
-console.log('checkout.session.completed, customer.updated, payment_method.attached, charge.dispute.created).');
+console.log('checkout.session.completed, customer.updated, payment_method.attached, charge.dispute.created, refund.created, refund.updated).');

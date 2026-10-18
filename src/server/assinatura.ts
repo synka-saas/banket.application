@@ -905,8 +905,13 @@ async function tratarAssinatura(evento: Stripe.Event): Promise<string | null> {
 async function tratarEstorno(evento: Stripe.Event): Promise<string | null> {
   const s = stripe();
   const contestacao = evento.type === 'charge.dispute.created';
-  const objeto = evento.data.object as Stripe.Dispute | Stripe.Charge;
-  const charge = contestacao ? await s.charges.retrieve(idDe((objeto as Stripe.Dispute).charge)!) : await s.charges.retrieve((objeto as Stripe.Charge).id);
+  // O pagamento afetado: na contestação e no reembolso (refund.*) vem a referência; no charge.refunded, o próprio
+  const objeto = evento.data.object as Stripe.Dispute | Stripe.Refund | Stripe.Charge;
+  if (evento.type.startsWith('refund.') && (objeto as Stripe.Refund).status !== 'succeeded') return null;
+  const chargeId = evento.type === 'charge.refunded' ? (objeto as Stripe.Charge).id : idDe((objeto as Stripe.Dispute | Stripe.Refund).charge);
+  if (!chargeId) return null;
+  // Sempre o estado atual do pagamento (eventos chegam fora de ordem): `refunded` = estornado por inteiro
+  const charge = await s.charges.retrieve(chargeId);
   const tenantId = await resolverTenant(charge);
   if (!tenantId) return null;
   if (!contestacao && !charge.refunded) {
@@ -966,7 +971,9 @@ export async function processarEventoStripe(evento: Stripe.Event): Promise<strin
     if (rows[0]?.stripe_assinatura_id) await sincronizarAssinatura(await buscarAssinatura(rows[0].stripe_assinatura_id));
     return tenantId;
   }
-  if (tipo === 'charge.dispute.created' || tipo === 'charge.refunded') return tratarEstorno(evento);
+  if (tipo === 'charge.dispute.created' || tipo === 'charge.refunded' || tipo === 'refund.created' || tipo === 'refund.updated') {
+    return tratarEstorno(evento);
+  }
   return null;
 }
 
