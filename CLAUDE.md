@@ -1181,8 +1181,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   resposta, endereço do perfil e descrição ≥ 80) · 2 Eventos e serviços
   (tiles; plano gratuito até 3 de cada, conferido no servidor com `ErroPlano` → painel de upsell) · 3 Região
   (cidade-base com autocomplete, espaço próprio com CEP pelo ViaCEP, domicílio com raio 10/25/50/100 km, outras cidades
-  atendidas) · 4 Capacidade (mínimo ≤ máximo, aceita eventos menores sob consulta) · 5 Fotos (JPG/PNG/WebP, reduzidas
-  no navegador, capa, ordem, legenda; gratuito: 5 fotos gerais; planos pagos: sem limite e com **grupos** por evento
+  atendidas) · 4 Capacidade (mínimo ≤ máximo, aceita eventos menores sob consulta) · 5 Fotos (área de envio com
+  clicar ou arrastar e soltar e miniaturas antes de enviar; JPG/PNG/WebP, reduzidas no navegador, capa, ordem, legenda; gratuito: 5 fotos gerais; planos pagos: sem limite e com **grupos** por evento
   (`busca_fotos_tags`; campo Grupo no envio e por foto, galeria agrupada)) · 6 Revisão (resumo por etapa, card da
   busca, aceite e Publicar/Despublicar). Sem pacotes nem preço. Cada etapa grava ao salvar; em erro, o que foi digitado
   volta (cookie curto `banket_busca_rascunho`). Publicar exige 1 a 5 (≥ 3 fotos); perder uma condição despublica e

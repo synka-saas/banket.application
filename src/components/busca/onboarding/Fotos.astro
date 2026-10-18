@@ -36,22 +36,28 @@ const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.len
     </p>
     {restam > 0 ? (
       <>
-        <div class="form-grid">
-          <div class="field">
-            <label for="f-arquivos">Fotos (JPG, PNG ou WebP)</label>
-            <input id="f-arquivos" name="fotos" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-fotos-input />
-            <span class="field-hint" data-fotos-status>{limitado ? `Você pode enviar mais ${restam}.` : 'Até 8 MB cada; fotos grandes são reduzidas antes do envio.'}</span>
-          </div>
-          {tags && (
-            <div class="field">
-              <label for="f-grupo">Grupo</label>
-              <input id="f-grupo" name="grupo" maxlength="40" list="f-grupos" placeholder="Ex.: Casamento Ana e Pedro" />
-              <datalist id="f-grupos">{nomesGrupos.map((g) => <option value={g} />)}</datalist>
-              <span class="field-hint">Opcional. Junte as fotos de um mesmo evento; no perfil, cada grupo aparece separado.</span>
-            </div>
-          )}
+        {/* Área de envio: clicar abre o seletor; arrastar e soltar também funciona (script abaixo) */}
+        <div class="onb-drop" data-drop>
+          <input id="f-arquivos" name="fotos" type="file" accept="image/jpeg,image/png,image/webp" multiple required data-fotos-input class="onb-drop-input" />
+          <label for="f-arquivos" class="onb-drop-alvo">
+            <span class="onb-drop-ico"><Icon name="photo-up" size={26} /></span>
+            <span class="onb-drop-texto"><span class="onb-drop-link">Clique para escolher</span> ou arraste e solte as fotos aqui</span>
+            <span class="onb-drop-hint" data-fotos-status>JPG, PNG ou WebP · até 8 MB cada{limitado ? ` · você pode enviar mais ${restam}` : ''}</span>
+          </label>
+          <ul class="onb-drop-lista" data-fotos-lista hidden></ul>
         </div>
-        <div><button type="submit" name="_acao" value="enviar" class="btn btn-soft btn-md" data-carregando="Enviando…"><Icon name="upload" size={16} /> Enviar fotos</button></div>
+        {tags && (
+          <div class="field">
+            <label for="f-grupo">Grupo</label>
+            <input id="f-grupo" name="grupo" maxlength="40" list="f-grupos" placeholder="Ex.: Casamento Ana e Pedro" />
+            <datalist id="f-grupos">{nomesGrupos.map((g) => <option value={g} />)}</datalist>
+            <span class="field-hint">Opcional. Junte as fotos de um mesmo evento; no perfil, cada grupo aparece separado.</span>
+          </div>
+        )}
+        <div class="onb-drop-acoes">
+          <button type="button" class="btn btn-ghost btn-md" data-fotos-limpar hidden>Limpar seleção</button>
+          <button type="submit" name="_acao" value="enviar" class="btn btn-primary btn-md" data-carregando="Enviando…" data-fotos-enviar><Icon name="upload" size={16} /> Enviar fotos</button>
+        </div>
       </>
     ) : (
       <div class="onb-aviso">Você atingiu o limite de 5 fotos do plano gratuito. Exclua uma foto para enviar outra ou conheça os planos Banket, com fotos sem limite e grupos por evento.</div>
@@ -111,10 +117,20 @@ const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.len
 </form>
 
 <script>
-  // Fotos grandes são reduzidas no navegador (lado maior 1920 px, JPEG 85%) e o envio respeita o limite do plano
+  // Envio de fotos: clicar ou arrastar e soltar na área; miniaturas das escolhidas antes de enviar. Fotos grandes são
+  // reduzidas no navegador (lado maior 1920 px, JPEG 85%) e a seleção respeita o limite do plano (o servidor confere).
   const form = document.querySelector<HTMLFormElement>('[data-fotos-form]');
   const input = form?.querySelector<HTMLInputElement>('[data-fotos-input]');
+  const drop = form?.querySelector<HTMLElement>('[data-drop]');
   const status = form?.querySelector<HTMLElement>('[data-fotos-status]');
+  const lista = form?.querySelector<HTMLUListElement>('[data-fotos-lista]');
+  const enviar = form?.querySelector<HTMLButtonElement>('[data-fotos-enviar]');
+  const limpar = form?.querySelector<HTMLButtonElement>('[data-fotos-limpar]');
+  const TIPOS = ['image/jpeg', 'image/png', 'image/webp'];
+  const MAX = 8 * 1024 * 1024;
+  const textoPadrao = status?.textContent ?? '';
+  let urls: string[] = [];
+
   async function reduzir(f: File): Promise<File> {
     if (f.size < 1_500_000) return f;
     const img = await createImageBitmap(f).catch(() => null);
@@ -127,16 +143,64 @@ const grupos: { nome: string | null; fotos: Foto[] }[] = tags && nomesGrupos.len
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
     return blob ? new File([blob], f.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }) : f;
   }
-  input?.addEventListener('change', async () => {
+
+  function mostrar(arquivos: File[], aviso: string | null) {
+    urls.forEach((u) => URL.revokeObjectURL(u));
+    urls = arquivos.map((f) => URL.createObjectURL(f));
+    lista!.replaceChildren(
+      ...arquivos.map((f, i) => {
+        const li = document.createElement('li');
+        const img = document.createElement('img');
+        img.src = urls[i];
+        img.alt = f.name;
+        li.append(img);
+        return li;
+      })
+    );
+    lista!.hidden = arquivos.length === 0;
+    drop!.classList.toggle('onb-drop--com-fotos', arquivos.length > 0);
+    enviar!.disabled = arquivos.length === 0;
+    limpar!.hidden = arquivos.length === 0;
+    const qtd = arquivos.length === 1 ? '1 foto escolhida' : `${arquivos.length} fotos escolhidas`;
+    status!.textContent = arquivos.length ? [qtd, aviso].filter(Boolean).join(' · ') : aviso ?? textoPadrao;
+  }
+
+  async function escolher(recebidos: File[]) {
     const restam = Number(form!.dataset.restam ?? 20);
-    let arquivos = [...(input.files ?? [])];
+    const avisos: string[] = [];
+    let arquivos = recebidos.filter((f) => TIPOS.includes(f.type));
+    const fora = recebidos.length - arquivos.length;
+    if (fora) avisos.push(`${fora === 1 ? '1 arquivo ignorado' : `${fora} arquivos ignorados`} (só JPG, PNG ou WebP)`);
     if (arquivos.length > restam) {
       arquivos = arquivos.slice(0, restam);
-      if (status) status.textContent = `Só ${restam} cabem no seu plano: as primeiras ${restam} serão enviadas.`;
+      avisos.push(`só ${restam} cabem no seu plano`);
     }
-    const prontos = await Promise.all(arquivos.map(reduzir));
+    const prontos = (await Promise.all(arquivos.map(reduzir))).filter((f) => f.size <= MAX);
+    const grandes = arquivos.length - prontos.length;
+    if (grandes) avisos.push(`${grandes === 1 ? '1 foto acima' : `${grandes} fotos acima`} de 8 MB ficou de fora`.replace('fotos acima de 8 MB ficou', 'fotos acima de 8 MB ficaram'));
     const dt = new DataTransfer();
     prontos.forEach((f) => dt.items.add(f));
-    input.files = dt.files;
-  });
+    input!.files = dt.files;
+    mostrar(prontos, avisos.length ? avisos.join(' · ').replace(/^./, (c) => c.toUpperCase()) : null);
+  }
+
+  if (form && input && drop && lista && enviar && limpar) {
+    enviar.disabled = true; // sem JavaScript o botão fica habilitado e o navegador exige a escolha (required)
+    input.addEventListener('change', () => escolher([...(input.files ?? [])]));
+    const parar = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
+    ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { parar(e); drop.classList.add('onb-drop--sobre'); }));
+    ['dragleave', 'dragend'].forEach((t) => drop.addEventListener(t, (e) => {
+      parar(e);
+      if (!drop.contains((e as DragEvent).relatedTarget as Node | null)) drop.classList.remove('onb-drop--sobre');
+    }));
+    drop.addEventListener('drop', (e) => {
+      parar(e);
+      drop.classList.remove('onb-drop--sobre');
+      escolher([...((e as DragEvent).dataTransfer?.files ?? [])]);
+    });
+    limpar.addEventListener('click', () => {
+      input.value = '';
+      mostrar([], null);
+    });
+  }
 </script>

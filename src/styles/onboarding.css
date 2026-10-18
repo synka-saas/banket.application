@@ -551,6 +551,130 @@ a.onb-etapa:hover {
   color: var(--text-body);
 }
 
+/* Etapa 5: área de envio das fotos (clicar ou arrastar e soltar) */
+.onb-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--clay-25);
+  transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.onb-drop:hover,
+.onb-drop:focus-within {
+  border-color: var(--terracotta-400);
+}
+
+.onb-drop--sobre {
+  border-color: var(--terracotta-600);
+  background: var(--bg-accent-subtle);
+}
+
+/* O input fica acessível (teclado e "required"), mas invisível: a área inteira é o alvo */
+.onb-drop-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.onb-drop-input:focus-visible + .onb-drop-alvo {
+  outline: none;
+  box-shadow: var(--focus-ring-forte);
+  border-radius: var(--radius-md);
+}
+
+.onb-drop-alvo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  cursor: pointer;
+}
+
+.onb-drop--com-fotos .onb-drop-alvo {
+  gap: 6px;
+  padding: var(--space-2) var(--space-4);
+}
+
+.onb-drop-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-accent-subtle);
+  color: var(--terracotta-600);
+}
+
+.onb-drop--com-fotos .onb-drop-ico {
+  width: 40px;
+  height: 40px;
+}
+
+.onb-drop-texto {
+  font-size: var(--fs-14);
+  color: var(--text-body);
+}
+
+.onb-drop-link {
+  font-weight: var(--fw-medium);
+  color: var(--text-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.onb-drop-hint {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.onb-drop--com-fotos .onb-drop-hint {
+  color: var(--text-secondary);
+}
+
+.onb-drop-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onb-drop-lista img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+}
+
+.onb-drop-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (max-width: 768px) {
+  .onb-drop {
+    padding: var(--space-4);
+  }
+
+  .onb-drop-acoes {
+    flex-direction: column-reverse;
+  }
+}
+
 /* Etapa 5: título de cada grupo de fotos */
 .onb-grupo-titulo {
   display: flex;
