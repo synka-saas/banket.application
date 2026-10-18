@@ -166,7 +166,8 @@ src/
                        financeiro.css (indicadores, listas de contas e barras; usado também pelas Pesquisas)
 db/migrations/         NNN_nome.sql, aplicadas em ordem
 db/seeds/              dados de demonstração (só com --seed); arquivos com "_" no início são ignorados
-scripts/               migrate.mjs, stripe-bootstrap.mjs (produtos/preços dos planos no Stripe e Portal do Cliente), deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
+scripts/               migrate.mjs, stripe-bootstrap.mjs (produtos, preços, descrição e recursos com limites dos planos pagos
+                       no Stripe, inclusive o Master não público; Portal do Cliente), deploy.sh (Mac), deploy-remoto.sh (VPS), screenshots.mjs, importar-busca.mjs (base de
                        buffets → Busca; simula por padrão, --gravar grava, --remover-testes apaga as empresas de demonstração)
 tests/e2e/             Playwright (helpers.ts: login, leitura de links de e-mail no log do contêiner)
 public/ref/            PDFs de cardápios de referência (Brunch, Buffet, Boteco, Empratado) que originaram os seeds

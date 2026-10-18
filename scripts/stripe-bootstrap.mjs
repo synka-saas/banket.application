@@ -5,9 +5,10 @@
 //   node scripts/stripe-bootstrap.mjs --live     # produção (go-live)
 //   node scripts/stripe-bootstrap.mjs --dry-run  # só mostra o que faria
 //
-// 1. Para cada plano público e pago (planos.publico AND NOT gratuito): um Product e dois Prices em BRL (mensal e
-//    anual), com lookup_key banket_<slug>_mensal|anual. Grava stripe_product_id / stripe_price_mensal_id /
-//    stripe_price_anual_id em planos. Preço mudou no banco → novo Price (preços são imutáveis no Stripe).
+// 1. Para cada plano pago com preço (NOT gratuito AND preco_mensal; inclui o Master, que não é público: a equipe cobra
+//    por ele, e o checkout do app só aceita planos públicos): um Product e dois Prices em BRL (mensal e anual), com lookup_key banket_<slug>_mensal|anual. Grava stripe_product_id / stripe_price_mensal_id /
+//    stripe_price_anual_id em planos. Preço mudou no banco → novo Price (preços são imutáveis no Stripe). O Product
+//    leva a descrição do plano e a lista de recursos com os limites (marketing_features: Checkout e Portal).
 // 2. Portal do Cliente: trocar o cartão, ver faturas, atualizar dados fiscais. Troca de plano e cancelamento ficam
 //    no Banket (o Portal não conhece o Pix).
 //
@@ -65,17 +66,49 @@ if (saldo.livemode && !args.has('--live')) {
 console.log(`Stripe em modo ${saldo.livemode ? 'PRODUÇÃO' : 'teste'}${DRY ? ' (dry-run)' : ''}\n`);
 
 const planos = psql(
-  `SELECT id, slug, nome, coalesce(preco_mensal::text,''), coalesce(preco_anual::text,''), coalesce(stripe_product_id,'')
-     FROM planos WHERE ativo AND publico AND NOT gratuito ORDER BY ordem;`
+  `SELECT id, slug, nome, coalesce(preco_mensal::text,''), coalesce(preco_anual::text,''), coalesce(stripe_product_id,''),
+          coalesce(descricao,''), recursos::text
+     FROM planos WHERE ativo AND NOT gratuito AND preco_mensal IS NOT NULL ORDER BY ordem;`
 )
   .split('\n')
   .filter(Boolean)
   .map((l) => {
-    const [id, slug, nome, mensal, anual, produto] = l.split('\t');
-    return { id, slug, nome, mensal: mensal ? Number(mensal) : null, anual: anual ? Number(anual) : null, produto: produto || null };
+    const [id, slug, nome, mensal, anual, produto, descricao, recursos] = l.split('\t');
+    return {
+      id, slug, nome, mensal: mensal ? Number(mensal) : null, anual: anual ? Number(anual) : null, produto: produto || null,
+      descricao: descricao || null, recursos: recursos ? JSON.parse(recursos) : {},
+    };
   });
 
 const centavos = (v) => Math.round(Number(v) * 100);
+
+// Recursos do plano com limite, na ordem em que aparecem no site (lib/planos/recursos.ts tem o catálogo completo).
+// -1 = sem limite; 0 ou ausente = fora do plano (não entra na lista). Máximo de 15 itens no Stripe.
+const LIMITES = [
+  ['usuarios', 'usuário', 'usuários'],
+  ['espacos_qtd', 'espaço', 'espaços'],
+  ['templates_qtd', 'template de proposta', 'templates de proposta'],
+  ['cardapios_opcoes', 'cardápio', 'cardápios'],
+  ['formularios_qtd', 'formulário de captação', 'formulários de captação'],
+  ['documento_modelos', 'modelo de contrato', 'modelos de contrato'],
+  ['email_modelos', 'modelo de e-mail', 'modelos de e-mail'],
+  ['estoque_itens', 'item de estoque', 'itens de estoque'],
+  ['ia_analises_mes', 'análise de IA por mês', 'análises de IA por mês'],
+  ['ia_fundos_mes', 'fundo de proposta por IA por mês', 'fundos de proposta por IA por mês'],
+  ['busca_fotos', 'foto no perfil do Banket Busca', 'fotos no perfil do Banket Busca'],
+  ['busca_tipos_evento', 'tipo de evento no Banket Busca', 'tipos de evento no Banket Busca'],
+];
+const milhar = (n) => n.toLocaleString('pt-BR');
+function recursosDoPlano(recursos) {
+  const lista = [recursos.busca_personalizado ? 'Banket Busca Personalizado' : 'Banket Busca Simples'];
+  for (const [chave, um, varios] of LIMITES) {
+    const v = recursos[chave];
+    if (typeof v !== 'number' || v === 0) continue;
+    const nomeCap = varios.charAt(0).toUpperCase() + varios.slice(1);
+    lista.push(v < 0 ? `${nomeCap} sem limite` : `${milhar(v)} ${v === 1 ? um : varios}`);
+  }
+  return lista.slice(0, 15).map((name) => ({ name: name.slice(0, 80) }));
+}
 
 async function garantirPreco(produto, plano, intervalo, valor) {
   const lookup = `banket_${plano.slug}_${intervalo === 'year' ? 'anual' : 'mensal'}`;
@@ -113,10 +146,15 @@ for (const plano of planos) {
   let produto = plano.produto ? await stripe.products.retrieve(plano.produto).catch(() => null) : null;
   if (!produto) produto = (await stripe.products.search({ query: `metadata['plano_id']:'${plano.id}'` })).data[0] ?? null;
   if (!produto && !DRY) {
-    produto = await stripe.products.create({ name: `Banket ${plano.nome}`, metadata, tax_code: 'txcd_10103001' }, { idempotencyKey: `banket-product-${plano.id}` });
+    produto = await stripe.products.create(
+      { name: `Banket ${plano.nome}`, description: plano.descricao ?? undefined, marketing_features: recursosDoPlano(plano.recursos), metadata, tax_code: 'txcd_10103001' },
+      { idempotencyKey: `banket-product-${plano.id}` }
+    );
     console.log(`  + produto ${produto.id}`);
   } else if (produto && !DRY) {
-    await stripe.products.update(produto.id, { name: `Banket ${plano.nome}`, metadata });
+    await stripe.products.update(produto.id, {
+      name: `Banket ${plano.nome}`, description: plano.descricao ?? '', marketing_features: recursosDoPlano(plano.recursos), metadata,
+    });
     console.log(`  = produto ${produto.id}`);
   }
   if (!produto) {
