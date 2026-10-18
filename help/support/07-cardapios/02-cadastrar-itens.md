@@ -23,8 +23,14 @@ Crie pelo menos uma seção do cardápio. Todo item pertence a uma seção. Veja
 
 1. No menu lateral, clique em **Cardápios** e depois em **Itens do cardápio**.
 2. Clique em **Novo item**.
+
+   ![Itens do cardápio, com o botão Novo item](01-cadastrar-itens.webp)
+
 3. Preencha o **Nome do item** e escolha a **Seção** (os dois são obrigatórios).
 4. Preencha os demais campos que fizerem sentido (veja a tabela abaixo).
+
+   ![Novo item preenchido com seção, categorias, custo, preço, porção e restrições](02-cadastrar-itens.webp)
+
 5. Clique em **Salvar**.
 
 Dica: se você filtrar a lista por uma seção antes de clicar em **Novo item**, o item já vem com essa seção escolhida.
@@ -63,9 +69,14 @@ A tabela mostra **Nome**, **Descrição**, **Seção**, **Preço**, **Porção**
 gerenciados no estoque) e **Categoria**.
 
 - Você pode trocar a **Categoria** principal direto na lista, pelo seletor da linha, sem abrir o item.
+
+  ![Seletor de categoria na linha do item, para trocar sem abrir o cadastro](04-cadastrar-itens.webp)
+
 - Use os filtros de **Seção** e de situação (**Só ativos** / **Só inativos**) e o campo de busca.
 - Clique no título das colunas **Nome**, **Seção** ou **Preço** para ordenar.
 - Itens desativados aparecem com a etiqueta **Inativo**.
+
+![Lista de itens do cardápio com seção, preço, porção e categoria](03-cadastrar-itens.webp)
 
 ## Duplicar um item
 
@@ -73,6 +84,8 @@ gerenciados no estoque) e **Categoria**.
 2. Clique em **Duplicar** no topo do painel.
 
 A cópia é criada na mesma seção com o nome "Nome do item (cópia)".
+
+![Painel de edição do item com os botões Duplicar e Excluir no topo](05-cadastrar-itens.webp)
 
 ## Desativar ou excluir um item
 

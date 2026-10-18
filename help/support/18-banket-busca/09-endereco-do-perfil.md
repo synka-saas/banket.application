@@ -31,6 +31,11 @@ endereço muda junto. Se preferir, escolha outro.
 2. No campo **Endereço do perfil**, faça uma das opções:
    - digite o endereço que você quer, com letras minúsculas, números e hífens;
    - clique na varinha (**Sugerir endereços com IA**) e escolha uma das sugestões.
+
+   ![Campo Endereço do perfil com a varinha Sugerir endereços com IA](01-endereco-do-perfil.webp)
+
+   ![Sugestões de endereço geradas pela varinha de IA](02-endereco-do-perfil.webp)
+
 3. Clique em **Salvar**.
 4. Use **Copiar link** para copiar o endereço completo.
 

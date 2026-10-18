@@ -37,6 +37,8 @@ Clique num retorno para abrir a linha do tempo do evento.
 Se não houver nenhum, o cartão mostra: "Nenhum retorno agendado. Registre anotações com data de retorno na linha do tempo
 dos eventos."
 
+![Cartão Retornos combinados com a anotação do Casamento – Maria Silva](01-retornos-combinados-e-orcamentos-parados.webp)
+
 ## Propostas sem retorno há 7+ dias
 
 Este cartão lista as propostas que você enviou ao cliente e que estão paradas. Uma proposta entra aqui quando:
@@ -54,6 +56,8 @@ Clique numa proposta para abrir o orçamento do evento.
 
 A proposta sai da lista quando o evento muda de etapa (por exemplo, para aprovado, recusado ou outra etapa de
 negociação). Enviar uma nova versão do orçamento também recomeça a contagem dos 7 dias.
+
+![Cartão Propostas sem retorno há 7+ dias sem propostas paradas](02-retornos-combinados-e-orcamentos-parados.webp)
 
 ## Perguntas frequentes
 

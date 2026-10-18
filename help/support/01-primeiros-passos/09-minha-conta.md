@@ -19,6 +19,8 @@ telefone, senha, conta Google e a lista das suas empresas.
 1. No canto superior direito, clique no seu nome.
 2. Clique em **Minha conta**.
 
+   ![Página Minha conta](01-minha-conta.webp)
+
 ## Atualizar seus dados
 
 No cartão **Meus dados**:
@@ -27,6 +29,8 @@ No cartão **Meus dados**:
 2. Clique em **Salvar**.
 
 O **E-mail** aparece só para consulta: o e-mail de acesso não pode ser alterado por aqui.
+
+![Cartão Meus dados](02-minha-conta.webp)
 
 ## Trocar a senha
 
@@ -37,6 +41,8 @@ No cartão **Trocar senha**:
 3. Clique em **Alterar senha**.
 
 A nova senha precisa ter no mínimo 8 caracteres, com letras, números e pelo menos um símbolo.
+
+![Cartão Trocar senha](03-minha-conta.webp)
 
 ## Conta Google
 
@@ -49,6 +55,8 @@ O cartão **Minhas empresas** lista todas as empresas a que você tem acesso, co
 Administrador ou Usuário). A empresa em que você está aparece marcada como **Empresa atual**.
 
 Para entrar em outra empresa, peça um convite ao administrador dela.
+
+![Cartão Minhas empresas com a Empresa atual](04-minha-conta.webp)
 
 ## Perguntas frequentes
 

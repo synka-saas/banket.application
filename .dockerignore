@@ -12,6 +12,7 @@ playwright-report
 base
 scrapping
 site
+help
 design-system
 *.md
 !README.md

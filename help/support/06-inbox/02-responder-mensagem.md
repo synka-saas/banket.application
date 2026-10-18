@@ -22,11 +22,19 @@ de mensagens, tanto para você quanto para o cliente.
    - abra o evento e clique na aba **Mensagens**.
 2. Leia as mensagens. As suas ficam de um lado, as do cliente do outro, com data e hora.
 3. No campo **Responder**, escreva a resposta (até 10.000 caracteres).
+
+   ![Resposta escrita no campo Responder, no fim da conversa, com o botão Enviar resposta](01-responder-mensagem.webp)
+
 4. Se quiser partir de um texto pronto, escolha um modelo em **Inserir modelo**. O texto do modelo entra no campo, com
    os dados do evento já preenchidos (nome do cliente, evento, data, valor). Revise e ajuste antes de enviar.
+
+   ![Inserir modelo coloca no campo Responder o texto do modelo com os dados do evento já preenchidos](02-responder-mensagem.webp)
+
 5. Clique em **Enviar resposta**.
 
 A mensagem "Resposta enviada." confirma o envio, e a resposta aparece na conversa com o status de entrega.
+
+![A resposta enviada aparece no fim da conversa, com o status de entrega](03-responder-mensagem.webp)
 
 ## Para quem a resposta vai
 

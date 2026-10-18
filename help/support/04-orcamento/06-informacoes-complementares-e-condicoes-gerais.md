@@ -23,6 +23,10 @@ fazem parte de cada versão.
   prazo de validade da proposta e política de cancelamento). Na mesma tela ficam os
   [textos da proposta](07-textos-da-proposta.md).
 
+![Sub-aba Informações complementares com os blocos de logística, restrições, dinâmica de serviço e equipe](01-informacoes-complementares-e-condicoes-gerais.webp)
+
+![Bloco Condições financeiras na sub-aba Condições gerais e textos](04-informacoes-complementares-e-condicoes-gerais.webp)
+
 ## Passo a passo
 
 1. Abra o evento, clique na aba **Orçamento** e depois na sub-aba **Informações complementares** ou
@@ -32,6 +36,9 @@ fazem parte de cada versão.
 4. Em cada linha, preencha o rótulo (ex.: "Estacionamento") e o valor (ex.: "Gratuito para 50 carros").
 5. Use as setas para mudar a ordem das linhas e o **x** para remover uma linha (o aviso traz **Desfazer**).
 6. Clique em **Adicionar linha** para criar uma linha nova.
+
+   ![Bloco aberto para edição: título, linhas rótulo e valor, setas de ordem, remover e Adicionar linha](02-informacoes-complementares-e-condicoes-gerais.webp)
+
 7. Para criar um bloco, clique em **Adicionar bloco** na barra do rodapé. Para apagar um bloco, clique em
    **Remover bloco** (pede confirmação).
 
@@ -49,6 +56,8 @@ cálculo"):
   conta própria, clique em **Editar manualmente**.
 
 Quando você edita uma linha automática, ela passa a ser manual e deixa de acompanhar o orçamento.
+
+![Linhas automáticas do Dimensionamento da equipe, com o botão Editar manualmente](03-informacoes-complementares-e-condicoes-gerais.webp)
 
 ## Na proposta
 

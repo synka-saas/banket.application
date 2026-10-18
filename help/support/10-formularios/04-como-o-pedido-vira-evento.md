@@ -16,6 +16,8 @@ na coluna de entrada do **Painel de Propostas**. Você só precisa abrir o pedid
 
 ## O que acontece no envio
 
+![O cliente preenche a primeira etapa do formulário público](01-como-o-pedido-vira-evento.webp)
+
 1. **Cliente**: o Banket procura um cliente com o mesmo e-mail. Se encontrar, usa o cadastro existente. Se não,
    cria um cliente novo:
    - evento **Social**: pessoa física, com o nome, o e-mail e o WhatsApp informados;
@@ -23,10 +25,16 @@ na coluna de entrada do **Painel de Propostas**. Você só precisa abrir o pedid
      observações.
 2. **Evento**: é criado na primeira etapa do funil (a coluna de entrada de novos pedidos), com origem "formulário".
 3. **Linha do tempo**: o evento recebe o registro "Pedido recebido pelo formulário".
+
+   ![Linha do tempo com o registro Pedido recebido pelo formulário](06-como-o-pedido-vira-evento.webp)
+
 4. **Respostas**: tudo o que o cliente preencheu fica guardado no evento (card **Respostas do formulário**) e na lista
    de respostas do formulário.
 5. **Confirmação ao cliente**: quem preencheu recebe o e-mail "Recebemos o seu pedido!" em nome do seu buffet, e vê na
    tela a sua **Mensagem após o envio** com um resumo do pedido.
+
+   ![Tela de confirmação com a mensagem após o envio e o resumo do pedido](03-como-o-pedido-vira-evento.webp)
+
 6. **Aviso no WhatsApp**: se a empresa ativou os avisos no WhatsApp para novos pedidos, a equipe recebe a mensagem.
 
 ## Como as respostas preenchem o briefing
@@ -55,9 +63,16 @@ gerado a partir da ocasião e do cliente.
 Respostas sem campo próprio (como a verba estimada e as perguntas personalizadas) não somem: ficam no card
 **Respostas do formulário** do evento.
 
+![Etapa de dimensionamento social: ocasião, data, convidados e verba](02-como-o-pedido-vira-evento.webp)
+
+![Resumo do evento criado: cliente, briefing preenchido e o card Respostas do formulário](05-como-o-pedido-vira-evento.webp)
+
 ## Depois do pedido
 
 1. Abra o **Painel de Propostas** e localize o card na coluna de entrada.
+
+   ![O pedido vira um card na coluna de entrada (Novo orçamento) do Painel de Propostas](04-como-o-pedido-vira-evento.webp)
+
 2. Confira o briefing e complete o que faltar.
 3. Monte o orçamento: o evento passa para a etapa de negociação.
 

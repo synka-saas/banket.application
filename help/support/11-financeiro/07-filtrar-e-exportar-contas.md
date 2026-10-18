@@ -30,6 +30,8 @@ Os quatro cards consideram apenas as contas do filtro atual:
 | **Vencidas** | Soma das contas em aberto com vencimento passado. Clique para filtrar só as vencidas. |
 | **Recebido** / **Pago** | Soma do que já foi baixado no filtro, pelo valor efetivamente pago. |
 
+![Contas a receber: totais do filtro, filtros de busca, situação, vencimento e categoria](01-filtrar-e-exportar-contas.webp)
+
 ## Filtros disponíveis
 
 - **Busca:** procura na descrição, no cliente, no fornecedor, no documento e no título do evento.
@@ -47,6 +49,10 @@ Os filtros se aplicam na hora, sem botão de confirmar. Quando nenhuma conta ate
 Na coluna **Conta**, o nome do evento é um link para a aba **Finanças** dele, onde ficam reunidas só as contas daquele
 evento. Veja [Finanças do evento](05-financas-do-evento.md).
 
+![Filtro de situação em Pagas / recebidas](02-filtrar-e-exportar-contas.webp)
+
+![Busca por "Ana" com a situação Todas: o nome do evento leva à aba Finanças dele](03-filtrar-e-exportar-contas.webp)
+
 ## Ordenar
 
 Clique no título das colunas **Conta**, **Vencimento** ou **Valor** para ordenar. Sem ordenação escolhida, a lista
@@ -56,6 +62,8 @@ segue o vencimento, do mais antigo para o mais novo.
 
 1. Aplique os filtros que quiser.
 2. Clique em **Exportar CSV**.
+
+   ![Botão Exportar CSV: baixa todas as contas do filtro atual](04-filtrar-e-exportar-contas.webp)
 
 O arquivo baixado (por exemplo, `contas-a-receber-2026-10-18.csv`) traz todas as contas do filtro atual, não só as da
 página. Ele usa ponto e vírgula como separador e abre direto no Excel em português. As colunas são: Descrição,

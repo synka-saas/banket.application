@@ -25,8 +25,13 @@ cada uma, filtrar por período e exportar para planilha.
    - **Tipo**: Corporativo ou Social;
    - **Evento**: link para o evento criado a partir da resposta (ou "Evento removido", se ele foi excluído);
    - **Ações**: **Ver resposta**.
+
+   ![Lista de respostas do formulário com filtros de período, Exportar CSV e Ver resposta](01-ver-respostas-do-formulario.webp)
+
 4. Clique em **Ver resposta** para abrir a **Resposta completa**, com todas as perguntas e respostas agrupadas por
    seção.
+
+   ![Resposta completa, com as perguntas e respostas agrupadas por seção](02-ver-respostas-do-formulario.webp)
 
 O card de cada formulário, na tela **Formulários**, também mostra o total de **Respostas** e a data da **Última
 resposta**.
@@ -49,6 +54,8 @@ corretamente. Se você filtrou o período, só as respostas dele vão para o arq
 
 Na página do evento criado pelo formulário, o card **Respostas do formulário** mostra o nome do formulário, a data do
 envio e todas as respostas, inclusive as das perguntas personalizadas que não têm campo próprio no briefing.
+
+![Card Respostas do formulário na página do evento](03-ver-respostas-do-formulario.webp)
 
 ## Perguntas frequentes
 

@@ -23,20 +23,31 @@ fim, cadastra os dados do seu buffet. Este artigo explica a primeira etapa.
 ## Passo a passo
 
 1. Acesse a tela de login do Banket e clique em **Crie sua conta**.
+
+   ![Link Crie sua conta na tela de login](01-criar-sua-conta.webp)
+
 2. Preencha os campos:
    - **Nome e sobrenome**: o seu nome, não o do buffet (ele vem depois).
    - **E-mail**: o endereço que você vai usar para entrar.
    - **Senha** e **Confirme sua senha**.
 3. Marque **Li e aceito os Termos de uso e a Política de privacidade**.
 4. Clique em **Criar conta**.
+
+   ![Formulário de cadastro preenchido, pronto para Criar conta](02-criar-sua-conta.webp)
+
 5. O Banket mostra a tela "Acabamos de enviar um link de confirmação para o seu e-mail". Abra sua caixa de entrada e
    siga o artigo [Confirmar o e-mail e cadastrar a empresa](03-confirmar-email-e-cadastrar-empresa.md).
+
+   ![Tela de confirmação: enviamos um link para o seu e-mail](03-criar-sua-conta.webp)
 
 ### Cadastro com o Google
 
 Se o botão **Continuar com o Google** aparecer na tela, você pode usá-lo no lugar do formulário:
 
 1. Clique em **Continuar com o Google**.
+
+   ![Botão Continuar com o Google no cadastro](04-criar-sua-conta.webp)
+
 2. Escolha a sua conta Google e aceite as permissões pedidas.
 3. Como o Google já confirma o seu e-mail, você vai direto para o cadastro da empresa, sem precisar do link de
    confirmação.
@@ -63,6 +74,8 @@ gratuito **Busca**, e você entra direto na área do seu perfil no Banket Busca.
 
 Quem se cadastra pelo site do Banket também começa no plano Busca, mas é levado à página de escolha de plano para
 iniciar o teste grátis de 30 dias.
+
+![Cadastro aberto pela vitrine: Cadastre seu buffet no Banket Busca](05-criar-sua-conta.webp)
 
 ## Perguntas frequentes
 

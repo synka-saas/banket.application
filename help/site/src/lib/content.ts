@@ -1,4 +1,5 @@
-// Monta categorias e artigos a partir da coleção + help/support/_categorias.yml.
+// Monta categorias e artigos a partir da coleção + help/support/_categorias.yml (ícone e descrição da categoria).
+// Título da categoria: "titulo" do _categorias.yml, senão o "category" do frontmatter dos artigos da pasta.
 // Tudo que não vem no frontmatter é derivado aqui (ver src/content.config.ts).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,6 +66,8 @@ function titleAndIntro(body: string): { title: string; intro: string } {
   return { title, intro: plainText(para.join(' ')) };
 }
 
+const folderOf = (abs: string) => path.relative(SUPPORT_DIR, abs).split(path.sep)[0];
+
 const titleFromSlug = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
 
 let cached: Promise<Category[]> | null = null;
@@ -109,6 +112,8 @@ async function build(): Promise<Category[]> {
       cat = { slug: loc.categorySlug, title: titleFromSlug(loc.categorySlug), description: '', icon: 'folder', order: 900, url: `${BASE}/${loc.categorySlug}/`, articles: [] };
       byCategory.set(cat.slug, cat);
     }
+
+    if (!meta[folderOf(abs)]?.titulo && entry.data.category && cat.title === titleFromSlug(cat.slug)) cat.title = entry.data.category;
 
     cat.articles.push({
       id: entry.id,

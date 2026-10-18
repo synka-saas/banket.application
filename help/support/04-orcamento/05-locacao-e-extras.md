@@ -30,6 +30,8 @@ de rolha, serviço externo…).
    - **Outro local (sem espaço cadastrado)**.
 4. Confira o valor calculado. Se precisar, digite outro valor no campo da locação.
 
+   ![Locação do Salão Jardim calculada pela faixa de convidados e dois extras lançados](01-locacao-e-extras.webp)
+
 ## Como o valor da locação é calculado
 
 | Espaço escolhido | Valor |

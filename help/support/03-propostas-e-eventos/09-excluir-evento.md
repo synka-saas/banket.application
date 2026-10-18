@@ -23,7 +23,14 @@ motivo da perda. Assim o histórico fica guardado e o Dashboard calcula a taxa d
 
 1. Abra o evento.
 2. No **Resumo do evento**, role até o fim da página e clique em **Excluir evento**.
+
+   ![Botão Excluir evento no fim do Resumo do evento](01-excluir-evento.webp)
+
 3. Leia o aviso "Excluir este evento? O orçamento e o histórico também serão removidos." e confirme.
+
+   ![Confirmação: Excluir este evento? O orçamento e o histórico também serão removidos.](02-excluir-evento.webp)
+
+   ![De volta ao Painel de Propostas com a mensagem Evento excluído.](03-excluir-evento.webp)
 
 Você volta para o Painel de Propostas com a mensagem "Evento excluído.".
 

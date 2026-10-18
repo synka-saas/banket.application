@@ -1,57 +1,25 @@
-# Central de Ajuda do Yosp (platform.yosp.app/ajuda/).
+# Central de Ajuda do Banket (app.banket.com.br/ajuda/).
 #
-# Projeto Compose próprio ("yosp_help"), separado do compose da raiz (projeto
-# "yosp"): subir ou recriar a ajuda nunca mexe em platform, service ou api.
-# As variáveis vêm do .env da raiz:
-#   docker compose --env-file ../.env up -d --build      (rodar em help/)
-# ou, da raiz: make help-deploy. Ver help/DEPLOY.md.
+# Projeto Compose próprio ("banket-help"), separado do compose da raiz (projeto "banket"): subir ou recriar a ajuda
+# nunca mexe no app nem no Postgres. Não precisa de variável de ambiente nem de banco: é só arquivo estático.
+#   docker compose up -d --build        (rodar em help/)
+# ou, da raiz: make help-deploy (ou help/scripts/deploy.sh). Ver help/DEPLOY.md.
 
-name: yosp_help
+name: banket-help
 
 services:
-  yosp_help:
+  banket-help:
     build:
       context: .
       dockerfile: Dockerfile
       args:
         BUILD_ID: ${HELP_BUILD_ID:-dev}
-    image: yosp_help:latest
-    container_name: yosp_help_container
+    image: banket-help:latest
+    container_name: banket-help
     restart: unless-stopped
-    depends_on:
-      yosp_help_auth:
-        condition: service_healthy
     ports:
-      # Só local: o nginx do host faz o proxy de platform.yosp.app/ajuda/ para cá.
-      - "127.0.0.1:4331:80"
-    networks:
-      - yosp_net
+      # Só local: o Nginx do host faz o proxy de app.banket.com.br/ajuda/ para cá, depois do auth_request.
+      - "127.0.0.1:5175:80"
     logging:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
-
-  yosp_help_auth:
-    build:
-      context: ./auth
-    image: yosp_help_auth:latest
-    container_name: yosp_help_auth_container
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: "3000"
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET ausente (use --env-file ../.env)}
-      DB_HOST: yosp_db
-      DB_PORT: "5432"
-      DB_NAME: ${DB_NAME_YOSP:?DB_NAME_YOSP ausente}
-      DB_USER: ${DB_USER_APP:?DB_USER_APP ausente}
-      DB_PASS: ${DB_PASS_APP:?DB_PASS_APP ausente}
-    # Sem porta publicada: só o nginx da ajuda (rede yosp_net) conversa com ele.
-    networks:
-      - yosp_net
-    logging:
-      driver: json-file
-      options: { max-size: "10m", max-file: "3" }
-
-networks:
-  yosp_net:
-    external: true

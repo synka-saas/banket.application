@@ -20,14 +20,23 @@ nos planos pagos, organiza as fotos em grupos por evento.
 2. No cartão **Enviar fotos**, clique em **Clique para escolher** ou arraste e solte as fotos na área.
    - Aceita JPG, PNG ou WebP, até 8 MB cada. Fotos grandes são reduzidas automaticamente antes do envio.
    - As fotos escolhidas aparecem em miniatura. Use **Limpar seleção** para recomeçar.
+
+   ![Etapa Fotos e galeria com a área de envio e o limite de fotos do plano](01-etapa-5-fotos.webp)
+
 3. Nos planos pagos, preencha **Grupo** se quiser juntar as fotos de um mesmo evento (por exemplo, "Casamento Ana e
    Pedro"). É opcional.
+
+   ![Fotos escolhidas em miniatura, com o grupo preenchido, antes de enviar](02-etapa-5-fotos.webp)
+
 4. Clique em **Enviar fotos**.
 5. Na **Galeria**, organize as fotos:
    - **Usar como capa**: define a foto que aparece primeiro, nos resultados e no topo do perfil;
    - setas: mudam a ordem da foto;
    - lixeira: exclui a foto, depois de confirmar;
    - **Legenda**: texto da foto, salvo com **Salvar legenda** (ou **Salvar legenda e grupo**, nos planos pagos).
+
+   ![Galeria com as fotos em grupos, a capa, as setas de ordem, a legenda e o grupo](03-etapa-5-fotos.webp)
+
 6. Clique em **Continuar** para ir à revisão.
 
 Para concluir a etapa e poder publicar, o perfil precisa de pelo menos 3 fotos.
@@ -50,6 +59,8 @@ mais fotos do que cabem, só as primeiras entram na seleção.
 - O topo do perfil mostra a capa e até 4 miniaturas.
 - Nos planos pagos, a seção **Fotos** do perfil mostra cada grupo separado. Fotos sem grupo ficam em "Mais fotos".
 - Sem nenhuma foto, o perfil usa uma imagem padrão do Banket Busca.
+
+![Seção Fotos do perfil público com as fotos separadas por grupo](04-etapa-5-fotos.webp)
 
 ## Dicas
 

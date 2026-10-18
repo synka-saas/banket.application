@@ -24,6 +24,8 @@ cardápio**. Sem a porção, o Banket não consegue calcular a quantidade do ite
 1. Abra o evento e clique na aba **Orçamento**.
 2. Clique na sub-aba **Lista de compras**.
 
+   ![Sub-aba Lista de compras com o resumo: convidados, itens, comprados e em estoque](01-lista-de-compras.webp)
+
 O topo mostra para quantos convidados a lista foi calculada, quantos itens ela tem, quantos já foram comprados e quantos
 estão em estoque.
 
@@ -51,6 +53,8 @@ estão em estoque.
 
 Tudo salva sozinho.
 
+![Lista de compras com um item comprado, uma quantidade ajustada à mão, uma observação e uma linha avulsa](02-lista-de-compras.webp)
+
 ## Itens sem porção
 
 Se algum item não tem porção cadastrada, aparece o aviso "N itens sem porção cadastrada". Você pode digitar a quantidade
@@ -69,6 +73,8 @@ Na barra do rodapé:
 - **Exportar CSV**: planilha para abrir no Excel.
 - **Exportar PDF**: lista simples para imprimir ou mandar ao comprador. O Banket salva o que estiver pendente antes de
   gerar.
+
+![Barra do rodapé da lista: Exportar CSV, Exportar PDF e Adicionar linha avulsa](03-lista-de-compras.webp)
 
 ## Perguntas frequentes
 

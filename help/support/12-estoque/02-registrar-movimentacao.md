@@ -23,12 +23,20 @@ O item precisa estar cadastrado e ativo no estoque. Veja [Cadastrar item de esto
 1. No menu lateral, clique em **Estoque**.
 2. Clique em **Movimentar** no topo da tela, ou em **Movimentar** na linha do item (o item já vem escolhido). Na tela
    **Movimentações**, o botão se chama **Nova movimentação**.
+
+   ![Botão Movimentar no topo de Itens em estoque (cada linha também tem o seu Movimentar)](01-registrar-movimentacao.webp)
+
 3. Escolha o **Item**. Logo abaixo aparece o saldo atual.
 4. Escolha o **Tipo**: **Entrada**, **Saída** ou **Contagem**.
 5. Para entrada e saída, escolha o **Motivo**. Uma explicação curta do motivo aparece embaixo do campo.
 6. Informe a **Quantidade**, na unidade do item (indicada embaixo do campo).
 7. Preencha os campos que o motivo pedir (fornecedor, nota fiscal, evento, espaço, justificativa ou custo).
+
+   ![Entrada por compra: item com o saldo atual, tipo, motivo com a explicação, quantidade, custo, fornecedor e nota fiscal](02-registrar-movimentacao.webp)
+
 8. Clique em **Registrar**.
+
+   ![A mensagem de confirmação mostra o novo saldo do item](03-registrar-movimentacao.webp)
 
 A mensagem de confirmação mostra o novo saldo do item.
 
@@ -45,6 +53,8 @@ Regras:
 - Entradas e saídas precisam de quantidade maior que zero.
 - **Uma saída não pode ser maior que o saldo.** Se a contagem física for outra, registre uma **Contagem** antes.
 - Na contagem, se a quantidade contada for igual ao saldo, não há nada a registrar.
+
+![Uma saída maior que o saldo é recusada: registre uma contagem antes](04-registrar-movimentacao.webp)
 
 ## Campos que dependem do motivo
 

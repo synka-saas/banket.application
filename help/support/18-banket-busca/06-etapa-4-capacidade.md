@@ -20,6 +20,9 @@ comporta.
 2. Preencha **Mínimo de convidados**. Abaixo disso, o pedido não chega até você.
 3. Preencha **Máximo de convidados**. Considere o tamanho do espaço e da sua equipe.
 4. Confira a frase abaixo dos campos, por exemplo: "Seu buffet aparece em buscas de 50 a 300 convidados."
+
+   ![Etapa Capacidade com mínimo e máximo de convidados e a faixa da busca](01-etapa-4-capacidade.webp)
+
 5. Se você topa avaliar eventos menores, ligue **Aceito eventos menores que o mínimo, sob consulta**.
 6. Clique em **Salvar** ou em **Continuar**.
 

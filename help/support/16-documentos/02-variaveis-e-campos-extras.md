@@ -19,6 +19,9 @@ Além das variáveis do sistema, você pode criar as suas: elas viram campos par
 1. Abra o modelo em **Documentos** › **Editar**.
 2. Posicione o cursor no **Título do documento** ou no texto do **Conteúdo**.
 3. Clique na variável desejada em **Variáveis do sistema**, ou digite-a entre chaves.
+
+   ![Variáveis do sistema agrupadas por empresa, cliente, evento, orçamento e documento](01-variaveis-e-campos-extras.webp)
+
 4. Confira o resultado na **Prévia**, que usa dados de exemplo.
 
 ## Variáveis do sistema
@@ -106,6 +109,10 @@ Regras:
 - O card **Conteúdo** mostra em **Campos preenchidos ao gerar** a lista atual. Se aparecer "Nenhum: todos os dados vêm
   do evento.", o documento é gerado sem perguntas.
 - Na lista de modelos, a linha **Campos ao gerar** de cada card mostra os campos extras.
+
+![Campos preenchidos ao gerar: as variáveis próprias data_degustacao e pessoas_degustacao viram campos extras](02-variaveis-e-campos-extras.webp)
+
+![Na lista de modelos, a linha Campos ao gerar mostra os campos extras de cada modelo](03-variaveis-e-campos-extras.webp)
 
 ## Perguntas frequentes
 

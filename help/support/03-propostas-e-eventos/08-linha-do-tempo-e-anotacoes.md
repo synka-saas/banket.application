@@ -19,6 +19,8 @@ fez. Ali você também escreve anotações sobre os contatos com o cliente e age
 1. Abra o evento.
 2. Clique na aba **Linha do tempo**.
 
+   ![Aba Linha do tempo com o histórico do evento, do mais recente para o mais antigo](01-linha-do-tempo-e-anotacoes.webp)
+
 Os registros aparecem do mais recente para o mais antigo. O Banket registra sozinho, entre outros:
 
 - criação do evento (manual, pelo formulário ou pelo Banket Busca);
@@ -42,6 +44,8 @@ Use as anotações para guardar o que foi conversado fora do sistema: uma ligaç
 4. Se combinou de voltar a falar com o cliente, escolha a data em **Retornar em (opcional)**.
 5. Clique em **Registrar anotação**.
 
+   ![Card Nova anotação preenchido, com data de retorno](02-linha-do-tempo-e-anotacoes.webp)
+
 A anotação entra na linha do tempo com o tipo na frente, por exemplo: "Ligação: cliente prefere degustação no sábado de
 manhã."
 
@@ -53,6 +57,8 @@ Quando a anotação tem data de retorno:
 - o retorno aparece no **Dashboard**, na lista de retornos combinados, para ninguém esquecer de ligar.
 
 A data de retorno precisa ser hoje ou depois.
+
+![Anotação registrada na linha do tempo com a data de retorno](03-linha-do-tempo-e-anotacoes.webp)
 
 ## Perguntas frequentes
 

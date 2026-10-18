@@ -29,9 +29,19 @@ Para publicar, as etapas 1 a 5 precisam estar concluídas:
 1. No menu lateral, clique em **Banket Busca** e abra a etapa **Revisão e publicação**.
 2. Em **O que você preencheu**, confira o resumo de cada etapa. Clique em **Editar** para corrigir alguma.
 3. Em **Como o seu buffet aparece na busca**, veja o card. Clique em **Ver prévia do perfil** para abrir a página completa.
+
+   ![Revisão com o resumo de cada etapa e o card como aparece na busca](01-etapa-6-revisar-e-publicar.webp)
+
 4. Se faltar alguma etapa, aparece "Para publicar, conclua: ..." com o link para cada uma.
 5. Com tudo pronto, marque **Li e aceito os termos de uso para buffets** e clique em **Publicar perfil**.
+
+   ![Aceite dos termos marcado e o botão Publicar perfil](03-etapa-6-revisar-e-publicar.webp)
+
 6. Aparece a mensagem "Perfil publicado! Ele já aparece nas buscas compatíveis."
+
+   ![Perfil publicado: situação Publicado e o botão Ver perfil público](04-etapa-6-revisar-e-publicar.webp)
+
+   ![Perfil publicado aberto em busca.banket.com.br](05-etapa-6-revisar-e-publicar.webp)
 
 ## Prévia do perfil
 
@@ -40,6 +50,8 @@ consegue abrir: aparece a faixa "Prévia do seu perfil · ainda não publicado, 
 **Voltar ao cadastro**. A prévia não entra nas buscas nem conta visualizações.
 
 Os botões **Ver prévia** e **Ver perfil público** também ficam no topo da página do Banket Busca.
+
+![Prévia do perfil com a faixa "ainda não publicado, só você vê esta página"](02-etapa-6-revisar-e-publicar.webp)
 
 ## Despublicar o perfil
 

@@ -26,9 +26,18 @@ conta geral da empresa.
 1. No menu lateral, clique em **Financeiro**.
 2. No submenu, clique em **Contas a receber** ou em **Contas a pagar**.
 3. Clique em **Nova conta a receber** (ou **Nova conta a pagar**).
+
+   ![Financeiro › Contas a pagar, com o botão Nova conta a pagar](01-lancar-conta-a-receber-ou-a-pagar.webp)
+
 4. Preencha os campos (veja a tabela abaixo). Os obrigatórios são **Descrição**, **Valor (R$)** e **Vencimento**.
+
+   ![Nova conta a pagar preenchida: descrição, valor, vencimento, categoria, evento, fornecedor e NF](02-lancar-conta-a-receber-ou-a-pagar.webp)
+
 5. Se a conta já foi quitada, ligue **Já foi recebida** (ou **Já foi paga**) e informe a data em **Recebida em**
    (ou **Paga em**).
+
+   ![Conta a receber ligada ao evento, já recebida: ao ligar Já foi recebida, aparece a data Recebida em](03-lancar-conta-a-receber-ou-a-pagar.webp)
+
 6. Clique em **Salvar**.
 
 Você também pode lançar a conta direto pela aba **Finanças** do evento. Nesse caso, ela já nasce ligada ao evento.
@@ -59,11 +68,15 @@ Veja [Finanças do evento](05-financas-do-evento.md).
 Prefira **Cancelar** em vez de excluir quando quiser manter o histórico: a conta cancelada sai dos totais, mas
 continua registrada. Veja [Dar baixa, cancelar e reabrir uma conta](03-dar-baixa-cancelar-e-reabrir-conta.md).
 
+![Editar conta a pagar, com o botão Excluir no topo do painel](05-lancar-conta-a-receber-ou-a-pagar.webp)
+
 ## O que acontece depois
 
 - A conta aparece na lista com a situação **Em aberto** e entra nos totais da [Visão geral](01-visao-geral-do-financeiro.md).
 - Quando o vencimento passar sem pagamento, a situação muda sozinha para **Vencida**.
 - Contas ligadas a um evento aparecem também na aba **Finanças** dele.
+
+![A conta lançada aparece na lista, com a situação Em aberto ou Vencida](04-lancar-conta-a-receber-ou-a-pagar.webp)
 
 ## Perguntas frequentes
 

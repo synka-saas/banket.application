@@ -32,7 +32,12 @@ em todo orçamento novo.
    - **Informações complementares**
    - **Condições gerais**
 4. Ligue a chave do bloco para incluí-lo nesta versão. Desligue para retirá-lo.
+
+   ![Textos da proposta agrupados pela página do PDF, com a chave de cada bloco](01-textos-da-proposta.webp)
+
 5. Com o bloco ligado, o texto aparece numa caixa: ajuste o que precisar só para este orçamento.
+
+   ![Bloco Degustação ligado: o texto aparece na caixa para ajustes só neste orçamento](02-textos-da-proposta.webp)
 
 As alterações salvam sozinhas.
 

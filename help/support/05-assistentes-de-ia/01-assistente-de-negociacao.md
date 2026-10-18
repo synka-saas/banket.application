@@ -34,6 +34,11 @@ Registre as conversas por telefone ou WhatsApp como anotações na
 1. No menu lateral, clique em **Propostas** e abra o evento.
 2. Clique na aba **Assistente de Negociação IA**.
 3. Clique em **Analisar negociação**. A análise leva até 1 minuto (o botão mostra **Analisando… (até 1 minuto)**).
+
+   ![Aba Assistente de Negociação IA com o botão Analisar negociação](01-assistente-de-negociacao.webp)
+
+   ![Análise em andamento: o botão mostra Analisando… (até 1 minuto)](02-assistente-de-negociacao.webp)
+
 4. Leia o resultado. Para refazer depois de novas conversas, clique em **Atualizar análise**.
 
 ## Entenda o resultado
@@ -47,6 +52,16 @@ Registre as conversas por telefone ou WhatsApp como anotações na
 | **Sinais positivos** | O que indica interesse do cliente. |
 | **O que falta saber** | Informações que a IA não encontrou. Registre-as na linha do tempo para as próximas análises. |
 | **Análises** | Histórico das análises do evento, com data e autor. Clique numa data para rever uma análise anterior. |
+
+![Temperatura do fechamento com a chance em %, o estágio, a urgência e o resumo da negociação](03-assistente-de-negociacao.webp)
+
+![Objeção mapeada com categoria, gravidade, evidência e Como tratar](04-assistente-de-negociacao.webp)
+
+![Sugestões de abordagem com o canal indicado, o roteiro pronto e o botão Copiar](05-assistente-de-negociacao.webp)
+
+![Próximos passos, sinais positivos e o que falta saber](06-assistente-de-negociacao.webp)
+
+![Histórico das análises do evento, com o link do contexto enviado à IA e o aviso para conferir](07-assistente-de-negociacao.webp)
 
 ## Regras importantes
 

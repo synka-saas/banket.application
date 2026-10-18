@@ -22,10 +22,15 @@ A troca é imediata, sem pagamento, e **não muda a data final do teste**.
 1. No menu lateral, abra a página **Planos** (pelo card do plano no rodapé do menu ou por **Configurações › Financeiro
    › Comparar planos**).
 2. No card do plano desejado, clique em **Trocar o teste para este plano**.
+
+   ![Botão Trocar o teste para este plano no card do Profissional](01-trocar-de-plano.webp)
+
 3. Aparece a mensagem "Seu teste agora é do plano ... O prazo do teste continua o mesmo."
 
 Outra forma: em **Configurações › Financeiro**, no card **Assinar**, selecione o plano e clique em **Trocar o plano do
 teste**.
+
+![Em Configurações › Financeiro: selecione o plano e clique em Trocar o plano do teste](02-trocar-de-plano.webp)
 
 ## Com a assinatura ativa
 

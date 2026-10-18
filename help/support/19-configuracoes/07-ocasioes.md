@@ -22,10 +22,16 @@ tipos. Você personaliza só as ocasiões.
 
 1. No menu lateral, clique em **Configurações** e, no submenu, em **Ocasiões**.
 2. Clique em **Nova ocasião**.
+
+   ![Configurações › Ocasiões: a matriz com as chaves Corporativo e Social e o botão Nova ocasião](01-ocasioes.webp)
+
 3. Preencha:
    - **Nome da ocasião** (obrigatório), por exemplo "Casamento" ou "Confraternização";
    - **Tipos de evento**: marque **Corporativo**, **Social** ou os dois;
    - **Descrição** (opcional).
+
+   ![Painel Nova ocasião preenchido: nome Bodas, ligada ao tipo Social, com descrição](02-ocasioes.webp)
+
 4. Clique em **Salvar**.
 
 ## Ligar e desligar tipos direto na lista
@@ -34,6 +40,8 @@ Na coluna **Tipos de evento**, cada ocasião tem uma chave para **Corporativo** 
 para ligar ou desligar: a mudança é salva na hora, sem precisar abrir a ocasião.
 
 Para ver só as ocasiões de um tipo, use o filtro **Tipo de evento** no topo.
+
+![Bodas na lista: as chaves de Corporativo e Social ligam e desligam o tipo na hora](03-ocasioes.webp)
 
 ## Onde a ocasião é usada
 

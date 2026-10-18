@@ -28,6 +28,10 @@ No quadro **Peça um orçamento**, o cliente encontra:
   Busca e gostaria de um orçamento para casamento em 20/06/2027, com 150 convidados."
 - **Ver outros contatos**: telefone, e-mail, Instagram e site.
 
+![Quadro Peça um orçamento com Receber orçamento sem compromisso, Falar no WhatsApp e Ver outros contatos](01-receber-pedidos-pelo-busca.webp)
+
+![Ver outros contatos: WhatsApp, telefone, e-mail, Instagram e site do buffet](02-receber-pedidos-pelo-busca.webp)
+
 ### Perfil Simples (ou Personalizado sem formulário ativo)
 No quadro **Fale com o buffet**, o botão **Ver contatos** mostra WhatsApp, telefone, e-mail, Instagram e site. O cliente
 fala com você direto por esses canais.
@@ -40,13 +44,22 @@ mais antigo. Se a empresa não tiver nenhum formulário ativo, o perfil mostra s
 
 ## O que acontece quando o cliente envia o formulário
 
+![Formulário do buffet aberto numa janela sobre o perfil](03-receber-pedidos-pelo-busca.webp)
+
+![Última etapa do formulário preenchida pelo cliente, pronta para enviar](04-receber-pedidos-pelo-busca.webp)
+
 1. O sistema cria (ou reaproveita, pelo e-mail) o cliente e cria o evento na coluna de entrada do **Painel de
    Propostas**, com as respostas do formulário no briefing.
+
+   ![Pedido do Ricardo Nogueira na coluna de entrada do Painel de Propostas](06-receber-pedidos-pelo-busca.webp)
+
 2. A linha do tempo do evento registra "Pedido recebido pelo Banket Busca".
 3. Proprietários e administradores recebem o e-mail "Novo pedido pelo Banket Busca", com o link para o evento.
 4. Se os avisos no WhatsApp estiverem ativos para novos pedidos, a empresa também recebe o aviso no WhatsApp. Veja
    [Avisos no WhatsApp](../19-configuracoes/04-avisos-no-whatsapp.md).
 5. O cliente recebe um e-mail de confirmação: "Recebemos o seu pedido".
+
+   ![Confirmação do pedido enviado para o cliente](05-receber-pedidos-pelo-busca.webp)
 
 A partir daí, o pedido segue como qualquer outro: orçamento, proposta, envio e acompanhamento.
 
@@ -71,6 +84,8 @@ cliques nos contatos aparecem em **Desempenho**.
 ### Como sei que um evento veio do Banket Busca?
 A linha do tempo do evento mostra "Pedido recebido pelo Banket Busca", e o e-mail de aviso cita o perfil que recebeu o
 pedido.
+
+![Linha do tempo do evento com "Pedido recebido pelo Banket Busca"](07-receber-pedidos-pelo-busca.webp)
 
 ### Sou plano pago, mas o perfil só mostra "Ver contatos".
 A empresa não tem um formulário ativo. Ative um formulário em **Formulários** e, se tiver mais de um, marque qual usar no

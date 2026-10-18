@@ -24,9 +24,15 @@ antes de salvar. Sem logotipo, o sistema mostra o aviso "Envie o logotipo para u
 1. No menu lateral, clique em **Templates** e abra o template.
 2. No card **Identidade visual**, confira se o **Logotipo** está preenchido.
 3. Em **Fontes**, clique em **Sugerir fontes com IA**.
+
+   ![Botão Sugerir fontes com IA no card Identidade visual, com o logotipo já escolhido](01-identidade-visual-com-ia.webp)
+
 4. Aguarde alguns segundos. A IA escolhe a fonte dos **Títulos** e a dos **Parágrafos** entre as fontes disponíveis,
    combinando com o estilo do logotipo e com as cores já definidas.
 5. Um aviso mostra o motivo da escolha. Confira o resultado nas miniaturas.
+
+   ![Fontes sugeridas pela IA, com o aviso explicando a escolha](02-identidade-visual-com-ia.webp)
+
 6. Clique em **Salvar** para manter as fontes sugeridas.
 
 ## Capturar as cores
@@ -36,6 +42,9 @@ antes de salvar. Sem logotipo, o sistema mostra o aviso "Envie o logotipo para u
    - **Cor de fundo**: um tom bem claro derivado da paleta (ou branco), para o texto ficar legível;
    - **Cor primária (texto)**: uma cor escura, com bom contraste sobre o fundo;
    - **Cor secundária (títulos)**: normalmente a cor mais marcante da marca.
+
+   ![Cores capturadas do logotipo: fundo claro, texto escuro e a cor da marca nos títulos](03-identidade-visual-com-ia.webp)
+
 3. Confira o resultado nas miniaturas e ajuste à mão, se quiser.
 4. Clique em **Salvar** para manter as cores.
 

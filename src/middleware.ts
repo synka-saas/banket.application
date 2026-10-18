@@ -1,8 +1,8 @@
 import type { APIContext, MiddlewareNext } from 'astro';
 import { defineMiddleware } from 'astro:middleware';
-import { lerTokenSessao, clearSessionCookie, isAdmin, verifySession } from './lib/auth';
+import { lerTokenSessao, clearSessionCookie, isAdmin } from './lib/auth';
 import { consumeFlash, setFlash } from './lib/flash';
-import { getMembership } from './lib/membership';
+import { conferirSessao } from './lib/membership';
 import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
 import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
 import { PAGINA_ESCOLHA_PLANO, deveEscolherPlano, verificarTrialVencido } from './server/planos';
@@ -22,6 +22,7 @@ iniciarAgendador();
 // /busca-media/* serve só as fotos públicas do Banket Busca; /api/vitrine/* é a API pública da vitrine
 const PUBLIC_PREFIXES = ['/auth/', '/f/', '/p/', '/api/public/', '/api/hwesta/', '/api/webhooks/', '/print/', '/_astro/', '/_image', '/busca-media/', '/api/vitrine/'];
 const PUBLIC_EXACT = new Set(['/api/health', '/termos', '/privacidade']);
+const ROTA_SESSAO_AJUDA = '/api/ajuda/sessao';
 
 // Rotas restritas a owner/admin (inclui a aba Finanças do evento)
 const ADMIN_PREFIXES = ['/configuracoes', '/api/configuracoes', '/financeiro', '/api/financeiro'];
@@ -75,6 +76,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Response> {
   const { pathname } = context.url;
   context.locals.plano = null;
+  // Verificação da Central de Ajuda (auth_request do Nginx): a rota confere a sessão sozinha, sem flash nem plano
+  if (pathname === ROTA_SESSAO_AJUDA) {
+    context.locals.flash = null;
+    return next();
+  }
   // Vitrine: páginas cacheáveis, sem cookie de flash (consumi-lo poria Set-Cookie numa resposta pública)
   if (pathname === '/vitrine' || pathname.startsWith('/vitrine/')) {
     context.locals.flash = null;
@@ -84,12 +90,7 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
 
   if (isPublic(pathname)) return next();
 
-  const session = await verifySession(lerTokenSessao(context.cookies));
-  const vinculo = session ? await getMembership(session.id, session.tenantId) : null;
-  // Sessão emitida antes de uma troca ou redefinição de senha não vale mais (cookie roubado deixa de funcionar)
-  const revogada = Boolean(session && vinculo?.sessoesRevogadasEm && (session.emitidaEm ?? 0) < vinculo.sessoesRevogadasEm);
-  const membership = revogada ? null : vinculo;
-  const user = session && membership ? { ...session, role: membership.role, nome: membership.nome } : null;
+  const { sessao: session, membership, revogada, user } = await conferirSessao(lerTokenSessao(context.cookies));
   if (session && !membership) {
     clearSessionCookie(context.cookies);
     setFlash(context.cookies, 'error', revogada ? 'A senha da conta mudou. Entre de novo.' : 'Seu acesso a esta empresa foi desativado.');

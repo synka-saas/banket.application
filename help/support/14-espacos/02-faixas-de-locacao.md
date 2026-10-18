@@ -24,11 +24,17 @@ Faixas existem só em espaços do tipo **Nosso espaço**. Espaços de terceiros 
 1. No menu lateral, clique em **Espaços**.
 2. Clique em **Abrir** no espaço próprio.
 3. No card **Faixas de locação**, clique em **Nova faixa**.
+
+   ![Card Faixas de locação no detalhe do espaço, com o botão Nova faixa](01-faixas-de-locacao.webp)
+
 4. Preencha os campos:
    - **Mínimo de convidados** (obrigatório);
    - **Máximo de convidados**: deixe em branco para "sem limite";
    - **Valor da locação (R$)** (obrigatório);
    - **Observação**: opcional. Ex.: Somente na modalidade coquetel.
+
+   ![Nova faixa de locação preenchida](02-faixas-de-locacao.webp)
+
 5. Clique em **Salvar**.
 
 Para alterar uma faixa, clique em **Editar** na linha dela, ajuste os valores e clique em **Salvar**.
@@ -44,11 +50,16 @@ Para alterar uma faixa, clique em **Editar** na linha dela, ajuste os valores e 
 
 Um evento com 120 convidados nesse espaço recebe a locação de R$ 8.000,00.
 
+![Faixas de locação do Salão Jardim cadastradas](03-faixas-de-locacao.webp)
+
 ## Regras
 
 - As faixas de um mesmo espaço **não podem se sobrepor**. Se você tentar cadastrar uma faixa que cruza outra, o sistema
   avisa: "Esta faixa se sobrepõe a outra já cadastrada neste espaço." Os limites contam nas duas pontas: uma faixa até
   100 e outra a partir de 100 se sobrepõem; use 100 e 101.
+
+  ![Aviso ao cadastrar uma faixa que se sobrepõe a outra](04-faixas-de-locacao.webp)
+
 - O **Máximo de convidados** precisa ser maior ou igual ao mínimo.
 - A faixa é escolhida pelo **número total de convidados** do evento.
 - Se nenhuma faixa contém o número de convidados (ou o espaço não tem faixas), a locação entra zerada no orçamento.

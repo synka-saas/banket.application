@@ -20,7 +20,13 @@ item do cardápio pertence a uma seção, e as opções prontas de cardápio sã
 
 1. No menu lateral, clique em **Cardápios**. A tela abre em **Seções**.
 2. Clique em **Nova seção**.
+
+   ![Cardápios › Seções, com o botão Nova seção](01-secoes-do-cardapio.webp)
+
 3. Preencha o **Nome da seção** (obrigatório) e, se quiser, os demais campos (veja abaixo).
+
+   ![Nova seção preenchida](02-secoes-do-cardapio.webp)
+
 4. Clique em **Salvar**.
 
 ### Editar uma seção
@@ -58,10 +64,14 @@ A tabela mostra, para cada seção:
 - **Itens vinculados**: quantidade de itens cadastrados na seção. Clique no número para ver esses itens;
 - **Em opções**: em quantas opções prontas de cardápio a seção é usada.
 
+![Lista de seções com itens vinculados e uso em opções](03-secoes-do-cardapio.webp)
+
 ## Excluir uma seção
 
 1. Clique em **Editar** na linha da seção.
 2. Clique em **Excluir** no topo do painel e confirme.
+
+   ![Confirmação de exclusão da seção, avisando quantos itens também serão apagados](04-secoes-do-cardapio.webp)
 
 Atenção:
 

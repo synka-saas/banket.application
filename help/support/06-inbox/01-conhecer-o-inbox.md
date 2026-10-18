@@ -36,6 +36,8 @@ No menu lateral, clique em **Inbox**. O número ao lado do item mostra quantas m
 
 A lista mostra:
 
+![Inbox com a lista de conversas: assunto e trecho, cliente, evento, responsável e última mensagem](01-conhecer-o-inbox.webp)
+
 | Coluna | O que é |
 |---|---|
 | **Conversa** | O assunto e um trecho da última mensagem, com **Cliente:** ou **Você:** na frente. Conversas com mensagens não lidas aparecem em destaque, com um ponto |
@@ -59,6 +61,8 @@ Clique no assunto para abrir a conversa. Ao abrir, as mensagens são marcadas co
 - **Minhas** (proprietários e administradores): só as conversas em que você é o responsável.
 - **Todos os responsáveis** (proprietários e administradores): escolha um usuário para ver só as conversas dele.
 
+![Pesquisa, filtros Todas / Não lidas / Minhas, filtro de responsável e Ver arquivadas](02-conhecer-o-inbox.webp)
+
 ## Arquivar conversas
 
 Quando uma negociação termina, arquive a conversa para limpar a lista:
@@ -66,11 +70,17 @@ Quando uma negociação termina, arquive a conversa para limpar a lista:
 1. Abra a conversa.
 2. Clique em **Arquivar**, no canto do cabeçalho.
 
+   ![Conversa aberta, com o botão Arquivar no cabeçalho](03-conhecer-o-inbox.webp)
+
 Para ver as arquivadas, clique em **Ver arquivadas** no topo do Inbox (e em **Ver ativas** para voltar). Para trazer uma
 conversa de volta, abra-a e clique em **Reabrir**.
 
 Se o cliente responder ou se você enviar uma nova mensagem numa conversa arquivada, ela volta sozinha para a lista de
 ativas. Conversas arquivadas não entram no contador de não lidas do menu.
+
+![Lista de conversas arquivadas, com Ver ativas para voltar](04-conhecer-o-inbox.webp)
+
+![Conversa arquivada com o botão Reabrir](05-conhecer-o-inbox.webp)
 
 ## Avisos de novas respostas
 

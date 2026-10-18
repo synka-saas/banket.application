@@ -1,0 +1,67 @@
+# Categorias da Central de Ajuda (app.banket.com.br/ajuda/).
+# Chave = nome da pasta. O título vem do "category" do frontmatter dos artigos (ou de "titulo" aqui);
+# a ordem das categorias é o prefixo numérico da pasta e a dos artigos, o "order" do frontmatter.
+# "icone" = nome de um ícone Tabler outline (https://tabler.io/icons), os mesmos do menu do app.
+01-primeiros-passos:
+  icone: rocket
+  descricao: Crie a conta, entre no sistema e conheça o menu e a navegação.
+02-dashboard:
+  icone: layout-dashboard
+  descricao: Indicadores do funil, primeiros passos e retornos combinados.
+03-propostas-e-eventos:
+  icone: layout-kanban
+  descricao: Painel de Propostas, briefing do evento, etapas, checklist e linha do tempo.
+04-orcamento:
+  icone: file-invoice
+  descricao: Monte o orçamento, gere o PDF da proposta e envie ao cliente.
+05-assistentes-de-ia:
+  icone: sparkles
+  descricao: Assistente de Negociação e Assistente de Orçamentos com inteligência artificial.
+06-inbox:
+  icone: mail
+  descricao: Conversas por e-mail com os clientes, ligadas a cada evento.
+07-cardapios:
+  icone: tools-kitchen-2
+  descricao: Seções, itens, opções prontas e categorias do cardápio.
+08-clientes:
+  icone: user-square
+  descricao: Cadastro de clientes pessoa física e jurídica e histórico de eventos.
+09-agenda-e-reunioes:
+  icone: calendar
+  descricao: Agenda de eventos e reuniões no Google Meet.
+10-formularios:
+  icone: stack-2
+  descricao: Formulários de captação de pedidos para o site e as redes do buffet.
+11-financeiro:
+  icone: wallet
+  descricao: Contas a receber e a pagar, plano de pagamento e fluxo de caixa.
+12-estoque:
+  icone: building-warehouse
+  descricao: Itens, movimentações, custo médio e ligação com a lista de compras.
+13-staff:
+  icone: users
+  descricao: Funções da equipe, regras de dimensionamento e profissionais.
+14-espacos:
+  icone: building
+  descricao: Espaços próprios e de terceiros e as faixas de locação.
+15-templates:
+  icone: file-text
+  descricao: Visual do PDF da proposta e blocos de informação.
+16-documentos:
+  icone: signature
+  descricao: Modelos de contrato, variáveis e geração de documentos por evento.
+17-pesquisas:
+  icone: message-star
+  descricao: Pesquisa de satisfação pós-evento com NPS e CSAT.
+18-banket-busca:
+  icone: search
+  descricao: Perfil do buffet no Banket Busca, pedidos e desempenho.
+19-configuracoes:
+  icone: settings
+  descricao: Empresa, usuários, etapas do funil, modelos de e-mail e avisos.
+20-planos-e-assinatura:
+  icone: credit-card
+  descricao: Planos, teste grátis, assinatura e faturas.
+21-suporte:
+  icone: headset
+  descricao: Como falar com a equipe do Banket.

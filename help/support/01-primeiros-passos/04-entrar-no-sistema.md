@@ -26,12 +26,22 @@ sua conta Google.
 - **Marcado** (padrão): você continua conectado por até 7 dias, mesmo fechando o navegador.
 - **Desmarcado**: a sessão termina quando você fecha o navegador. Use essa opção em computadores compartilhados.
 
+![Tela de login preenchida, com Manter conectado neste dispositivo marcado](01-entrar-no-sistema.webp)
+
 ## Entrar com link de acesso por e-mail
 
 Use esta opção para entrar sem digitar a senha.
 
 1. Na tela de login, clique em **Entrar com link de acesso por e-mail**.
+
+   ![Link Entrar com link de acesso por e-mail](02-entrar-no-sistema.webp)
+
 2. Na tela **Entrar sem senha**, informe o **E-mail** e clique em **Enviar link de acesso**.
+
+   ![Tela Entrar sem senha com o e-mail informado](03-entrar-no-sistema.webp)
+
+   ![Confirmação genérica do envio do link de acesso](04-entrar-no-sistema.webp)
+
 3. Abra o e-mail do Banket e clique no link.
 
 O link vale por **15 minutos** e só pode ser usado uma vez. Se ele expirar, peça outro.
@@ -41,6 +51,9 @@ O link vale por **15 minutos** e só pode ser usado uma vez. Se ele expirar, pe�
 O botão **Entrar com o Google** aparece na tela de login quando a integração com o Google está disponível.
 
 1. Clique em **Entrar com o Google**.
+
+   ![Botão Entrar com o Google na tela de login](05-entrar-no-sistema.webp)
+
 2. Escolha a sua conta Google e aceite as permissões.
 
 Se o e-mail da conta Google for o mesmo da sua conta no Banket, as duas ficam vinculadas automaticamente. Se ainda não
@@ -57,12 +70,16 @@ houver conta com esse e-mail, o Banket cria uma e leva você ao cadastro da empr
 1. No canto superior direito, clique no seu nome.
 2. Clique em **Sair**.
 
+![Menu do usuário com a opção Sair](07-entrar-no-sistema.webp)
+
 ## Perguntas frequentes
 
 ### Apareceu "E-mail ou senha incorretos".
 
 Confira se o e-mail está certo e se a tecla Caps Lock está desligada. Se não lembrar a senha, clique em **Esqueceu a
 senha?**. Veja [Recuperar a senha](05-recuperar-senha.md).
+
+![Mensagem E-mail ou senha incorretos](06-entrar-no-sistema.webp)
 
 ### Apareceu "Muitas tentativas de login".
 

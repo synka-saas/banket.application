@@ -21,6 +21,8 @@ quem organizou a reunião, e os participantes recebem o aviso pelo Google Agenda
   As colunas são **Quando**, **Reunião**, **Evento**, **Cliente**, **Organizador** e **Ações**.
 - **Pelo evento**: abra o evento e clique na aba **Reuniões**.
 
+![Página Reuniões (Agenda › Reuniões) com o filtro Próximas / Passadas e as colunas da lista](01-editar-e-cancelar-reuniao.webp)
+
 ## Editar uma reunião
 
 1. Encontre a reunião na lista e clique em **Editar**.

@@ -25,10 +25,22 @@ a partir da **Cor de fundo**, da **Cor primária (texto)** e da **Cor secundári
 1. No menu lateral, clique em **Templates** e abra o template.
 2. Vá até o card da página: **Página capa**, **Página conteúdo** ou **Página contracapa**.
 3. Abaixo do campo de imagem de fundo, clique em **Gerar com IA**.
+
+   ![Botão Gerar com IA abaixo do campo de imagem de fundo da capa](01-imagens-de-fundo-com-ia.webp)
+
 4. Aparece o aviso "Gerando a imagem. Ela aparece na galeria em 1–2 minutos." e um quadro **Gerando…** na galeria.
    - Você pode continuar editando, sair da página e voltar depois: a geração continua e a imagem fica na galeria.
+
+   ![Aviso de geração e o quadro Gerando… na galeria da capa](02-imagens-de-fundo-com-ia.webp)
+
 5. Quando a imagem fica pronta, o sistema avisa "Nova imagem de fundo na galeria. Clique nela para usar."
+
+   ![Imagem pronta na galeria, com o aviso para clicar e usar](03-imagens-de-fundo-com-ia.webp)
+
 6. Clique na imagem da galeria para usá-la. Ela aparece no campo de imagem de fundo e na miniatura da página.
+
+   ![Imagem da galeria escolhida: ela aparece no campo de imagem de fundo e na miniatura da capa](04-imagens-de-fundo-com-ia.webp)
+
 7. Clique em **Salvar** para aplicar a imagem ao template.
 
 ## Como cada fundo é pensado

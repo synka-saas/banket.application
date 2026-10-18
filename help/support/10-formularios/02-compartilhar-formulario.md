@@ -23,12 +23,21 @@ O formulário precisa estar **ativo**. Com ele inativo, quem abrir o link vê a 
 1. No menu lateral, clique em **Formulários**.
 2. No card do formulário, clique em **Copiar link**.
 
+   ![O link público no topo do editor, com Copiar link](04-compartilhar-formulario.webp)
+
 O link também aparece no topo do editor do formulário, com o botão **Copiar link**. Para conferir como o cliente vê,
 use **Abrir formulário** no card.
+
+![Copiar link no card do formulário (com o aviso de link copiado)](01-compartilhar-formulario.webp)
+
+![O formulário aberto pelo link público, sem login](05-compartilhar-formulario.webp)
 
 ## Compartilhar por QR code, WhatsApp ou site
 
 1. Em **Formulários**, clique em **Compartilhar** no card do formulário.
+
+   ![Botão Compartilhar no card do formulário](02-compartilhar-formulario.webp)
+
 2. Na janela **Compartilhar formulário**, escolha:
    - **Link público** → **Copiar**: copia o endereço.
    - **Enviar no WhatsApp**: abre o WhatsApp com a mensagem "Conte o que você imagina para o seu evento:" seguida do
@@ -36,6 +45,9 @@ use **Abrir formulário** no card.
    - **Baixar QR code**: salva a imagem do QR code em PNG, para imprimir em cardápios, folhetos, convites ou no balcão.
    - **Incorporar no seu site** → **Copiar**: copia o código para colar no site do buffet. O formulário aparece dentro
      da página, sem o cliente sair do seu site.
+
+   ![Janela Compartilhar formulário: link público, WhatsApp, QR code e código para incorporar no site](03-compartilhar-formulario.webp)
+
 3. Clique em **Fechar**.
 
 ## Incorporar no site

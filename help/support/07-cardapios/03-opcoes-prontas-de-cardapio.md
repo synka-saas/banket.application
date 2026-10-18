@@ -24,11 +24,23 @@ Cadastre as seções e os itens do cardápio. A opção é montada a partir dele
 
 1. No menu lateral, clique em **Cardápios** e depois em **Opções de cardápio**.
 2. Clique em **Nova opção de cardápio**.
+
+   ![Opções de cardápio, com o botão Nova opção de cardápio](01-opcoes-prontas-de-cardapio.webp)
+
 3. No topo do painel, digite o nome do cardápio.
 4. Preencha os dados gerais (veja abaixo).
+
+   ![Dados gerais da nova opção: nome, preço base, duração, formato, tags e situação](02-opcoes-prontas-de-cardapio.webp)
+
 5. Em **Escolha uma seção do catálogo…**, selecione uma seção e clique em **Adicionar seção**. Repita para cada seção.
+
+   ![Escolha da seção do catálogo e o botão Adicionar seção](03-opcoes-prontas-de-cardapio.webp)
+
 6. Em cada seção adicionada, marque os itens que fazem parte da opção. Use **Marcar todos** ou **Desmarcar todos**
    para agilizar.
+
+   ![Seções adicionadas à opção, com os itens marcados, o título alternativo e o número de escolhas](04-opcoes-prontas-de-cardapio.webp)
+
 7. Clique em **Salvar**.
 
 ## Entenda os campos
@@ -50,6 +62,9 @@ Cadastre as seções e os itens do cardápio. A opção é montada a partir dele
   como "Salgados" na proposta.
 - **Cliente escolhe**: quantos itens o cliente escolhe na seção. Deixe em branco para "todos". Se você marcar menos
   itens do que o número de escolhas, o sistema avisa: "A seção tem menos itens do que o cliente deve escolher."
+
+  ![Aviso quando o cliente deve escolher mais itens do que os marcados na seção](05-opcoes-prontas-de-cardapio.webp)
+
 - Use as setas para mudar a ordem das seções e **Remover** para tirar uma seção da opção.
 
 O resumo abaixo do seletor mostra quantas seções e itens a opção tem.
@@ -67,6 +82,8 @@ Abra a opção pelo botão **Editar** do card e use:
 - **Duplicar**: cria uma cópia com o nome "Nome (cópia)". A cópia não aparece no Banket Busca até você ligar
   **Cardápio público** nela.
 - **Excluir**: apaga a opção, depois de confirmar. Orçamentos que já usaram a opção não são alterados.
+
+![Cards das opções de cardápio, com a etiqueta No Banket Busca](06-opcoes-prontas-de-cardapio.webp)
 
 ## Limites do plano
 

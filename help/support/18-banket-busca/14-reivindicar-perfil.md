@@ -20,8 +20,15 @@ preferir não aparecer, pode **pedir a remoção**.
 Você pode começar por qualquer um destes caminhos:
 
 - no perfil do buffet na vitrine, no quadro **É o proprietário deste buffet?**, clique em **Reivindicar perfil**;
+
+  ![Quadro "É o proprietário deste buffet?" com o link Reivindicar perfil, no perfil de um buffet importado](01-reivindicar-perfil.webp)
+
 - na página inicial da vitrine, clique em **Meu buffet já está aqui: assumir o perfil** e procure o buffet pelo nome em
   **Encontre o seu buffet**.
+
+  ![Botão "Meu buffet já está aqui: assumir o perfil" na página inicial da vitrine](02-reivindicar-perfil.webp)
+
+  ![Encontre o seu buffet: busca pelo nome com os resultados enquanto digita](03-reivindicar-perfil.webp)
 
 Se o perfil já é administrado pelo próprio buffet, aparece o aviso de que ele já tem responsável, com o link para entrar
 na conta.
@@ -31,6 +38,9 @@ na conta.
 1. Na página do buffet, escolha uma opção:
    - **Assumir e completar o perfil** (recomendado, grátis);
    - **Remover o buffet do Banket Busca**.
+
+   ![As duas opções: Assumir e completar o perfil (recomendado) ou Remover o buffet do Banket Busca](04-reivindicar-perfil.webp)
+
 2. Em **Seus dados**, preencha:
    - **Nome e sobrenome** (obrigatório);
    - **Cargo no buffet** (por exemplo, proprietário, sócio, gerente);
@@ -39,6 +49,9 @@ na conta.
    - **Mensagem**, com algo que ajude a confirmar, como um contato atualizado do buffet.
 3. Marque **Sou responsável por este buffet e autorizo o contato da equipe Banket para confirmar o pedido.**
 4. Clique em **Enviar pedido**.
+
+   ![Seus dados: nome, cargo, e-mail, WhatsApp, mensagem e a confirmação de responsável (pedido não enviado)](05-reivindicar-perfil.webp)
+
 5. Aparece **Pedido recebido** e você recebe um e-mail de confirmação.
 
 ## Como a equipe confirma

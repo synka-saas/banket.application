@@ -22,11 +22,20 @@ incluídas), com a mesma aparência do PDF.
 
 A pré-visualização usa a **última versão salva**. Depois de mudar algo, clique em **Salvar** para atualizá-la.
 
+![Pré-visualização com a proposta de exemplo no fim da página de edição: capa, conteúdo e contracapa](01-pdf-de-exemplo-e-template-padrao.webp)
+
 ## Gerar o PDF de exemplo
 
 1. No menu lateral, clique em **Templates** e abra o template.
 2. No topo, clique em **PDF de exemplo**.
+
+   ![Botão PDF de exemplo no topo do editor do template](02-pdf-de-exemplo-e-template-padrao.webp)
+
 3. O PDF abre numa nova aba, com dados fictícios de evento, cardápio e valores.
+
+   ![Página de conteúdo do PDF de exemplo, com cardápio e valores fictícios](03-pdf-de-exemplo-e-template-padrao.webp)
+
+![Pergunta Gerar o exemplo sem salvar?, com as opções Voltar e salvar e Gerar mesmo assim](04-pdf-de-exemplo-e-template-padrao.webp)
 
 Se houver alterações ainda não salvas, o sistema pergunta **Gerar o exemplo sem salvar?**:
 - **Voltar e salvar**: volta para a edição, para você salvar antes;
@@ -36,7 +45,12 @@ Se houver alterações ainda não salvas, o sistema pergunta **Gerar o exemplo s
 
 1. Abra o template que deve ser o padrão.
 2. No topo, ligue **Template padrão das novas propostas**.
+
+   ![Chave Template padrão das novas propostas ligada no topo do template](05-pdf-de-exemplo-e-template-padrao.webp)
+
 3. Clique em **Salvar**.
+
+   ![Lista de templates: o padrão aparece primeiro, com a marca Padrão](06-pdf-de-exemplo-e-template-padrao.webp)
 
 O template anterior deixa de ser o padrão automaticamente. Na lista de **Templates**, o padrão aparece primeiro, com
 a marca **Padrão**.

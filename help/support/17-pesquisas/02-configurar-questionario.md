@@ -32,6 +32,8 @@ Toda empresa começa com um questionário pronto, que você pode ajustar:
 4. Abertas: "Do que você mais gostou?" e "O que poderíamos melhorar?"
 5. Escolha (Sim/Não): "Podemos usar a sua avaliação como depoimento na nossa divulgação?"
 
+![Questionário e e-mail: a lista de perguntas e o botão Nova pergunta](01-configurar-questionario.webp)
+
 ## Adicionar uma pergunta
 
 1. Clique em **Nova pergunta**.
@@ -47,12 +49,21 @@ Toda empresa começa com um questionário pronto, que você pode ajustar:
 5. Se quiser, preencha o **Texto de apoio**, que aparece abaixo da pergunta.
 6. Ligue **Obrigatória** se o cliente precisar responder para enviar.
 7. Deixe ligado **Ativa** para a pergunta aparecer na pesquisa.
+
+   ![Nova pergunta de satisfação (nota de 1 a 5) preenchida](02-configurar-questionario.webp)
+
 8. Clique em **Salvar**.
 
 ## Editar, reordenar e desativar
 
 - **Editar:** clique em **Editar** na linha da pergunta, faça as alterações e clique em **Salvar**.
+
+  ![Editar pergunta de escolha única: opções uma por linha, Obrigatória e Ativa](04-configurar-questionario.webp)
+
 - **Reordenar:** arraste as linhas da tabela para mudar a ordem em que as perguntas aparecem.
+
+  ![A pergunta nova reposicionada com as setas (ou arrastando a linha)](03-configurar-questionario.webp)
+
 - **Desativar:** desligue **Ativa**. A pergunta some das próximas pesquisas, mas as respostas antigas continuam nos
   indicadores. Na tabela, ela aparece como **Inativa**.
 
@@ -91,6 +102,8 @@ No card **Textos e e-mail**, ajuste:
 | **Lembrete de envio** | Quantos dias depois do evento (de 0 a 90) ele passa a aparecer em "Eventos realizados sem pesquisa". O padrão é 1 dia. |
 
 Clique em **Salvar textos** para gravar.
+
+![Card Textos e e-mail: título, introdução, agradecimento, e-mail e lembrete](05-configurar-questionario.webp)
 
 ## Perguntas frequentes
 

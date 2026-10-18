@@ -60,6 +60,8 @@ item libera a vaga. Os limites mensais recomeçam no dia 1º de cada mês (horá
 
 Cada linha mostra o uso no formato "3 de 5". Quando o limite é atingido, a linha fica destacada.
 
+![Configurações › Financeiro, card Uso do plano: cada limite no formato "2 de 15"](01-limites-do-plano.webp)
+
 ## O que acontece ao atingir um limite
 
 - O sistema não deixa criar (nem reativar) mais um item daquele tipo e mostra uma mensagem como "O seu plano permite

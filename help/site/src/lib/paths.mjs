@@ -3,11 +3,10 @@
 //
 // O conteúdo vive em help/support/ (fonte única da verdade):
 //   NN-categoria/                 pasta da categoria (o prefixo numérico dá a ordem)
-//     nome-do-artigo/             pasta do artigo: o nome dela vira a URL
-//       nome-do-artigo.md         o texto (qualquer nome .md; um por pasta)
-//       nome-do-artigo-01.webp    as imagens do artigo
-// Também aceita o formato plano antigo (NN-categoria/nome-do-artigo.md).
-// URL: /ajuda/<categoria-sem-prefixo>/<artigo>/
+//     NN-nome-do-artigo.md        o texto (o prefixo numérico é só para ordenar a pasta)
+//     NN-nome-do-artigo.webp      as imagens, citadas no .md por caminho relativo
+// Também aceita uma pasta por artigo (NN-categoria/nome-do-artigo/qualquer.md).
+// URL: /ajuda/<categoria-sem-prefixo>/<artigo-sem-prefixo>/ — o título da categoria vem do frontmatter "category".
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -33,7 +32,7 @@ export function parseFolder(folder) {
   return m ? { order: Number(m[1]), slug: slugify(m[2] || folder) } : { order: 999, slug: slugify(folder) };
 }
 
-// Frontmatter mínimo, só para os campos que mudam a URL (categoria).
+// Frontmatter lido fora do Astro (validador, plugins).
 const fmCache = new Map();
 export function readFrontmatter(absFile) {
   if (fmCache.has(absFile)) return fmCache.get(absFile);
@@ -50,11 +49,11 @@ export function readFrontmatter(absFile) {
 // Arquivo .md absoluto → { categorySlug, articleSlug, url }
 export function articleLocation(absFile) {
   const parts = path.relative(SUPPORT_DIR, absFile).split(path.sep);
-  const folder = parts[0];
-  const fm = readFrontmatter(absFile);
-  const categorySlug = fm.category ? slugify(fm.category) : parseFolder(folder).slug;
+  // A URL segue as pastas e os nomes de arquivo (sem o prefixo numérico), nunca o frontmatter: renomear a
+  // categoria no texto não quebra links.
+  const categorySlug = parseFolder(parts[0]).slug;
   // Pasta por artigo → nome da pasta; formato plano → nome do arquivo.
-  const articleSlug = slugify(parts.length >= 3 ? parts[1] : path.basename(absFile, path.extname(absFile)));
+  const articleSlug = parseFolder(parts.length >= 3 ? parts[1] : path.basename(absFile, path.extname(absFile))).slug;
   return { categorySlug, articleSlug, url: `${BASE}/${categorySlug}/${articleSlug}/` };
 }
 

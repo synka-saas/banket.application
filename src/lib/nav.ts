@@ -39,6 +39,8 @@ export const NAV_PRINCIPAL: ItemNavegacao[] = [
   { label: 'Pesquisas', icon: 'message-star', href: '/pesquisas', match: ['/pesquisas'], recurso: 'pesquisas' },
   { label: 'Banket Busca', icon: 'banket', href: '/busca', match: ['/busca'], recurso: 'busca', marca: 'busca' },
   { label: 'Configurações', icon: 'settings', href: '/configuracoes/empresa', match: ['/configuracoes'], adminOnly: true, recurso: 'configuracoes', hrefLivre: '/configuracoes/empresa' },
+  // Central de Ajuda: site estático em help/, servido pelo Nginx em /ajuda/ (fora do app; ver help/DEPLOY.md)
+  { label: 'Ajuda', icon: 'help-circle', href: '/ajuda/', match: ['/ajuda'] },
   { label: 'Suporte', icon: 'headset', href: '/suporte', match: ['/suporte'] },
 ];
 

@@ -26,8 +26,16 @@ Nem sempre é preciso cadastrar o cliente à mão. Ele também é criado automat
 
 1. No menu lateral, clique em **Clientes**.
 2. Clique em **Novo cliente**.
+
+   ![Clientes, com o botão Novo cliente](01-cadastrar-cliente.webp)
+
 3. Preencha os campos (veja a tabela abaixo).
+
+   ![Novo cliente pessoa física preenchido](02-cadastrar-cliente.webp)
+
 4. Clique em **Salvar**.
+
+   ![Cliente na lista com a mensagem Cliente cadastrado.](04-cadastrar-cliente.webp)
 
 O cliente aparece na lista com a mensagem "Cliente cadastrado."
 
@@ -49,6 +57,8 @@ O cliente aparece na lista com a mensagem "Cliente cadastrado."
 - O **CPF/CNPJ** também não pode se repetir.
 - Os dados do cliente são usados nas variáveis dos documentos e das propostas, como nome, documento e endereço.
 
+![Cliente pessoa jurídica: o documento passa a ser CNPJ](03-cadastrar-cliente.webp)
+
 ## Pesquisar e filtrar
 
 Na lista de clientes:
@@ -58,6 +68,8 @@ Na lista de clientes:
 - Clique nos títulos **Nome** ou **Eventos** para ordenar a lista.
 
 A lista mostra o nome, o CPF/CNPJ, o contato (e-mail e telefone) e quantos eventos cada cliente tem.
+
+![Lista de clientes com documento, contato e número de eventos](05-cadastrar-cliente.webp)
 
 ## Editar um cliente
 
@@ -78,6 +90,8 @@ cliente.
 
 Já existe um cliente com esse e-mail na empresa. Pesquise pelo e-mail na lista para encontrá-lo e use o cadastro
 existente.
+
+![Aviso de e-mail já cadastrado ao tentar repetir o e-mail de um cliente](06-cadastrar-cliente.webp)
 
 ### Apareceu "CPF/CNPJ inválido".
 

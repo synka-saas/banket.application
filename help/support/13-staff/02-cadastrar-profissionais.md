@@ -23,7 +23,13 @@ Para escolher a especialidade, cadastre antes as funções em **Staff › Servi�
 
 1. No menu lateral, clique em **Staff**. A tela abre em **Profissionais**.
 2. Clique em **Novo profissional**.
+
+   ![Staff › Profissionais, com o botão Novo profissional](01-cadastrar-profissionais.webp)
+
 3. Preencha o **Nome** (obrigatório) e os demais campos.
+
+   ![Novo profissional preenchido com contato, especialidade, CPF e chave Pix](02-cadastrar-profissionais.webp)
+
 4. Clique em **Salvar**.
 
 ## Entenda os campos
@@ -46,6 +52,8 @@ A tabela mostra **Nome**, **Contato** e **Especialidade**.
 - Na coluna **Contato**, clique no e-mail para escrever ou em **chamar no WhatsApp** para abrir a conversa.
 - Troque a **Especialidade** direto na lista, pelo seletor da linha, sem abrir o cadastro.
 - Filtre por **Especialidade**, use a busca e clique nas colunas **Nome** ou **Especialidade** para ordenar.
+
+![Lista de profissionais com contato e especialidade](03-cadastrar-profissionais.webp)
 
 ## Editar ou excluir
 

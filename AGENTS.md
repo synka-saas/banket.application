@@ -11,7 +11,8 @@ cobrança pelo Stripe, no modelo do Yosp).
 - Produção: <https://app.banket.com.br> (VPS `synka-main`, código em `/var/www/banket`)
 - Repositório: `git@github.com:synka-saas/banket.application.git` (branch `main`)
 - Idioma do código, das mensagens, dos commits e da UI: **português**
-- Leitura complementar: [README.md](README.md) (setup local) e [DEPLOY.md](DEPLOY.md) (VPS, Nginx, blue-green)
+- Leitura complementar: [README.md](README.md) (setup local), [DEPLOY.md](DEPLOY.md) (VPS, Nginx, blue-green) e
+  [help/DEPLOY.md](help/DEPLOY.md) (Central de Ajuda: conteúdo, publicação, rollback)
 - `CLAUDE.md` é a fonte principal desta documentação; `AGENTS.md` é uma cópia idêntica. Ao alterar um, copie para o outro.
 
 > A fonte de verdade do schema é `db/migrations/` e a seção [Modelo de dados](#modelo-de-dados) abaixo.
@@ -181,6 +182,11 @@ design-system/         fonte de verdade do visual: readme.md (fundamentos), toke
                        React + CSS .bk-*), ui_kits/banket-app (telas de referência), guidelines/. Não entra no build.
 site/                  site institucional (https://banket.com.br): HTML estático de página única (index.html), servido
                        direto pelo Nginx. Não entra no build do app. Ver "Site institucional" em Infraestrutura e deploy.
+help/                  Central de Ajuda (app.banket.com.br/ajuda/, só logado): support/ (fonte única: um .md por artigo
+                       e as imagens por categoria, _categorias.yml), site/ (Astro 5 estático + Pagefind, lê ../support),
+                       nginx/ (do contêiner e cópias das configs do host), Dockerfile, docker-compose.yml (banket-help,
+                       127.0.0.1:5175), scripts/ (deploy, rollback), central-ajuda/ (protótipo do Claude Design, só
+                       referência). Projeto separado: não entra no build nem no deploy do app. Runbook: help/DEPLOY.md
 ```
 
 ---
@@ -639,6 +645,8 @@ métricas, pedidos e opções de cardápio dos clientes (usuários `contato@<buf
   foi desativado/removido, a sessão cai na hora; o papel e o nome vêm do banco, não do JWT. Após mudar papel/ativo,
   chame `invalidateMembership()`.
 - Usuário com várias empresas troca a ativa por `POST /api/sessao/empresa` (reemite o JWT); lista em `empresasDoUsuario`.
+- A conferência da sessão (JWT + vínculo ativo + emitida depois da última troca de senha) é `conferirSessao`
+  (`lib/membership.ts`), usada pelo middleware e por `GET /api/ajuda/sessao` (Central de Ajuda).
 
 ### Middleware (`src/middleware.ts`)
 - Públicas: `/auth/*`, `/f/*`, `/p/*` (pesquisa de satisfação pelo token), `/vitrine*` (páginas públicas do Banket
@@ -655,6 +663,8 @@ métricas, pedidos e opções de cardápio dos clientes (usuários `contato@<buf
   (`recursoDaRota`, `lib/planos/rotas.ts`): API/print → `403 {code: 'RECURSO_FORA_DO_PLANO', recurso, upgrade_url}`;
   página → `<início do plano>?bloqueado=<recurso>`, que abre o painel de upsell. Livres: `/busca`, `/planos`, `/conta`,
   `/suporte`, `/api/sessao`, `/api/planos`, `/api/assinatura`, `/configuracoes/financeiro`, `/uploads`.
+- `/api/ajuda/sessao` passa pelo middleware sem flash nem plano: a rota confere a sessão sozinha e responde sem corpo
+  200 (sessão válida), 401 (sem sessão) ou 403 (empresa suspensa). É o `auth_request` do Nginx para `/ajuda/`.
 - Cabeçalhos: `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`
   (exceto `/f/*`, que pode ser incorporado no site do buffet), HSTS em produção.
 - CSRF: `security.checkOrigin` do Astro; `allowedDomains` confia no `X-Forwarded-*` só para `app.banket.com.br` e localhost.
@@ -712,7 +722,8 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 
 Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban), Inbox (com o contador de não lidas,
 calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, **Financeiro** (só admin), Estoque, Staff, Espaços,
-Templates, Documentos, **Pesquisas**, Banket Busca, Configurações (só admin), Suporte.
+Templates, Documentos, **Pesquisas**, Banket Busca, Configurações (só admin), **Ajuda** (`/ajuda/`, a Central de Ajuda,
+fora do app), Suporte.
 
 ### Dashboard — `/dashboard` (`server/dashboard.ts`)
 Indicadores por período de entrada do pedido (30, 90, 365 dias ou tudo): eventos e valor por status, pedidos recebidos,
@@ -1313,6 +1324,21 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   `COOKIE_DOMAIN=.banket.com.br` a sessão (`banket_sessao`) vale nos dois hosts; o cookie antigo `banket_session` (só
   do app) continua aceito e sai no próximo login.
 
+### Central de Ajuda — `/ajuda/` (projeto `help/`, runbook em [help/DEPLOY.md](help/DEPLOY.md))
+- Base de conhecimento com um artigo por funcionalidade (21 categorias, uma por pasta de `help/support/`). Site estático
+  (Astro 5 + busca Pagefind) num contêiner próprio (`banket-help`, `127.0.0.1:5175`), servido no mesmo host do app para
+  o cookie de sessão valer sem mudar o domínio. Visual: estrutura do protótipo do Claude Design (`help/central-ajuda/`)
+  com os tokens do design system do Banket (`help/site/src/styles/tokens.css` = cópia de `src/styles/tokens.css`,
+  `npm run sync:tokens`), ícones Tabler.
+- **Login obrigatório**: o Nginx do host faz `auth_request` em `/api/ajuda/sessao` antes de repassar qualquer arquivo
+  (HTML, imagens, índice de busca); sem sessão → `302 /auth/login?next=<página>` (o login volta para a página; `next`
+  só aceita caminho interno, `destinoInterno`), empresa suspensa → `/conta-suspensa`. Vale para todos os planos. O "sim"
+  fica 30 s em cache no Nginx por cookie; o redirect sai com `Cache-Control: no-store` (Cloudflare).
+- Conteúdo em `help/support/` é a fonte única: o build lê direto de lá, valida links e imagens (`npm run
+  check:content`) e reescreve os links entre `.md`. URL = pasta e arquivo sem o prefixo numérico
+  (`04-orcamento/01-criar-orcamento.md` → `/ajuda/orcamento/criar-orcamento/`). Publicar = `make help-deploy` na raiz
+  (não reinicia o app); `make help-rollback` volta a imagem anterior.
+
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
@@ -1523,6 +1549,9 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   `make deploy` faz `git pull --ff-only` + blue-green; também `make rollback | status | logs | psql`.
 - Até setembro/2026 o código de produção ficava em `/opt/banket.application`; foi padronizado para `/var/www/banket`
   (commit `7630ceb`). Os volumes não mudaram porque o compose fixa `name: banket`.
+- **Central de Ajuda** (`help/`): contêiner `banket-help` (projeto Compose `banket-help`, porta `127.0.0.1:5175`), fora do
+  blue-green; as `location /ajuda/` e `/_ajuda_sessao` ficam no `app.banket.com.br.conf` e o cache da verificação em
+  `/etc/nginx/conf.d/banket-ajuda.conf` (cópias em `help/nginx/host-*.conf`). Ver [help/DEPLOY.md](help/DEPLOY.md).
 - `psql` em produção: `docker compose -f docker-compose.prod.yml exec postgres psql -U banket_user banket_db`.
 
 ---

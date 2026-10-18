@@ -27,9 +27,17 @@ dados do evento, do cliente, da empresa e do orçamento atual.
 1. Abra o evento no **Painel de Propostas**.
 2. Clique na aba **Documentos**.
 3. Clique em **Gerar documento**.
+
+   ![Aba Documentos do evento, com o botão Gerar documento](01-gerar-documento-no-evento.webp)
+
 4. Em **Modelo**, escolha o modelo.
 5. Se o modelo tiver campos extras, preencha-os em **Informações para preencher**. Todos são obrigatórios.
+
+   ![Gerar documento: modelo escolhido e campos extras em Informações para preencher](02-gerar-documento-no-evento.webp)
+
 6. Clique em **Gerar PDF**.
+
+   ![Documento gerado com número, na lista da aba Documentos](03-gerar-documento-no-evento.webp)
 
 Ao concluir, aparece a mensagem "Documento 2026/0001 gerado." e o documento entra na lista da aba.
 

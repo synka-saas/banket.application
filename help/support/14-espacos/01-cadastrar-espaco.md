@@ -23,9 +23,17 @@ Os espaços aparecem no briefing do evento, na seção Locação do orçamento e
 
 1. No menu lateral, clique em **Espaços**.
 2. Clique em **Novo espaço**.
+
+   ![Lista de espaços com o botão Novo espaço](01-cadastrar-espaco.webp)
+
 3. Escolha o **Tipo**: **Nosso espaço** ou **Espaço de terceiro**.
 4. Preencha o **Nome** (obrigatório) e os demais campos.
+
+   ![Cadastro de um espaço próprio (Nosso espaço) preenchido](02-cadastrar-espaco.webp)
+
 5. Clique em **Salvar**.
+
+   ![Detalhe do espaço próprio logo depois de salvar, pronto para cadastrar as faixas](03-cadastrar-espaco.webp)
 
 Ao salvar um **Nosso espaço** novo, o sistema já abre o detalhe dele para você cadastrar as faixas de locação. Veja
 [Faixas de locação](02-faixas-de-locacao.md).
@@ -42,6 +50,8 @@ Ao salvar um **Nosso espaço** novo, o sistema já abre o detalhe dele para voc�
 | **Observações** | Anotações livres. |
 | **Espaço ativo (disponível para seleção)** | Desligado, o espaço deixa de aparecer nos seletores. |
 
+![Cadastro de um espaço de terceiro, com contato e valor de referência](04-cadastrar-espaco.webp)
+
 Só para **Espaço de terceiro**:
 
 | Campo | O que preencher |
@@ -57,10 +67,16 @@ A tabela mostra **Espaço**, **Tipo**, **Capacidade**, **Cidade** e **Locação*
 ou o valor de referência, nos de terceiros). Use a busca por nome, cidade ou endereço e o filtro **Nossos espaços** /
 **Espaços de terceiros**. Clique em **Abrir** para ver o detalhe.
 
+![Lista de espaços com espaços próprios, de terceiros e um inativo](05-cadastrar-espaco.webp)
+
 ## O detalhe do espaço
 
 Mostra os **Dados do espaço**, o card **Contato e locação** (terceiros) ou **Faixas de locação** (próprios) e os
 **Eventos neste espaço**: os 10 mais recentes, com data e etapa. No topo, use **Editar** para alterar os dados.
+
+![Detalhe de um espaço de terceiro com o card Contato e locação](06-cadastrar-espaco.webp)
+
+![Detalhe de um espaço próprio com os dados, as faixas de locação e os eventos neste espaço](07-cadastrar-espaco.webp)
 
 ## Como o espaço entra no orçamento
 

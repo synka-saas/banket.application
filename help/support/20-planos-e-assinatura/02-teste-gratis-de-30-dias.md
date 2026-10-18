@@ -47,6 +47,14 @@ ela a cada entrada enquanto não escolher um plano.
 - Você pode assinar a qualquer momento, escolhendo se a cobrança começa agora ou só no fim do teste. Veja
   [Contratar a assinatura](03-contratar-assinatura.md).
 
+![Card do teste no rodapé do menu: Teste do Prime, dias restantes e o botão Assinar](01-teste-gratis-de-30-dias.webp)
+
+![Durante o teste, cada card tem Trocar o teste para este plano](02-teste-gratis-de-30-dias.webp)
+
+![Card Seu plano durante o teste: Prime, Em teste e a data final](03-teste-gratis-de-30-dias.webp)
+
+![Outro plano selecionado no card Assinar, com o botão Trocar o plano do teste](04-teste-gratis-de-30-dias.webp)
+
 ## Avisos por e-mail
 
 Proprietários e administradores recebem e-mails sobre o teste:

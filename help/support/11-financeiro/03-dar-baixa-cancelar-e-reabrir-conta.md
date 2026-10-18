@@ -22,11 +22,19 @@ ou o cancelamento.
    - **Financeiro › Visão geral**, nas listas **Vencidas** e **Próximos 7 dias**;
    - a aba **Finanças** do evento.
 2. Na linha da conta, clique em **Receber** (conta a receber) ou **Pagar** (conta a pagar).
+
+   ![Botão Receber na linha da conta (aqui, a entrada do plano na aba Finanças do evento)](01-dar-baixa-cancelar-e-reabrir-conta.webp)
+
 3. No painel **Registrar recebimento** (ou **Registrar pagamento**), confira a conta descrita no topo e preencha:
    - **Recebido em** / **Pago em**: data do pagamento. Já vem com a data de hoje.
    - **Valor pago (R$)**: já vem com o valor da conta. Com juros, multa ou desconto, informe o valor efetivo.
    - **Forma de pagamento**: como foi pago. Se deixar em branco, fica a forma que já estava na conta.
+
+   ![Painel Registrar pagamento com a data, o valor pago e a forma de pagamento](02-dar-baixa-cancelar-e-reabrir-conta.webp)
+
 4. Clique em **Registrar**.
+
+   ![Entrada com a situação Recebida e a data e a forma do recebimento abaixo do vencimento](03-dar-baixa-cancelar-e-reabrir-conta.webp)
 
 A conta passa para a situação **Recebida** (ou **Paga**). Na lista, abaixo do vencimento, aparece "Recebida em" (ou
 "Paga em") com a data e a forma. Se o valor pago for diferente do valor da conta, ele aparece abaixo do valor.
@@ -36,7 +44,12 @@ A conta passa para a situação **Recebida** (ou **Paga**). Na lista, abaixo do 
 Use quando a conta não vai mais acontecer (por exemplo, um serviço que foi retirado).
 
 1. Na linha da conta em aberto, clique em **Cancelar**.
+
+   ![Contas a pagar com o filtro Todas: a conta cancelada e a paga mostram o botão Reabrir](05-dar-baixa-cancelar-e-reabrir-conta.webp)
+
 2. Confirme em **Cancelar**.
+
+   ![Confirmação ao cancelar uma conta: ela sai dos totais, mas continua no histórico](04-dar-baixa-cancelar-e-reabrir-conta.webp)
 
 A conta deixa de contar nos totais, mas continua no histórico com a situação **Cancelada**. Só contas em aberto podem
 ser canceladas: para cancelar uma conta já paga, reabra-a primeiro.
@@ -47,6 +60,8 @@ Use para desfazer uma baixa feita por engano ou para retomar uma conta cancelada
 
 1. Na linha da conta paga ou cancelada, clique em **Reabrir**.
 2. Confirme em **Reabrir**.
+
+   ![Confirmação ao reabrir: a conta volta a ficar em aberto](06-dar-baixa-cancelar-e-reabrir-conta.webp)
 
 A conta volta a ficar em aberto, sem data nem valor de pagamento. Se o vencimento já passou, ela aparece como
 **Vencida**.

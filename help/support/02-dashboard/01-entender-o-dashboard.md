@@ -19,6 +19,8 @@ atenção.
 
 No menu lateral, clique em **Dashboard**. Ele também abre automaticamente quando você entra no sistema.
 
+![Dashboard com indicadores, funil por etapa, retornos e próximos eventos](01-entender-o-dashboard.webp)
+
 ## Escolher o período
 
 No canto superior direito do Dashboard, escolha o período no seletor. A página se atualiza na hora.
@@ -29,6 +31,8 @@ No canto superior direito do Dashboard, escolha o período no seletor. A página
 - **Todo o período**
 
 O período considera a **data em que o pedido entrou** no Banket (a data de cadastro do evento), não a data da festa.
+
+![Seletor de período no canto superior direito do Dashboard](02-entender-o-dashboard.webp)
 
 ## Indicadores do topo
 
@@ -53,6 +57,8 @@ Cada etapa do funil tem um tipo, definido em **Configurações › Etapas do fun
 aprovado ou recusado. O Dashboard usa esse tipo, e não o nome da etapa. Assim, se você renomear "Fechado" para
 "Contrato assinado", os números continuam certos.
 
+![Indicadores do topo: pedidos recebidos, em aberto, aprovados, taxa de conversão e ticket médio](03-entender-o-dashboard.webp)
+
 ## Funil por etapa
 
 O cartão **Funil por etapa** mostra cada etapa do seu Painel de Propostas com:
@@ -65,12 +71,16 @@ O cartão **Funil por etapa** mostra cada etapa do seu Painel de Propostas com:
 Ele também segue o período escolhido. Clique no nome de uma etapa para abrir a lista de eventos dessa etapa, ou em
 **Ver funil** para abrir o Painel de Propostas.
 
+![Cartão Funil por etapa com a quantidade e o valor de cada etapa](04-entender-o-dashboard.webp)
+
 ## Próximos 30 dias
 
 O cartão **Próximos 30 dias** lista até 8 eventos com data de hoje até 30 dias à frente, com o dia, o horário de início,
 o número de convidados e a etapa. Eventos recusados não aparecem. Este cartão **não depende do período** escolhido.
 
 Clique num evento para abri-lo, ou em **Abrir agenda** para ver o calendário completo.
+
+![Cartão Próximos 30 dias com o evento agendado](05-entender-o-dashboard.webp)
 
 ## Os outros cartões
 

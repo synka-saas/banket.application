@@ -19,8 +19,20 @@ briefing a qualquer momento.
 1. Abra o evento: no menu **Propostas**, clique no card do evento (ou em **Abrir**, na visão Lista).
 2. No **Resumo do evento**, clique em **Editar evento**, no fim da página.
    - Atalho: no Kanban, use o menu de três pontos do card e clique em **Editar**.
+
+   ![Botão Editar evento no fim do Resumo do evento](01-editar-briefing-do-evento.webp)
+
+   ![Atalho Editar no menu de três pontos do card](02-editar-briefing-do-evento.webp)
+
 3. Altere os campos que precisar. São os mesmos campos do cadastro do evento.
+
+   ![Número de convidados alterado no formulário de edição](03-editar-briefing-do-evento.webp)
+
 4. Clique em **Salvar alterações**.
+
+   ![Botão Salvar alterações](04-editar-briefing-do-evento.webp)
+
+   ![Mensagem Evento atualizado. depois de salvar](05-editar-briefing-do-evento.webp)
 
 A mensagem "Evento atualizado." confirma a gravação. Para desistir, clique em **Cancelar**.
 
@@ -33,6 +45,8 @@ A mensagem "Evento atualizado." confirma a gravação. Para desistir, clique em 
 - **Versões congeladas**: versões antigas do orçamento (já enviadas ou substituídas) **não mudam**. Elas guardam o
   que foi proposto na época.
 - **Título**: se você apagar o título, ele é gerado de novo como "Ocasião – Cliente".
+
+![Linha do tempo com o antes e o depois do número de convidados](06-editar-briefing-do-evento.webp)
 
 ## Trocar a etapa pela edição
 

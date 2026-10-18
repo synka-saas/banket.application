@@ -35,6 +35,8 @@ plano. Usuários com o papel Usuário não veem o menu Financeiro.
 
 Contas canceladas não entram em nenhum total.
 
+![Financeiro › Visão geral: os quatro indicadores e o fluxo de caixa mês a mês](01-visao-geral-do-financeiro.webp)
+
 ## Fluxo de caixa
 
 O card **Fluxo de caixa** mostra uma linha por mês, de 3 meses atrás até 5 meses à frente (o mês atual vem marcado
@@ -48,6 +50,8 @@ com "· atual"). Para cada mês aparecem duas barras:
 À direita fica o saldo do mês (entradas menos saídas) e, abaixo dele, os dois valores separados. Mês sem movimento
 aparece com um travessão.
 
+![Fluxo de caixa: entradas e saídas de cada mês, com o mês atual marcado](02-visao-geral-do-financeiro.webp)
+
 ## Vencidas e próximos 7 dias
 
 Na parte de baixo da página há duas listas:
@@ -58,6 +62,8 @@ Na parte de baixo da página há duas listas:
 Cada linha mostra a descrição, o tipo (A receber ou A pagar), a data e o evento, quando houver. O botão **Receber**
 ou **Pagar** abre direto o registro do pagamento, sem precisar ir até a lista de contas. Veja
 [Dar baixa, cancelar e reabrir uma conta](03-dar-baixa-cancelar-e-reabrir-conta.md).
+
+![Listas Vencidas e Próximos 7 dias, com o botão Receber ou Pagar em cada linha](03-visao-geral-do-financeiro.webp)
 
 ## Entenda as situações de uma conta
 

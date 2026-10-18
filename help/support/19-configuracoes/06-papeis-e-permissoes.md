@@ -23,6 +23,8 @@ Cada pessoa da empresa tem um papel, que define o que ela vê e pode fazer: **Pr
 | Administrador | Gerentes e responsáveis pela gestão | Tudo, menos gerenciar proprietários. |
 | Usuário | Vendedores, operação e atendimento | A operação do dia a dia, sem Configurações e sem Financeiro. |
 
+![Os três papéis disponíveis no convite: Proprietário, Administrador e Usuário](01-papeis-e-permissoes.webp)
+
 ## O que só Proprietário e Administrador fazem
 
 - Acessar o menu **Configurações** inteiro: dados da empresa, plano e assinatura, usuários, ocasiões, etapas do funil,

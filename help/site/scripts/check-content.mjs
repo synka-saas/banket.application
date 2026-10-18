@@ -72,12 +72,12 @@ for (const img of images) if (!usedImages.has(img)) warnings.push(`${rel(img)}: 
 // Ícones das categorias
 const catFile = path.join(SUPPORT_DIR, '_categorias.yml');
 if (fs.existsSync(catFile)) {
-  const iconsDir = path.join(process.cwd(), 'node_modules', 'lucide-static', 'icons');
+  const iconsDir = path.join(process.cwd(), 'node_modules', '@tabler', 'icons', 'icons', 'outline');
   const meta = yaml.load(fs.readFileSync(catFile, 'utf8')) || {};
   for (const [folder, m] of Object.entries(meta)) {
     if (!fs.existsSync(path.join(SUPPORT_DIR, folder))) warnings.push(`_categorias.yml: pasta "${folder}" não existe`);
     if (m?.icone && fs.existsSync(iconsDir) && !fs.existsSync(path.join(iconsDir, `${m.icone}.svg`))) {
-      errors.push(`_categorias.yml: ícone "${m.icone}" (${folder}) não existe no Lucide`);
+      errors.push(`_categorias.yml: ícone "${m.icone}" (${folder}) não existe no Tabler (outline)`);
     }
   }
 }

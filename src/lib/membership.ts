@@ -3,7 +3,7 @@
 // O status da empresa vem junto: suspensa/cancelada pelo Manager Hwesta (kill-switch), o middleware barra o acesso.
 // Cache curto em memória evita uma consulta por requisição.
 import { systemQuery } from './db';
-import { normalizeRole, type Role } from './auth';
+import { normalizeRole, verifySession, type Role, type SessionUser } from './auth';
 
 interface Membership {
   role: Role;
@@ -50,4 +50,24 @@ export function invalidateUsuario(usuarioId: string) {
 /** Derruba o cache de todos os usuários de uma empresa (suspensão/reativação pelo Manager). */
 export function invalidateTenant(tenantId: string) {
   for (const key of cache.keys()) if (key.endsWith(`:${tenantId}`)) cache.delete(key);
+}
+
+/**
+ * Sessão do cookie conferida contra o banco: JWT válido, vínculo ativo e emitida depois da última troca de senha.
+ * `sessao` sem `user` = cookie que não vale mais (vínculo desativado ou removido; `revogada` se a senha mudou).
+ * Usada pelo middleware e pela verificação da Central de Ajuda (/api/ajuda/sessao).
+ */
+export async function conferirSessao(token: string | undefined): Promise<{
+  sessao: SessionUser | null;
+  membership: Membership | null;
+  revogada: boolean;
+  user: SessionUser | null;
+}> {
+  const sessao = await verifySession(token);
+  const vinculo = sessao ? await getMembership(sessao.id, sessao.tenantId) : null;
+  // Sessão emitida antes de uma troca ou redefinição de senha não vale mais (cookie roubado deixa de funcionar)
+  const revogada = Boolean(sessao && vinculo?.sessoesRevogadasEm && (sessao.emitidaEm ?? 0) < vinculo.sessoesRevogadasEm);
+  const membership = revogada ? null : vinculo;
+  const user = sessao && membership ? { ...sessao, role: membership.role, nome: membership.nome } : null;
+  return { sessao, membership, revogada, user };
 }

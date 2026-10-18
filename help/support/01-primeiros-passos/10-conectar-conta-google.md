@@ -25,6 +25,9 @@ sistema. As reuniões são criadas na sua agenda Google, com a sala do Meet e os
 
 1. Clique no seu nome, no canto superior direito, e depois em **Minha conta**.
 2. No cartão **Conta Google**, clique em **Vincular conta Google**.
+
+   ![Cartão Conta Google com o botão Vincular conta Google](01-conectar-conta-google.webp)
+
 3. Escolha a conta Google e aceite as permissões, incluindo **Ver e editar eventos** do Google Agenda.
 4. Você volta para Minha conta com a confirmação. O cartão passa a mostrar:
    - **Conta vinculada**: o e-mail da conta Google;

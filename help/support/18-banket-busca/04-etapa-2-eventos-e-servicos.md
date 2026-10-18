@@ -17,12 +17,24 @@ opções de cardápio viram filtros que o cliente pode usar.
 ## Passo a passo
 
 1. No menu lateral, clique em **Banket Busca** e abra a etapa **Eventos e serviços**.
+
+   ![Etapa Eventos e serviços antes de marcar os tipos](01-etapa-2-eventos-e-servicos.webp)
+
 2. Em **Tipos de evento atendidos**, marque os eventos que você faz (por exemplo, Casamento, Aniversário, Evento
    corporativo, Coffee break).
+
+   ![Tipos de evento marcados, com o contador do limite do plano](02-etapa-2-eventos-e-servicos.webp)
+
 3. Em **Tipos de serviço**, marque como você atende (por exemplo, Buffet completo, Buffet em domicílio, Coquetel volante,
    Empratado, Food truck).
+
+   ![Tipos de serviço marcados](03-etapa-2-eventos-e-servicos.webp)
+
 4. Em **Opções de cardápio**, marque as restrições alimentares que você atende: Vegetariana, Vegana, Sem glúten, Sem
    lactose e Atenção a alergênicos.
+
+   ![Opções de cardápio (restrições alimentares) marcadas](04-etapa-2-eventos-e-servicos.webp)
+
 5. Clique em **Salvar** ou em **Continuar**.
 
 Para concluir a etapa, marque pelo menos um tipo de evento e um tipo de serviço.

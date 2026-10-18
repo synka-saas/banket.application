@@ -26,7 +26,7 @@ const base = import.meta.env.BASE_URL;
 ---
 <Base title={article.title} description={article.description}>
   <div class="crumb-row">
-    <Breadcrumb items={[{ label: 'Central de ajuda', href: base }, { label: cat.title, href: cat.url }, { label: article.title }]} />
+    <Breadcrumb items={[{ label: 'Central de Ajuda', href: base }, { label: cat.title, href: cat.url }, { label: article.title }]} />
     <div class="art-actions" data-noprint>
       <span class="copied" hidden data-copied>Link copiado</span>
       <button type="button" class="icon-btn" aria-label="Copiar link" title="Copiar link" data-copy><Icon name="link" size={18} /></button>
@@ -51,8 +51,8 @@ const base = import.meta.env.BASE_URL;
           <div class="art-feedback" data-noprint data-pagefind-ignore data-feedback>
             <span class="art-feedback-q" data-fb-ask>Este artigo foi útil?</span>
             <div class="art-feedback-btns" data-fb-ask>
-              <button type="button" class="btn btn-secondary btn-sm" data-fb="sim"><Icon name="thumbs-up" size={16} />Sim</button>
-              <button type="button" class="btn btn-secondary btn-sm" data-fb="nao"><Icon name="thumbs-down" size={16} />Não</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-fb="sim"><Icon name="thumb-up" size={16} />Sim</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-fb="nao"><Icon name="thumb-down" size={16} />Não</button>
             </div>
             <span class="art-feedback-done" hidden data-fb-done><Icon name="circle-check" size={18} /><span data-fb-text></span></span>
           </div>

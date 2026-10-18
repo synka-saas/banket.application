@@ -21,6 +21,9 @@ Para ter acesso a outra empresa, você precisa de um convite dela. Veja [Aceitar
 ## Passo a passo
 
 1. No canto superior direito, clique no seu nome.
+
+   ![Menu do seu nome: com uma só empresa, a opção Trocar de empresa não aparece](01-trocar-de-empresa.webp)
+
 2. Em **Trocar de empresa**, clique no nome da empresa que deseja abrir. A empresa atual aparece com um sinal de
    confirmação e não pode ser clicada.
 3. O Banket abre o Dashboard da empresa escolhida.

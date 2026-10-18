@@ -18,8 +18,16 @@ são cobradas e qual espaço já vem escolhido nos eventos novos. Na mesma tela 
 
 1. No menu lateral, clique em **Configurações**. A tela **Empresa** abre primeiro.
 2. Desça até o card **Parâmetros comerciais** e preencha os campos (veja a tabela abaixo).
+
+   ![Card Parâmetros comerciais: validade da proposta, idades das crianças e espaço padrão](01-parametros-comerciais.webp)
+
 3. No card **Assinatura da proposta**, preencha **Nome**, **Cargo** e **Telefone** de quem assina.
+
+   ![Card Assinatura da proposta com nome, cargo e telefone de quem assina](02-parametros-comerciais.webp)
+
 4. Clique em **Salvar**, no fim da página.
+
+   ![Botão Salvar no fim da página Empresa](03-parametros-comerciais.webp)
 
 ## Entenda os campos
 

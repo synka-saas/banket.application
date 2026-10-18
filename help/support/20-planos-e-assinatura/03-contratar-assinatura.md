@@ -27,13 +27,27 @@ Você escolhe o plano, a recorrência (mensal ou anual) e a forma de pagamento: 
 
 1. No menu lateral, clique em **Configurações** e depois em **Financeiro**. (Na página **Planos**, o botão **Assinar
    este plano** leva para o mesmo lugar, com o plano já selecionado.)
+
+   ![Na página Planos, Assinar este plano leva a Configurações › Financeiro com o plano selecionado](01-contratar-assinatura.webp)
+
 2. No card **Assinar**, escolha:
    - **Plano**: Essencial, Profissional ou Prime, com o preço mensal e anual;
    - **Recorrência**: **Mensal** ou **Anual · 2 meses grátis**;
    - **Forma de pagamento**: **Pix** ou **Cartão de crédito**;
    - **Quando cobrar** (só aparece durante o teste): **No fim do teste** ou **Agora**.
+
+   ![Card Assinar: plano, recorrência, forma de pagamento e quando cobrar](02-contratar-assinatura.webp)
+
 3. Confira o valor no rodapé do card (por exemplo, "R$ 197,00 por mês").
 4. Clique no botão de confirmação. O nome dele muda conforme a escolha:
+
+   ![Prime anual no cartão, cobrando agora: o botão vira Ir para o pagamento](03-contratar-assinatura.webp)
+
+   ![Cartão cobrando no fim do teste: o botão vira Cadastrar cartão](04-contratar-assinatura.webp)
+
+   ![Pix mensal cobrando agora: o botão vira Gerar Pix](05-contratar-assinatura.webp)
+
+   ![Pix no fim do teste: o botão vira Assinar com Pix](06-contratar-assinatura.webp)
 
 | Forma | Quando cobrar | Botão | O que acontece |
 |---|---|---|---|

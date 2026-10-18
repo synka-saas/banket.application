@@ -27,6 +27,8 @@ Logo abaixo fica uma faixa com:
 - **Etapa**: um seletor para mudar a etapa do evento ali mesmo. Em eventos recusados aparece o motivo; em aprovados, a
   data de fechamento.
 
+![Resumo do evento: título, abas do evento e a faixa com cliente, data, local e etapa](01-resumo-do-evento.webp)
+
 ## As abas do evento
 
 | Aba | Para que serve |
@@ -42,6 +44,8 @@ Logo abaixo fica uma faixa com:
 
 Algumas abas dependem do plano: os assistentes de IA, as reuniões e as finanças estão nos planos Profissional, Prime e
 Master. Fora do plano, a aba abre a oferta para conhecer o plano que libera o recurso.
+
+![Abas do evento](02-resumo-do-evento.webp)
 
 ## O que tem no Resumo do evento
 
@@ -59,11 +63,15 @@ Master. Fora do plano, a aba abre a oferta para conhecer o plano que libera o re
 
 Os cards podem ser recolhidos e expandidos clicando no título.
 
+![Card do cliente e do orçamento, com o link chamar do WhatsApp e o botão Abrir orçamento](04-resumo-do-evento.webp)
+
 ### Coluna lateral
 - **Informações operacionais**: convidados, perfil, Ocasião, data com o dia da semana, Verba estimada e Formato de
   serviço.
 - **Estilo gastronômico**, **Bebidas** e **Restrições alimentares**.
 - **Checklist operacional**: as tarefas que precisam acontecer antes do evento.
+
+![Página completa do resumo: coluna principal com o briefing e coluna lateral com informações operacionais e checklist](03-resumo-do-evento.webp)
 
 ## Perguntas frequentes
 

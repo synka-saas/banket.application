@@ -24,6 +24,9 @@ sinal) e as parcelas do saldo. Cada parcela vira automaticamente uma conta a rec
 1. No **Painel de Propostas**, mova o evento para a etapa de aprovado (por exemplo, "Aprovado").
 2. Na janela que abre, informe a **Data de fechamento**.
 3. Deixe ligada a opção **Cadastrar o plano de pagamento em seguida** e clique em **Confirmar**.
+
+   ![Ao mover para Aprovado: data de fechamento e a opção Cadastrar o plano de pagamento em seguida](01-plano-de-pagamento-do-evento.webp)
+
 4. O sistema abre a aba **Finanças** do evento com o painel **Plano de pagamento** já aberto.
 5. Preencha os campos e clique em **Gerar contas a receber**.
 
@@ -33,6 +36,9 @@ A opção **Cadastrar o plano de pagamento em seguida** só aparece para Proprie
 
 1. Abra o evento e clique na aba **Finanças**.
 2. Em **Contas a receber**, clique em **Plano de pagamento**.
+
+   ![Aba Finanças do evento, ainda sem plano, com o botão Plano de pagamento](02-plano-de-pagamento-do-evento.webp)
+
 3. Preencha os campos e clique em **Gerar contas a receber**.
 
 ## Entenda os campos
@@ -48,6 +54,8 @@ A opção **Cadastrar o plano de pagamento em seguida** só aparece para Proprie
 | **Forma de pagamento** | Forma combinada, aplicada a todas as parcelas. |
 | **Categoria** | Categoria de receita. Sem escolha, usa **Padrão (Venda de evento)**. |
 
+![Plano de pagamento preenchido: entrada e 3 parcelas mensais, com a prévia ao vivo das parcelas](03-plano-de-pagamento-do-evento.webp)
+
 ## Prévia das parcelas
 
 Enquanto você preenche, a área **Parcelas geradas** mostra cada parcela com o rótulo, o vencimento e o valor. Se
@@ -62,6 +70,8 @@ Como o valor é dividido:
 Exemplo: valor de R$ 10.000,00, entrada de R$ 3.000,00 e 3 parcelas mensais geram a entrada de R$ 3.000,00 e três
 parcelas de R$ 2.333,33, R$ 2.333,33 e R$ 2.333,34.
 
+![Prévia avisando o que falta: informe o vencimento da entrada](04-plano-de-pagamento-do-evento.webp)
+
 ## O que acontece depois
 
 - Cada parcela vira uma conta a receber no nome do cliente do evento, com a etiqueta **Plano**. A descrição segue o
@@ -71,6 +81,8 @@ parcelas de R$ 2.333,33, R$ 2.333,33 e R$ 2.333,34.
 - O texto do plano pode entrar nos contratos pela variável **{plano_pagamento}**. Veja
   [Variáveis e campos extras](../16-documentos/02-variaveis-e-campos-extras.md).
 
+![Contas a receber geradas pelo plano, com a etiqueta Plano](05-plano-de-pagamento-do-evento.webp)
+
 ## Refazer o plano
 
 Se as condições mudarem, clique em **Refazer plano** na aba **Finanças**. O painel passa a se chamar **Refazer plano
@@ -78,6 +90,8 @@ de pagamento**.
 
 - As parcelas do plano anterior que ainda estão **em aberto** são substituídas pelas novas.
 - As parcelas **já recebidas** continuam como estão. Por isso o valor sugerido desconta o que já foi recebido.
+
+![Refazer plano de pagamento: o valor sugerido já desconta a entrada recebida](06-plano-de-pagamento-do-evento.webp)
 
 ## Perguntas frequentes
 

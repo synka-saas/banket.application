@@ -19,11 +19,20 @@ voltam apontadas, com o motivo.
 
 1. No menu lateral, clique em **Clientes**.
 2. Clique em **Importar CSV**.
+
+   ![Botão Importar CSV na lista de clientes](01-importar-clientes-por-csv.webp)
+
 3. Em **1 Baixe o modelo e preencha**, clique em **Baixar modelo CSV**.
+
+   ![Tela de importação de clientes: baixar o modelo e enviar o arquivo](02-importar-clientes-por-csv.webp)
+
 4. Abra o modelo no Excel (ou outro programa de planilhas) e preencha uma linha por cliente, mantendo a primeira linha
    (o cabeçalho). Apague as duas linhas de exemplo.
 5. Salve o arquivo no formato CSV.
 6. Em **2 Envie o arquivo preenchido**, escolha o arquivo e clique em **Importar**.
+
+   ![Arquivo escolhido, pronto para importar](03-importar-clientes-por-csv.webp)
+
 7. Confira o resultado (veja abaixo) e clique em **Ver clientes**.
 
 ## Colunas do arquivo
@@ -60,6 +69,8 @@ não entrou, aparece a lista com o número da linha no arquivo e o motivo, por e
 
 Corrija essas linhas no arquivo e envie de novo **só com elas**, para não tentar importar outra vez os clientes que já
 entraram.
+
+![Resultado da importação: linhas importadas e a linha recusada com o motivo](04-importar-clientes-por-csv.webp)
 
 ## Perguntas frequentes
 

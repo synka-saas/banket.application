@@ -28,6 +28,9 @@ Se nenhum evento atende a essas condições, o botão **Enviar pesquisa** fica d
 
 1. No menu lateral, clique em **Pesquisas**.
 2. Clique em **Enviar pesquisa** (na **Visão geral** ou em **Respostas**).
+
+   ![Visão geral das Pesquisas com o botão Enviar pesquisa e o lembrete de eventos realizados sem pesquisa](01-enviar-pesquisa.webp)
+
 3. No painel **Enviar pesquisa de satisfação**, escolha o **Evento**. Eventos que já receberam a pesquisa aparecem com
    "· já enviada".
 4. Ao escolher o evento, o painel preenche sozinho:
@@ -37,6 +40,9 @@ Se nenhum evento atende a essas condições, o botão **Enviar pesquisa** fica d
 5. Ajuste o que quiser. Em **Para**, informe até 5 e-mails separados por vírgula.
 6. Mantenha `{link_pesquisa}` na mensagem no lugar onde o link deve aparecer. Se você apagar, o link entra no fim da
    mensagem.
+
+   ![Painel Enviar pesquisa de satisfação com o evento escolhido, destinatário e mensagem do modelo](02-enviar-pesquisa.webp)
+
 7. Clique em **Enviar**.
 
 ## O que acontece depois
@@ -45,6 +51,10 @@ Se nenhum evento atende a essas condições, o botão **Enviar pesquisa** fica d
 - A linha do tempo do evento registra o envio (ou o reenvio) e para quem foi.
 - A pesquisa aparece em **Pesquisas › Respostas** com a situação **Aguardando** até o cliente responder.
 - Quando o cliente responder, a situação muda para **Respondida** e a linha do tempo registra a nota de NPS.
+
+![Pesquisa enviada aparece em Respostas como Aguardando, com Copiar link e Reenviar](03-enviar-pesquisa.webp)
+
+![Linha do tempo do evento com o envio da pesquisa e a resposta com o NPS](04-enviar-pesquisa.webp)
 
 ## Lembrete de eventos sem pesquisa
 

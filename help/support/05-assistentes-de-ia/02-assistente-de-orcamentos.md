@@ -29,7 +29,12 @@ vencimento no estoque. Você aplica a sugestão no orçamento com um clique.
 3. Confira os indicadores de margem no topo (calculados pelo Banket, sem IA).
 4. No card **Assistente de Orçamentos IA**, clique em **Gerar sugestões**. Para refazer depois, clique em
    **Gerar de novo**.
+
+   ![Sub-aba Assistente de Orçamentos IA: receita, custo dos insumos e margem projetada, com o botão Gerar sugestões](01-assistente-de-orcamentos.webp)
+
 5. Para aceitar uma sugestão, clique em **Aplicar troca** ou **Incluir no cardápio** e confirme.
+
+   ![Confirmação antes de aplicar a troca no orçamento](06-assistente-de-orcamentos.webp)
 
 ## Entenda a margem
 
@@ -48,10 +53,14 @@ vencimento no estoque. Você aplica a sugestão no orçamento com um clique.
 O card **Custo por item** lista cada item com custo por porção, quantidade, custo no evento e a participação no custo
 total. A mesma margem aparece, resumida, no **Resumo do orçamento** da sub-aba **Itens e valores**.
 
+![Card Custo por item com a participação de cada item e o aviso dos itens sem custo](02-assistente-de-orcamentos.webp)
+
 ## Estoque para girar
 
 A coluna da direita lista os insumos do estoque que pedem atenção: os que **vencem em até 15 dias** (ou já venceram) e
 os **parados há 45 dias ou mais** sem saída. Clique em **Abrir o estoque** para ver o estoque completo.
+
+![Estoque para girar: insumo com vencimento próximo](03-assistente-de-orcamentos.webp)
 
 ## Entenda as sugestões da IA
 
@@ -68,6 +77,8 @@ Ao aplicar uma sugestão:
 - **Incluir no cardápio**: o item entra na seção do orçamento ligada à mesma seção do catálogo.
 - O orçamento é recalculado e a mudança fica registrada na linha do tempo do evento.
 
+![Sugestões da IA: substituições de maior margem com a economia no evento e o botão Aplicar troca, giro de estoque e alertas](05-assistente-de-orcamentos.webp)
+
 ## Regras importantes
 
 - **A IA não muda nada sozinha.** As sugestões só entram no orçamento quando você clica para aplicar.
@@ -76,6 +87,8 @@ Ao aplicar uma sugestão:
 - O rodapé da análise mostra quem gerou, quando, o link **contexto enviado (.md)** com o que foi enviado à IA e as
   análises anteriores.
 - Confira se a troca faz sentido para o seu cliente (restrições, preferências) antes de aplicar.
+
+![Rodapé da análise: quem gerou, quando, o modelo e o link contexto enviado (.md)](04-assistente-de-orcamentos.webp)
 
 ## Limites do plano
 

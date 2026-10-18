@@ -19,6 +19,8 @@ planilha para analisar no Excel ou no Google Planilhas.
 1. No menu lateral, clique em **Propostas**.
 2. Digite no campo **Pesquisar** e confirme.
 
+   ![Pesquisa por Maria na visão Lista](01-filtrar-e-exportar-eventos.webp)
+
 A pesquisa procura no título do evento, no nome do cliente, no nome do responsável e no nome do local.
 
 ## Filtrar
@@ -29,7 +31,12 @@ A pesquisa procura no título do evento, no nome do cliente, no nome do respons�
    - **Tipo de evento**: Corporativo ou Social.
    - **Formato de serviço**.
    - **Etapa**: no Kanban, mostra só a coluna escolhida.
+
+   ![Painel de filtros aberto com período e tipo de evento preenchidos](02-filtrar-e-exportar-eventos.webp)
+
 3. Clique em **Aplicar**.
+
+   ![Filtros aplicados na visão Lista: o botão mostra Filtros (2) e as etiquetas de cada filtro com Limpar tudo](03-filtrar-e-exportar-eventos.webp)
 
 O botão passa a mostrar quantos filtros estão ativos, por exemplo **Filtros (2)**. Logo abaixo da barra aparecem
 etiquetas com cada filtro. Clique no **×** de uma etiqueta para tirar só aquele filtro, ou em **Limpar tudo** para tirar
@@ -41,10 +48,14 @@ Os filtros valem tanto no **Kanban** quanto na **Lista**, e continuam ao trocar 
 No Kanban, as datas do filtro substituem o intervalo de trabalho enquanto estiverem ativas. Assim você consegue ver, por
 exemplo, os eventos de um mês do ano que vem. Clique em **Voltar ao intervalo de trabalho** para retornar.
 
+![No Kanban, as datas do filtro substituem o intervalo de trabalho; o link volta ao intervalo](04-filtrar-e-exportar-eventos.webp)
+
 ## Exportar para planilha
 
 1. Aplique a pesquisa e os filtros que quiser (opcional).
 2. Clique em **Exportar CSV**.
+
+   ![Botão Exportar CSV na barra do Painel de Propostas](05-filtrar-e-exportar-eventos.webp)
 
 O arquivo `eventos-AAAA-MM-DD.csv` é baixado com os eventos que atendem aos filtros e à pesquisa, em ordem de data. As
 colunas são: Evento, Cliente, Etapa, Data, Horário, Convidados, Tipo, Ocasião, Formato de serviço, Local, Verba,

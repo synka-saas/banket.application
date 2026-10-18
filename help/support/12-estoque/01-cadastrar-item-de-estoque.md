@@ -18,8 +18,14 @@ Para cada item você acompanha o saldo, o estoque mínimo, o custo médio e a va
 
 1. No menu lateral, clique em **Estoque**. A tela abre em **Itens em estoque**.
 2. Clique em **Novo item**.
+
+   ![Estoque › Itens em estoque, ainda vazio, com o botão Novo item](01-cadastrar-item-de-estoque.webp)
+
 3. Preencha o **Nome** (obrigatório) e escolha o **Tipo**.
 4. Preencha os demais campos (veja abaixo).
+
+   ![Novo item de estoque preenchido: nome, tipo, categoria, unidade, quantidade inicial, mínimo, custo, local e validade](02-cadastrar-item-de-estoque.webp)
+
 5. Clique em **Salvar**.
 
 ## Entenda os campos
@@ -45,6 +51,8 @@ Para cada item você acompanha o saldo, o estoque mínimo, o custo médio e a va
   no cadastro. Veja [Registrar movimentação](02-registrar-movimentacao.md).
 - Para trocar a **Unidade** de um item, o saldo precisa estar zerado. Registre uma contagem com 0 antes, ou mantenha a
   unidade atual.
+
+![Editar item de estoque: sem o campo de quantidade inicial, com o botão Excluir no topo e o switch Item ativo](05-cadastrar-item-de-estoque.webp)
 
 ## A tela de itens em estoque
 
@@ -72,6 +80,10 @@ Itens ligados ao cardápio mostram a etiqueta **Cardápio**. Em cada linha há a
 Use os filtros de tipo, categoria e situação (**Abaixo do mínimo**, **Zerados**, **Vencendo em 15 dias** ou
 **Inativos**) e a busca por nome, categoria ou local. Clique nas colunas **Item**, **Categoria** ou **Saldo** para
 ordenar.
+
+![Itens em estoque com os indicadores do topo e a situação de cada item (Ok, Abaixo do mínimo, Vence em X dias)](03-cadastrar-item-de-estoque.webp)
+
+![Clique em Abaixo do mínimo para filtrar só os itens que precisam de reposição](04-cadastrar-item-de-estoque.webp)
 
 ## Excluir um item
 

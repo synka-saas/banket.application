@@ -23,6 +23,9 @@ padrões prontos para usar.
 2. Procure a mensagem do Banket e clique no link de confirmação.
    - Se o seu e-mail for do Gmail, a tela de confirmação mostra o botão **Abrir o Gmail**, que já abre a busca pela
      mensagem.
+
+   ![Tela de confirmação com Abrir o Gmail, Reenviar e Refazer o cadastro](01-confirmar-email-e-cadastrar-empresa.webp)
+
 3. O link vale por **24 horas**. Ao clicar, você vê a tela **E-mail validado**.
 
 ### 2. Cadastre a empresa

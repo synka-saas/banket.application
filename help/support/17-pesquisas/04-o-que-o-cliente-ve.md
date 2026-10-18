@@ -25,6 +25,8 @@ por outro canal). Ele não precisa criar conta nem fazer login.
 
 Os textos `{empresa}` e `{evento}` das perguntas aparecem já trocados pelo nome da empresa e o título do evento.
 
+![Topo da página da pesquisa: empresa, título, evento, introdução e a pergunta de NPS](01-o-que-o-cliente-ve.webp)
+
 ## Como o cliente responde a cada tipo
 
 | Tipo | Como aparece |
@@ -35,6 +37,10 @@ Os textos `{empresa}` e `{evento}` das perguntas aparecem já trocados pelo nome
 | Múltipla escolha | Lista de opções; quantas quiser. |
 | Resposta aberta | Campo de texto livre ("Escreva aqui…"). |
 
+![NPS de 0 a 10 e notas de 1 a 5 marcadas pelo cliente](02-o-que-o-cliente-ve.webp)
+
+![Escolha única, respostas abertas, autorização de depoimento e o botão Enviar respostas](03-o-que-o-cliente-ve.webp)
+
 ## Depois de enviar
 
 - O cliente vê "Obrigado!" e o **Agradecimento** que você definiu.
@@ -42,12 +48,16 @@ Os textos `{empresa}` e `{evento}` das perguntas aparecem já trocados pelo nome
 - Se faltou uma pergunta obrigatória ou houve algum problema, a página mostra o aviso no topo e mantém o que ele já
   tinha preenchido.
 
+![Tela de agradecimento depois do envio](04-o-que-o-cliente-ve.webp)
+
 ## Mensagens que o cliente pode ver
 
 - **"Pesquisa indisponível"**: o link está incorreto ou não existe mais.
 - **"Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente."**: proteção contra envios repetidos
   do mesmo endereço.
 - **"Responda pelo menos uma pergunta."**: ele tentou enviar a pesquisa em branco.
+
+![Mensagem Pesquisa indisponível para um link incorreto](05-o-que-o-cliente-ve.webp)
 
 ## Dicas
 
@@ -60,6 +70,8 @@ Os textos `{empresa}` e `{evento}` das perguntas aparecem já trocados pelo nome
 
 ### A página funciona no celular?
 Sim. A página se adapta à tela do celular.
+
+![A página da pesquisa no celular](06-o-que-o-cliente-ve.webp)
 
 ### O cliente precisa responder a todas as perguntas?
 Só às marcadas como obrigatórias. As demais podem ficar em branco.

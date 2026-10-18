@@ -29,6 +29,8 @@ As idades vêm de **Configurações › Empresa** (padrão: isentas até 5 anos,
 
 Exemplo: 120 convidados, 10 crianças meia e 6 isentas → 120 − 6 − 10 + 5 = **109 pagantes**.
 
+![Convidados, crianças meia e isentas e o número de pagantes](01-como-o-valor-e-calculado.webp)
+
 ## Cálculo de cada parte
 
 | Parte | Como é calculada |
@@ -70,6 +72,10 @@ No fim da sub-aba **Itens e valores**, o card **Resumo do orçamento** mostra:
 - **Observações internas**: anotações da equipe. Não aparecem na proposta.
 
 O valor no topo do orçamento é o valor final: o manual, quando houver, ou o calculado.
+
+![Card Resumo do orçamento com os totais, a margem estimada e o valor final da proposta](02-como-o-valor-e-calculado.webp)
+
+![Com valor final manual, o topo mostra o valor da proposta e o total calculado](03-como-o-valor-e-calculado.webp)
 
 ## Perguntas frequentes
 

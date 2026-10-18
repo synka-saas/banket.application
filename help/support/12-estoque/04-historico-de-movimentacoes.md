@@ -17,11 +17,16 @@ motivo e o saldo depois de cada uma.
 ## Passo a passo
 
 1. No menu lateral, clique em **Estoque** e depois em **Movimentações**.
+
+   ![Estoque › Movimentações: todas as entradas, saídas e contagens, com motivo, saldo após, custo e detalhes](01-historico-de-movimentacoes.webp)
+
 2. Use os filtros para encontrar o que procura:
    - **Todos os itens**: escolha um item;
    - **Todos os tipos**: Entrada, Saída ou Contagem;
    - **Todos os motivos**: qualquer motivo da lista;
    - busca por nome do item, observação, fornecedor ou número da nota.
+
+   ![Histórico filtrado por um item: saldo inicial, compra, consumo no evento e o custo médio de cada movimento](02-historico-de-movimentacoes.webp)
 
 Para ver o histórico de um item só, clique em **Histórico** na linha do item em **Itens em estoque**, ou clique no nome
 do item dentro do histórico.
@@ -38,6 +43,8 @@ do item dentro do histórico.
 | **Custo unit.** | Custo pago na entrada, ou custo médio do momento na saída. |
 | **Detalhes** | Fornecedor e nota fiscal, evento (com link), espaço e observação. |
 | **Por** | Usuário que registrou. |
+
+![A compra que gerou conta a pagar mostra a etiqueta No financeiro](03-historico-de-movimentacoes.webp)
 
 Movimentações que geraram conta a pagar ou a receber mostram a etiqueta **No financeiro** (visível para Proprietário e
 Administrador).

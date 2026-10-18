@@ -32,6 +32,8 @@ chegar até você.
 | Fotos em grupos por evento | Não (fotos gerais) | Sim |
 | Aviso de pedido novo por e-mail e no WhatsApp | Não | Sim |
 
+![Cards dos planos pagos, todos com o Banket Busca Personalizado](02-perfil-simples-e-personalizado.webp)
+
 ## Limites do plano
 
 | Plano | Fotos | Tipos de evento | Tipos de serviço |
@@ -44,6 +46,8 @@ chegar até você.
 
 Quando você chega ao limite, as opções a mais ficam indisponíveis e aparece o link para conhecer os planos. Ao clicar num
 recurso com cadeado, o sistema abre o painel com a oferta de upgrade.
+
+![Lista de etapas com Cardápios e Disponibilidade incluídos no plano e o contador de fotos do plano (Prime: 60)](01-perfil-simples-e-personalizado.webp)
 
 ## Se o plano mudar
 
@@ -62,6 +66,8 @@ Veja [Teste grátis de 30 dias](../20-planos-e-assinatura/02-teste-gratis-de-30-
 ### No Perfil Simples o cliente consegue falar comigo?
 Sim. O botão **Ver contatos** mostra WhatsApp, telefone, e-mail, Instagram e site, sempre com um toque. O cliente fala
 com você direto, fora do Banket.
+
+![Perfil Simples: quadro Fale com o buffet com o botão Ver contatos (sem formulário de orçamento)](03-perfil-simples-e-personalizado.webp)
 
 ### O Perfil Personalizado mostra os meus preços?
 Não. O Banket Busca não mostra preço em nenhum perfil.

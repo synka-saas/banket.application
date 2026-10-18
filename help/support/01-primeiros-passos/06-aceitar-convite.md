@@ -56,6 +56,8 @@ No mínimo 8 caracteres, com letras, números e pelo menos um símbolo. Os dois 
 
 O convite passou de 7 dias, já foi usado ou foi cancelado. Peça ao administrador da empresa para enviar um novo convite.
 
+![Tela Convite inválido ou expirado](01-aceitar-convite.webp)
+
 ### Apareceu "Senha incorreta".
 
 Você já tem conta no Banket com esse e-mail. Digite a senha dessa conta, não uma senha nova. Se não lembrar, use

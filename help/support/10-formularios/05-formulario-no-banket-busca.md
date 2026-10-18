@@ -26,8 +26,13 @@ Sem formulário ativo, o perfil mostra só o botão de contatos (WhatsApp, telef
 
 1. No menu lateral, clique em **Formulários**.
 2. No card do formulário que deve receber os pedidos, clique em **Usar no Banket Busca**.
+
+   ![Botão Usar no Banket Busca no card do formulário; o formulário em uso mostra o selo No Banket Busca](01-formulario-no-banket-busca.webp)
+
 3. Aparece a mensagem confirmando que o formulário passa a receber os pedidos do Banket Busca, e o card ganha o selo
    **No Banket Busca**.
+
+   ![Mensagem de confirmação e o selo No Banket Busca no formulário escolhido; o anterior volta a mostrar Usar no Banket Busca](02-formulario-no-banket-busca.webp)
 
 Só um formulário fica marcado por vez: ao escolher outro, o anterior deixa de ser usado. Se você nunca escolheu, o
 Banket usa o formulário ativo mais antigo (ele já aparece com o selo **No Banket Busca**).
@@ -36,6 +41,9 @@ Banket usa o formulário ativo mais antigo (ele já aparece com o selo **No Bank
 
 - O cliente abre o formulário a partir do perfil, e o tipo do evento, a data e o número de convidados que ele já
   informou na busca vêm preenchidos.
+
+  ![O formulário de captação aberto dentro do perfil do Banket Busca (com tipo, data e convidados vindos da busca, quando informados)](04-formulario-no-banket-busca.webp)
+
 - O evento é criado na coluna de entrada do **Painel de Propostas**, com a origem Banket Busca e o registro "Pedido
   recebido pelo Banket Busca" na linha do tempo.
 - Proprietários e administradores recebem o e-mail "Novo pedido de orçamento pelo Banket Busca", com o link para abrir
@@ -44,6 +52,8 @@ Banket usa o formulário ativo mais antigo (ele já aparece com o selo **No Bank
 
 O resto funciona como num pedido comum: cliente reconhecido pelo e-mail, briefing preenchido e e-mail de confirmação
 ao cliente.
+
+![No perfil do Banket Busca, o botão Receber orçamento sem compromisso abre o formulário escolhido](03-formulario-no-banket-busca.webp)
 
 ## Perguntas frequentes
 

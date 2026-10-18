@@ -1,5 +1,5 @@
 ---
-// Moldura comum: hero azul, busca, conteúdo, bloco de suporte e rodapé (protótipo).
+// Moldura comum: cabeçalho terracota, busca, conteúdo, bloco de suporte e rodapé (protótipo).
 import '../styles/tokens.css';
 import '../styles/global.css';
 import Hero from '../components/Hero.astro';
@@ -15,7 +15,7 @@ interface Props {
   support?: boolean;
 }
 const { title, description, home = false, search = true, support = true } = Astro.props;
-const pageTitle = home ? 'Central de ajuda · Yosp' : `${title} · Central de ajuda Yosp`;
+const pageTitle = home ? 'Central de Ajuda · Banket' : `${title} · Central de Ajuda do Banket`;
 const base = import.meta.env.BASE_URL;
 ---
 <!doctype html>

@@ -24,25 +24,43 @@ para casamentos e outro para eventos corporativos) e escolher qual usar em cada 
 
 1. No menu lateral, clique em **Templates**.
 2. Clique em **Novo template** (ou em **Editar** no card de um template existente).
+
+   ![Lista de templates com o botão Novo template e o Editar do template padrão](01-criar-template.webp)
+
 3. No topo, preencha o **Nome do template**. Se quiser, informe a **Descrição** e as **Tags** (separadas por vírgula).
+
+   ![Topo do editor: nome, descrição, tags e o botão Salvar](02-criar-template.webp)
+
 4. Abra o card **Identidade visual** e configure:
    - **Logotipo**: arraste o arquivo ou clique para procurar. Ele aparece na capa, no cabeçalho das páginas, no rodapé
      e na contracapa.
    - **Fontes**: escolha a fonte dos **Títulos** e a dos **Parágrafos**.
    - **Cores**: defina a **Cor de fundo**, a **Cor primária (texto)** e a **Cor secundária (títulos)**. Você pode usar
      o seletor de cor ou digitar o código hexadecimal (ex.: `#A61E00`).
+
+   ![Card Identidade visual com o logotipo, as fontes e as cores](03-criar-template.webp)
+
 5. Abra o card **Página capa**:
    - Deixe ligado **Incluir capa na proposta** se quiser uma capa.
    - Escolha a **Imagem de fundo** (opcional).
    - Preencha o **Título capa** (obrigatório) e o **Conteúdo capa**.
+
+   ![Card Página capa: incluir capa, imagem de fundo, título e conteúdo, com a miniatura ao lado](04-criar-template.webp)
+
 6. Abra o card **Página conteúdo** (são as páginas com o cardápio, os valores e as condições):
    - Escolha a **Imagem de fundo das páginas** (opcional; prefira imagens bem claras para não atrapalhar a leitura).
    - Preencha o **Título do cabeçalho** (obrigatório) e o **Texto de introdução**.
    - Ligue ou desligue **Exibir o logotipo no rodapé** e escolha a posição: **Esquerda**, **Centro** ou **Direita**.
    - Preencha o **Título rodapé** e o **Conteúdo rodapé**, se quiser.
+
+   ![Card Página conteúdo: imagem de fundo, título do cabeçalho, introdução e rodapé com o logotipo](05-criar-template.webp)
+
 7. Abra o card **Página contracapa**:
    - Ligue **Incluir contracapa na proposta** se quiser uma página final.
    - Escolha a **Imagem de fundo** e preencha o **Título contracapa** e o **Conteúdo contracapa**.
+
+   ![Card Página contracapa preenchido, com a miniatura da página final](06-criar-template.webp)
+
 8. Clique em **Salvar**. Em páginas longas, o botão **Salvar** acompanha a rolagem no rodapé da tela.
 
 Enquanto você edita, as miniaturas ao lado de cada card mostram como ficam a capa, o conteúdo e a contracapa.
@@ -69,6 +87,8 @@ vale depois de clicar em **Salvar**.
   uma variação.
 - **Excluir** apaga o template depois da confirmação. Orçamentos que usavam esse template passam a usar o template
   padrão. O template padrão não pode ser excluído: defina outro como padrão antes.
+
+![Lista com o Template padrão e a variação Template Elegante, criada com Duplicar](07-criar-template.webp)
 
 ## Limites do plano
 

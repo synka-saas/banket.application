@@ -22,13 +22,21 @@ Toda empresa começa com cinco formatos: **Serviço volante**, **Buffet**, **Ilh
 
 1. No menu lateral, clique em **Configurações** e, no submenu, em **Formatos de serviço**.
 2. Clique em **Novo formato**.
+
+   ![Configurações › Formatos de serviço com os cinco formatos iniciais e o botão Novo formato](01-formatos-de-servico.webp)
+
 3. Preencha o **Nome** (obrigatório) e a **Descrição** (opcional).
+
+   ![Painel Novo formato com nome e descrição (exemplo, não salvo)](02-formatos-de-servico.webp)
+
 4. Clique em **Salvar**.
 
 ## Editar ou excluir
 
 1. Clique em **Editar** na linha do formato.
 2. Mude o nome ou a descrição e clique em **Salvar**, ou clique em **Excluir** e confirme.
+
+   ![Painel de edição de um formato, com Excluir e Salvar](03-formatos-de-servico.webp)
 
 Ao excluir um formato, os eventos, itens e opções de cardápio que o usavam ficam **sem formato**. Nada mais é apagado,
 mas você precisará escolher outro formato nesses cadastros, se quiser.

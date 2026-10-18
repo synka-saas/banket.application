@@ -19,6 +19,9 @@ conferir a proposta na tela antes de baixar ou enviar.
 1. Abra o evento, clique na aba **Orçamento** e depois na sub-aba **Pré-visualização**.
 2. As páginas aparecem em miniatura, iguais às do PDF: capa, conteúdo e contracapa (capa e contracapa só quando estão
    ativas no template).
+
+   ![Sub-aba Pré-visualização com a capa da proposta e o botão Baixar PDF](01-previa-e-pdf-da-proposta.webp)
+
 3. A prévia mostra o conteúdo salvo até agora. Se acabou de editar, espere o aviso **Todas as alterações salvas**.
 
 ## Baixar o PDF
@@ -31,6 +34,10 @@ Você pode baixar de dois lugares:
 
 Gerar o PDF leva alguns segundos; o botão mostra **Gerando PDF…** enquanto isso. Para baixar o PDF de uma versão antiga,
 acesse a versão pelo **Histórico de versões** antes.
+
+![Botão Salvar e baixar PDF na barra do rodapé da sub-aba Itens e valores](04-previa-e-pdf-da-proposta.webp)
+
+![Enquanto o PDF é gerado, o botão mostra Gerando PDF…](05-previa-e-pdf-da-proposta.webp)
 
 ## O que vai na proposta
 
@@ -46,6 +53,12 @@ acesse a versão pelo **Histórico de versões** antes.
 | **Contracapa** | Título e texto da contracapa do template (se ativa). |
 
 **Não vão para a proposta:** as observações internas, a lista de compras, a margem e os custos.
+
+![Página de conteúdo da proposta na prévia, com os cardápios do evento](02-previa-e-pdf-da-proposta.webp)
+
+![Última página de conteúdo do PDF: demais condições, resumo de valores com o valor total e a assinatura](03-previa-e-pdf-da-proposta.webp)
+
+![PDF da proposta baixado: capa, páginas de conteúdo e contracapa](06-previa-e-pdf-da-proposta.webp)
 
 ## Esconder o valor total
 

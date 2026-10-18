@@ -1,7 +1,7 @@
 ---
 // Busca com dropdown de resultados (protótipo), alimentada pelo índice do Pagefind
-// gerado depois do build (dist/pagefind). O índice fica atrás do login: na home
-// pública, quem não entrou recebe o convite para entrar.
+// gerado depois do build (dist/pagefind). Todo o site (índice incluído) fica atrás do
+// login do Banket: o Nginx só serve /ajuda/ para quem tem sessão no app.
 import Icon from './Icon.astro';
 
 interface Props { home?: boolean }
@@ -13,7 +13,7 @@ const base = import.meta.env.BASE_URL;
     <label class="search-field">
       <span class="sr-only">Buscar na central de ajuda</span>
       <Icon name="search" size={18} />
-      <input type="search" placeholder="Busque por agendamento, checklist, prestador…" autocomplete="off" spellcheck="false"
+      <input type="search" placeholder="Busque por orçamento, proposta, formulário…" autocomplete="off" spellcheck="false"
         role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" data-search-input />
       <button type="button" class="search-clear" aria-label="Limpar busca" hidden data-search-clear><Icon name="x" size={18} /></button>
     </label>
@@ -38,7 +38,7 @@ const base = import.meta.env.BASE_URL;
     const input = root.querySelector<HTMLInputElement>('[data-search-input]')!;
     const clear = root.querySelector<HTMLButtonElement>('[data-search-clear]')!;
     const drop = root.querySelector<HTMLElement>('[data-search-drop]')!;
-    let pagefind: Promise<Pagefind | 'login' | 'off'> | null = null;
+    let pagefind: Promise<Pagefind | 'off'> | null = null;
     let active = -1;
 
     const load = () =>
@@ -49,11 +49,8 @@ const base = import.meta.env.BASE_URL;
           await pf.options({ baseUrl: base });
           return pf;
         } catch {
-          // 401 = índice protegido e sem sessão; qualquer outra falha = índice indisponível (ex.: npm run dev).
-          try {
-            const r = await fetch(url, { method: 'HEAD', credentials: 'same-origin' });
-            return r.status === 401 ? 'login' : 'off';
-          } catch { return 'off'; }
+          // Índice indisponível (ex.: npm run dev, que não roda o Pagefind; sessão expirada no meio da leitura).
+          return 'off';
         }
       })());
 
@@ -76,11 +73,8 @@ const base = import.meta.env.BASE_URL;
       clear.hidden = !input.value;
       if (q.length < 2) return close();
       const pf = await load();
-      if (pf === 'login') {
-        return open(message('Entre para buscar nos artigos', `A busca é exclusiva para clientes Yosp. <a href="${base}entrar/">Entrar na sua conta</a>`));
-      }
       if (pf === 'off') {
-        return open(message('Busca indisponível no momento', 'Navegue pelas categorias ou tente de novo em instantes.'));
+        return open(message('Busca indisponível no momento', 'Navegue pelas categorias ou recarregue a página em instantes.'));
       }
       const search = await pf.debouncedSearch(q, {}, 150);
       if (!search || input.value.trim() !== q) return;

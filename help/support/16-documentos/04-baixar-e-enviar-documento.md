@@ -18,9 +18,14 @@ cliente por e-mail ou exclui.
 
 1. Abra o evento e clique na aba **Documentos**.
 2. Para ver o PDF no navegador, clique no título do documento.
+
+   ![Linha do documento com o título (abre o PDF), Baixar e Enviar](01-baixar-e-enviar-documento.webp)
+
 3. Para salvar o arquivo, clique em **Baixar** na linha do documento.
 
 O nome do arquivo é o título do documento seguido do número (por exemplo, "Contrato de prestação de serviços - 2026-0007.pdf").
+
+![PDF gerado do Termo de degustação, com logotipo, número e os dados do evento](02-baixar-e-enviar-documento.webp)
 
 ## Enviar por e-mail
 
@@ -30,7 +35,12 @@ O nome do arquivo é o título do documento seguido do número (por exemplo, "Co
    - **Assunto**: já vem com o título do documento.
    - **Modelo de e-mail**: opcional. Escolha um modelo para preencher a mensagem.
    - **Mensagem**: o texto do e-mail.
+
+   ![Painel Enviar documento por e-mail preenchido](03-baixar-e-enviar-documento.webp)
+
 3. Clique em **Enviar**.
+
+   ![Confirmação do envio do documento por e-mail](04-baixar-e-enviar-documento.webp)
 
 O que acontece:
 
@@ -43,6 +53,8 @@ O que acontece:
 
 1. Na linha do documento, clique em **Excluir**.
 2. Confirme em **Excluir**.
+
+   ![Confirmação antes de excluir um documento](05-baixar-e-enviar-documento.webp)
 
 O PDF guardado é apagado e o evento recebe o registro da exclusão na linha do tempo. O número do documento **não é
 reaproveitado**.

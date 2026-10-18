@@ -26,6 +26,8 @@ Ao lado do nome de quem enviou, cada mensagem sua mostra uma etiqueta:
 | **Devolvida** | O e-mail voltou (endereço inexistente, caixa cheia) ou o cliente marcou a mensagem como spam |
 | **Falhou** | Não foi possível enviar o e-mail |
 
+![Mensagem enviada com a etiqueta Entregue e os destinatários em Para](01-status-de-entrega-e-anexos.webp)
+
 Quando há um detalhe, ele aparece abaixo da mensagem, por exemplo "E-mail devolvido pelo servidor do destinatário",
 "Marcado como spam pelo destinatário" ou "Entrega atrasada; o servidor do destinatário ainda não aceitou". Passe o mouse
 sobre a etiqueta para ver o mesmo detalhe.
@@ -50,6 +52,8 @@ Os anexos aparecem abaixo da mensagem, com o nome e o tamanho do arquivo:
 
 - **Nas mensagens enviadas**: o PDF da proposta ou do documento que você mandou.
 - **Nas mensagens recebidas**: os arquivos que o cliente anexou.
+
+![Anexo da mensagem enviada (PDF do documento), com nome e tamanho; clique para baixar](02-status-de-entrega-e-anexos.webp)
 
 Clique no nome do anexo para baixar o arquivo. Os anexos sempre são baixados (não abrem direto no navegador) e só
 pessoas logadas na sua empresa conseguem acessá-los.

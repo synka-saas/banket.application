@@ -34,6 +34,8 @@ Contas canceladas não entram nos totais. O "estoque consumido" é o custo dos i
 no evento ou para degustação, calculado pelo custo médio na saída. Ele aparece como informação e não entra no
 resultado previsto: para que um custo entre no resultado, lance-o como conta a pagar.
 
+![Aba Finanças do evento: orçamento, a receber, custos (com o estoque consumido) e resultado previsto com a margem](01-financas-do-evento.webp)
+
 ## Contas a receber do evento
 
 Lista as parcelas do plano de pagamento e os recebimentos avulsos.
@@ -41,6 +43,8 @@ Lista as parcelas do plano de pagamento e os recebimentos avulsos.
 - **Plano de pagamento** (ou **Refazer plano**, quando já existe): cadastra a entrada e as parcelas. Veja
   [Plano de pagamento do evento](04-plano-de-pagamento-do-evento.md).
 - **Nova conta a receber:** lança um valor avulso, por exemplo uma hora adicional.
+
+![Contas a receber do evento: parcelas do plano (etiqueta Plano) e a hora adicional avulsa já recebida](02-financas-do-evento.webp)
 
 ## Contas a pagar do evento
 
@@ -50,6 +54,8 @@ Lista os custos do evento: equipe, fornecedores, locação e compras do estoque 
 
 As contas criadas nesta aba ficam ligadas ao evento automaticamente. Em cada linha você pode **Receber**/**Pagar**,
 **Editar**, **Cancelar** ou **Reabrir**, como em [Dar baixa, cancelar e reabrir uma conta](03-dar-baixa-cancelar-e-reabrir-conta.md).
+
+![Contas a pagar do evento: diárias pagas e a compra de insumos vencida](03-financas-do-evento.webp)
 
 ## Dicas
 

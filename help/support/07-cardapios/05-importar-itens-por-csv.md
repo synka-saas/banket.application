@@ -18,11 +18,23 @@ um por um.
 
 1. No menu lateral, clique em **Cardápios** e depois em **Itens do cardápio**.
 2. Clique em **Importar CSV**.
+
+   ![Botão Importar CSV em Itens do cardápio](01-importar-itens-por-csv.webp)
+
 3. No passo 1, clique em **Baixar modelo CSV**.
+
+   ![Tela de importação: baixe o modelo (passo 1) e envie o arquivo preenchido (passo 2)](02-importar-itens-por-csv.webp)
+
 4. Abra o modelo no Excel (ou outro editor de planilhas) e preencha **uma linha por item**, mantendo o cabeçalho.
 5. Salve o arquivo como CSV separado por ponto e vírgula.
 6. No passo 2, escolha o arquivo preenchido e clique em **Importar**.
+
+   ![Arquivo escolhido, pronto para importar](03-importar-itens-por-csv.webp)
+
 7. Confira o resultado: a tela mostra quantas linhas foram importadas e, se houver, as linhas com erro e o motivo.
+
+   ![Resultado da importação: linhas importadas e a linha recusada com o motivo](04-importar-itens-por-csv.webp)
+
 8. Clique em **Ver itens do cardápio** para voltar à lista.
 
 ## Colunas do arquivo

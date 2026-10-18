@@ -25,7 +25,12 @@ tem um orçamento, que pode ter várias versões ao longo da negociação.
 1. No menu lateral, clique em **Propostas** e abra o card do evento no **Painel de Propostas**.
 2. Clique na aba **Orçamento**.
 3. Na mensagem "Este evento ainda não tem orçamento", clique em **Criar orçamento**.
+
+   ![Aba Orçamento de um evento sem orçamento, com o botão Criar orçamento](01-criar-orcamento.webp)
+
 4. Pronto: a **versão 01** abre na sub-aba **Itens e valores**, já com o cálculo inicial.
+
+   ![Versão 01 do orçamento criada, com a mensagem de que o evento passou para Em negociação](02-criar-orcamento.webp)
 
 ## O que já vem preenchido
 
@@ -49,6 +54,8 @@ Cardápios e bebidas começam vazios: é você quem escolhe o que entra.
 - O orçamento salva sozinho a cada alteração. O estado aparece na barra no rodapé: **Todas as alterações salvas**,
   **Alterações pendentes…**, **Salvando…** ou **Erro ao salvar**.
 
+![Barra do rodapé com o estado do salvamento](04-criar-orcamento.webp)
+
 ## As sub-abas do orçamento
 
 No topo do orçamento ficam as sub-abas e um selo com a versão que você está vendo (por exemplo, "Versão 01 · em edição"):
@@ -59,6 +66,8 @@ No topo do orçamento ficam as sub-abas e um selo com a versão que você está 
 - **Pré-visualização**: a proposta como o cliente vai receber.
 - **Lista de compras**: quantidades para comprar (uso interno).
 - **Assistente de Orçamentos IA**: margem projetada e sugestões da IA (planos Profissional, Prime e Master).
+
+![Sub-abas do orçamento e o selo da versão em edição](03-criar-orcamento.webp)
 
 ## Perguntas frequentes
 

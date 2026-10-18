@@ -18,8 +18,13 @@ do Banket responde dentro do próprio chamado, e toda a conversa fica registrada
 
 1. No menu lateral, clique em **Suporte**.
 2. Clique em **Novo chamado**.
+
+   ![Página Suporte com o botão Novo chamado](01-abrir-chamado.webp)
+
 3. Preencha os campos (veja a tabela abaixo).
 4. Clique em **Abrir chamado**.
+
+   ![Chamado aberto, com a mensagem de confirmação](03-abrir-chamado.webp)
 
 O Banket confirma com "Chamado aberto. Respondemos por aqui." e abre a página do chamado.
 
@@ -40,6 +45,8 @@ O Banket confirma com "Chamado aberto. Respondemos por aqui." e abre a página d
 - Diga o nome do evento, do cliente ou do registro envolvido.
 - Use **Crítica** só quando algo impede o trabalho do buffet, como não conseguir enviar propostas.
 
+![Drawer Novo chamado preenchido](02-abrir-chamado.webp)
+
 ## A lista de chamados
 
 A página **Suporte** mostra os seus chamados com:
@@ -51,6 +58,8 @@ A página **Suporte** mostra os seus chamados com:
 - **Última atualização**.
 
 Cada pessoa vê apenas os chamados que ela mesma abriu, na empresa em que está no momento.
+
+![Lista de chamados com Nº, Assunto, Tipo, Situação e Última atualização](04-abrir-chamado.webp)
 
 ## Perguntas frequentes
 

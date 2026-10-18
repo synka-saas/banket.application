@@ -22,6 +22,8 @@ o que o cliente recebeu em cada momento, sem perder o histórico.
 - A versão em edição acompanha os dados atuais do evento (convidados, espaço, cabeçalho). As congeladas guardam
   exatamente o que foi proposto, inclusive o valor da locação e o PDF já gerado.
 
+![Barra do rodapé numa versão congelada: Versão congelada · somente leitura](05-versoes-do-orcamento.webp)
+
 ## Quando uma versão é congelada
 
 1. **Ao enviar a proposta por e-mail.** A versão enviada fica congelada exatamente como o cliente recebeu e o Banket
@@ -34,11 +36,19 @@ o que o cliente recebeu em cada momento, sem perder o histórico.
 1. Na sub-aba **Itens e valores**, no topo, ao lado de "Versão: 01", clique em **Criar nova versão**.
 2. Confirme em **Criar versão**. A versão atual fica congelada e a nova começa como cópia dela.
 
+   ![Confirmação para criar uma nova versão do orçamento](02-versoes-do-orcamento.webp)
+
 ## Consultar uma versão antiga
 
 1. Na coluna da direita, em **Histórico de versões**, veja cada versão com o valor, a data e, se foi enviada, para quem
    e quando.
+
+   ![Histórico de versões: a versão 02 em edição e a versão 01 enviada, com o botão Acessar](01-versoes-do-orcamento.webp)
+
 2. Clique em **Acessar** na versão que quer ver. Ela abre em modo somente leitura (selo **Visualizando**).
+
+   ![Versão 01 aberta em modo somente leitura (Versão 01 · congelada)](03-versoes-do-orcamento.webp)
+
 3. Para voltar, clique em **Voltar à atual**.
 
 Você pode trocar de sub-aba (informações, condições, prévia, lista de compras) e continuar vendo a mesma versão.
@@ -47,7 +57,14 @@ Você pode trocar de sub-aba (informações, condições, prévia, lista de comp
 
 1. Acesse a versão antiga pelo **Histórico de versões**.
 2. Clique em **Restaurar como nova versão** e confirme.
+
+   ![No histórico, a versão aberta aparece como Visualizando, com Voltar à atual e Restaurar como nova versão](04-versoes-do-orcamento.webp)
+
+   ![Confirmação para restaurar a versão 01 como nova versão](06-versoes-do-orcamento.webp)
+
 3. O Banket cria uma nova versão a partir da antiga e congela a que estava em edição. Nada é apagado.
+
+   ![Versão 03 criada a partir da versão 01; a versão 02 ficou congelada](07-versoes-do-orcamento.webp)
 
 ## Perguntas frequentes
 

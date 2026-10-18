@@ -43,6 +43,8 @@ Exemplo: em 20 respostas, 14 promotores (70%), 4 neutros e 2 detratores (10%). N
 
 O questionário pode ter **apenas uma** pergunta de NPS.
 
+![NPS calculado com a zona de classificação, na Visão geral](01-entender-nps-e-csat.webp)
+
 ## CSAT: satisfação de 1 a 5 por aspecto
 
 Para cada aspecto do serviço (comida, bebidas, atendimento, pontualidade…), o cliente dá uma nota:
@@ -59,6 +61,8 @@ Para cada pergunta, o Banket mostra:
 - **Média:** a média das notas de 1 a 5.
 
 Diferente do NPS, você pode ter quantas perguntas de nota quiser, uma para cada aspecto.
+
+![CSAT: % de satisfeitos e média por aspecto](02-entender-nps-e-csat.webp)
 
 ## Perguntas de escolha e abertas
 

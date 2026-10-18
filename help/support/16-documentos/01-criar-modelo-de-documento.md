@@ -33,11 +33,17 @@ antes de usar.
 
 1. No menu lateral, clique em **Documentos**.
 2. Clique em **Novo modelo**.
+
+   ![Lista de modelos em Documentos, com o botão Novo modelo](01-criar-modelo-de-documento.webp)
+
 3. Preencha:
    - **Nome do modelo**: nome interno (por exemplo, "Contrato de prestação de serviços").
    - **Descrição**: quando usar este documento.
    - **Título do documento**: aparece no topo da página e no nome do PDF. Aceita variáveis, por exemplo
      "Contrato de prestação de serviços – {evento}".
+
+   ![Novo modelo com nome, descrição e título do documento preenchidos](02-criar-modelo-de-documento.webp)
+
 4. Escreva o texto no card **Conteúdo** (veja abaixo).
 5. Ajuste a **Identidade visual**, se quiser.
 6. Clique em **Salvar**.
@@ -45,6 +51,8 @@ antes de usar.
 ## Escrever o conteúdo
 
 O card **Conteúdo** tem uma barra de formatação. Selecione o texto e clique no botão desejado:
+
+![Card Conteúdo com a barra de formatação acima do texto do modelo](03-criar-modelo-de-documento.webp)
 
 | Botão | Resultado |
 |---|---|
@@ -62,6 +70,8 @@ num botão de formatação de novo, com o mesmo trecho selecionado, desfaz a for
 
 A **Prévia**, ao lado, mostra o documento com dados de exemplo enquanto você escreve.
 
+![Prévia do documento com dados de exemplo, atualizada enquanto você escreve](04-criar-modelo-de-documento.webp)
+
 ## Identidade visual
 
 O documento sai sempre numa página A4 branca, sem imagem de fundo. No card **Identidade visual** você define:
@@ -77,6 +87,8 @@ O documento sai sempre numa página A4 branca, sem imagem de fundo. No card **Id
 - **Capturar cores do logo**: a inteligência artificial lê o logotipo enviado e preenche a cor primária e a cor do
   texto com a paleta da marca. Salve para manter.
 
+![Card Identidade visual com logotipo no cabeçalho, rodapé, fontes e cores capturadas do logo](05-criar-modelo-de-documento.webp)
+
 ## Assinaturas e situação do modelo
 
 No fim do card **Conteúdo**:
@@ -87,6 +99,8 @@ No fim do card **Conteúdo**:
 - **Com duas testemunhas**: acrescenta duas linhas de testemunha, com nome e CPF a preencher à mão.
 - **Modelo ativo (disponível para gerar)**: só modelos ativos aparecem na aba **Documentos** do evento.
 
+![Opções de assinaturas, testemunhas e modelo ativo no fim do card Conteúdo](06-criar-modelo-de-documento.webp)
+
 ## Outras ações
 
 No topo do modelo salvo:
@@ -95,6 +109,8 @@ No topo do modelo salvo:
   recurso aparece no botão **Exemplo**.
 - **Duplicar**: cria uma cópia do modelo, que nasce **inativa** até você revisar.
 - **Excluir**: apaga o modelo. Os documentos já gerados com ele continuam guardados nos eventos.
+
+![Modelo salvo, com PDF de exemplo, Duplicar e Excluir no topo](07-criar-modelo-de-documento.webp)
 
 ## Perguntas frequentes
 

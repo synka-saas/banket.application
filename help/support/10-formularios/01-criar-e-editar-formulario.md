@@ -32,7 +32,13 @@ Toda empresa já começa com um formulário chamado "Formulário de contato".
 
 1. No menu lateral, clique em **Formulários**.
 2. Clique em **Novo formulário**.
+
+   ![Tela Formulários com o botão Novo formulário](01-criar-e-editar-formulario.webp)
+
 3. Em **Nome do formulário**, digite um nome (por exemplo, "Casamentos 2027").
+
+   ![Janela Novo formulário com o nome preenchido](02-criar-e-editar-formulario.webp)
+
 4. Clique em **Criar formulário**. O Banket abre o editor com o modelo padrão de captação.
 
 ## O que vem no modelo padrão
@@ -63,10 +69,20 @@ O cliente só vê a seção de dimensionamento do tipo que escolheu na primeira 
    - Setas para cima e para baixo: mudam a ordem das perguntas dentro da seção.
    - Perguntas marcadas com cadeado (**Obrigatória**) são essenciais para criar o cliente e o evento e não podem ser
      desligadas.
+
+   ![Seção do formulário: chave Seção ativa, setas de ordem, Obrigatória e a chave de cada pergunta](04-criar-e-editar-formulario.webp)
+
+   ![Seção inicial Sempre ativa e perguntas travadas (cadeado Obrigatória)](05-criar-e-editar-formulario.webp)
+
 4. Para incluir uma pergunta sua, clique em **Adicionar pergunta** na seção desejada, preencha os campos e clique em
    **Incluir pergunta**.
+
+   ![Nova pergunta personalizada preenchida na seção Detalhes finais](06-criar-e-editar-formulario.webp)
+
 5. Clique em **Salvar** na barra inferior. A barra mostra **Alterações não salvas** até você salvar e **Tudo salvo**
    depois.
+
+   ![Pergunta incluída com Editar e Remover; a barra mostra Alterações não salvas](07-criar-e-editar-formulario.webp)
 
 ### Dados gerais
 
@@ -77,6 +93,8 @@ O cliente só vê a seção de dimensionamento do tipo que escolheu na primeira 
 | **Status** | Ligado = **Recebendo respostas**. Desligado = **Inativo** (o link para de funcionar). |
 | **Descrição interna** | Onde o formulário é divulgado, para quem é. O cliente não vê. |
 | **Mensagem após o envio** | Texto que o cliente vê ao enviar. Em branco, aparece uma mensagem padrão de confirmação. |
+
+![Editor do formulário: dados gerais (nome, endereço público, status, descrição e mensagem após o envio)](03-criar-e-editar-formulario.webp)
 
 ### Perguntas personalizadas
 
@@ -96,9 +114,14 @@ desligadas.
 
 - **Pré-visualizar**: abre o formulário como o cliente vê, na última versão salva, sem permitir envio. Funciona mesmo
   com o formulário inativo.
+
+  ![Pré-visualização do formulário, como o cliente vê (sem envio)](09-criar-e-editar-formulario.webp)
+
 - **Respostas**: abre a lista de respostas recebidas.
 - **Duplicar**: cria uma cópia com o nome "(cópia)". A cópia nasce **inativa**.
 - **Excluir**: apaga o formulário e desativa o link público.
+
+![Barra inferior do editor depois de salvar: Tudo salvo, Pré-visualizar, Respostas, Duplicar, Excluir e Salvar](08-criar-e-editar-formulario.webp)
 
 ## Perguntas frequentes
 

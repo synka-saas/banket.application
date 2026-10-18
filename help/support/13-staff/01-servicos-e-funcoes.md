@@ -19,9 +19,15 @@ precisa e quanto isso custa.
 
 1. No menu lateral, clique em **Staff** e depois em **Serviços e custos**.
 2. Clique em **Novo serviço**.
+
+   ![Staff › Serviços e custos, com o botão Novo serviço](01-servicos-e-funcoes.webp)
+
 3. Preencha a **Função** e o **Cachê / diária (R$)** (os dois são obrigatórios).
 4. Escolha a **Regra de quantidade** e preencha os campos dela (veja abaixo).
 5. Confira o resultado no **Simular para**.
+
+   ![Novo serviço proporcional: 1 garçom a cada 20 convidados, mínimo 2, com a simulação para 150 convidados](02-servicos-e-funcoes.webp)
+
 6. Clique em **Salvar**.
 
 Para alterar um serviço, clique em **Editar** no card dele.
@@ -54,6 +60,8 @@ O sistema arredonda para cima e respeita o mínimo. Exemplo: 1 garçom a cada 15
 Preencha **Profissionais por evento**. A quantidade é sempre a mesma, seja qual for o número de convidados. Exemplo:
 1 maître por evento.
 
+![Serviço com quantidade fixa por evento: 1 maître](03-servicos-e-funcoes.webp)
+
 ### Simular para
 Digite um número de convidados e veja na hora o resultado: quantidade × custo unitário = total. Exemplo:
 "7 profissionais × R$ 230,00 = R$ 1.610,00".
@@ -70,6 +78,8 @@ No orçamento, você pode ajustar a quantidade e o valor unitário de cada funç
 Cada card mostra o **Cachê / diária fixa**, o **Auxílio**, a regra (**01 profissional a cada** X convidados ou **Por
 evento**) e o **Mínimo exigido**, quando houver. As etiquetas indicam as tags, **Opcional** (não entra automaticamente
 nos orçamentos) e **Inativo**. Use o filtro **Tag** para ver só um grupo.
+
+![Cards dos serviços com cachê, auxílio, regra e etiquetas](04-servicos-e-funcoes.webp)
 
 ## Excluir um serviço
 

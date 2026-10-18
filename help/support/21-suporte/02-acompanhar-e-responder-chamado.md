@@ -19,6 +19,8 @@ acompanha a situação e envia novas informações.
 1. No menu lateral, clique em **Suporte**.
 2. Na lista, clique no **Assunto** do chamado.
 
+   ![Clique no assunto do chamado para abri-lo](01-acompanhar-e-responder-chamado.webp)
+
 ## O que aparece na página
 
 - **Cabeçalho**: o assunto, a situação, o tipo, a prioridade e a data de abertura.
@@ -29,13 +31,19 @@ acompanha a situação e envia novas informações.
 Enquanto a equipe não responde, a conversa mostra: "Ainda sem respostas. Nossa equipe recebeu o chamado e responde por
 aqui."
 
+![Página do chamado: cabeçalho, descrição e conversa ainda sem respostas](02-acompanhar-e-responder-chamado.webp)
+
 ## Responder ou complementar o chamado
 
 1. Na página do chamado, escreva no campo **Nova mensagem**.
 2. Clique em **Enviar mensagem**.
 
+   ![Conversa do chamado com a nova mensagem](04-acompanhar-e-responder-chamado.webp)
+
 Use a mesma conversa para responder perguntas da equipe ou acrescentar detalhes. Cada mensagem tem até 5.000
 caracteres.
+
+![Campo Nova mensagem preenchido e botão Enviar mensagem](03-acompanhar-e-responder-chamado.webp)
 
 ## Chamado encerrado
 

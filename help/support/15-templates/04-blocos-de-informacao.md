@@ -23,6 +23,9 @@ Edite-os para refletir as regras do seu buffet.
 1. No menu lateral, clique em **Templates**.
 2. No submenu, clique em **Blocos de informação**.
 3. Clique em **Novo bloco**.
+
+   ![Blocos de informação: a lista agrupada por página à direita e o botão Novo bloco](01-blocos-de-informacao.webp)
+
 4. Preencha os campos:
    - **Título** (obrigatório): aparece como título do bloco na proposta.
    - **Conteúdo**: o texto do bloco (veja a formatação abaixo).
@@ -30,6 +33,9 @@ Edite-os para refletir as regras do seu buffet.
    - **Página a ser inserido**: em que parte da proposta o bloco aparece.
    - **Ordem**: posição do bloco dentro da página (opcional).
 5. Confira o resultado em **Pré-visualização**, logo abaixo.
+
+   ![Novo bloco Degustação preenchido, com a pré-visualização da formatação](02-blocos-de-informacao.webp)
+
 6. Clique em **Salvar**.
 
 ## Formatação do conteúdo
@@ -58,6 +64,8 @@ Edite-os para refletir as regras do seu buffet.
 - Para mudar a ordem dentro de uma página, arraste o bloco na lista (ou use Alt + setas com o bloco selecionado).
 - Para filtrar a lista, use o filtro **Página da proposta** ou a busca no topo.
 - Para excluir, abra o bloco e clique em **Excluir**.
+
+![Bloco salvo: Degustação aparece na lista, em Condições gerais](03-blocos-de-informacao.webp)
 
 ## O que acontece depois
 

@@ -1,8 +1,8 @@
 ---
-// Ícone Lucide inline (equivalente ao Icon do Design System, sem CDN).
+// Ícone Tabler inline (como o Icon.astro do app): traço 1,5, ou 1,75 até 16px.
 import { iconSvg } from '../lib/icons.mjs';
 
 interface Props { name: string; size?: number; strokeWidth?: number }
-const { name, size = 20, strokeWidth = 1.5 } = Astro.props;
+const { name, size = 18, strokeWidth } = Astro.props;
 ---
 <span style={`display:inline-flex;width:${size}px;height:${size}px;flex:none;line-height:0`} aria-hidden="true" set:html={iconSvg(name, size, strokeWidth)} />

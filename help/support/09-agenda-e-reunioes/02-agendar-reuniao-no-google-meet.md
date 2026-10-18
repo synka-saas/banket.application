@@ -24,6 +24,10 @@ Enquanto a agenda não estiver ativa, as telas de reunião mostram o botão **At
 link para **Minha conta**) no lugar de **Agendar reunião**. Veja o passo a passo em
 [Conectar a conta Google](../01-primeiros-passos/10-conectar-conta-google.md).
 
+![Aba Reuniões do evento sem a agenda Google ativa: aviso e botão Ativar agenda do Google no lugar de Agendar reunião](01-agendar-reuniao-no-google-meet.webp)
+
+![Página Reuniões sem a agenda Google ativa, com o atalho para Minha conta](02-agendar-reuniao-no-google-meet.webp)
+
 ## Passo a passo
 
 Você pode agendar de dois lugares.
@@ -58,6 +62,8 @@ Ao concluir, aparece a mensagem "Reunião agendada na sua agenda Google, com o l
 | **Local (se presencial)** | Endereço, se a reunião for presencial (por exemplo, uma degustação no salão). Opcional. |
 | **Participantes (e-mails)** | E-mails separados por vírgula. Cada um recebe o convite do Google Agenda com o link do Meet. Até 20 participantes. |
 | **Descrição** | Pauta e observações. Vai junto no convite. |
+
+![Formulário Agendar reunião preenchido (título, evento, data, horário, duração, local, participantes e descrição)](03-agendar-reuniao-no-google-meet.webp)
 
 ## O que acontece depois
 

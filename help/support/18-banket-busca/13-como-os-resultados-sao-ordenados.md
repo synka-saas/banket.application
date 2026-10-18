@@ -39,6 +39,8 @@ Na ordem padrão (**Mais relevantes**), a vitrine explica ao cliente, em "Como o
 > ocupar até três posições marcadas como **Destaque** no topo. Todo buffet que atende ao seu pedido aparece na lista. Em
 > "Melhor avaliados" e "Mais próximos" não há destaque nem impulso.
 
+!["Como ordenamos os resultados" aberto na lista](02-como-os-resultados-sao-ordenados.webp)
+
 Os critérios valem igualmente para todos os buffets:
 
 | Critério | O que conta | Como melhorar |
@@ -48,6 +50,8 @@ Os critérios valem igualmente para todos os buffets:
 | Perfil completo | A completude do perfil. | Descrição longa, logotipo, fotos, contatos, Instagram ou site. |
 | Tempo de resposta | Quanto dos pedidos você responde dentro do prazo que divulga. | Escolha um prazo que você cumpre e responda rápido. |
 | Atividade recente | Perfil atualizado ou pedido respondido recentemente. | Revise o perfil de tempos em tempos e responda aos pedidos. |
+
+![Resultados da busca por casamento em São Paulo, com filtros, ordenação e os primeiros cards em Destaque](01-como-os-resultados-sao-ordenados.webp)
 
 ## Destaque e impulso dos planos pagos
 

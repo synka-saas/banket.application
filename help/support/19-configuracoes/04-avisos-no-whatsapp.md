@@ -22,11 +22,16 @@ No plano Busca, o card **Avisos no WhatsApp** aparece com cadeado e o link **Ver
 
 1. No menu lateral, clique em **Configurações**. A tela **Empresa** abre primeiro.
 2. Desça até o card **Avisos no WhatsApp**.
+
+   ![Card Avisos no WhatsApp ainda sem número cadastrado](01-avisos-no-whatsapp.webp)
+
 3. Em **WhatsApp que recebe os avisos**, digite um celular com DDD, por exemplo (11) 98765-4321.
 4. Ligue **Receber avisos neste número**.
 5. Em **Avisos**, marque os tipos que deseja receber (veja abaixo).
 6. Clique em **Salvar e enviar teste** para salvar e receber uma mensagem de teste no número informado. Ou clique em
    **Salvar**, no fim da página, para só salvar.
+
+   ![Avisos no WhatsApp preenchidos: celular com DDD, avisos ligados e os quatro tipos marcados](02-avisos-no-whatsapp.webp)
 
 Ao ligar os avisos, a empresa autoriza o Banket a enviar essas mensagens para o número informado. Dá para desligar a
 qualquer momento.

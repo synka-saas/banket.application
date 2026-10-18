@@ -20,6 +20,8 @@ estoque. Assim você sabe o que já tem e o que precisa comprar para o evento.
 2. Clique na sub-aba **Lista de compras**.
 3. Confira a coluna **Estoque** de cada linha. O resumo do topo mostra quantos itens já estão **em estoque**.
 
+   ![Sub-aba Lista de compras do evento: o resumo do topo conta os itens já em estoque; a coluna Estoque fica à direita da tabela (role a tabela para o lado)](01-estoque-na-lista-de-compras.webp)
+
 A mesma informação sai no CSV e no PDF da lista de compras.
 
 ## O que cada situação significa
@@ -31,6 +33,8 @@ A mesma informação sai no CSV e no PDF da lista de compras.
 | **Sem estoque** | O item é controlado no estoque, mas o saldo está zerado. |
 | **X no estoque** | O item está no estoque, mas numa unidade que não dá para comparar (ex.: lista em gramas, estoque em unidades). Mostra só o saldo. |
 | **—** | O item não é controlado no estoque. |
+
+![Coluna Estoque: Faltam 2,4 kg (arroz ligado ao estoque), Faltam 84 un (refrigerante, pelo mesmo nome), Em estoque nas linhas avulsas e — nos itens não controlados](02-estoque-na-lista-de-compras.webp)
 
 ## Como a linha encontra o item no estoque
 

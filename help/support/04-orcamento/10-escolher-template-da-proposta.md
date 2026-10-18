@@ -24,9 +24,17 @@ templates, a lista mostra só o padrão.
 
 1. Abra o evento e clique na aba **Orçamento**.
 2. Na coluna da direita, no card **Template da proposta**, abra a lista.
+
+   ![Card Template da proposta, na coluna da direita do orçamento](01-escolher-template-da-proposta.webp)
+
 3. Escolha o template. O que tem **(padrão)** no nome é o template padrão da empresa.
 4. A troca é salva na hora e aparece o aviso "Template da proposta atualizado."
+
+   ![Template Elegante escolhido, com o aviso Template da proposta atualizado.](02-escolher-template-da-proposta.webp)
+
 5. Confira o resultado na sub-aba **Pré-visualização**.
+
+   ![Pré-visualização da proposta com o novo template](03-escolher-template-da-proposta.webp)
 
 ## Regras importantes
 

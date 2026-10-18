@@ -28,12 +28,23 @@ cardápio adulto e um infantil).
 3. Digite para buscar e escolha:
    - uma opção do grupo **Opções prontas** (mostra o preço por pessoa, quando houver); ou
    - **Montar cardápio do zero**, que cria um "Novo cardápio" vazio.
+
+   ![Lista de Adicionar cardápio com as opções prontas e Montar cardápio do zero](01-adicionar-cardapios.webp)
+
 4. Se quiser, clique no nome do cardápio e troque o texto (é o nome que aparece na proposta).
 5. Para acrescentar uma seção do catálogo, clique em **Adicionar seção** dentro do cardápio.
+
+   ![Adicionar seção do catálogo ao cardápio](04-adicionar-cardapios.webp)
+
 6. Em cada seção, marque ou desmarque os itens que entram. Itens desmarcados continuam visíveis, mas não contam no
    preço nem na lista de compras.
+
+   ![Cardápio Premium no orçamento, com preço base, preço por pessoa, subtotal e os itens marcados em cada seção](02-adicionar-cardapios.webp)
+
 7. Para acrescentar um item, clique em **Adicionar item** na seção e escolha um item do catálogo ou
    **Item personalizado…** (você digita o nome).
+
+   ![Adicionar item numa seção: itens do catálogo ou Item personalizado](03-adicionar-cardapios.webp)
 
 O orçamento salva sozinho a cada alteração.
 
@@ -58,6 +69,8 @@ enquanto houver menos itens marcados do que o número de escolhas.
 - Campos de valor mostram o calculado em cinza. Digite para ajustar; o campo fica destacado como ajuste manual.
 - Para voltar ao calculado, apague o valor ou clique no ícone de voltar ao lado do campo.
 - **Remover cardápio** pede confirmação. **Remover** uma seção é imediato e mostra **Desfazer** no aviso.
+
+![Preço por pessoa ajustado manualmente, com o ícone para voltar ao valor calculado](05-adicionar-cardapios.webp)
 
 ## Perguntas frequentes
 

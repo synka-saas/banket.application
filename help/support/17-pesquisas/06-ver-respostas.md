@@ -36,6 +36,8 @@ Cada linha mostra:
 - **Nota:** **Qualquer nota**, **Promotores**, **Neutros** ou **Detratores**.
 - **Período:** **Todo o período**, **Últimos 30 dias**, **Últimos 90 dias** ou **Últimos 12 meses**.
 
+![Lista de pesquisas enviadas com a resposta, o NPS e Ver respostas](01-ver-respostas.webp)
+
 ## Respostas de uma pesquisa
 
 Clique em **Ver respostas** (ou num comentário da Visão geral) para abrir a pesquisa do evento. A página mostra:
@@ -47,6 +49,10 @@ Clique em **Ver respostas** (ou num comentário da Visão geral) para abrir a pe
 
 Quando a resposta vale como avaliação pública, aparece também o card **No Banket Busca**. Veja
 [Avaliação no Banket Busca](07-avaliacao-no-banket-busca.md).
+
+![Respostas de uma pesquisa: NPS, notas, escolhas e textos do cliente](02-ver-respostas.webp)
+
+![Card No Banket Busca no detalhe da resposta](05-ver-respostas.webp)
 
 ## Respostas por pergunta
 
@@ -66,6 +72,10 @@ Filtros desta tela:
 - **Qualquer nota** / **Qualquer opção:** filtra por uma nota ou opção;
 - **Qualquer NPS:** mostra só as respostas de promotores, neutros ou detratores;
 - **Período.**
+
+![Por pergunta: distribuição das notas de uma pergunta de 1 a 5 e a lista de respostas](03-ver-respostas.webp)
+
+![Por pergunta com uma pergunta aberta: os comentários dos clientes](04-ver-respostas.webp)
 
 ## Dicas
 

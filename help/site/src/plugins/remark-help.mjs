@@ -1,6 +1,6 @@
 // Ajustes do Markdown de help/support/ antes de virar HTML:
-//  - remove o "# Título" e o parágrafo de introdução: a página do artigo exibe
-//    os dois no cabeçalho do card (título + resumo), como no protótipo;
+//  - remove o "# Título": a página do artigo exibe o título (e a description do
+//    frontmatter como resumo) no cabeçalho do card, como no protótipo;
 //  - reescreve links entre artigos (../05-agenda/x.md → /ajuda/agenda/x/);
 //  - garante que imagens relativas comecem com ./ (o pipeline de imagens do
 //    Astro só otimiza caminhos explicitamente relativos);
@@ -17,13 +17,9 @@ export default function remarkHelp() {
     const dir = path.dirname(filePath);
     const problems = [];
 
-    // Título e introdução
+    // Título
     const idx = tree.children.findIndex((n) => n.type === 'heading' && n.depth === 1);
-    if (idx !== -1) {
-      const next = tree.children[idx + 1];
-      const removeIntro = next && next.type === 'paragraph' && !next.children.some((c) => c.type === 'image');
-      tree.children.splice(idx, removeIntro ? 2 : 1);
-    }
+    if (idx !== -1) tree.children.splice(idx, 1);
 
     visit(tree, (node) => {
       if (node.type === 'link' && isArticleLink(node.url)) {

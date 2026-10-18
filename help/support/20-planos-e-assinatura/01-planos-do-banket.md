@@ -91,10 +91,20 @@ Para entender a diferença entre os dois tipos de perfil, veja
 
 1. No menu lateral, clique no card do plano no rodapé do menu (**Ver planos** ou **Iniciar teste grátis**), ou vá em
    **Configurações › Financeiro** e clique em **Comparar planos**.
+
+   ![Configurações › Financeiro: card Seu plano com o botão Comparar planos](05-planos-do-banket.webp)
+
 2. Na página **Planos** você vê:
    - os cards do Essencial, do Profissional e do Prime, com preço, destaques e o botão de ação;
    - o card **Uso do seu plano**, com quanto você já usa de cada limite;
    - a tabela **Compare os planos**, com todos os módulos, limites e recursos do Banket Busca.
+
+   ![Página Planos com os cards do Essencial, Profissional e Prime; no menu, o card do plano em teste](01-planos-do-banket.webp)
+
+   ![Card Uso do seu plano, com o quanto a empresa usa de cada limite](02-planos-do-banket.webp)
+
+   ![Tabela Compare os planos: módulos, limites e recursos do Banket Busca por plano](03-planos-do-banket.webp)
+
 3. O plano atual aparece marcado com **Seu plano** (ou **Em teste**, durante o teste).
 
 ## Plano Master
@@ -110,6 +120,8 @@ página **Planos** e não é contratado pelo app: para contratá-lo, fale com a 
   teste, **Iniciar teste grátis de 30 dias**.
 - Quando um limite é atingido, o painel mostra **Limite do plano** e quanto você já usa. Veja
   [Limites do plano](09-limites-do-plano.md).
+
+![Painel que abre ao clicar num recurso fora do plano, com o botão Ver planos](04-planos-do-banket.webp)
 
 ## Perguntas frequentes
 

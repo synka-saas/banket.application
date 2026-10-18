@@ -20,6 +20,8 @@ chegaram e quantos viraram contrato.
 1. No menu lateral, clique em **Banket Busca**.
 2. No topo da página, clique em **Desempenho**.
 
+   ![Botão Desempenho no topo da página do Banket Busca](01-desempenho-do-perfil.webp)
+
 Para voltar, use **Perfil do Banket Busca**.
 
 ## Os indicadores
@@ -57,6 +59,8 @@ Além dos indicadores, você vê:
   - Resposta típica: o tempo que você costuma levar para responder;
   - médias de visualizações e pedidos dos perfis personalizados da região, quando há perfis suficientes para comparar;
   - o link **Ajustar o tempo de resposta**.
+
+![Desempenho do Perfil Personalizado: indicadores, visualizações por dia, Do perfil ao contrato e Resposta e região](02-desempenho-do-perfil.webp)
 
 ## Perguntas frequentes
 

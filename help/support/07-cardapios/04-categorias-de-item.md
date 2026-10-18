@@ -23,14 +23,22 @@ As categorias classificam os itens do cardápio de duas formas: pelo **tipo do a
 
 Itens com a categoria principal **"Bebida"** aparecem na aba **Bebidas** do orçamento.
 
+![Categorias principais (tipo) e secundárias (momento) da empresa](03-categorias-de-item.webp)
+
 ## Passo a passo
 
 ### Criar uma categoria
 
 1. No menu lateral, clique em **Cardápios** e depois em **Categorias**.
 2. Clique em **Nova categoria**.
+
+   ![Lista de categorias de item com o botão Nova categoria](01-categorias-de-item.webp)
+
 3. Preencha o **Nome da categoria**.
 4. Em **Aplica-se a**, escolha se ela é principal ou secundária.
+
+   ![Nova categoria principal preenchida](02-categorias-de-item.webp)
+
 5. Clique em **Salvar**.
 
 ### Editar ou excluir

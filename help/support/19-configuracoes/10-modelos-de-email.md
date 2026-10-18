@@ -21,13 +21,22 @@ Toda empresa já começa com o modelo **Proposta padrão**.
 
 1. No menu lateral, clique em **Configurações** e, no submenu, em **Modelos de e-mail**.
 2. Clique em **Novo modelo**.
+
+   ![Configurações › Modelos de e-mail com o modelo Proposta padrão e o botão Novo modelo](01-modelos-de-email.webp)
+
 3. Preencha:
    - **Nome do modelo** (obrigatório), por exemplo "Lembrete de validade";
    - **Assunto** (obrigatório);
    - **Mensagem** (obrigatória).
 4. Para inserir uma variável, posicione o cursor no assunto ou na mensagem e clique no chip da variável, abaixo da
    mensagem.
+
+   ![Novo modelo Retorno após degustação com assunto, mensagem e os chips de variáveis](02-modelos-de-email.webp)
+
 5. Confira o resultado em **Prévia com dados de exemplo**.
+
+   ![Prévia com dados de exemplo: as variáveis já trocadas pelos dados](03-modelos-de-email.webp)
+
 6. Se quiser, ligue **Modelo padrão** e deixe **Modelo ativo** ligado.
 7. Clique em **Salvar**.
 
@@ -51,6 +60,8 @@ Exemplo de assunto: `Proposta {versao} – {evento}`.
 - O modelo padrão precisa estar ativo. Para desativar o padrão, defina outro como padrão antes.
 - Um modelo **inativo** (marca **Inativo**) não aparece para seleção, mas continua guardado.
 - O primeiro modelo da empresa é sempre o padrão.
+
+![Modelo salvo na lista, com a ação Definir como padrão; o modelo atual aparece com a marca Padrão](04-modelos-de-email.webp)
 
 ## Onde os modelos são usados
 

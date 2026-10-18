@@ -19,12 +19,18 @@ Nem todo contato é o envio da proposta: às vezes você só quer confirmar a de
 1. No menu **Propostas**, abra o evento.
 2. Clique na aba **Mensagens**.
 3. Clique em **Nova mensagem**.
+
+   ![Aba Mensagens do evento ainda sem conversa, com o botão Nova mensagem](01-nova-mensagem-pelo-evento.webp)
+
 4. Preencha a janela:
    - **Para**: já vem com o e-mail do responsável do evento (ou, sem ele, o e-mail do cliente). Você pode colocar até
      5 e-mails, separados por vírgula.
    - **Assunto**: já vem com o título do evento. Ajuste se quiser.
    - **Modelo** (opcional): escolha um modelo de e-mail para preencher o assunto e a mensagem com os dados do evento.
    - **Mensagem**: o texto do e-mail (até 10.000 caracteres).
+
+   ![Janela Nova mensagem preenchida, com destinatário, assunto, modelo e mensagem](02-nova-mensagem-pelo-evento.webp)
+
 5. Clique em **Enviar**.
 
 A mensagem "Mensagem enviada para …" confirma o envio.
@@ -45,6 +51,8 @@ A mensagem "Mensagem enviada para …" confirma o envio.
   mensagens.
 
 Usuários comuns veem só as próprias conversas; proprietários e administradores veem as de todos.
+
+![Aba Mensagens com a conversa aberta pela nova mensagem e o campo Responder](03-nova-mensagem-pelo-evento.webp)
 
 ## Perguntas frequentes
 

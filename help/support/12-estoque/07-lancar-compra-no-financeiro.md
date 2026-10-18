@@ -37,7 +37,12 @@ Os demais motivos não geram conta.
    - **Categoria** (só aparecem as categorias do tipo da conta);
    - **Já foi pago** (ou **Já foi recebido**): marque se a conta já foi quitada. O campo de data passa a se chamar
      **Data do pagamento** (ou **Data do recebimento**).
+
+   ![Compra com Lançar conta a pagar no financeiro: valor sugerido (quantidade × custo), vencimento, forma e categoria](01-lancar-compra-no-financeiro.webp)
+
 6. Clique em **Registrar**.
+
+   ![Confirmação: movimentação registrada e conta lançada no financeiro](02-lancar-compra-no-financeiro.webp)
 
 A confirmação avisa que a movimentação foi registrada e a conta foi lançada.
 
@@ -50,6 +55,8 @@ A confirmação avisa que a movimentação foi registrada e a conta foi lançada
 
 A conta aparece em **Financeiro › Contas a pagar** (ou **a receber**) e pode ser editada lá. No histórico do estoque, a
 movimentação recebe a etiqueta **No financeiro**.
+
+![A conta criada pela compra em Financeiro › Contas a pagar, com a etiqueta Estoque e a descrição montada pelo sistema](03-lancar-compra-no-financeiro.webp)
 
 ## Perguntas frequentes
 

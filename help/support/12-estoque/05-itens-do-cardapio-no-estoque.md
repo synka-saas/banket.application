@@ -19,8 +19,18 @@ evento.
 
 1. No menu lateral, clique em **Cardápios** e depois em **Itens do cardápio**.
 2. Clique em **Editar** no item.
+
+   ![Cardápios › Itens do cardápio: clique em Editar no item](01-itens-do-cardapio-no-estoque.webp)
+
 3. Ligue **Gerenciado no estoque**.
+
+   ![Switch Gerenciado no estoque ligado no cadastro do item do cardápio](02-itens-do-cardapio-no-estoque.webp)
+
 4. Clique em **Salvar**.
+
+   ![O item aparece em Itens em estoque com a etiqueta Cardápio, categoria Cardápio, unidade em kg e saldo zero](03-itens-do-cardapio-no-estoque.webp)
+
+   ![Na lista de itens do cardápio, a coluna Estoque mostra o saldo do item ligado (clique para abrir no estoque)](04-itens-do-cardapio-no-estoque.webp)
 
 O item passa a aparecer em **Estoque › Itens em estoque** com a etiqueta **Cardápio**. Na lista de itens do cardápio, a
 coluna **Estoque** mostra o saldo atual (clique para abrir o item no estoque).

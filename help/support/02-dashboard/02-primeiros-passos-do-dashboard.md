@@ -28,6 +28,8 @@ primeiro orçamento. Cada passo é marcado como concluído sozinho, assim que o 
 
 No topo do cartão, o contador mostra quantos passos já foram concluídos (por exemplo, "2 de 6 concluídos").
 
+![Cartão Primeiros passos com o contador de passos concluídos e o botão Ocultar](01-primeiros-passos-do-dashboard.webp)
+
 ## Passo a passo
 
 1. No Dashboard, clique no passo que deseja fazer. O Banket abre a página certa.

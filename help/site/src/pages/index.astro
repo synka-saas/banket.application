@@ -1,5 +1,5 @@
 ---
-// Home (pública): busca + cards de categoria com os 4 primeiros artigos.
+// Home: busca + cards de categoria com os 4 primeiros artigos.
 import Base from '../layouts/Base.astro';
 import IconTile from '../components/IconTile.astro';
 import Icon from '../components/Icon.astro';
@@ -7,7 +7,7 @@ import { getCategories } from '../lib/content';
 
 const cats = await getCategories();
 ---
-<Base title="Central de ajuda" home description="Guias passo a passo para configurar sua conta e operar os serviços dos seus imóveis no Yosp.">
+<Base title="Central de Ajuda" home description="Guias passo a passo para usar cada módulo do Banket.">
   <section class="home-cats" aria-label="Categorias">
     {cats.map((c) => (
       <div class="home-cat">

@@ -31,6 +31,8 @@ Mostra o nome do plano e a situação:
 Com a assinatura ativa, o card também mostra o **Valor**, a **Próxima cobrança** e a **Forma de pagamento** (a bandeira e o
 final do cartão, ou "Pix (fatura com 7 dias para pagar)").
 
+![Card Seu plano com a situação Em teste e a data em Teste grátis até](01-faturas-e-cartao.webp)
+
 ## Card Faturas
 
 Lista as cobranças da assinatura com **Data**, **Plano** (e a forma, Pix ou Cartão), **Valor** e **Situação**:
@@ -47,6 +49,8 @@ Ações de cada linha:
 - **Pagar com Pix**: abre o QR Code da fatura. Veja [Pagar com Pix](04-pagar-com-pix.md).
 - **Pagar**: abre a página de pagamento de uma fatura de cartão em aberto.
 - **PDF**: abre o documento da fatura para baixar ou imprimir.
+
+![Card Faturas ainda sem cobranças (aparecem depois da primeira fatura)](02-faturas-e-cartao.webp)
 
 ## Atualizar o cartão e ver recibos
 
@@ -65,12 +69,16 @@ sua assinatura".
 Mostra cada limite do plano atual e quanto a empresa já usa (por exemplo, "Usuários ativos 3 de 5"), com uma barra de
 progresso. Veja [Limites do plano](09-limites-do-plano.md).
 
+![Card Uso do plano com uma barra por limite](03-faturas-e-cartao.webp)
+
 ## Card Histórico do plano
 
 Registra cada mudança de plano da empresa, com a data, o plano de origem e o de destino e quem fez (o nome da pessoa,
 "pagamento", "automático" ou "equipe Banket"). Os motivos que aparecem são, por exemplo: **Início do teste grátis**,
 **Troca de plano no teste**, **Assinatura confirmada**, **Mudança para um plano maior**, **Mudança para um plano menor**,
 **Fim do teste sem assinatura**, **Fatura não paga** e **Assinatura encerrada**.
+
+![Card Histórico do plano com as mudanças, a data e quem fez](04-faturas-e-cartao.webp)
 
 ## E-mails de cobrança
 

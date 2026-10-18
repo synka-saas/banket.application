@@ -19,6 +19,8 @@ negociando com o seu buffet. Dela você também cria um novo evento já ligado a
 1. No menu lateral, clique em **Clientes**.
 2. Clique no nome do cliente.
 
+   ![Lista de clientes: clique no nome para abrir o detalhe](01-detalhe-e-historico-do-cliente.webp)
+
 ## O que aparece na página
 
 ### Resumo do cliente
@@ -48,10 +50,18 @@ A tabela **Eventos** lista todos os eventos do cliente, do mais recente para o m
 - **Orçamento**: o valor do orçamento. Se o evento ainda não tem orçamento, aparece a verba estimada informada pelo
   cliente, quando houver.
 
+![Detalhe do cliente: resumo, dados do cliente e eventos](02-detalhe-e-historico-do-cliente.webp)
+
 ## Criar um evento para o cliente
 
 1. Na página do cliente, clique em **Novo evento para este cliente**.
+
+   ![Botão Novo evento para este cliente no detalhe do cliente](03-detalhe-e-historico-do-cliente.webp)
+
 2. O formulário de evento abre com o cliente já selecionado.
+
+   ![Formulário de novo evento com o cliente já selecionado](04-detalhe-e-historico-do-cliente.webp)
+
 3. Preencha o briefing e salve.
 
 ## Editar ou excluir

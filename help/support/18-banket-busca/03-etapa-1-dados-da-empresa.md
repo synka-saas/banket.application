@@ -33,11 +33,19 @@ O logotipo não é obrigatório, mas conta para a completude do perfil. Use PNG,
    dados da empresa**.
    - Se faltar algo, aparece o aviso "Para concluir esta etapa, complete no cadastro da empresa: ..." com o link para
      Configurações.
+
+   ![Etapa Dados da empresa com os dados vindos de Configurações › Empresa](01-etapa-1-dados-da-empresa.webp)
+
 3. Preencha **Instagram** (por exemplo, `@seubuffet`) e **Site**, se tiver.
 4. Escreva a **Descrição**: de 80 a 1.200 caracteres. Conte há quanto tempo atende, como é o espaço e a cozinha e o que
    torna o seu buffet especial.
+
+   ![Instagram, site e descrição preenchidos na etapa 1](02-etapa-1-dados-da-empresa.webp)
+
 5. Nos planos pagos, confira o **Endereço do perfil**. Veja [Endereço do perfil](09-endereco-do-perfil.md).
 6. Clique em **Salvar** para ficar na etapa ou em **Continuar** para salvar e ir para a próxima.
+
+   ![Etapa 1 salva e concluída, com a confirmação no topo](03-etapa-1-dados-da-empresa.webp)
 
 ## Entenda os campos
 

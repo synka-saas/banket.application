@@ -18,13 +18,22 @@ próprio, domicílio ou os dois) define em quais buscas o perfil aparece. Pedido
 
 1. No menu lateral, clique em **Banket Busca** e abra a etapa **Região de atendimento**.
 2. Em **Cidade do buffet**, digite o nome da cidade e escolha uma opção da lista.
+
+   ![Cidade do buffet com a lista de cidades para escolher](01-etapa-3-regiao-de-atendimento.webp)
+
 3. Se os clientes vão até o seu salão, ligue **Tenho espaço próprio para eventos** e preencha:
    - **CEP**: ao sair do campo, o sistema busca o endereço e preenche **Endereço**, **Bairro** e a cidade. Confira o
      **Número**.
    - Se o CEP não for encontrado, aparece "CEP não encontrado. Preencha o endereço à mão."
+
+   ![Espaço próprio com o endereço preenchido pelo CEP](02-etapa-3-regiao-de-atendimento.webp)
+
 4. Se a sua equipe vai até a casa, o salão de condomínio ou a empresa do cliente, ligue **Atendo em domicílio** e:
    - escolha o **Raio de atendimento a partir da cidade**: 10, 25, 50 ou 100 km;
    - em **Outras cidades atendidas**, adicione cidades fora do raio onde você também atende.
+
+   ![Atendimento em domicílio com raio de 25 km e outra cidade atendida](03-etapa-3-regiao-de-atendimento.webp)
+
 5. Clique em **Salvar** ou em **Continuar**.
 
 Para concluir a etapa, escolha a cidade e pelo menos um modo de atendimento: espaço próprio com endereço ou domicílio com
@@ -54,6 +63,8 @@ A distância também conta na ordem dos resultados: buffets mais perto de quem b
 
 ### O endereço do meu espaço aparece no perfil?
 Sim. Com espaço próprio, o perfil mostra o endereço, o número, o bairro e a cidade na seção **Área de atendimento**.
+
+![Área de atendimento no perfil público: espaço próprio, domicílio com raio e outras cidades](04-etapa-3-regiao-de-atendimento.webp)
 
 ### Atendo em domicílio e tenho espaço. Preciso escolher um?
 Não. Ligue as duas opções. O perfil mostra "Espaço próprio e em domicílio".

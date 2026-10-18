@@ -37,6 +37,10 @@ Só aparecem no perfil as opções ativas e marcadas como públicas. Veja
 - Nenhum preço é exibido.
 - Se o perfil tiver formulário de orçamento, cada opção traz o botão **Obter orçamento**.
 
+![Seção Cardápios do perfil com as opções públicas, sem preços](01-cardapios-no-perfil.webp)
+
+![Ver cardápio: seções e itens do Cardápio Clássico, com "escolha N" e restrições](02-cardapios-no-perfil.webp)
+
 ## Disponibilidade na data
 
 Quando o cliente busca com uma data:
@@ -48,6 +52,8 @@ Quando o cliente busca com uma data:
 - no Perfil Simples, aparece sempre **Consultar disponibilidade**, e a data nunca tira o buffet da busca.
 
 A disponibilidade usa os eventos aprovados do **Painel de Propostas**. Mantenha as etapas dos eventos em dia.
+
+![Disponibilidade na data buscada: "Disponível em 20/06/2027"](03-cardapios-no-perfil.webp)
 
 ## Perguntas frequentes
 

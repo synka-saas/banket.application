@@ -20,6 +20,9 @@ Use-a para enxergar a ocupação do mês, planejar a semana e abrir um evento co
 2. Escolha a visualização no seletor do topo:
    - **Mês**: o calendário completo, de domingo a sábado.
    - **Semana**: os sete dias da semana em colunas, com mais detalhes de cada evento.
+
+   ![Agenda na visão Mês, com os eventos no dia e a barra na cor da etapa](01-usar-a-agenda.webp)
+
 3. Navegue pelos períodos com as setas **Anterior** e **Próximo**. Para voltar ao período atual, clique em **Hoje**.
 4. Para ver só uma parte do funil, use o filtro **Todos os status** e escolha uma das opções:
    - **Entrada (novos pedidos)**
@@ -28,6 +31,9 @@ Use-a para enxergar a ocupação do mês, planejar a semana e abrir um evento co
    - **Perdido (recusado)**
 
    O filtro vale na hora, sem precisar confirmar.
+
+   ![Setas Anterior e Próximo, Hoje, filtro de status e o botão Reuniões](02-usar-a-agenda.webp)
+
 5. Clique num evento para abrir a página dele.
 
 ## O que aparece no calendário
@@ -50,6 +56,8 @@ Cada evento aparece num cartão com:
 - o horário (início e fim);
 - o número de convidados;
 - o local.
+
+![Visão Semana: cartão do evento com etapa, título, cliente, horário, convidados e local](03-usar-a-agenda.webp)
 
 ### Reuniões
 
@@ -74,6 +82,8 @@ Abaixo do calendário, o Banket mostra quantos eventos e quantas reuniões exist
 - No celular, a visão **Mês** mostra só a marcação dos eventos em cada dia; toque no número do dia para ver os detalhes
   na visão **Semana**.
 
+![No celular, a visão Mês marca os dias com eventos; toque no dia para ver a semana](05-usar-a-agenda.webp)
+
 ## Perguntas frequentes
 
 ### Por que um evento não aparece na agenda?
@@ -90,6 +100,8 @@ A cor vem da etapa do funil. Para trocá-la, um proprietário ou administrador p
 
 Sim. Por padrão aparecem todos os eventos com data, inclusive os perdidos. Para ver só os confirmados, filtre por
 **Ganho (aprovado)**.
+
+![Agenda filtrada por Ganho (aprovado): só os eventos confirmados aparecem](04-usar-a-agenda.webp)
 
 ### As reuniões aparecem para toda a equipe?
 

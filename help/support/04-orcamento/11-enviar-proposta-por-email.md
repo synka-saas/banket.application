@@ -24,14 +24,25 @@ versão em anexo.
 
 1. Abra o evento, clique na aba **Orçamento** (sub-aba **Itens e valores**).
 2. Na barra do rodapé, clique em **Enviar ao cliente**.
+
+   ![Botão Enviar ao cliente na barra do rodapé do orçamento](01-enviar-proposta-por-email.webp)
+
 3. No painel **Enviar proposta · versão NN**, preencha:
    - **Para**: já vem com o e-mail do responsável do evento ou, se não houver, do cliente. Digite outro e-mail e
      tecle Enter ou vírgula para adicionar. Até 5 destinatários. Clique no **x** de um e-mail para tirá-lo.
    - **Modelo**: escolha o modelo de e-mail. O modelo padrão já vem selecionado. Trocar o modelo preenche assunto e
      mensagem, já com os dados do evento.
    - **Assunto** e **Mensagem**: ajuste à vontade.
+
+   ![Painel de envio aberto sobre o orçamento](03-enviar-proposta-por-email.webp)
+
 4. Confira a **Prévia do e-mail**, que mostra o anexo (PDF da proposta), o assunto e a mensagem.
+
+   ![Painel Enviar proposta com destinatário, modelo, assunto, mensagem e a prévia do e-mail](02-enviar-proposta-por-email.webp)
+
 5. Clique em **Enviar** e confirme. A confirmação mostra a versão, o total e os destinatários.
+
+   ![Confirmação do envio com a versão, o total e os destinatários](04-enviar-proposta-por-email.webp)
 
 ## Variáveis dos modelos
 
@@ -55,6 +66,8 @@ Nos modelos de e-mail, estas variáveis são trocadas pelos dados do evento:
   na aba **Mensagens** do evento (o Inbox está nos planos Profissional, Prime e Master).
 - Se o painel mostrar "Esta versão já foi enviada em…", você está reenviando uma versão já enviada. Reenviar uma versão
   congelada não cria versão nova.
+
+![Proposta enviada: a versão 01 foi congelada e o orçamento segue na versão 02](05-enviar-proposta-por-email.webp)
 
 ## Perguntas frequentes
 

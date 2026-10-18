@@ -8,8 +8,8 @@ const total = cats.reduce((n, c) => n + c.articles.length, 0);
 <footer class="footer" data-noprint>
   <div class="container footer-inner">
     <div class="footer-brand">
-      <Logo variant="black" height={22} />
-      <span>© {new Date().getFullYear()} Yosp · Central de ajuda</span>
+      <Logo variant="dark" height={22} />
+      <span>© {new Date().getFullYear()} Banket · Central de Ajuda</span>
     </div>
     <span>{plural(total, 'artigo', 'artigos')} em {plural(cats.length, 'categoria', 'categorias')}</span>
   </div>

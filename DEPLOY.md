@@ -41,7 +41,7 @@ make psql
 Makefile da VPS (se precisar recriar; as linhas de comando começam com TAB):
 
 ```make
-.PHONY: deploy rollback status logs psql
+.PHONY: deploy rollback status logs psql help-deploy help-rollback help-logs
 
 DC = docker compose -f docker-compose.prod.yml
 
@@ -62,6 +62,16 @@ logs:
 
 psql:
 	$(DC) exec postgres psql -U banket_user banket_db
+
+# Central de Ajuda (help/, ver help/DEPLOY.md)
+help-deploy:
+	@bash help/scripts/deploy.sh
+
+help-rollback:
+	@bash help/scripts/rollback.sh
+
+help-logs:
+	docker logs -f --tail 100 banket-help
 ```
 
 ## ⚠ Migrations precisam ser compatíveis com a versão anterior

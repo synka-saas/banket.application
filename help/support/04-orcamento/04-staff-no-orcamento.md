@@ -24,6 +24,9 @@ Cadastre as funções (garçom, copeira, maître…) com cachê, auxílio e regr
 
 1. Abra o evento, clique na aba **Orçamento** e vá até a seção **Staff**.
 2. Para incluir outra função, clique em **Adicionar função** e escolha na lista (cada opção mostra a regra).
+
+   ![Adicionar função: cada opção mostra a regra de dimensionamento](02-staff-no-orcamento.webp)
+
 3. Se precisar, ajuste a **Qtd.** ou o **Valor unit.** da linha.
 4. Para tirar uma função, clique no **x** da linha. O aviso traz **Desfazer**.
 
@@ -43,10 +46,14 @@ O **Valor unit.** é o cachê/diária + o auxílio da função. O **Subtotal** �
 
 O staff usa o número total de **convidados** (não os pagantes), porque crianças também precisam ser atendidas.
 
+![Seção Staff com as funções dimensionadas para 150 convidados](01-staff-no-orcamento.webp)
+
 ## Ajustes manuais
 
 - Digite na **Qtd.** para fixar outra quantidade. Apague o campo para voltar ao calculado.
 - Digite no **Valor unit.** para usar outro valor. Apague ou clique no ícone de voltar para retornar ao calculado.
+
+![Barman incluído e quantidade de garçons ajustada manualmente](03-staff-no-orcamento.webp)
 
 ## O que acontece depois
 

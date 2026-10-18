@@ -26,6 +26,8 @@ O menu fica à esquerda e mostra os módulos nesta ordem: **Dashboard**, **Propo
 - **Financeiro** e **Configurações** só aparecem para Proprietários e Administradores.
 - No tablet, o menu encolhe e mostra só os ícones.
 
+  ![No tablet, o menu lateral mostra só os ícones](07-conhecer-o-menu-e-a-navegacao.webp)
+
 ### Cartão do plano no rodapé do menu
 
 Proprietários e administradores veem, no fim do menu, um cartão com a situação do plano:
@@ -33,6 +35,10 @@ Proprietários e administradores veem, no fim do menu, um cartão com a situaç�
 - No plano gratuito Busca: **Plano Busca · gratuito**, com **Iniciar teste grátis** (se o teste ainda estiver
   disponível) ou **Ver planos**.
 - Durante o teste grátis: **Teste do** (nome do plano), com os dias restantes e o botão **Assinar**.
+
+![Menu lateral com os módulos](01-conhecer-o-menu-e-a-navegacao.webp)
+
+![Cartão do plano no rodapé do menu](02-conhecer-o-menu-e-a-navegacao.webp)
 
 ## Itens com cadeado
 
@@ -49,17 +55,26 @@ pela conta.
 No plano Busca, o item **Configurações** não tem cadeado: ele abre direto em **Empresa**, e o submenu mostra apenas
 **Empresa** e **Financeiro**.
 
+![Painel Não incluído no seu plano](03-conhecer-o-menu-e-a-navegacao.webp)
+
 ## Barra superior
 
 - **Título da página**: em páginas internas, aparece como trilha (por exemplo, **Clientes / Maria Silva**). Clique na
   parte da esquerda, quando ela for um link, para voltar ao nível anterior.
+
+  ![Título da página em forma de trilha (Clientes / Maria Silva)](05-conhecer-o-menu-e-a-navegacao.webp)
+
 - **Seu nome e papel**: no canto direito, com as suas iniciais. Clique para abrir o menu com:
   - **Trocar de empresa** (só para quem pertence a mais de uma empresa);
   - **Minha conta**;
   - **Sair**.
 
+  ![Menu do usuário aberto, com Minha conta e Sair](04-conhecer-o-menu-e-a-navegacao.webp)
+
 Dentro de alguns módulos, como Cardápios, Financeiro, Estoque e Configurações, há um submenu de abas logo abaixo da barra
 superior.
+
+![Submenu de abas dentro do módulo Cardápios](06-conhecer-o-menu-e-a-navegacao.webp)
 
 ## No celular
 
@@ -68,9 +83,14 @@ Em telas pequenas, a navegação fica numa barra fixa no rodapé:
 - Os atalhos principais: **Dashboard**, **Propostas**, **Clientes** e **Agenda** (no plano Busca, o atalho **Busca**).
 - O botão **Mais** abre um painel com os demais módulos. Se houver mensagens não lidas no Inbox, o número aparece no
   botão **Mais**.
+
+  ![Painel Mais aberto com os demais módulos](09-conhecer-o-menu-e-a-navegacao.webp)
+
 - Itens fora do plano aparecem no painel com o cadeado.
 - Formulários laterais (como o de cadastro de cliente) abrem em tela cheia.
 - Listas e tabelas viram cartões, um por registro.
+
+![No celular, a barra fixa no rodapé com os atalhos e o botão Mais](08-conhecer-o-menu-e-a-navegacao.webp)
 
 ## Perguntas frequentes
 

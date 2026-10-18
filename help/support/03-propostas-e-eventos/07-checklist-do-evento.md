@@ -21,6 +21,8 @@ assinado, visita técnica. Cada item tem prazo e situação, e os atrasados fica
 3. Se quiser, escolha a data do prazo no campo ao lado.
 4. Clique em **Adicionar**.
 
+   ![Novo item do checklist com prazo, antes de clicar em Adicionar](01-checklist-do-evento.webp)
+
 O item entra no fim da lista, com a situação **Pendente**.
 
 ## Atualizar um item
@@ -34,10 +36,14 @@ Cada item tem três campos que salvam sozinhos assim que você muda o valor:
 Quando o prazo passa e o item ainda não está **Concluído**, ele fica destacado em vermelho com o aviso **vencido** ao
 lado do prazo.
 
+![Checklist com três itens: um agendado e um com prazo vencido em destaque](02-checklist-do-evento.webp)
+
 ## Remover um item
 
 1. Clique no **×** à direita do item.
 2. Confirme a remoção.
+
+   ![Confirmação para remover um item do checklist](03-checklist-do-evento.webp)
 
 ## O que acontece depois
 

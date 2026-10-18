@@ -28,6 +28,9 @@ As opções de bebida vêm das seções do cardápio cujos itens têm a categori
 2. Clique em **Adicionar bebida** e escolha:
    - um pacote ou item do catálogo; ou
    - **Bebida avulsa (valor manual)**, para algo que não está cadastrado. Digite o nome na linha criada.
+
+   ![Adicionar bebida: pacotes e itens do catálogo ou bebida avulsa](01-adicionar-bebidas.webp)
+
 3. Na coluna **Cobrança**, escolha **por pessoa** ou **por unidade**.
 4. Se for por unidade, informe a quantidade em **Qtd.**
 5. Ajuste o **Valor unit.** ou o **Subtotal** se precisar.
@@ -43,6 +46,8 @@ As opções de bebida vêm das seções do cardápio cujos itens têm a categori
 | **Subtotal** | Valor unitário × pagantes ou × quantidade. Digite para substituir. |
 
 Para remover uma bebida, clique no **x** da linha. O aviso traz **Desfazer**.
+
+![Bebidas no orçamento: espumante por unidade e uma bebida avulsa com valor manual](02-adicionar-bebidas.webp)
 
 ## Perguntas frequentes
 

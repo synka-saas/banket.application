@@ -17,6 +17,9 @@ evento é um card, e cada coluna é uma etapa do seu funil de vendas.
 ## Abrir o painel
 
 1. No menu lateral, clique em **Propostas**.
+
+   ![Painel de Propostas na visão Kanban, com uma coluna por etapa do funil](01-painel-de-propostas.webp)
+
 2. O painel abre na visão **Kanban**. Para ver os eventos em tabela, clique em **Lista** no topo da tela.
 
 ## A visão Kanban
@@ -43,10 +46,16 @@ Cada card mostra:
 | Data | Data do evento |
 | Etiquetas | O **Tipo** (Corporativo ou Social) e, quando o evento está parado, o aviso **há N dias nesta etapa** (a partir de 3 dias; fica em destaque a partir de 7) |
 
+![Card de um evento com orçamento: cliente, pessoas, formato de serviço, valor do orçamento, data e tipo](03-painel-de-propostas.webp)
+
+![Menu de três pontos do card: Editar, Abrir orçamento e Mover para](04-painel-de-propostas.webp)
+
 Clique em qualquer ponto do card para abrir o resumo do evento. O botão de três pontos do card abre um menu com
 **Editar**, **Orçamento** (ou **Abrir orçamento**, se já existir) e a lista **Mover para** com as outras etapas.
 
 Os cards de cada coluna ficam em ordem de data do evento. Eventos sem data aparecem no fim.
+
+![Cabeçalho da coluna: quantidade de eventos, soma dos orçamentos e a verba estimada dos eventos sem orçamento](02-painel-de-propostas.webp)
 
 ## A visão Lista
 
@@ -55,6 +64,8 @@ A lista mostra os eventos em tabela, com as colunas **Data**, **Evento**, **Clie
 eventos por página.
 
 Na coluna **Orçamento**, eventos sem orçamento mostram a verba estimada pelo cliente em destaque diferente.
+
+![Visão Lista: eventos em tabela com data, evento, cliente, convidados, etapa, orçamento e Abrir](05-painel-de-propostas.webp)
 
 ## Intervalo de trabalho
 
@@ -70,6 +81,8 @@ frente. Esse período é o **intervalo de trabalho**. A faixa logo acima das col
   **Voltar ao intervalo de trabalho**.
 
 A visão **Lista** não usa o intervalo de trabalho: mostra todos os eventos, respeitando apenas os filtros.
+
+![Faixa do intervalo de trabalho com o seletor de período](06-painel-de-propostas.webp)
 
 ## No celular
 

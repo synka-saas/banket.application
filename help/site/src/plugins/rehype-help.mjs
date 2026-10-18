@@ -1,8 +1,8 @@
 // Converte o HTML padrão do Markdown nos blocos do protótipo (Central de Ajuda.dc.html):
 //  - parágrafo só com imagem      → figura com moldura e legenda (bloco "shot")
 //  - lista numerada               → passos com número em círculo (bloco "steps")
-//  - lista com marcador           → lista com ponto azul (bloco "list")
-//  - tabela                       → tabela com hairline e cantos de 14px (bloco "defs")
+//  - lista com marcador           → lista com ponto terracota (bloco "list")
+//  - tabela                       → tabela com borda e cantos de 12px (bloco "defs")
 //  - citação "> **Atenção:** …"   → Banner de aviso; outras citações → Banner informativo (bloco "note")
 import { visit, SKIP } from 'unist-util-visit';
 import { toString } from 'hast-util-to-string';
@@ -50,7 +50,7 @@ export default function rehypeHelp() {
       if (node.tagName === 'blockquote') {
         const text = toString(node).trim();
         const tone = WARNING_RE.test(text) ? 'warning' : 'brand';
-        const icon = tone === 'warning' ? 'triangle-alert' : 'info';
+        const icon = tone === 'warning' ? 'alert-triangle' : 'info-circle';
         const body = node.children.filter((c) => !isWhitespace(c));
         parent.children[index] = el('div', `kb-banner`, [
           el('span', 'kb-banner-icon', [{ type: 'raw', value: iconSvg(icon, 18) }]),

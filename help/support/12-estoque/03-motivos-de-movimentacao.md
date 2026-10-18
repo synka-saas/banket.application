@@ -38,6 +38,10 @@ evento, espaço, justificativa ou custo) e deixa o histórico claro para toda a 
 | **Transferência entre espaços (saída)** | Envio da base central para um espaço próprio ou parceiro. | Espaço obrigatório; evento opcional. |
 | **Devolução ao fornecedor** | Produtos avariados, fora da especificação ou com validade inadequada. | Fornecedor e justificativa obrigatórios; nota fiscal opcional. |
 
+![Saída Consumo em evento: o evento é obrigatório e a saída guarda o custo médio do momento](01-motivos-de-movimentacao.webp)
+
+![Saída Perda / vencimento / descarte: a justificativa passa a ser obrigatória](02-motivos-de-movimentacao.webp)
+
 ## Contagem
 
 | Motivo | Quando usar | O que é pedido |
@@ -45,6 +49,8 @@ evento, espaço, justificativa ou custo) e deixa o histórico claro para toda a 
 | **Contagem física (inventário)** | Você contou o item e quer acertar o saldo. | Só a **Quantidade contada**. O sistema registra a diferença. |
 
 Ao escolher o tipo **Contagem**, o motivo é sempre este e o campo de motivo não aparece.
+
+![Contagem: só a quantidade contada; o sistema registra a diferença e o campo de motivo não aparece](03-motivos-de-movimentacao.webp)
 
 ## Ajuste de inventário ou contagem: qual usar?
 

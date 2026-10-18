@@ -1,11 +1,11 @@
-// Central de Ajuda do Yosp — site estático servido em platform.yosp.app/ajuda/.
+// Central de Ajuda do Banket — site estático servido em app.banket.com.br/ajuda/ (atrás do login do app).
 // O conteúdo vem de ../support (fonte única); ver help/DEPLOY.md.
 import { defineConfig } from 'astro/config';
 import remarkHelp from './src/plugins/remark-help.mjs';
 import rehypeHelp from './src/plugins/rehype-help.mjs';
 
 export default defineConfig({
-  site: 'https://platform.yosp.app',
+  site: 'https://app.banket.com.br',
   base: '/ajuda',
   output: 'static',
   trailingSlash: 'always',

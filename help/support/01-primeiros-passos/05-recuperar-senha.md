@@ -16,7 +16,13 @@ Se você esqueceu a senha, pode criar uma nova a partir de um link enviado para 
 ## Passo a passo
 
 1. Na tela de login, clique em **Esqueceu a senha?**, logo abaixo do campo de senha.
+
+   ![Link Esqueceu a senha? abaixo do campo de senha](01-recuperar-senha.webp)
+
 2. Na tela **Esqueceu a sua senha?**, informe o **E-mail** da sua conta e clique em **Enviar**.
+
+   ![Tela Esqueceu a sua senha? com o e-mail preenchido](02-recuperar-senha.webp)
+
 3. Abra o e-mail do Banket e clique no link para criar a nova senha.
 4. Na tela **Crie uma nova senha**, confira a conta indicada e preencha **Nova senha** e **Confirme a nova senha**.
 5. Clique em **Salvar nova senha**.
@@ -35,6 +41,8 @@ Se você esqueceu a senha, pode criar uma nova a partir de um link enviado para 
 - Por segurança, o Banket mostra a mesma mensagem tanto se o e-mail tiver conta quanto se não tiver: "Se houver uma
   conta para ..., você receberá em instantes um link para criar uma nova senha."
 
+![Mensagem genérica de envio do link de recuperação](03-recuperar-senha.webp)
+
 ## Alternativa: entrar sem senha
 
 Se você só precisa entrar agora, use **Entrar com link de acesso por e-mail** na tela de login. Depois, troque a senha
@@ -50,6 +58,8 @@ Se aparecer "Muitos pedidos em pouco tempo", aguarde alguns minutos.
 ### Apareceu "Link inválido ou expirado".
 
 O link passou de 1 hora ou já foi usado. Clique em **Pedir um novo link** e repita o processo.
+
+![Tela Link inválido ou expirado com Pedir um novo link](04-recuperar-senha.webp)
 
 ### Entro com o Google e nunca criei uma senha. Posso criar uma?
 

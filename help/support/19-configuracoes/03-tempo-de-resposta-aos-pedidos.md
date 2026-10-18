@@ -20,6 +20,9 @@ sendo cumprido.
 1. No menu lateral, clique em **Configurações**. A tela **Empresa** abre primeiro.
 2. No card **Parâmetros comerciais**, escolha o **Tempo de resposta aos pedidos**: em até 2, 4, 6, 12, 24, 48 ou 72
    horas. O padrão é 48 horas.
+
+   ![Tempo de resposta aos pedidos e o Cumprimento nos últimos 90 dias, no card Parâmetros comerciais](01-tempo-de-resposta-aos-pedidos.webp)
+
 3. Clique em **Salvar**, no fim da página.
 
 ## Cumprimento nos últimos 90 dias

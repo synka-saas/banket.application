@@ -24,6 +24,8 @@ Toda empresa começa com estas categorias, que você pode renomear, desativar ou
 
 A categoria **Venda de evento** é a usada por padrão nas parcelas do plano de pagamento.
 
+![Financeiro › Categorias, com as categorias de contas a receber e a pagar e o botão Nova categoria](01-categorias-financeiras.webp)
+
 ## Criar uma categoria
 
 1. No menu lateral, clique em **Financeiro** e, no submenu, em **Categorias**.
@@ -31,6 +33,9 @@ A categoria **Venda de evento** é a usada por padrão nas parcelas do plano de 
 3. Preencha **Nome** (ex.: "Equipe e staff").
 4. Em **Tipo**, escolha **A receber** ou **A pagar**.
 5. Deixe ligado **Categoria ativa**.
+
+   ![Nova categoria preenchida: nome, tipo A pagar e Categoria ativa](02-categorias-financeiras.webp)
+
 6. Clique em **Salvar**.
 
 ## Editar ou desativar
@@ -41,6 +46,8 @@ A categoria **Venda de evento** é a usada por padrão nas parcelas do plano de 
 
 Uma categoria inativa aparece com a etiqueta **Inativa** e deixa de ser oferecida em contas novas. As contas que já
 usam a categoria continuam com ela.
+
+![Editar categoria: altere o nome ou o tipo, desligue Categoria ativa para desativar, ou use Excluir no topo](03-categorias-financeiras.webp)
 
 ## Excluir
 

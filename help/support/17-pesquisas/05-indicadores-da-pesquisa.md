@@ -21,6 +21,8 @@ resposta, a satisfação por aspecto do serviço, as perguntas de escolha e os c
 
 Se o seu plano não inclui as Pesquisas, o item do menu aparece com um cadeado e abre a oferta para mudar de plano.
 
+![Visão geral completa: NPS, CSAT por aspecto, perguntas de escolha e comentários recentes](02-indicadores-da-pesquisa.webp)
+
 ## Filtros
 
 No topo da página:
@@ -42,26 +44,36 @@ Os filtros se aplicam na hora a todos os indicadores da página.
 
 Para entender os cálculos, veja [Entender o NPS e o CSAT](01-entender-nps-e-csat.md).
 
+![Visão geral das Pesquisas: filtros e indicadores do topo](01-indicadores-da-pesquisa.webp)
+
 ## Recomendação (NPS)
 
 - Uma faixa colorida mostra a proporção de detratores, neutros e promotores.
 - Abaixo, uma coluna para cada nota de 0 a 10, com a quantidade de respostas. Clique numa coluna para ver as respostas
   daquele grupo (promotores, neutros ou detratores) em **Respostas**.
 
+![Card Recomendação (NPS): faixa de detratores, neutros e promotores e as colunas de 0 a 10](03-indicadores-da-pesquisa.webp)
+
 ## Satisfação por aspecto (CSAT)
 
 Uma linha para cada pergunta de nota de 1 a 5, com o **% de satisfeitos** (notas 4 e 5), a **média** e o número de
 respostas. Clique numa linha para abrir a pergunta na tela **Por pergunta**.
+
+![Card Satisfação por aspecto (CSAT)](04-indicadores-da-pesquisa.webp)
 
 ## Perguntas de escolha
 
 Para cada pergunta de escolha única ou múltipla, a porcentagem e a quantidade de vezes que cada opção foi escolhida.
 Clique no título da pergunta para abrir os detalhes em **Por pergunta**.
 
+![Card Perguntas de escolha](05-indicadores-da-pesquisa.webp)
+
 ## Comentários recentes
 
 As respostas abertas mais recentes, com a pergunta, o evento, a data e a nota de NPS de quem respondeu (em verde,
 amarelo ou vermelho conforme o grupo). Clique num comentário para abrir a pesquisa completa.
+
+![Card Comentários recentes](06-indicadores-da-pesquisa.webp)
 
 ## Quando ainda não há dados
 

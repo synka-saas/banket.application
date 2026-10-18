@@ -18,9 +18,17 @@ quem continua com acesso.
 
 1. No menu lateral, clique em **Configurações** e, no submenu, em **Usuários**.
 2. Clique em **Convidar usuário**.
+
+   ![Configurações › Usuários com o botão Convidar usuário](01-usuarios-e-convites.webp)
+
 3. Preencha **Nome**, **E-mail** e **Papel** (**Usuário**, **Administrador** ou, se você for Proprietário,
    **Proprietário**).
+
+   ![Painel Convidar usuário preenchido com nome, e-mail e papel Usuário](02-usuarios-e-convites.webp)
+
 4. Clique em **Salvar**.
+
+   ![Convite enviado: Juliana Rocha aparece em Convites pendentes, com Reenviar e Cancelar](03-usuarios-e-convites.webp)
 
 A pessoa recebe um e-mail com o link **Aceitar convite**, válido por 7 dias, para criar a senha e entrar. Ao escolher
 o papel Proprietário, o sistema pede uma confirmação, porque proprietários têm acesso total à empresa.
@@ -34,6 +42,8 @@ Em **Convites pendentes**:
 - **Cancelar** apaga o convite (pede confirmação). O link enviado deixa de funcionar.
 
 Convites vencidos aparecem com a marca **Expirado**. Use **Reenviar** para mandar um link novo.
+
+![Confirmação antes de cancelar um convite pendente](04-usuarios-e-convites.webp)
 
 ## Trocar o papel, desativar ou remover
 

@@ -50,6 +50,8 @@ inicial do sobrenome (por exemplo, "Maria S.").
 Se você editar a pergunta de autorização em **Questionário e e-mail**, mantenha a palavra "depoimento" no texto e a
 opção "Sim": é assim que o Banket reconhece a autorização.
 
+![O depoimento e a resposta da empresa no perfil público do Banket Busca](02-avaliacao-no-banket-busca.webp)
+
 ## Ver, responder e ocultar uma avaliação
 
 1. No menu lateral, clique em **Pesquisas** e, no submenu, em **Respostas**.
@@ -59,6 +61,8 @@ opção "Sim": é assim que o Banket reconhece a autorização.
    perfil.
 5. Para tirar o depoimento do perfil, marque **Ocultar o depoimento e a resposta no perfil (a nota continua na média)**.
 6. Clique em **Salvar**.
+
+   ![Card No Banket Busca: nota, depoimento autorizado, resposta pública da empresa e a opção de ocultar](01-avaliacao-no-banket-busca.webp)
 
 O card **No Banket Busca** só aparece nas respostas que viraram avaliação pública.
 

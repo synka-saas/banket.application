@@ -30,6 +30,8 @@ pesquisa de satisfação, tudo no mesmo lugar.
 
 ## Os módulos do menu
 
+![Tela inicial do Banket com o menu de módulos à esquerda](01-o-que-e-o-banket.webp)
+
 | Módulo | Para que serve |
 |---|---|
 | **Dashboard** | Indicadores de vendas, próximos eventos, retornos combinados e propostas paradas. |

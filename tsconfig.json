@@ -6,7 +6,8 @@
   ],
   "exclude": [
     "dist",
-    "design-system"
+    "design-system",
+    "help"
   ],
   "compilerOptions": {
     "jsx": "react-jsx",

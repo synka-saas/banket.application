@@ -25,6 +25,8 @@ avaliações, e os clientes entram em contato com você direto pelo perfil.
 3. O cliente abre o seu perfil e fala com você: pelos contatos (WhatsApp, telefone, e-mail, Instagram e site) ou, no
    Perfil Personalizado, pelo seu formulário de orçamento, que cria o pedido direto no **Painel de Propostas**.
 
+   ![Perfil público do buffet no Banket Busca, com fotos, selo Cliente Banket e o quadro Peça um orçamento](02-o-que-e-o-banket-busca.webp)
+
 O Banket Busca não mostra preços. Valores e cardápio são combinados entre você e o cliente.
 
 ## Os dois níveis de perfil
@@ -51,6 +53,8 @@ No menu lateral, clique em **Banket Busca**. No topo da página você vê:
 À esquerda fica a lista das etapas. As concluídas aparecem com um sinal de confirmação, e você pode abrir qualquer uma
 para editar. Abaixo dela, na parte **Exclusivo Banket**, aparecem **Cardápios** e **Disponibilidade**: liberados nos
 planos pagos e com cadeado no plano Busca.
+
+![Página do Banket Busca com a situação do perfil, as etapas e a parte Exclusivo Banket](01-o-que-e-o-banket-busca.webp)
 
 ## Como começar
 

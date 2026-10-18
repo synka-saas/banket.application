@@ -1,5 +1,5 @@
 ---
-// Cabeçalho azul do protótipo (heroStyle "Azul"). Na home mostra o título grande.
+// Cabeçalho do protótipo, na faixa terracota sólida do Banket. Na home mostra o título grande.
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
 
@@ -11,19 +11,19 @@ const base = import.meta.env.BASE_URL;
   <div class="container hero-inner">
     <nav class="hero-nav" aria-label="Principal">
       <a href={base} class="hero-brand">
-        <Logo variant="white" height={30} />
+        <Logo variant="light" height={28} />
         <span class="hero-sep" aria-hidden="true"></span>
-        <span class="hero-brand-label">Central de ajuda</span>
+        <span class="hero-brand-label">Central de Ajuda</span>
       </a>
       <div class="hero-actions">
         <a href="#suporte" class="hero-link">Fale com o suporte</a>
-        <a href="/dashboard" class="btn btn-secondary">Voltar para a plataforma<Icon name="arrow-up-right" size={18} /></a>
+        <a href="/" class="btn btn-secondary">Voltar para a plataforma<Icon name="arrow-up-right" size={16} /></a>
       </div>
     </nav>
     {home && (
       <div class="hero-title">
         <h1>Como podemos ajudar?</h1>
-        <p>Guias passo a passo para configurar sua conta e operar os serviços dos seus imóveis no Yosp.</p>
+        <p>Guias passo a passo para usar cada módulo do Banket, da captação do pedido ao pós-evento.</p>
       </div>
     )}
   </div>

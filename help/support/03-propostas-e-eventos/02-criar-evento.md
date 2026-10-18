@@ -21,10 +21,22 @@ cadastro manual, para pedidos recebidos por telefone, WhatsApp ou pessoalmente.
 
 1. No menu lateral, clique em **Propostas**.
 2. Clique em **Novo evento**.
+
+   ![Botão Novo evento no Painel de Propostas](01-criar-evento.webp)
+
 3. No card **Cliente**, escolha um cliente já cadastrado no campo **Cliente**, ou clique em **+ Cadastrar novo cliente**
    e preencha **Tipo de pessoa**, **CPF** ou **CNPJ**, **Nome / razão social**, **E-mail** e **Telefone**.
+
+   ![Cadastro de um novo cliente dentro do formulário do evento](02-criar-evento.webp)
+
+   ![Cliente já cadastrado escolhido no campo Cliente](03-criar-evento.webp)
+
 4. Preencha os demais cards com o que você já sabe do pedido (veja a tabela abaixo). Só o cliente é obrigatório.
 5. Clique em **Criar evento**.
+
+   ![Botão Criar evento no fim do formulário](08-criar-evento.webp)
+
+   ![Evento criado: o resumo abre com a mensagem Evento criado.](09-criar-evento.webp)
 
 O evento abre no **Resumo do evento**, já com a mensagem "Evento criado.". Ele entra na primeira etapa do funil
 (a etapa de entrada), a menos que você tenha escolhido outra.
@@ -45,6 +57,8 @@ O evento abre no **Resumo do evento**, já com a mensagem "Evento criado.". Ele 
 | Formato de serviço | Serviço volante, Buffet, Ilhas gastronômicas, Empratado, Coquetel… |
 | Duração do evento (horas) e Duração da alimentação (horas) | Quanto tempo dura o evento e o serviço de comida |
 
+![Card Detalhes do evento preenchido](04-criar-evento.webp)
+
 ### Responsável
 
 Nome, e-mail e WhatsApp de quem está organizando o evento (pode ser diferente do cliente, por exemplo, a secretária de
@@ -52,6 +66,8 @@ uma empresa). Aqui também ficam a **Qualificação do cliente** (Alta, Média o
 (degustação, visita ao espaço ou apenas a estimativa inicial).
 
 O e-mail do responsável é sugerido como destinatário quando você envia a proposta.
+
+![Card Responsável preenchido](05-criar-evento.webp)
 
 ### Logística e infraestrutura
 
@@ -62,6 +78,8 @@ O e-mail do responsável é sugerido como destinatário quando você envia a pro
 
 O espaço define a locação calculada no orçamento. Cadastre seus espaços no menu **Espaços**.
 
+![Escolha do espaço e infraestrutura do evento](06-criar-evento.webp)
+
 ### Orçamento e pagamento
 
 **Estimativa de verba total (R$)**, **Verba por pessoa (R$)** e **Forma de pagamento** (ex.: 30/60 dias). A verba
@@ -71,6 +89,8 @@ aparece no Painel de Propostas enquanto o evento não tem orçamento.
 
 **Estilo principal**, **Estilo secundário**, **Bebidas alcoólicas**, **Bebidas sem álcool** e **Restrições
 alimentares** (Vegetariano, Vegano, Sem glúten, Sem lactose, Alergias).
+
+![Estilo gastronômico, bebidas e restrições alimentares](07-criar-evento.webp)
 
 ### Compliance, staff de terceiros e comentários
 
