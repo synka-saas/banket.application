@@ -1,0 +1,19 @@
+# Fora do contexto do build: segredos, dependências do host, dados coletados e o que não entra na imagem
+.env
+.env.*
+!.env.example
+.git
+node_modules
+dist
+.astro
+.vitest
+test-results
+playwright-report
+base
+scrapping
+site
+design-system
+*.md
+!README.md
+.deploy-ativo
+Makefile

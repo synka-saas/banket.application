@@ -6,9 +6,13 @@ ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 RUN npm run build
+
+# Só as dependências de produção para a imagem final (o estágio builder segue completo para o dev)
+FROM builder AS producao
+RUN npm prune --omit=dev
 
 FROM node:22-alpine AS runtime
 
@@ -16,7 +20,8 @@ RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefo
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
 
 WORKDIR /app
-COPY --from=builder /app/node_modules ./node_modules
+ENV NODE_ENV=production
+COPY --from=producao /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/scripts ./scripts

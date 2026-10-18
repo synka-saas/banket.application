@@ -116,7 +116,7 @@ export async function enviarProposta(
   if (recente.rowCount) throw new UserError(`Esta versão acabou de ser enviada para ${para}. Aguarde um minuto para reenviar.`);
 
   const ctx = await contextoEnvio(db, eventoId, input.numero);
-  const pdf = await pdfDaVersao(db, user, eventoId, input.numero);
+  const pdf = await pdfDaVersao(user, eventoId, input.numero);
   // A proposta abre (ou continua) a conversa do usuário com o cliente neste evento: as respostas chegam no Inbox
   const conversa = await obterOuCriarConversa(db, user, eventoId, {
     assunto: input.assunto,

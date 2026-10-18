@@ -20,7 +20,8 @@ porta() {
   if [ "$1" = blue ]; then p="$(variavel APP_PORT_BLUE)"; echo "${p:-5168}"
   else p="$(variavel APP_PORT_GREEN)"; echo "${p:-5169}"; fi
 }
-responde() { curl -sf -o /dev/null --max-time 5 "http://127.0.0.1:$1/auth/login"; }
+# /api/health confere também o banco: uma cor sem banco não recebe tráfego
+responde() { curl -sf -o /dev/null --max-time 5 "http://127.0.0.1:$1/api/health"; }
 erro() { echo "✗ $*" >&2; exit 1; }
 
 ATIVA="$(cat "$ESTADO" 2>/dev/null || echo blue)"

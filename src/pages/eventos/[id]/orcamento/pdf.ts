@@ -9,13 +9,14 @@ import { carregarOrcamento } from '../../../../server/orcamento';
 export const GET: APIRoute = async ({ params, url, locals, cookies, redirect }) => {
   const eventoId = params.id!;
   try {
-    const pdf = await withTenant(locals.user.tenantId, async (db) => {
+    const numero = await withTenant(locals.user.tenantId, async (db) => {
       const orc = await carregarOrcamento(db, eventoId);
       if (!orc) throw new Error('Este evento ainda não tem orçamento.');
       const pedida = Number.parseInt(url.searchParams.get('versao') ?? '', 10);
-      const numero = orc.versoes.some((v) => v.numero === pedida) ? pedida : orc.versao_atual;
-      return pdfDaVersao(db, locals.user, eventoId, numero);
+      return orc.versoes.some((v) => v.numero === pedida) ? pedida : orc.versao_atual;
     });
+    // Fora da transação: o Chromium leva segundos e a página de impressão usa outra conexão
+    const pdf = await pdfDaVersao(locals.user, eventoId, numero);
     return respostaPdf(pdf, url.searchParams.get('ver') !== '1');
   } catch (err) {
     setFlash(cookies, 'error', err instanceof Error && err.message.startsWith('Este evento') ? err.message : userMessage(err, 'Não foi possível gerar o PDF.'));

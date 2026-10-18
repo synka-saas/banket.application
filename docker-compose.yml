@@ -14,6 +14,8 @@ services:
       - APP_URL=${APP_URL:-http://localhost:4321}
       - BUSCA_URL=${BUSCA_URL:-}
       - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - DB_POOL_VITRINE=${DB_POOL_VITRINE:-}
+      - BANKET_SEM_AGENDADOR=${BANKET_SEM_AGENDADOR:-}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
       - RESEND_INBOUND_DOMAIN=${RESEND_INBOUND_DOMAIN:-}
@@ -49,7 +51,8 @@ services:
   postgres:
     image: postgres:15-alpine
     ports:
-      - "5432:5432"
+      # Só no próprio computador: o banco de dev usa as senhas padrão
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-banket_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banket_pass}

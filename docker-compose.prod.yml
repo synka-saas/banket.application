@@ -9,17 +9,19 @@ x-webapp: &webapp
   restart: unless-stopped
   environment:
     # Papel da aplicação (sem superuser, sujeito a RLS)
-    - DATABASE_URL=postgres://${APP_DB_USER:-banket_app}:${APP_DB_PASSWORD:-banket_app_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+    - DATABASE_URL=postgres://${APP_DB_USER:-banket_app}:${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}@postgres:5432/${POSTGRES_DB:-banket_db}
     # Dono das tabelas: usado só em migrations e fluxos de sistema (login, cadastro, convites)
-    - DATABASE_URL_SYSTEM=postgres://${POSTGRES_USER:-banket_user}:${POSTGRES_PASSWORD:-banket_pass}@postgres:5432/${POSTGRES_DB:-banket_db}
+    - DATABASE_URL_SYSTEM=postgres://${POSTGRES_USER:-banket_user}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}@postgres:5432/${POSTGRES_DB:-banket_db}
     - APP_DB_USER=${APP_DB_USER:-banket_app}
-    - APP_DB_PASSWORD=${APP_DB_PASSWORD:-banket_app_pass}
+    - APP_DB_PASSWORD=${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
     - JWT_SECRET=${JWT_SECRET:?defina JWT_SECRET no .env}
     - APP_URL=${APP_URL:-http://localhost:4321}
     - BUSCA_URL=${BUSCA_URL:-}
     - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
     # Equipe Banket: e-mails (separados por vírgula) que veem /equipe/reivindicacoes e recebem os pedidos do Busca
     - BANKET_EQUIPE_EMAILS=${BANKET_EQUIPE_EMAILS:-}
+    - DB_POOL_VITRINE=${DB_POOL_VITRINE:-}
+    - BANKET_SEM_AGENDADOR=${BANKET_SEM_AGENDADOR:-}
     - RESEND_API_KEY=${RESEND_API_KEY:-}
     - MAIL_FROM=${MAIL_FROM:-Banket <nao-responda@banket.com.br>}
     - RESEND_INBOUND_DOMAIN=${RESEND_INBOUND_DOMAIN:-}
@@ -79,7 +81,7 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-banket_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-banket_pass}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       - POSTGRES_DB=${POSTGRES_DB:-banket_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data

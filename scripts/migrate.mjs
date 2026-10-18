@@ -108,6 +108,9 @@ async function ensureAppRole() {
 
 try {
   await client.connect();
+  // Uma subida por vez (blue e green juntas, rollback no meio de um deploy): a outra espera aqui e depois só confere
+  // que está tudo aplicado. O lock cai sozinho quando a conexão fecha.
+  await client.query('SELECT pg_advisory_lock(hashtext($1))', ['banket:migrate']);
   await applyDir(path.join(root, 'db/migrations'), 'schema_migrations');
   if (withSeeds) await applyDir(path.join(root, 'db/seeds'), 'schema_seeds');
   await ensureAppRole();
