@@ -38,7 +38,7 @@ if (Astro.request.method === 'POST') {
           return 'Convite reenviado.';
         }
         if (data._action === 'cancelar' && id) {
-          await cancelarConvite(db, id);
+          await cancelarConvite(db, actor, id);
           return 'Convite cancelado.';
         }
         const input = conviteSchema.parse(data);

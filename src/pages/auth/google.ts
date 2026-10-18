@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
+import { destinoInterno } from '../../lib/auth';
 import { setFlash } from '../../lib/flash';
 import { assinarEstado, googleConfigurado, urlAutorizacao } from '../../lib/google';
 
@@ -12,7 +13,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
     return redirect('/auth/login');
   }
   const nextParam = url.searchParams.get('next') ?? '';
-  const next = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : undefined;
+  const next = destinoInterno(nextParam) ?? undefined;
   const nonce = crypto.randomBytes(16).toString('base64url');
   cookies.set(NONCE_COOKIE, nonce, { path: '/auth', httpOnly: true, secure: import.meta.env.PROD, sameSite: 'lax', maxAge: 600 });
   const state = await assinarEstado({ modo: 'login', next, nonce });

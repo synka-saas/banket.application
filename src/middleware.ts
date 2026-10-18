@@ -34,8 +34,9 @@ const LIBERADAS_SUSPENSA = new Set([PAGINA_SUSPENSA, '/api/sessao/empresa']);
 function isPublic(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;
-  // Arquivos estáticos de /public (logo, favicon, imagens). Uploads são sempre protegidos.
-  return !pathname.startsWith('/uploads/') && /\.(png|jpe?g|svg|ico|webp|gif|css|js|map|woff2?|ttf|txt)$/i.test(pathname);
+  // Arquivos estáticos de /public (logo, favicon, imagens): só na raiz ou nas pastas de /public. Uma rota dinâmica com
+  // extensão no fim (/eventos/x.png) não vira pública. Uploads são sempre protegidos.
+  return /^\/(?:(?:busca|busca-demo|fonts|ref)\/(?:[^/]+\/)*)?[^/]+\.(?:png|jpe?g|svg|ico|webp|gif|css|js|map|woff2?|ttf|txt|pdf)$/i.test(pathname);
 }
 
 // Cabeçalhos de segurança em todas as respostas. O formulário público (/f/) pode ser incorporado

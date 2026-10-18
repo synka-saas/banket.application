@@ -19,5 +19,9 @@ export const GET: APIRoute = async ({ params, locals }) => {
   };
   // Anexos de e-mails recebidos (inbox) vêm de fora: sempre como download, nunca renderizados na origem do app
   if (key.startsWith('mensagens/')) headers['Content-Disposition'] = 'attachment';
+  // SVG pode levar script: aberto direto na aba, roda isolado (sandbox, sem script); dentro de <img> nada muda
+  if (headers['Content-Type'] === 'image/svg+xml') {
+    headers['Content-Security-Policy'] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox";
+  }
   return new Response(new Uint8Array(file), { headers });
 };

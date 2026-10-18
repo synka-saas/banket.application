@@ -152,3 +152,18 @@ export function clearOnboardingCookie(cookies: AstroCookies) {
   const dominio = dominioCookies();
   cookies.delete(ONBOARDING_COOKIE, { path: '/auth', ...(dominio ? { domain: dominio } : {}) });
 }
+
+/**
+ * Destino de redirecionamento depois do login (`?next=`), só se for um caminho deste site. Recusa "//host" e "/\host"
+ * (o navegador trata a barra invertida como barra) e qualquer coisa que, resolvida, saia da própria origem.
+ */
+export function destinoInterno(next: string | null | undefined): string | null {
+  if (!next || !next.startsWith('/') || /[\\\u0000-\u001f]/.test(next)) return null;
+  try {
+    const base = 'http://banket.invalid';
+    const url = new URL(next, base);
+    return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : null;
+  } catch {
+    return null;
+  }
+}

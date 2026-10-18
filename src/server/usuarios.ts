@@ -166,20 +166,26 @@ export async function convidarUsuario(db: Db, actor: SessionUser, input: z.infer
   await enviarEmailConvite(db, input.email, input.nome, input.role, token, actor.nome);
 }
 
+// Convite de proprietário é assunto de proprietário: admin não reenvia nem cancela (como não convida nem altera owners)
+const SO_OWNER_MEXE_EM_OWNER = `($4 = 'owner' OR payload->>'role' IS DISTINCT FROM 'owner')`;
+
 export async function reenviarConvite(db: Db, actor: SessionUser, conviteId: string) {
   const token = generateToken();
   const { rows } = await db.query<{ email: string; nome: string; role: Role }>(
     `UPDATE auth_tokens SET token_hash = $1, expira_em = now() + ($2 || ' days')::interval
-      WHERE id = $3 AND tipo = 'convite' AND usado_em IS NULL
+      WHERE id = $3 AND tipo = 'convite' AND usado_em IS NULL AND ${SO_OWNER_MEXE_EM_OWNER}
       RETURNING email, payload->>'nome' AS nome, payload->>'role' AS role`,
-    [hashToken(token), CONVITE_VALIDADE_DIAS, conviteId]
+    [hashToken(token), CONVITE_VALIDADE_DIAS, conviteId, actor.role]
   );
   if (!rows[0]) throw new UserError('Convite não encontrado.');
   await enviarEmailConvite(db, rows[0].email, rows[0].nome, rows[0].role, token, actor.nome);
 }
 
-export async function cancelarConvite(db: Db, conviteId: string) {
-  const res = await db.query(`DELETE FROM auth_tokens WHERE id = $1 AND tipo = 'convite' AND usado_em IS NULL`, [conviteId]);
+export async function cancelarConvite(db: Db, actor: SessionUser, conviteId: string) {
+  const res = await db.query(
+    `DELETE FROM auth_tokens WHERE id = $1 AND tipo = 'convite' AND usado_em IS NULL AND ($2 = 'owner' OR payload->>'role' IS DISTINCT FROM 'owner')`,
+    [conviteId, actor.role]
+  );
   if (!res.rowCount) throw new UserError('Convite não encontrado.');
 }
 
