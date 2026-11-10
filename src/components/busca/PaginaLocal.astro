@@ -2,7 +2,7 @@
 // Página de categoria e/ou local do Banket Busca (/{categoria}/…, /buffets-em/…), renderizada no servidor: breadcrumb
 // visível + BreadcrumbList, H1 "{Categoria} em {Cidade}", introdução única, a lista do local (mesmos cards e filtros da
 // busca; os filtros levam a /buscar, noindex), paginação com links reais e os links internos (bairros/cidades, outras
-// categorias, página do local). Abaixo do piso de perfis completos: noindex,follow (e fora do sitemap).
+// categorias, página do local). Com ao menos um buffet publicado: indexável e incluída no sitemap.
 import VitrineLayout from '../../layouts/VitrineLayout.astro';
 import FormBusca from './FormBusca.astro';
 import Resultados from './Resultados.astro';

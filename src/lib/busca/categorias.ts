@@ -39,9 +39,6 @@ export const CATEGORIAS: Categoria[] = [
 /** Prefixo das páginas só de local. */
 export const PREFIXO_LOCAL = 'buffets-em';
 
-/** Mínimo de buffets com perfil completo para indexar: cidade e bairro. Abaixo disso, noindex,follow e fora do sitemap. */
-export const PISO_CIDADE = 5;
-export const PISO_BAIRRO = 8;
 
 /** Buffets por página nas listagens de categoria e local. */
 export const POR_PAGINA_LOCAL = 24;

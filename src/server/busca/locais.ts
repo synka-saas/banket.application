@@ -1,14 +1,12 @@
 // Páginas de categoria e de local do Banket Busca (/{categoria}/…, /buffets-em/…): o inventário dos perfis publicados
 // (cidade, bairro, tipos, serviços e se o perfil está completo) fica em memória por alguns minutos e decide quais páginas
-// existem, quais são indexáveis (pisos de lib/busca/categorias.ts), o que entra nos sitemaps e os links internos.
+// existem, quais são indexáveis (ao menos um buffet), o que entra nos sitemaps e os links internos.
 // A lista de cada página vem de buffetsPorIds (mesmos cards e ranking da busca). Leitura pública: só perfis publicados.
 import { buffetsPorIds, leituraPublica, PERFIL_VISIVEL, type Cidade, type ItemResultado } from './publico';
 import { ARQUIVO_FOTO_PADRAO } from '../../lib/busca/url';
 import { TIPOS_EVENTO, rotuloServico } from '../../lib/busca/catalogos';
 import {
   CATEGORIAS,
-  PISO_BAIRRO,
-  PISO_CIDADE,
   POR_PAGINA_LOCAL,
   caminhoCategoria,
   caminhoLocal,
@@ -49,7 +47,7 @@ interface Inventario {
 const VALIDADE_MS = 10 * 60_000;
 let cache: { em: number; dados: Promise<Inventario> } | null = null;
 
-/** Inventário dos perfis publicados (cache de 10 min por processo; a página nova entra sozinha ao atingir o piso). */
+/** Inventário dos perfis publicados (cache de 10 min por processo; a página nova entra assim que tem um buffet). */
 export function inventario(): Promise<Inventario> {
   if (!cache || Date.now() - cache.em > VALIDADE_MS) {
     const dados = carregar().catch((e) => {
@@ -107,9 +105,8 @@ function doLocal(perfis: PerfilInventario[], cidadeId: number | null, bairro: st
 
 const daCategoria = (perfis: PerfilInventario[], cat: Categoria | null) => (cat ? perfis.filter((p) => encaixa(p, cat)) : perfis);
 
-/** Piso de indexação: bairro 8, cidade (e hub nacional) 5 buffets com perfil completo. */
-export const indexavel = (lista: PerfilInventario[], bairro: string | null) =>
-  lista.filter((p) => p.completo).length >= (bairro ? PISO_BAIRRO : PISO_CIDADE);
+/** Toda página com ao menos um buffet publicado e visível pode ser indexada. */
+export const indexavel = (lista: PerfilInventario[], _bairro: string | null) => lista.length > 0;
 
 /** Nome mais usado de um bairro (o mesmo slug pode vir escrito de jeitos diferentes). */
 function nomeDoBairro(lista: PerfilInventario[], slug: string): string | null {
