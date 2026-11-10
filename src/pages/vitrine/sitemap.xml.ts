@@ -4,6 +4,7 @@ import { respostaIndiceSitemap } from '../../server/busca/sitemap';
 
 // Um único endereço para enviar ao Search Console; cada arquivo agrupa um tipo de URL.
 export const GET: APIRoute = () => respostaIndiceSitemap([
+  buscaUrl('/sitemap-paginas.xml'),
   buscaUrl('/sitemap-categorias.xml'),
   buscaUrl('/sitemap-cidades.xml'),
   buscaUrl('/sitemap-perfis.xml'),

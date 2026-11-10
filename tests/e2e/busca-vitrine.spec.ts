@@ -172,7 +172,7 @@ test.describe('Banket Busca: vitrine', () => {
     const sitemap = await request.get(`${V}/sitemap-cidades.xml`);
     expect(sitemap.headers()['content-type']).toContain('application/xml');
     const indice = await (await request.get(`${V}/sitemap.xml`)).text();
-    for (const grupo of ['categorias', 'cidades', 'perfis']) expect(indice).toContain(`/sitemap-${grupo}.xml</loc>`);
+    for (const grupo of ['paginas', 'categorias', 'cidades', 'perfis']) expect(indice).toContain(`/sitemap-${grupo}.xml</loc>`);
     const perfis = await (await request.get(`${V}/sitemap-perfis.xml`)).text();
     expect(perfis).toContain('/buffet/');
     expect(perfis).not.toContain('/buffet/sabores-do-abc</loc>');

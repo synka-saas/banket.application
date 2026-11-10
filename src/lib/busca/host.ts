@@ -19,7 +19,7 @@ const DIRETOS = ['/_astro/', '/_image', '/busca-media/', '/busca-demo/', '/api/v
 export const AREA_NO_HOST_BUSCA: string[] = [];
 /** Rotas da vitrine (servidas por /vitrine no host do Busca), inclusive as páginas de categoria e de local. */
 export const VITRINE = [
-  '/buscar', '/buffet', '/orcamento', '/para-buffets', '/avaliar', '/sitemap.xml', '/sitemap-categorias.xml', '/sitemap-cidades.xml', '/sitemap-perfis.xml',
+  '/buscar', '/buffet', '/orcamento', '/para-buffets', '/avaliar', '/sitemap.xml', '/sitemap-categorias.xml', '/sitemap-cidades.xml', '/sitemap-perfis.xml', '/sitemap-paginas.xml',
   '/robots.txt', `/${PREFIXO_LOCAL}`, ...CATEGORIAS.map((c) => `/${c.slug}`),
 ];
 const ESTATICO = /\.(png|jpe?g|svg|ico|webp|gif|css|js|map|woff2?|ttf|txt)$/i;

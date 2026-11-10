@@ -1232,15 +1232,15 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
 ### Banket Busca: vitrine pública — `/vitrine/*` (em produção, `busca.banket.com.br/*`)
 - **Rotas**: `/` (buscador, tipos com contagem, serviços, "Cidades mais buscadas", como funciona, destaques, depoimentos,
   chamada para buffets), `/buscar` (filtros na URL, `noindex` com canonical para a página-base; sem filtro nem ordenação
-  por preço), `/buffet/[slug]` (perfil), as **páginas de categoria e local** (abaixo), `/sitemap.xml` (índice de categorias, locais e perfis),
-  `/sitemap-categorias.xml`, `/sitemap-cidades.xml`, `/sitemap-perfis.xml`, `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
+  por preço), `/buffet/[slug]` (perfil), as **páginas de categoria e local** (abaixo), `/sitemap.xml` (índice de páginas gerais, categorias, locais e perfis),
+  `/sitemap-categorias.xml`, `/sitemap-cidades.xml`, `/sitemap-perfis.xml`, `/sitemap-paginas.xml` (home), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
   A landing antiga `/buffet/[tipo]/[cidade]` só redireciona (301) para a página nova.
 - **Páginas de categoria e local** (10/11/2026; `lib/busca/categorias.ts`, `server/busca/locais.ts`,
   `components/busca/PaginaLocal.astro`): `/{categoria}/` (hub nacional), `/{categoria}/{cidade-uf}/`,
   `/{categoria}/{cidade-uf}/{bairro}/`, `/buffets-em/{cidade-uf}/` e `/buffets-em/{cidade-uf}/{bairro}/`. Categorias na
   tabela `CATEGORIAS` (todos os tipos de `TIPOS_EVENTO` e a domicílio; o perfil entra por tipo de evento, serviço ou
   `atende_domicilio`); sem página para combinações sem inventário. O índice `/sitemap.xml` aponta para os sitemaps
-  de categorias, cidades/bairros e perfis publicados de empresas ativas; URLs de perfil permanecem iguais.
+  de páginas gerais (home), categorias, cidades/bairros e perfis publicados de empresas ativas; URLs de perfil permanecem iguais.
   Cidade sempre com UF (`busca_cidades.slug`), bairro = `slugTexto(bairro)`, barra final e minúsculas (301). A cidade
   lista os buffets com sede nela ou que a atendem (`busca_perfil_cidades`); o bairro, só os com sede nele. **Indexação**: toda página com ao menos um buffet publicado de empresa ativa é indexável e entra no sitemap,
   independentemente da completude do perfil (inventário em cache de 10 min). Página sem buffet = 404. Template:

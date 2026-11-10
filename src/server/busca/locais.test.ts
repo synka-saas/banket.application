@@ -17,6 +17,8 @@ vi.mock('./publico', () => ({
 
 import { paginaLocal, paginasIndexaveis } from './locais';
 import { GET } from '../../pages/vitrine/sitemap.xml';
+import { buscaUrl } from '../../lib/busca/url';
+import { GET as gerais } from '../../pages/vitrine/sitemap-paginas.xml';
 import { GET as categorias } from '../../pages/vitrine/sitemap-categorias.xml';
 import { GET as cidades } from '../../pages/vitrine/sitemap-cidades.xml';
 import { GET as perfis } from '../../pages/vitrine/sitemap-perfis.xml';
@@ -40,13 +42,14 @@ describe('indexação com um buffet publicado, mesmo sem perfil completo', () =>
     expect(await paginaLocal(null, 'cidade-atendida-sp', 'centro')).toBeNull();
   });
 
-  it('liga os três sitemaps ao índice e entrega as URLs de cada grupo', async () => {
+  it('liga os quatro sitemaps ao índice e entrega as URLs de cada grupo', async () => {
     const contexto = {} as Parameters<typeof GET>[0];
     const resposta = await GET(contexto);
     const xml = await resposta.text();
     expect(xml).toContain('<sitemapindex');
-    expect(xml.match(/<loc>/g)).toHaveLength(3);
-    for (const grupo of ['categorias', 'cidades', 'perfis']) expect(xml).toContain(`/sitemap-${grupo}.xml</loc>`);
+    expect(xml.match(/<loc>/g)).toHaveLength(4);
+    for (const grupo of ['paginas', 'categorias', 'cidades', 'perfis']) expect(xml).toContain(`/sitemap-${grupo}.xml</loc>`);
+    expect(await (await gerais(contexto)).text()).toContain(`<loc>${buscaUrl('/')}</loc>`);
     const [cat, cid, perfil] = await Promise.all([categorias(contexto), cidades(contexto), perfis(contexto)]);
     const catXml = await cat.text();
     expect(catXml.match(/<url>/g)).toHaveLength(4);
