@@ -49,7 +49,7 @@ na coluna de entrada do **Painel de Propostas**. Você só precisa abrir o pedid
 | Perfil do público | Perfil dos convidados |
 | Nosso espaço / Local externo | Local: **Nosso espaço** usa o espaço padrão da empresa; externo fica como local externo |
 | Infraestrutura do local | Infraestrutura |
-| Região / CEP | Endereço |
+| Endereço do evento (CEP e endereço completo) | Endereço |
 | Nome, e-mail e WhatsApp | Responsável pelo evento |
 | Gostaria de agendar uma degustação? | Convite para experiência |
 | Bebidas e bar | Bebidas alcoólicas |

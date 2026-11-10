@@ -8,6 +8,7 @@ import { formularioPublico } from '../../server/formularios';
 import { perguntaExibida } from '../../lib/formularios/modelo';
 import { lerTokenSessao, verifySession } from '../../lib/auth';
 import { TIPOS_EVENTO } from '../../lib/busca/catalogos';
+import { UFS } from '../../lib/endereco';
 
 // Prévia para o dono (UX-076): com sessão da mesma empresa, mostra também formulário inativo, sem aceitar envio.
 // A rota é pública, então a sessão é lida direto do cookie (sem exigir login).
@@ -112,7 +113,55 @@ const mensagemSucesso =
                 {p.tipo === 'texto_longo' && (
                   <textarea id={`fp-${p.id}`} name={p.id} rows="5" maxlength="5000" placeholder={p.placeholder ?? ''} class="fp-input"></textarea>
                 )}
-                {['texto', 'email', 'telefone', 'numero', 'data'].includes(p.tipo) && (
+                {p.endereco && (
+                  <div class="fp-endereco" data-endereco>
+                    <div class="fp-cep">
+                      <input
+                        id={`fp-${p.id}`}
+                        class="fp-input"
+                        inputmode="numeric"
+                        autocomplete="postal-code"
+                        maxlength="9"
+                        placeholder={p.placeholder ?? '00000-000'}
+                        data-mascara="cep"
+                        data-endereco-parte="cep"
+                      />
+                      <button type="button" class="fp-link" data-endereco-manual>Não sei o CEP</button>
+                    </div>
+                    <p class="fp-cep-estado" data-cep-estado aria-live="polite" hidden></p>
+                    <input type="hidden" name={p.id} data-endereco-valor />
+                    <div class="fp-endereco-campos" data-endereco-campos hidden>
+                      <label class="fp-endereco-rua">
+                        <span>Rua / avenida</span>
+                        <input class="fp-input" maxlength="150" autocomplete="address-line1" data-endereco-parte="logradouro" />
+                      </label>
+                      <label class="fp-endereco-numero">
+                        <span>Número</span>
+                        <input class="fp-input" maxlength="20" data-endereco-parte="numero" />
+                      </label>
+                      <label class="fp-endereco-metade">
+                        <span>Complemento <small>(opcional)</small></span>
+                        <input class="fp-input" maxlength="80" autocomplete="address-line2" placeholder="Bloco, sala, ponto de referência" data-endereco-parte="complemento" />
+                      </label>
+                      <label class="fp-endereco-metade">
+                        <span>Bairro</span>
+                        <input class="fp-input" maxlength="80" data-endereco-parte="bairro" />
+                      </label>
+                      <label class="fp-endereco-rua">
+                        <span>Cidade</span>
+                        <input class="fp-input" maxlength="80" autocomplete="address-level2" data-endereco-parte="cidade" />
+                      </label>
+                      <label class="fp-endereco-numero">
+                        <span>UF</span>
+                        <select class="fp-input" autocomplete="address-level1" data-endereco-parte="uf">
+                          <option value="">—</option>
+                          {UFS.map((uf) => <option value={uf}>{uf}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {!p.endereco && ['texto', 'email', 'telefone', 'numero', 'data'].includes(p.tipo) && (
                   <input
                     id={`fp-${p.id}`}
                     name={p.id}
@@ -182,6 +231,7 @@ const mensagemSucesso =
 <script>
   import { toast as mostrarToast, type ToastTipo } from '../../lib/ui';
   import { telefoneValido } from '../../lib/mascaras';
+  import { buscarCep, cepDigitos, enderecoCompleto, type PartesEndereco } from '../../lib/endereco';
   const form = document.getElementById('fp-form') as HTMLFormElement | null;
   if (form) iniciar(form);
 
@@ -264,6 +314,13 @@ const mensagemSucesso =
           marcarErro(el, mensagemTelefone(el));
           return false;
         }
+        const endereco = el.querySelector<HTMLElement>('[data-endereco]');
+        const problema = endereco ? problemaNoEndereco(endereco) : null;
+        if (problema) {
+          marcarErro(el, problema.mensagem);
+          problema.campo.focus();
+          return false;
+        }
       }
       return true;
     }
@@ -295,6 +352,8 @@ const mensagemSucesso =
         form.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
           const v = valor(el.dataset.pergunta!);
           if (v !== null && !(Array.isArray(v) && v.length === 0)) dados[el.dataset.pergunta!] = v;
+          const endereco = el.querySelector<HTMLElement>('[data-endereco]');
+          if (endereco) dados[`_endereco:${el.dataset.pergunta}`] = partesDoEndereco(endereco);
         });
         sessionStorage.setItem(chaveRascunho, JSON.stringify(dados));
       } catch {
@@ -306,6 +365,11 @@ const mensagemSucesso =
         const bruto = sessionStorage.getItem(chaveRascunho);
         if (!bruto) return;
         const dados = JSON.parse(bruto) as Record<string, string | string[]>;
+        form.querySelectorAll<HTMLElement>('.fp-pergunta').forEach((el) => {
+          const endereco = el.querySelector<HTMLElement>('[data-endereco]');
+          const partes = dados[`_endereco:${el.dataset.pergunta}`] as unknown as PartesEndereco | undefined;
+          if (endereco && partes && typeof partes === 'object') restaurarEndereco(endereco, partes);
+        });
         for (const [nome, v] of Object.entries(dados)) {
           const campos = [...form.querySelectorAll<HTMLInputElement>(`[name="${CSS.escape(nome)}"]`)];
           if (!campos.length) continue;
@@ -513,6 +577,97 @@ const mensagemSucesso =
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       btnAvancar.click();
+    });
+
+    // ---------- Endereço pelo CEP (ViaCEP) ----------
+    // O CEP completo consulta a ViaCEP e abre os campos já preenchidos para completar (número, complemento);
+    // sem CEP, "Não sei o CEP" abre os campos vazios. A resposta da pergunta é o endereço montado em texto.
+    const parte = (end: HTMLElement, nome: keyof PartesEndereco) =>
+      end.querySelector<HTMLInputElement>(`[data-endereco-parte="${nome}"]`)!;
+    const PARTES: (keyof PartesEndereco)[] = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'];
+
+    function partesDoEndereco(end: HTMLElement): PartesEndereco {
+      return Object.fromEntries(PARTES.map((n) => [n, parte(end, n).value.trim()])) as PartesEndereco;
+    }
+
+    function atualizarEndereco(end: HTMLElement) {
+      end.querySelector<HTMLInputElement>('[data-endereco-valor]')!.value = enderecoCompleto(partesDoEndereco(end)) ?? '';
+    }
+
+    function abrirCampos(end: HTMLElement) {
+      end.querySelector<HTMLElement>('[data-endereco-campos]')!.hidden = false;
+      end.querySelector<HTMLElement>('[data-endereco-manual]')!.hidden = true;
+    }
+
+    function estadoCep(end: HTMLElement, texto: string) {
+      const el = end.querySelector<HTMLElement>('[data-cep-estado]')!;
+      el.textContent = texto;
+      el.hidden = !texto;
+    }
+
+    function restaurarEndereco(end: HTMLElement, partes: PartesEndereco) {
+      for (const n of PARTES) parte(end, n).value = partes[n] ?? '';
+      end.dataset.cepBuscado = cepDigitos(partes.cep);
+      if (PARTES.some((n) => n !== 'cep' && partes[n])) abrirCampos(end);
+      atualizarEndereco(end);
+    }
+
+    async function consultarCep(end: HTMLElement) {
+      const cep = cepDigitos(parte(end, 'cep').value);
+      if (cep.length !== 8 || end.dataset.cepBuscado === cep) return;
+      end.dataset.cepBuscado = cep;
+      estadoCep(end, 'Buscando o endereço…');
+      let achado: Awaited<ReturnType<typeof buscarCep>> = null;
+      let falhou = false;
+      try {
+        achado = await buscarCep(cep);
+      } catch {
+        falhou = true;
+      }
+      // Outro CEP digitado enquanto esperava: vale a consulta mais nova
+      if (cepDigitos(parte(end, 'cep').value) !== cep) return;
+      abrirCampos(end);
+      if (achado) {
+        parte(end, 'logradouro').value = achado.logradouro;
+        parte(end, 'bairro').value = achado.bairro;
+        parte(end, 'cidade').value = achado.cidade;
+        parte(end, 'uf').value = achado.uf;
+        estadoCep(end, '');
+        (achado.logradouro ? parte(end, 'numero') : parte(end, 'logradouro')).focus();
+      } else {
+        estadoCep(end, falhou ? 'Não foi possível consultar o CEP agora. Preencha o endereço abaixo.' : 'CEP não encontrado. Confira o número ou preencha o endereço abaixo.');
+        parte(end, 'logradouro').focus();
+      }
+      atualizarEndereco(end);
+      salvarRascunho();
+    }
+
+    /** Endereço começado e incompleto: CEP pela metade ou campos abertos sem rua, número, cidade ou UF. */
+    function problemaNoEndereco(end: HTMLElement): { mensagem: string; campo: HTMLElement } | null {
+      const p = partesDoEndereco(end);
+      const cep = cepDigitos(p.cep);
+      if (cep && cep.length !== 8) return { mensagem: 'Informe o CEP com 8 números, como 01310-100.', campo: parte(end, 'cep') };
+      if (end.querySelector<HTMLElement>('[data-endereco-campos]')!.hidden) return null;
+      const algum = PARTES.some((n) => n !== 'uf' && p[n]);
+      if (!algum) return null;
+      const falta = (['logradouro', 'numero', 'cidade', 'uf'] as const).find((n) => !p[n]);
+      return falta ? { mensagem: 'Complete o endereço: rua, número, cidade e UF.', campo: parte(end, falta) } : null;
+    }
+
+    form.querySelectorAll<HTMLElement>('[data-endereco]').forEach((end) => {
+      end.addEventListener('input', (e) => {
+        const alvo = e.target as HTMLElement;
+        if (alvo.dataset.enderecoParte === 'cep') {
+          estadoCep(end, '');
+          void consultarCep(end);
+        }
+        atualizarEndereco(end);
+      });
+      end.addEventListener('change', () => atualizarEndereco(end));
+      end.querySelector('[data-endereco-manual]')!.addEventListener('click', () => {
+        abrirCampos(end);
+        parte(end, 'logradouro').focus();
+      });
     });
 
     form.addEventListener('input', salvarRascunho);
@@ -786,6 +941,76 @@ const mensagemSucesso =
   .fp-input:focus {
     border-color: var(--border-focus);
     box-shadow: var(--focus-ring);
+  }
+
+  /* ---------- Endereço pelo CEP: CEP + "Não sei o CEP" e os campos que abrem para completar ---------- */
+  .fp-endereco {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .fp-cep {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .fp-cep .fp-input {
+    max-width: 180px;
+  }
+
+  .fp-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-link);
+    cursor: pointer;
+  }
+
+  .fp-link:hover {
+    text-decoration: underline;
+  }
+
+  .fp-cep-estado {
+    margin: 0;
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .fp-endereco-campos {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .fp-endereco-campos label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1-5);
+    font-size: var(--fs-13);
+    font-weight: var(--fw-medium);
+    color: var(--text-heading);
+  }
+
+  .fp-endereco-campos small {
+    font-weight: var(--fw-regular);
+    color: var(--text-muted);
+  }
+
+  .fp-endereco-rua {
+    grid-column: span 4;
+  }
+
+  .fp-endereco-numero {
+    grid-column: span 2;
+  }
+
+  .fp-endereco-metade {
+    grid-column: span 3;
   }
 
   /* ---------- Escolha única: cartões selecionáveis ---------- */
@@ -1157,6 +1382,10 @@ const mensagemSucesso =
     /* 16px evita o zoom automático do iOS ao focar o campo */
     .fp-input {
       font-size: var(--fs-16);
+    }
+
+    .fp-endereco-metade {
+      grid-column: span 6;
     }
 
     .fp-sucesso {

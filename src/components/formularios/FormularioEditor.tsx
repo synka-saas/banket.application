@@ -151,6 +151,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       mostrarSe: null,
       origemOpcoes: null,
       opcoesEditaveis: false,
+      endereco: false,
     };
     alterarSecao(rascunho.secao, (s) => ({
       ...s,
@@ -355,7 +356,9 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                         ? p.opcoes.length > 0
                           ? ` · ${p.opcoes.length} ${p.opcoes.length === 1 ? 'espaço próprio' : 'espaços próprios'} (menu Espaços)`
                           : ' · Nenhum espaço próprio ativo no menu Espaços: não aparece no formulário'
-                        : p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
+                        : p.endereco
+                          ? ' · CEP com busca do endereço (ViaCEP)'
+                          : p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
                     {!p.padrao && ' · Personalizada'}
                     {rotuloCondicao(s, p) && ` · ${rotuloCondicao(s, p)}`}
                   </span>

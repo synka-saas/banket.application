@@ -1018,9 +1018,12 @@ evento"); Ctrl/Cmd+clique segue o link. Mostra também as reuniões agendadas (`
   `fluxoOpcoes` dizendo de qual fluxo vêm as ocasiões; pergunta padrão condicional ausente da configuração entra logo
   depois da pergunta de que depende); "Nosso espaço" pergunta **em qual dos espaços próprios** (`espaco`, `origemOpcoes:
   'espacos'`, `espacosDoFormulario`, com a última opção "Ainda não defini qual dos espaços" = `ESPACO_A_DEFINIR`: evento
-  sem espaço, local "Nosso espaço (a definir)"; sem resposta válida, o espaço padrão) e "Região / CEP" só aparece no local
-  externo; as faixas de budget têm `opcoesEditaveis` ("Editar opções" no editor; o valor gravado é o rótulo, em
-  `config.secoes[].perguntas[].opcoes`) e a faixa respondida vai para `eventos.verba_faixa`; o corporativo também pergunta
+  sem espaço, local "Nosso espaço (a definir)"; sem resposta válida, o espaço padrão) e "Endereço do evento" (`regiao`,
+  `endereco: true`) só aparece no local externo: CEP com máscara consultado na ViaCEP (`buscarCep`, `lib/endereco.ts`) que
+  abre os campos rua, número, complemento, bairro, cidade e UF já preenchidos ("Não sei o CEP" abre vazios); a resposta é
+  o texto de `enderecoCompleto` e vai para `eventos.endereco`; as faixas de budget têm `opcoesEditaveis` ("Editar opções"
+  abre o painel lateral `OpcoesDrawer`: grupo Opções com o X de cada uma e o campo para adicionar no fim; o valor gravado
+  é o rótulo, em `config.secoes[].perguntas[].opcoes`) e a faixa respondida vai para `eventos.verba_faixa`; o corporativo também pergunta
   staff de terceiros e restrições (`b2b_staff`, `b2b_restricoes`); "Bebidas e bar" é múltipla escolha; sem a opção "3
   orçamentos comparativos"; WhatsApp/telefone exigem DDD (`telefoneValido`, `lib/mascaras.ts`, no servidor e ao sair do
   campo); abaixo do cartão, os links do Banket (site e Instagram), fora do modo embutido.

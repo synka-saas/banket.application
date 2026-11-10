@@ -133,4 +133,47 @@ test.describe('Formulários', () => {
     const res = await page.goto(`/f/${slug}`);
     expect(res?.status()).toBe(404);
   });
+
+  test('edita as faixas de budget no painel de opções', async ({ page }) => {
+    const nome = `E2E Opções ${Date.now()}`;
+    await login(page);
+    await page.goto('/formularios');
+    await page.getByRole('button', { name: 'Novo formulário' }).click();
+    await page.fill('#nf-nome', nome);
+    await page.getByRole('button', { name: 'Criar formulário' }).click();
+    await page.waitForURL(/\/formularios\/[0-9a-f-]{36}$/);
+    await waitForIslands(page);
+
+    const budget = page.locator('[data-pergunta="b2b_budget"]');
+    await budget.getByRole('button', { name: 'Editar opções' }).click();
+    const painel = page.getByRole('dialog', { name: 'Editar opções' });
+    const opcoes = painel.locator('.fe-opcao-texto');
+    const antes = await opcoes.allInnerTexts();
+    expect(antes.length).toBeGreaterThan(1);
+
+    // Remove a primeira; a nova (por Enter) e a repetida (recusada) vão para o fim do grupo
+    await painel.getByRole('button', { name: `Remover a opção ${antes[0]}` }).click();
+    await painel.getByLabel('Adicionar opção').fill('Acima de R$ 500.000');
+    await painel.getByLabel('Adicionar opção').press('Enter');
+    await painel.getByLabel('Adicionar opção').fill('acima de r$ 500.000');
+    await painel.getByRole('button', { name: 'Adicionar' }).click();
+    await expect(painel.getByText('Esta opção já está na lista.')).toBeVisible();
+    await painel.getByLabel('Adicionar opção').fill('');
+    const esperadas = [...antes.slice(1), 'Acima de R$ 500.000'];
+    await expect(opcoes).toHaveText(esperadas);
+
+    await painel.getByRole('button', { name: 'Aplicar opções' }).click();
+    await expect(painel).toHaveCount(0);
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expectToast(page, 'Formulário salvo.');
+    await waitForIslands(page);
+
+    await budget.getByRole('button', { name: 'Editar opções' }).click();
+    await expect(page.getByRole('dialog', { name: 'Editar opções' }).locator('.fe-opcao-texto')).toHaveText(esperadas);
+    await page.keyboard.press('Escape');
+
+    await page.getByRole('button', { name: 'Excluir' }).click();
+    await confirmarModal(page);
+    await expectToast(page, 'Formulário removido.');
+  });
 });

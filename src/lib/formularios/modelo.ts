@@ -63,6 +63,11 @@ interface PerguntaModelo {
   opcoesEditaveis?: boolean;
   /** Fluxo das ocasiões quando a pergunta fica numa seção de todos os fluxos (ocasião logo depois do tipo). */
   fluxoOpcoes?: Exclude<Fluxo, 'todos'>;
+  /**
+   * Endereço pelo CEP: a página pública mostra o CEP com máscara, consulta a ViaCEP e abre os campos do endereço
+   * para completar; a resposta é o endereço montado em texto (enderecoCompleto).
+   */
+  endereco?: boolean;
 }
 
 export type OrigemOpcoes = 'ocasioes' | 'espacos';
@@ -158,10 +163,12 @@ export const MODELO_SECOES: SecaoModelo[] = [
       },
       {
         chave: 'regiao',
-        rotulo: 'Região / CEP',
+        rotulo: 'Endereço do evento',
         tipo: 'texto',
-        placeholder: '00000-000 ou bairro/cidade',
+        placeholder: '00000-000',
+        ajuda: 'Digite o CEP e preenchemos rua, bairro e cidade. Depois é só completar o número.',
         obrigatoria: false,
+        endereco: true,
         mostrarSe: { chave: 'local_tipo', valor: 'externo' },
       },
     ],
@@ -405,6 +412,8 @@ export interface PerguntaResolvida {
   origemOpcoes: OrigemOpcoes | null;
   /** Pergunta padrão cujas opções o buffet pode trocar no editor */
   opcoesEditaveis: boolean;
+  /** Endereço pelo CEP (ViaCEP) na página pública */
+  endereco: boolean;
 }
 
 /** Opções que vêm do banco, por origem. */
@@ -451,6 +460,7 @@ function resolverPadrao(
     mostrarSe: p.mostrarSe ?? null,
     origemOpcoes: p.origemOpcoes ?? null,
     opcoesEditaveis: Boolean(p.opcoesEditaveis),
+    endereco: Boolean(p.endereco),
   };
 }
 
@@ -471,6 +481,7 @@ function resolverCustom(p: Extract<PerguntaConfig, { custom: true }>): PerguntaR
     mostrarSe: null,
     origemOpcoes: null,
     opcoesEditaveis: false,
+    endereco: false,
   };
 }
 

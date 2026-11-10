@@ -110,6 +110,20 @@ O cliente só vê a seção de dimensionamento do tipo que escolheu na primeira 
 Perguntas personalizadas têm os botões **Editar** e **Remover**. As perguntas do modelo não podem ser removidas, só
 desligadas.
 
+### Faixas de verba (Editar opções)
+
+As perguntas de estimativa de verba têm o botão **Editar opções**, que abre um painel lateral. Em cima fica o grupo
+**Opções**, com um **X** à direita de cada uma para remover. Embaixo, em **Adicionar opção**, digite a nova faixa e
+clique em **Adicionar** (ou tecle Enter): ela entra no fim da lista. Clique em **Aplicar opções** e depois em **Salvar**
+no editor. São necessárias pelo menos 2 opções.
+
+### Endereço do evento
+
+Quando o cliente escolhe **Local externo**, a pergunta **Endereço do evento** pede o CEP. Ao digitar os 8 números, o
+formulário busca o endereço e mostra os campos de rua, número, complemento, bairro, cidade e UF já preenchidos para o
+cliente completar. Quem não sabe o CEP clica em **Não sei o CEP** e preenche à mão. O endereço completo vai para o
+evento.
+
 ## Outras ações do editor
 
 - **Pré-visualizar**: abre o formulário como o cliente vê, na última versão salva, sem permitir envio. Funciona mesmo
