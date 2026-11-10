@@ -10,7 +10,7 @@ import { UserError, checkbox, optionalInt, optionalText, requiredText } from '..
 import { cnpjValido, cpfValido, somenteDigitos } from '../../lib/documento';
 import { RESTRICOES, TIPOS_EVENTO, TIPOS_SERVICO, filtrarSlugs } from '../../lib/busca/catalogos';
 import { cepValido } from '../../lib/busca/geo';
-import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, MAX_SLUGS_ANTIGOS, RAIOS_DOMICILIO, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
+import { ETAPAS_PARA_PUBLICAR, ETAPA_REVISAO, RAIOS_DOMICILIO, completude, ehUuid, etapasConcluidas, filtrarSugestoesSlug, normalizarSlug, podePublicar, pendentesParaPublicar, problemaNoSlug, slugDoNome, type Contagens } from '../../lib/busca/onboarding';
 import { rotuloEvento, rotuloServico } from '../../lib/busca/catalogos';
 import { openAiJson } from '../../lib/openai';
 import { ErroPlano, entitlements, exigir, limite, podeUsar } from '../../lib/planos/gating';
@@ -87,7 +87,7 @@ export async function salvarEmpresa(db: Db, user: SessionUser, input: z.infer<ty
 
 /**
  * Endereço escolhido pela empresa (digitado ou uma das sugestões da IA). Exige o recurso busca_slug e um endereço livre
- * no Busca inteiro (atual ou antigo de outro perfil). Vazio = volta a acompanhar o nome do buffet. O anterior vai para
+ * no Busca inteiro (atual ou antigo de outro perfil). Vazio = gera novamente um slug a partir do nome do buffet. O anterior vai para
  * slugs_antigos e continua redirecionando.
  */
 async function salvarEndereco(db: Db, tenantId: string, perfilId: string, endereco: string | undefined) {
@@ -96,7 +96,7 @@ async function salvarEndereco(db: Db, tenantId: string, perfilId: string, endere
   const p = rows[0];
   if (!endereco) {
     if (p.slug_escolhido) {
-      await db.query('UPDATE busca_perfis SET slug_escolhido = false WHERE id = $1', [p.id]);
+      await db.query("UPDATE busca_perfis SET slug = '', slug_escolhido = false WHERE id = $1", [p.id]);
       await atualizarEnderecosPeloNome(db, tenantId);
     }
     return;
@@ -107,7 +107,7 @@ async function salvarEndereco(db: Db, tenantId: string, perfilId: string, endere
   if (problema) throw new UserError(problema, 'endereco');
   if (!(await slugLivre(endereco, p.id))) throw new UserError('Esse endereço já está em uso. Escolha outro.', 'endereco');
   if (await nomeDeOutroBuffet(endereco, tenantId)) throw new UserError('Esse endereço é o nome de outro buffet. Escolha um com o nome do seu.', 'endereco');
-  const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== endereco).slice(-MAX_SLUGS_ANTIGOS);
+  const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== endereco);
   await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, slug_escolhido = true, updated_at = now() WHERE id = $1', [p.id, endereco, antigos]);
 }
 

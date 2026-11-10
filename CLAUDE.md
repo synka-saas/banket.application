@@ -1284,12 +1284,13 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   marcadas como públicas** (toggle "Cardápio público" no topo do editor da opção, ao lado de "Cardápio ativo") do
   catálogo do app (seções e itens, sem preço) e a disponibilidade; gratuito, "Consultar disponibilidade". Fotos com
   grupo (tags) aparecem separadas por grupo na seção Fotos. JSON-LD `LocalBusiness` + `AggregateRating`.
-- **Endereço do perfil**: `/buffet/<id do perfil>` (UUID); nos planos pagos (recurso `busca_slug`) é gerado do nome do
-  buffet e acompanha o nome (`atualizarEnderecosPeloNome`), ou a empresa escolhe outro no campo da etapa 1, digitando ou
-  pela **varinha de IA** (`POST /api/busca/endereco-sugestoes` → `sugerirEnderecos`: OpenAI, até 3 sugestões válidas e
-  livres, 20 pedidos / 10 min por empresa); escolhido = `slug_escolhido` (não segue mais o nome; apagar o campo volta ao
-  automático). Sempre `problemaNoSlug` e único também entre os `slugs_antigos`. O perfil é achado pelo endereço atual,
-  pelo id ou por um antigo, e a página faz 301 para o atual. Perder o plano pago volta o endereço para o id.
+- **Endereço do perfil**: `/buffet/<slug>` em todos os planos. A migration 053 converte os UUIDs existentes e o trigger
+  `busca_slug_publico` gera slugs do nome para cadastros e importações, com sufixos `-2`, `-3`… em colisões. Endereços
+  atuais e antigos são reservados globalmente, com lock transacional; não mudam ao renomear ou rebaixar o plano.
+  O recurso `busca_slug` permite escolher outro endereço na etapa 1, digitando ou pela **varinha de IA**
+  (`POST /api/busca/endereco-sugestoes`). A escolha vira a URL oficial (canonical, links e sitemap); o UUID e todo o
+  histórico continuam resolvendo com 301 direto para a oficial. Apagar a escolha gera novamente um slug automático.
+  Slugs já legíveis são preservados na conversão. O banco preserva o histórico mesmo com versões anteriores do app.
 - **Galeria do topo** (`vp-galeria--N`): conta só fotos reais (a imagem padrão não conta); sem foto, a imagem padrão
   sozinha; 1 foto, ela sozinha; da 2ª em diante, miniaturas (até 4) sem espaço vazio na grade.
 - **Busca**: a faixa dos filtros aplicados sempre ocupa o espaço ("Nenhum filtro selecionado" quando vazia), sem salto.

@@ -5,15 +5,14 @@
 import { systemQuery, type Db } from '../../lib/db';
 import { ARQUIVO_FOTO_PADRAO, FOTO_PADRAO } from '../../lib/busca/url';
 import { randomUUID } from 'node:crypto';
-import { entitlements, limiteEm, nivelEm, podeUsarEm } from '../../lib/planos/gating';
-import { MAX_SLUGS_ANTIGOS, candidatosSlug, ehUuid, slugAcompanhaNome, slugDoNome } from '../../lib/busca/onboarding';
+import { entitlements, limiteEm, nivelEm } from '../../lib/planos/gating';
 
 export interface PerfilBusca {
   id: string;
   tenant_id: string;
   /** Espaço da unidade (redes: um perfil por unidade); null em quem só atende em domicílio */
   espaco_id: string | null;
-  /** Endereço público (/buffet/<slug>): o próprio id por padrão; com o recurso busca_slug, gerado do nome (atualizarEnderecosPeloNome) */
+  /** Endereço público (/buffet/<slug>): slug único gerado do nome em todos os planos; escolha manual exige busca_slug */
   slug: string;
   /** Endereços anteriores: redirecionam (301) para o atual */
   slugs_antigos: string[];
@@ -92,30 +91,15 @@ export async function slugLivre(slug: string, perfilId: string): Promise<boolean
   return rows.length === 0;
 }
 
-/**
- * Endereço com o nome do buffet (recurso busca_slug): cada perfil da empresa ganha o endereço gerado do próprio nome
- * ("buffet-sao-joao", ou "buffet-sao-joao-2" se outro perfil já usa). Ninguém digita: roda ao sincronizar com a empresa
- * e no upgrade, e só troca quando o nome mudou. O endereço anterior vai para slugs_antigos e continua redirecionando.
- * Sem o recurso, nada muda aqui (o rebaixamento devolve o id em aplicarExcedentesBusca).
+/** Garante o slug inicial em todos os planos; depois de publicado, o endereço permanece estável.
+ * A migration 053 gera e reserva o slug no banco, inclusive entre empresas e importações.
  */
 export async function atualizarEnderecosPeloNome(db: Db, tenantId: string): Promise<void> {
-  if (!podeUsarEm(await entitlements(tenantId, db), 'busca_slug')) return;
-  // Endereço escolhido pela empresa fica como está (slug_escolhido)
-  const { rows } = await db.query<Pick<PerfilBusca, 'id' | 'slug' | 'slugs_antigos' | 'nome'>>(
-    'SELECT id, slug, slugs_antigos, nome FROM busca_perfis WHERE tenant_id = $1 AND NOT slug_escolhido ORDER BY created_at, id',
+  await db.query(
+    `UPDATE busca_perfis SET slug = slug WHERE tenant_id = $1
+       AND slug ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'`,
     [tenantId]
   );
-  for (const p of rows) {
-    const base = slugDoNome(p.nome);
-    if (!base || slugAcompanhaNome(p.slug, base)) continue;
-    let novo: string | null = null;
-    for (const c of candidatosSlug(base)) {
-      if (await slugLivre(c, p.id)) { novo = c; break; }
-    }
-    if (!novo) continue;
-    const antigos = [...new Set([...(p.slugs_antigos ?? []), ...(ehUuid(p.slug) ? [] : [p.slug])])].filter((x) => x !== novo).slice(-MAX_SLUGS_ANTIGOS);
-    await db.query('UPDATE busca_perfis SET slug = $2, slugs_antigos = $3, updated_at = now() WHERE id = $1', [p.id, novo, antigos]);
-  }
 }
 
 /** Perfil da empresa; cria o rascunho (não publicado) com os dados da empresa e do espaço padrão na primeira vez. */
@@ -138,7 +122,7 @@ export async function garantirPerfil(db: Db, tenantId: string): Promise<PerfilBu
       WHERE e.tipo = 'proprio' AND e.ativo ORDER BY (c.tenant_id IS NOT NULL) DESC, e.ordem LIMIT 1`
   );
   const ent = await entitlements(tenantId, db);
-  // O endereço nasce como o próprio id do perfil; com o recurso busca_slug, atualizarEnderecosPeloNome troca pelo nome
+  // O trigger busca_slug_publico troca o UUID por um slug único antes de gravar.
   const id = randomUUID();
   const min = esp[0]?.capacidade_min ?? null;
   const max = esp[0]?.capacidade_max ?? null;
@@ -164,16 +148,6 @@ export async function sincronizarNivel(db: Db, tenantId: string, nivel: 'gratuit
  */
 export async function aplicarExcedentesBusca(db: Db, tenantId: string): Promise<void> {
   const ent = await entitlements(tenantId, db);
-  // Endereço próprio é recurso pago: sem ele, volta para o id do perfil (o antigo segue redirecionando)
-  if (!podeUsarEm(ent, 'busca_slug')) {
-    await db.query(
-      `UPDATE busca_perfis
-          SET slugs_antigos = CASE WHEN slug = ANY(slugs_antigos) THEN slugs_antigos ELSE array_append(slugs_antigos, slug) END,
-              slug = id::text, slug_escolhido = false, updated_at = now()
-        WHERE tenant_id = $1 AND (slug <> id::text OR slug_escolhido)`,
-      [tenantId]
-    );
-  }
   const maxFotos = limiteEm(ent, 'busca_fotos');
   if (Number.isFinite(maxFotos)) {
     await db.query(
