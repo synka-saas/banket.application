@@ -489,6 +489,210 @@
   gap: var(--space-2);
 }
 
+/* ---------- Painel de opções (faixas de budget): mesmo visual do Drawer.astro ---------- */
+.fe-drawer-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: fe-fade var(--dur-base) var(--ease-out);
+}
+
+.fe-drawer {
+  width: var(--drawer-width);
+  max-width: 100%;
+  height: 100%;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  animation: fe-slide var(--dur-slow) var(--ease-out);
+}
+
+.fe-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--header-height);
+  padding: 0 var(--space-4) 0 var(--space-6);
+  border-bottom: 1px solid var(--border-default);
+  flex: none;
+}
+
+.fe-drawer-titulo {
+  margin: 0;
+  font-size: var(--fs-18);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-snug);
+  color: var(--text-strong);
+}
+
+.fe-drawer-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fe-drawer-fechar,
+.fe-opcao-remover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.fe-drawer-fechar {
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+}
+
+.fe-drawer-fechar:hover {
+  background: var(--action-ghost-hover);
+  color: var(--text-strong);
+}
+
+.fe-drawer-corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.fe-opcoes-pergunta {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: var(--fw-medium);
+  color: var(--text-heading);
+}
+
+.fe-opcoes-ajuda {
+  margin: calc(var(--space-4) * -1) 0 0;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+/* Grupo "Opções": card com uma linha por opção e o X à direita */
+.fe-opcoes-grupo {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.fe-opcoes-grupo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--clay-25);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fe-opcoes-contagem {
+  font-size: var(--fs-12);
+  color: var(--text-muted);
+}
+
+.fe-opcoes-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fe-opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+}
+
+.fe-opcao + .fe-opcao {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fe-opcao:hover {
+  background: var(--clay-25);
+}
+
+.fe-opcao-texto {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-14);
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+.fe-opcao-remover {
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  color: var(--text-muted);
+}
+
+.fe-opcao-remover:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.fe-opcoes-vazio {
+  margin: 0;
+  padding: var(--space-4);
+  font-size: var(--fs-13);
+  color: var(--text-muted);
+}
+
+/* Inclusão: campo + botão na mesma linha, separada do grupo */
+.fe-opcoes-nova {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fe-opcoes-nova-linha {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.fe-opcoes-nova-linha input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fe-opcoes-nova-linha .btn {
+  flex: none;
+}
+
+@keyframes fe-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fe-slide {
+  from { transform: translateX(24px); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fe-drawer-fundo,
+  .fe-drawer {
+    animation: none;
+  }
+}
+
 /* ---------- Tablet ---------- */
 @media (max-width: 1024px) {
   /* .page-content tem 40px de padding inferior */
@@ -582,6 +786,24 @@
 
   .fe-rascunho-check {
     justify-content: flex-start;
+  }
+
+  /* Painel de opções em tela cheia */
+  .fe-drawer {
+    width: 100%;
+  }
+
+  .fe-drawer-header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .fe-drawer-corpo {
+    padding: var(--space-5) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom));
+  }
+
+  .fe-opcao-remover {
+    width: var(--control-h-md);
+    height: var(--control-h-md);
   }
 
   /* Barra acima da navegação inferior: estado + Salvar na primeira linha, demais ações na segunda */

@@ -94,7 +94,8 @@ src/
     busca/             Banket Busca (puro, testado): catalogos.ts (tipos de evento e de serviço, restrições), geo.ts
                        (distância, slugs, CEP), url.ts (BUSCA_URL), filtros.ts (critérios ↔ query string, chips),
                        matching.ts (compatibilidade eliminatória e disponibilidade), ranking.ts (grupo + pontuação com
-                       pesos), seo.ts (JSON-LD e textos das landings), host.ts (roteamento por host do Busca),
+                       pesos), seo.ts (JSON-LD), categorias.ts (páginas de categoria e local: tabela de categorias,
+                       slugs, pisos, title/H1/intro/breadcrumb), host.ts (roteamento por host do Busca),
                        onboarding.ts (as 6 etapas, conclusão, publicação e completude)
     stripe.ts          cliente do Stripe (chave, versão, erros → UserError, prazo do QR Pix)
     planos/            cobranca.ts (estado de cobrança puro: teste/ativa/vencida/rebaixar/manual), recursos.ts (catálogo de recursos e textos de upsell), rotas.ts (prefixo → recurso, puro),
@@ -145,7 +146,8 @@ src/
     busca/             Banket Busca: perfil.ts (perfil da empresa, pré-preenchimento, nível pelo plano, excedentes,
                        urlMidia), publico.ts (ÚNICAS leituras que cruzam empresas: pool da vitrine READ ONLY, só perfis
                        publicados de empresas ativas; cidades, busca, destaques, depoimentos, perfil completo, métricas),
-                       vitrine.ts (critérios da URL, cidade digitada, cache público), onboarding.ts (etapas do cadastro do
+                       vitrine.ts (critérios da URL, cidade digitada, cache público), locais.ts (inventário das páginas de
+                       categoria e local, indexação, sitemaps, links internos), sitemap.ts (XML), onboarding.ts (etapas do cadastro do
                        perfil: validação, fotos com limite e grupos pelo plano, captura dos dados da conta, cidades
                        atendidas, publicar/despublicar)
     assinatura.ts      assinatura pelo Stripe: checkout (cartão/Pix, agora ou no fim do teste), troca, cancelamento, portal,
@@ -1225,9 +1227,29 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   trocar o plano pelo HCP (`plan_slug`); ver INTEGRACAO_HWESTA.md.
 
 ### Banket Busca: vitrine pública — `/vitrine/*` (em produção, `busca.banket.com.br/*`)
-- **Rotas**: `/` (buscador, tipos com contagem, serviços, como funciona, destaques, depoimentos, chamada para buffets),
-  `/buscar` (filtros na URL, `noindex`; sem filtro nem ordenação por preço), `/buffet/[slug]` (perfil), `/buffet/[tipo]/[cidade]` (landing de SEO; cidade
-  no slug curto, `campinas`; o longo `campinas-sp` dá 301), `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
+- **Rotas**: `/` (buscador, tipos com contagem, serviços, "Cidades mais buscadas", como funciona, destaques, depoimentos,
+  chamada para buffets), `/buscar` (filtros na URL, `noindex` com canonical para a página-base; sem filtro nem ordenação
+  por preço), `/buffet/[slug]` (perfil), as **páginas de categoria e local** (abaixo), `/sitemap.xml` (índice),
+  `/sitemap-categorias.xml`, `/sitemap-cidades.xml`, `/orcamento` (provisória até a fase 6), `/api/vitrine/cidades`.
+  A landing antiga `/buffet/[tipo]/[cidade]` só redireciona (301) para a página nova.
+- **Páginas de categoria e local** (10/11/2026; `lib/busca/categorias.ts`, `server/busca/locais.ts`,
+  `components/busca/PaginaLocal.astro`): `/{categoria}/` (hub nacional), `/{categoria}/{cidade-uf}/`,
+  `/{categoria}/{cidade-uf}/{bairro}/`, `/buffets-em/{cidade-uf}/` e `/buffets-em/{cidade-uf}/{bairro}/`. Categorias na
+  tabela `CATEGORIAS` (casamento, infantil, aniversário, 15 anos, formatura, corporativo, coffee break, churrasco, a
+  domicílio; o perfil entra por tipo de evento, serviço ou `atende_domicilio`); sem página para tipos sem inventário.
+  Cidade sempre com UF (`busca_cidades.slug`), bairro = `slugTexto(bairro)`, barra final e minúsculas (301). A cidade
+  lista os buffets com sede nela ou que a atendem (`busca_perfil_cidades`); o bairro, só os com sede nele. **Piso de
+  indexação**: cidade (e hub) com 5+ e bairro com 8+ buffets de perfil completo (descrição própria — não a frase gerada
+  na importação, `descricaoPropria` —, foto real, ao menos um serviço e um tipo de evento); abaixo, `noindex,follow` e
+  fora do sitemap (entra sozinho ao atingir o piso: inventário em cache de 10 min). Página sem buffet = 404. Template:
+  H1 `{Categoria} em {Cidade}` / `Buffets em {Cidade}`, title `… : N buffets com orçamento grátis | Banket Busca`
+  (`tituloCompleto` do `VitrineLayout`), description e intro (80–150 palavras) com os fatos do local, breadcrumb visível
+  + `BreadcrumbList`, lista com os cards e filtros da busca (os filtros levam a `/buscar`), paginação com links reais
+  (24 por página, `?pagina=N` com canonical própria; `?pagina=1` → 301 para a base), links para bairros/cidades e as
+  outras categorias. `/buscar` só com tipo/serviço (+ cidade) → 301 para a categoria; só com a cidade → 302 para a página
+  do local quando ela é indexável (o mesmo vale para as sugestões da busca única, que já trazem a URL). Home, rodapé
+  (categorias, pares categoria × cidade, cidades) e perfil ("Voltar aos resultados", tipos de evento e serviços) linkam
+  para essas páginas; `?tipo=`/`?servico=` só para tipos sem categoria.
 - **Busca** (`buscarBuffets`): pré-filtro SQL largo (tipo, 200 km da cidade) → `compativel` (tipo, local, capacidade e,
   só para cliente Banket com agenda, data ocupada por evento aprovado ou bloqueio) → `passaFiltros` (serviço, restrição,
   atendimento, nota, raio) → `ordenar` (`lib/busca/ranking.ts`) → "Mostrar mais" de 12 em 12.

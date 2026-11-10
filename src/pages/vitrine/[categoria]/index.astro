@@ -1,0 +1,12 @@
+---
+// Hub nacional da categoria (/buffet-para-casamento/). Categoria fora de lib/busca/categorias.ts: 404.
+import PaginaLocal from '../../../components/busca/PaginaLocal.astro';
+import { resolverPagina } from '../../../server/busca/locais';
+import { caminhoVitrine } from '../../../lib/busca/url';
+
+const r = await resolverPagina(Astro.url, { categoria: Astro.params.categoria });
+if (r.acao === 'nao-existe') return new Response(null, { status: 404 });
+if (r.acao === 'redirecionar') return Astro.redirect(caminhoVitrine(r.caminho), 301);
+---
+
+<PaginaLocal dados={r} />

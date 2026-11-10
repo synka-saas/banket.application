@@ -15,9 +15,26 @@ interface Props {
   criterios: Criterios;
   /** Título principal (h1) */
   titulo?: string;
+  /** Texto de introdução abaixo do título (páginas de categoria e local) */
+  intro?: string;
+  /**
+   * Paginação com links reais (páginas de categoria e local): substitui o "Mostrar mais" da busca, que acumula as páginas.
+   * Caminhos já com o prefixo da vitrine.
+   */
+  paginacao?: { numero: number; total: number; anterior: string | null; proxima: string | null };
+  /**
+   * Página de categoria/local equivalente a uma busca (caminho sem o prefixo da vitrine), ou null. Os links de remover
+   * filtro e limpar levam direto a ela em vez de /buscar?tipo=… (que redirecionaria).
+   */
+  paginaDe?: (crit: Criterios) => string | null;
+  /** Cards sem os critérios na URL do perfil (páginas de categoria e local: o perfil já sabe voltar) */
+  cardsSemCriterios?: boolean;
 }
-const { resultado: r, criterios: c, titulo } = Astro.props;
-const url = (crit: Criterios) => caminhoVitrine('/buscar') + queryDaBusca(crit);
+const { resultado: r, criterios: c, titulo, intro, paginacao, paginaDe, cardsSemCriterios = false } = Astro.props;
+const url = (crit: Criterios) => {
+  const pagina = paginaDe?.(crit);
+  return pagina ? caminhoVitrine(pagina) : caminhoVitrine('/buscar') + queryDaBusca(crit);
+};
 const chips = chipsDosFiltros(c, { servico: rotuloServico, restricao: rotuloRestricao });
 const dataBR = c.data ? c.data.split('-').reverse().join('/') : null;
 const contagem = r.total === 0 ? 'Nenhum buffet encontrado' : r.total === 1 ? '1 buffet encontrado' : `${r.total} buffets encontrados`;
@@ -42,6 +59,7 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
     <div>
       <h1 class="vr-titulo">{titulo ?? contagem}</h1>
       <p class="vr-meta">{titulo ? `${contagem}${resumo ? ` · ${resumo}` : ''}` : resumo || 'Todos os buffets publicados'}.</p>
+      {intro && <p class="vr-intro">{intro}</p>}
       <details class="vr-como">
         <summary>Como ordenamos os resultados</summary>
         <p>
@@ -85,9 +103,20 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
       {r.itens.length > 0 ? (
         <>
           <ul class="vh-grade-cards vr-grade">
-            {r.itens.map((item, i) => <li><BuffetCard item={item} criterios={c} primeiro={i < 2} /></li>)}
+            {r.itens.map((item, i) => <li><BuffetCard item={item} criterios={cardsSemCriterios ? {} : c} primeiro={i < 2} /></li>)}
           </ul>
-          {r.temMais && (
+          {paginacao && paginacao.total > 1 && (
+            <nav class="vr-paginas" aria-label="Páginas de resultados">
+              {paginacao.anterior ? (
+                <a class="btn btn-outline btn-md" href={paginacao.anterior} rel="prev"><Icon name="chevron-left" size={16} /> Página anterior</a>
+              ) : <span />}
+              <span class="vr-meta tabular">Página {paginacao.numero} de {paginacao.total}</span>
+              {paginacao.proxima ? (
+                <a class="btn btn-outline btn-md" href={paginacao.proxima} rel="next">Próxima página <Icon name="chevron-right" size={16} /></a>
+              ) : <span />}
+            </nav>
+          )}
+          {!paginacao && r.temMais && (
             <div class="vr-mais">
               <a class="btn btn-outline btn-md" href={url({ ...c, pagina: c.pagina + 1 })} rel="next">
                 <Icon name="chevron-down" size={16} /> Mostrar mais {Math.min(POR_PAGINA, r.total - r.itens.length)} buffets

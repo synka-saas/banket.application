@@ -10,11 +10,14 @@ import Toast from '../components/ui/Toast.astro';
 import GoogleTagManager from '../components/GoogleTagManager.astro';
 import { appUrl } from '../lib/mail';
 import { buscaUrl, caminhoVitrine, urlArea } from '../lib/busca/url';
-import { TIPOS_EVENTO } from '../lib/busca/catalogos';
+import { CATEGORIAS, caminhoCategoria } from '../lib/busca/categorias';
+import { cidadesEmAlta, paresEmAlta } from '../server/busca/locais';
 
 interface Props {
   /** Título da página (sem o sufixo da marca) */
   title: string;
+  /** Título completo, já com a marca (páginas de categoria e local: "… | Banket Busca"); vence o `title` */
+  tituloCompleto?: string;
   description: string;
   /** Caminho canônico na vitrine ("/buffet/sabor-de-festa") */
   canonical?: string;
@@ -24,15 +27,19 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, description, canonical, imagem, jsonLd = [], noindex = false } = Astro.props;
+const { title, tituloCompleto: tituloInformado, description, canonical, imagem, jsonLd = [], noindex = false } = Astro.props;
 const url = canonical ? buscaUrl(canonical) : null;
 const og = imagem ? (imagem.startsWith('http') ? imagem : buscaUrl(imagem)) : buscaUrl('/busca/og-banket-busca.jpg');
-const tituloCompleto = `${title} · Banket Busca`;
+const tituloCompleto = tituloInformado ?? `${title} · Banket Busca`;
 const v = caminhoVitrine;
 // Google Tag Manager do Banket Busca: fora da prévia do perfil (dono logado)
 const gtm = Astro.url.searchParams.get('previa') !== '1';
+// Rodapé: categorias, pares categoria × cidade e cidades com mais buffets (inventário em cache; falha não derruba a página)
+const [pares, cidades] = await Promise.all([paresEmAlta(6).catch(() => []), cidadesEmAlta(6).catch(() => [])]);
 const colunas = [
-  { titulo: 'Eventos', links: TIPOS_EVENTO.slice(0, 5).map((t) => ({ rotulo: t.rotulo, href: v(`/buscar?tipo=${t.slug}`) })) },
+  { titulo: 'Eventos', links: CATEGORIAS.slice(0, 6).map((c) => ({ rotulo: c.nome, href: v(caminhoCategoria(c)) })) },
+  ...(pares.length ? [{ titulo: 'Mais buscados', links: pares.map((p) => ({ rotulo: p.rotulo, href: v(p.caminho) })) }] : []),
+  ...(cidades.length ? [{ titulo: 'Cidades', links: cidades.map((c) => ({ rotulo: `Buffets em ${c.rotulo}`, href: v(c.caminho) })) }] : []),
   { titulo: 'Para buffets', links: [
     { rotulo: 'Cadastrar meu buffet', href: urlArea('/auth/cadastro?plano=busca') },
     { rotulo: 'Entrar', href: urlArea('/auth/login?next=%2Fbusca') },

@@ -162,7 +162,7 @@ body.vitrine {
   }
 
   .vitrine-rodape-grade {
-    grid-template-columns: 1.4fr repeat(3, 1fr);
+    grid-template-columns: 1.2fr repeat(5, 1fr);
   }
 
   .vitrine-rodape-grade,
@@ -1006,6 +1006,96 @@ body.vitrine {
   margin-top: 24px;
 }
 
+/* Páginas de categoria e local: introdução, paginação, breadcrumb e blocos de links */
+.vr-intro {
+  max-width: 760px;
+  margin: 12px 0 0;
+  font-size: var(--fs-14);
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
+.vr-paginas {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.vr-paginas > :first-child {
+  justify-self: start;
+}
+
+.vr-paginas > :last-child {
+  justify-self: end;
+}
+
+.vl-migalhas {
+  margin-bottom: 12px;
+  font-size: var(--fs-13);
+  color: var(--text-secondary);
+}
+
+.vl-migalhas ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-migalhas li + li::before {
+  content: '›';
+  margin-right: 8px;
+  color: var(--text-muted);
+}
+
+.vl-migalhas a {
+  color: var(--text-secondary);
+}
+
+.vl-migalhas a:hover {
+  color: var(--text-link);
+}
+
+.vl-migalhas [aria-current='page'] {
+  color: var(--text-strong);
+}
+
+.vl-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vl-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  font-size: var(--fs-13);
+  color: var(--text-body);
+  text-decoration: none;
+}
+
+.vl-links a:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.vl-links .tabular {
+  color: var(--text-muted);
+}
+
 .vr-vazio {
   display: flex;
   flex-direction: column;
@@ -1292,6 +1382,20 @@ body.vitrine {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Tipos de evento e serviços com página de categoria: link discreto */
+.vp-tags a.tag {
+  text-decoration: none;
+}
+
+.vp-tags a.tag:hover {
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.vp-fato a {
+  color: var(--text-link);
 }
 
 .vp-pacotes {

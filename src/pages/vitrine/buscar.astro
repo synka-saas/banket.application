@@ -1,6 +1,8 @@
 ---
-// Resultados da busca. Filtros na URL; noindex (as páginas para buscadores são as
-// landings /buffet/[tipo]/[cidade]); conta uma aparição para cada buffet exibido.
+// Resultados da busca. Filtros na URL; noindex com canonical para a página-base (as páginas para buscadores são as de
+// categoria e local: /{categoria}/{cidade-uf}/, /buffets-em/{cidade-uf}/). Busca só por tipo/serviço (e cidade) vai
+// por 301 para a página da categoria; só por cidade, para a página do local quando ela é indexável. Conta uma aparição
+// para cada buffet exibido.
 import VitrineLayout from '../../layouts/VitrineLayout.astro';
 import FormBusca from '../../components/busca/FormBusca.astro';
 import Icon from '../../components/ui/Icon.astro';
@@ -12,6 +14,9 @@ import { buscarBuffets, registrarMetrica } from '../../server/busca/publico';
 import { cachePublico, criteriosDaUrl, interpretarTermo } from '../../server/busca/vitrine';
 import { queryDaBusca } from '../../lib/busca/filtros';
 import { caminhoVitrine } from '../../lib/busca/url';
+import { caminhoCategoria, caminhoLocal, categoriaDaBusca } from '../../lib/busca/categorias';
+import { resolverCidade } from '../../server/busca/publico';
+import { existePagina, localIndexavel } from '../../server/busca/locais';
 
 cachePublico(Astro.response.headers, 120);
 const criterios = criteriosDaUrl(Astro.url);
@@ -20,7 +25,38 @@ if (Astro.url.searchParams.has('termo')) {
   const interpretado = await interpretarTermo(Astro.url.searchParams.get('termo'));
   return Astro.redirect(caminhoVitrine('/buscar') + queryDaBusca({ ...criterios, ...Object.fromEntries(Object.entries(interpretado).filter(([, v]) => v != null)) }), 302);
 }
+// Página-base equivalente: a categoria (se a busca for só tipo/serviço) e/ou o local
+// Campos vazios do formulário (data=, convidados=) não contam como filtro
+const temOutrosFiltros = ['q', 'data', 'convidados', 'restricao', 'local', 'avaliacao', 'raio', 'ordem', 'pagina'].some((k) =>
+  Astro.url.searchParams.getAll(k).some((valor) => valor.trim() !== '' && !(k === 'ordem' && valor === 'relevancia'))
+);
+const categoria = criterios.tipo || criterios.servicos.length ? categoriaDaBusca(criterios.tipo, criterios.servicos) : null;
+const cidadeBase = criterios.cidade ? await resolverCidade(criterios.cidade) : null;
+const comCategoria = categoria && (await existePagina(categoria, cidadeBase?.slug ?? null));
+const base = comCategoria
+  ? caminhoCategoria(categoria!, cidadeBase?.slug)
+  : !criterios.tipo && !criterios.servicos.length && cidadeBase && (await localIndexavel(cidadeBase.slug))
+    ? caminhoLocal(cidadeBase.slug)
+    : null;
+if (base && !temOutrosFiltros && (categoria || !criterios.servicos.length)) {
+  // Tipo/serviço: endereço definitivo (301). Só a cidade: depende do piso de indexação, que muda (302).
+  return Astro.redirect(caminhoVitrine(base), categoria ? 301 : 302);
+}
 const resultado = await buscarBuffets(criterios);
+// Links de remover filtro / limpar: quando a busca que sobra é só tipo/serviço (+ cidade) ou só a cidade, vão direto à
+// página de categoria/local (as que existem são conferidas aqui, uma vez)
+const paginasExistentes = new Map<string, string>();
+for (const cat of new Set([categoria, categoriaDaBusca(criterios.tipo, [])].filter((x) => x != null))) {
+  if (await existePagina(cat!, cidadeBase?.slug ?? null)) paginasExistentes.set(cat!.slug, caminhoCategoria(cat!, cidadeBase?.slug));
+}
+const localBase = !criterios.tipo && !criterios.servicos.length && base?.startsWith('/buffets-em/') ? base : null;
+const paginaDe = (crit: typeof criterios): string | null => {
+  if (crit.nome || crit.data || crit.convidados || crit.restricoes.length || crit.local || crit.avaliacao || crit.raio) return null;
+  if (crit.ordem !== 'relevancia' || crit.pagina > 1 || crit.cidade !== criterios.cidade) return null;
+  if (!crit.tipo && !crit.servicos.length) return crit.cidade && criterios.cidade === crit.cidade ? localBase : null;
+  const cat = categoriaDaBusca(crit.tipo, crit.servicos);
+  return cat ? paginasExistentes.get(cat.slug) ?? null : null;
+};
 await registrarMetrica(resultado.itens.slice(-12).map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
 const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toLowerCase()}` : 'Buffets', resultado.cidade ? `em ${resultado.cidade.nome}` : null]
   .filter(Boolean).join(' ');
@@ -30,6 +66,7 @@ const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toL
   title={titulo}
   description={`${resultado.total} buffets compatíveis com o seu evento. Compare fotos, serviços e avaliações e peça orçamento grátis.`}
   noindex
+  canonical={base ?? undefined}
   jsonLd={resultado.itens.length ? [jsonLdLista(resultado.itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []}
 >
   <div class="vitrine-secao" style="padding-top:20px">
@@ -42,7 +79,7 @@ const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toL
       <FormBusca criterios={criterios} cidade={resultado.cidade} variante="barra" />
     </div>
     <div style="margin-top:24px">
-      <Resultados resultado={resultado} criterios={criterios} />
+      <Resultados resultado={resultado} criterios={criterios} paginaDe={paginaDe} />
     </div>
   </div>
 </VitrineLayout>

@@ -60,6 +60,8 @@ export interface PerfilPublico {
   descricao: string | null;
   logo: string | null;
   cidade: string | null;
+  /** busca_cidades.slug ("sao-paulo-sp"): links para as páginas de categoria e local */
+  cidade_slug: string | null;
   uf: string | null;
   bairro: string | null;
   tipos_evento: string[];
@@ -92,7 +94,7 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return null;
   return leituraPublica(async (db) => {
     const { rows } = await db.query(
-      `SELECT p.id, p.tenant_id, p.slug, p.nome, p.descricao, p.logo_path, c.nome AS cidade, c.uf, p.bairro,
+      `SELECT p.id, p.tenant_id, p.slug, p.nome, p.descricao, p.logo_path, c.nome AS cidade, c.slug AS cidade_slug, c.uf, p.bairro,
               p.tipos_evento, p.tipos_servico, p.restricoes, p.atende_domicilio, p.raio_km, p.espaco_proprio,
               p.capacidade_min, p.capacidade_max, p.nivel, p.nota_media, p.total_avaliacoes, p.tempo_resposta_texto,
               p.instagram, p.site, p.updated_at, p.publicado,
@@ -111,7 +113,7 @@ export async function perfilPublico(slug: string, previaDoTenant: string | null 
     const fotos = await db.query(`SELECT path, legenda, tags FROM busca_fotos WHERE perfil_id = $1 AND bloqueado_plano_em IS NULL ORDER BY capa DESC, ordem, created_at`, [p.id]);
     return {
       tenantId: p.tenant_id, slug: p.slug, nome: p.nome, descricao: p.descricao, logo: urlMidia(p.tenant_id, p.logo_path),
-      cidade: p.cidade, uf: p.uf, bairro: p.bairro, tipos_evento: p.tipos_evento, tipos_servico: p.tipos_servico,
+      cidade: p.cidade, cidade_slug: p.cidade_slug, uf: p.uf, bairro: p.bairro, tipos_evento: p.tipos_evento, tipos_servico: p.tipos_servico,
       restricoes: p.restricoes, atende_domicilio: p.atende_domicilio, raio_km: p.raio_km, espaco_proprio: p.espaco_proprio,
       capacidade_min: p.capacidade_min, capacidade_max: p.capacidade_max, nivel: p.nivel, nota_media: p.nota_media,
       total_avaliacoes: p.total_avaliacoes, tempo_resposta_texto: p.tempo_resposta_texto, instagram: p.instagram, site: p.site,
@@ -170,13 +172,6 @@ export async function resolverCidade(slug: string | null): Promise<Cidade | null
   });
 }
 
-/** Slug curto da cidade (sem a UF) quando ele resolve para a mesma cidade; senão o completo. Usado nas URLs das landings. */
-export async function slugCurtoDaCidade(c: Cidade): Promise<string> {
-  const curto = c.slug.replace(/-[a-z]{2}$/, '');
-  const r = await resolverCidade(curto);
-  return r?.id === c.id ? curto : c.slug;
-}
-
 // Recursos do plano só para clientes: no plano gratuito (nivel = 'gratuito', sincronizado pelo trocarPlano) os três são
 // falsos, e fn_tenant_pode por linha custava ~0,4 ms × milhares de perfis importados em cada busca.
 // Evento que ocupa a data de um perfil: o do espaço da própria unidade ou de nenhum espaço de outra unidade da empresa
@@ -207,6 +202,7 @@ const SQL_CANDIDATOS = `
    WHERE ${PERFIL_VISIVEL}
      AND ($4::text IS NULL OR $4 = ANY(p.tipos_evento))
      AND ($6::text IS NULL OR strpos(busca_sem_acento(p.nome), busca_sem_acento($6)) > 0)
+     AND ($7::uuid[] IS NULL OR p.id = ANY($7::uuid[]))
      AND ($1::float8 IS NULL OR p.cidade_id = $3
           OR EXISTS (SELECT 1 FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id AND pc.cidade_id = $3)
           OR (p.lat IS NOT NULL AND earth_box(ll_to_earth($1, $2), ${RAIO_PREFILTRO_M}) @> ll_to_earth(p.lat, p.lng)))
@@ -229,8 +225,8 @@ function paraItem(r: any, data: string | null): ItemResultado {
   return item;
 }
 
-async function candidatos(db: Db, crit: Pick<Criterios, 'tipo' | 'data' | 'nome'>, cidade: Cidade | null): Promise<ItemResultado[]> {
-  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data, crit.nome]);
+async function candidatos(db: Db, crit: Pick<Criterios, 'tipo' | 'data' | 'nome'>, cidade: Cidade | null, ids: string[] | null = null): Promise<ItemResultado[]> {
+  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data, crit.nome, ids]);
   return rows.map((r) => paraItem(r, crit.data));
 }
 
@@ -261,15 +257,7 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
     const ordenados = ordenar(filtrados, crit.ordem, {
       ...opcoesRanking(), raioRef: crit.raio ?? 30, semente: sementeDoDia(cidade?.slug ?? null, crit.tipo), porPagina: POR_PAGINA,
     });
-    const conta = (f: (c: ItemResultado) => boolean) => base.filter(f).length;
-    const facetas = {
-      servicos: TIPOS_SERVICO.map((s) => ({ valor: s.slug, rotulo: s.rotulo, total: conta((c) => c.tiposServico.includes(s.slug)) })).filter((f) => f.total > 0 || crit.servicos.includes(f.valor)),
-      restricoes: RESTRICOES.map((r) => ({ valor: r.slug, rotulo: r.rotulo, total: conta((c) => c.restricoes.includes(r.slug)) })).filter((f) => f.total > 0 || crit.restricoes.includes(f.valor)),
-      local: [
-        { valor: 'espaco', rotulo: 'Espaço próprio do buffet', total: conta((c) => passaFiltros(c, { ...semFiltrosSecundarios(crit), local: 'espaco' }, cidade)) },
-        { valor: 'domicilio', rotulo: 'Em domicílio', total: conta((c) => passaFiltros(c, { ...semFiltrosSecundarios(crit), local: 'domicilio' }, cidade)) },
-      ],
-    };
+    const facetas = facetasDe(base, crit, cidade);
     const sugestoes: ResultadoBusca['sugestoes'] = [];
     if (!filtrados.length) {
       const semSec = semFiltrosSecundarios(crit);
@@ -283,6 +271,31 @@ export async function buscarBuffets(crit: Criterios): Promise<ResultadoBusca> {
       cidade, total: ordenados.length, itens: ordenados.slice(0, limite), temMais: ordenados.length > limite, facetas,
       sugestoes: sugestoes.filter((s) => s.total > 0),
     };
+  });
+}
+
+/** Contagens do painel de filtros sobre a lista compatível (busca e páginas de categoria/local). */
+export function facetasDe(base: ItemResultado[], crit: Criterios, cidade: Cidade | null): ResultadoBusca['facetas'] {
+  const conta = (f: (c: ItemResultado) => boolean) => base.filter(f).length;
+  return {
+    servicos: TIPOS_SERVICO.map((s) => ({ valor: s.slug, rotulo: s.rotulo, total: conta((c) => c.tiposServico.includes(s.slug)) })).filter((f) => f.total > 0 || crit.servicos.includes(f.valor)),
+    restricoes: RESTRICOES.map((r) => ({ valor: r.slug, rotulo: r.rotulo, total: conta((c) => c.restricoes.includes(r.slug)) })).filter((f) => f.total > 0 || crit.restricoes.includes(f.valor)),
+    local: [
+      { valor: 'espaco', rotulo: 'Espaço próprio do buffet', total: conta((c) => passaFiltros(c, { ...semFiltrosSecundarios(crit), local: 'espaco' }, cidade)) },
+      { valor: 'domicilio', rotulo: 'Em domicílio', total: conta((c) => passaFiltros(c, { ...semFiltrosSecundarios(crit), local: 'domicilio' }, cidade)) },
+    ],
+  };
+}
+
+/**
+ * Buffets de uma página de categoria/local (ids já escolhidos pelo inventário), na ordem do ranking da busca
+ * (sem destaque fora da cidade: `cidade` só dá a distância). Sem filtros: a página é a lista inteira do local.
+ */
+export async function buffetsPorIds(ids: string[], cidade: Cidade | null, semente: { cidade: string | null; tipo: string | null }, porPagina: number): Promise<ItemResultado[]> {
+  if (!ids.length) return [];
+  return leituraPublica(async (db) => {
+    const lista = await candidatos(db, { tipo: null, data: null, nome: null }, cidade, ids);
+    return ordenar(lista, 'relevancia', { ...opcoesRanking(), raioRef: 30, semente: sementeDoDia(semente.cidade, semente.tipo), porPagina });
   });
 }
 
@@ -533,19 +546,5 @@ export async function registrarMetrica(perfilIds: string[], campo: CampoMetrica,
      ON CONFLICT (perfil_id, dia) DO UPDATE SET ${campo} = busca_metricas_dia.${campo} + 1`,
     [perfilIds]
   );
-}
-
-/** Tipos de evento com pelo menos um buffet publicado em cada cidade (landings e links internos). */
-export async function combinacoesLanding(limite = 500): Promise<{ tipo: string; cidade: Cidade; total: number }[]> {
-  return leituraPublica(async (db) => {
-    const { rows } = await db.query(
-      `SELECT x.tipo, c.id, c.nome, c.uf, c.slug, c.lat, c.lng, count(*) AS total
-         FROM (SELECT unnest(p.tipos_evento) AS tipo, p.cidade_id FROM busca_perfis p JOIN tenants t ON t.id = p.tenant_id WHERE ${PERFIL_VISIVEL}) x
-         JOIN busca_cidades c ON c.id = x.cidade_id
-        GROUP BY x.tipo, c.id ORDER BY total DESC, c.nome LIMIT $1`,
-      [limite]
-    );
-    return rows.map((r) => ({ tipo: r.tipo, cidade: { id: r.id, nome: r.nome, uf: r.uf, slug: r.slug, lat: r.lat, lng: r.lng }, total: Number(r.total) }));
-  });
 }
 

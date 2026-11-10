@@ -38,8 +38,8 @@ const id = 'busca-unica';
   }
   interface Resposta {
     buffets: { slug: string; nome: string; bairro: string | null; cidade: string | null; uf: string | null }[];
-    tipos: { slug: string; rotulo: string; icone: string }[];
-    cidades: { nome: string; uf: string; slug: string }[];
+    tipos: { slug: string; rotulo: string; icone: string; url?: string }[];
+    cidades: { nome: string; uf: string; slug: string; url?: string }[];
   }
 
   for (const form of document.querySelectorAll<HTMLFormElement>('[data-busca-unica]')) {
@@ -125,8 +125,8 @@ const id = 'busca-unica';
         }
         if (n !== pedido) return; // resposta de uma digitação anterior
         opcoes = [
-          ...r.tipos.map((t) => ({ grupo: 'Tipos de evento', icone: t.icone, titulo: t.rotulo, sub: null, href: `${buscar}?tipo=${encodeURIComponent(t.slug)}` })),
-          ...r.cidades.map((c) => ({ grupo: 'Cidades', icone: 'map-pin', titulo: `${c.nome} · ${c.uf}`, sub: null, href: `${buscar}?cidade=${encodeURIComponent(c.slug)}` })),
+          ...r.tipos.map((t) => ({ grupo: 'Tipos de evento', icone: t.icone, titulo: t.rotulo, sub: null, href: t.url ?? `${buscar}?tipo=${encodeURIComponent(t.slug)}` })),
+          ...r.cidades.map((c) => ({ grupo: 'Cidades', icone: 'map-pin', titulo: `${c.nome} · ${c.uf}`, sub: null, href: c.url ?? `${buscar}?cidade=${encodeURIComponent(c.slug)}` })),
           ...r.buffets.map((b) => ({
             grupo: 'Buffets', icone: 'tools-kitchen-2', titulo: b.nome,
             sub: [b.bairro, b.cidade && b.uf ? `${b.cidade} · ${b.uf}` : b.cidade].filter(Boolean).join(', ') || null,

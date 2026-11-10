@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jsonLdLista, jsonLdPerfil, textoLanding } from './seo';
+import { jsonLdLista, jsonLdMigalhas, jsonLdPerfil } from './seo';
 
 const perfil = {
   nome: 'Buffet Teste', slug: 'buffet-teste', descricao: 'Festas no ABC.', url: 'https://busca.banket.com.br/buffet/buffet-teste',
@@ -31,12 +31,10 @@ describe('JSON-LD do perfil', () => {
   });
 });
 
-describe('textos das landings', () => {
-  it('usa números reais e o plural do tipo, sem preço', () => {
-    const t = textoLanding('infantil', 'Santo André', 3);
-    expect(t.titulo).toBe('Buffet para festa infantil em Santo André');
-    expect(t.descricao).toContain('3 buffets para festas infantis em Santo André');
-    expect(JSON.stringify(t)).not.toContain('R$');
-    expect(textoLanding('casamento', 'Campinas', 1).descricao.startsWith('1 buffet para casamentos')).toBe(true);
+describe('breadcrumb', () => {
+  it('BreadcrumbList com posição e URL absoluta de cada nível', () => {
+    const ld = jsonLdMigalhas([{ rotulo: 'Início', caminho: '/' }, { rotulo: 'Buffet infantil', caminho: '/buffet-infantil/' }], (c) => `https://busca.banket.com.br${c}`) as any;
+    expect(ld['@type']).toBe('BreadcrumbList');
+    expect(ld.itemListElement[1]).toEqual({ '@type': 'ListItem', position: 2, name: 'Buffet infantil', item: 'https://busca.banket.com.br/buffet-infantil/' });
   });
 });

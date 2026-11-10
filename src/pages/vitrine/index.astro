@@ -11,11 +11,25 @@ import { buscaUrl, caminhoVitrine, urlArea } from '../../lib/busca/url';
 import { jsonLdSite } from '../../lib/busca/seo';
 import { depoimentos, destaques, registrarMetrica, totaisPorTipo } from '../../server/busca/publico';
 import { cachePublico } from '../../server/busca/vitrine';
+import { caminhoCategoria, categoriaDoServico, categoriaDoTipo } from '../../lib/busca/categorias';
+import { cidadesEmAlta, totaisPorCategoria } from '../../server/busca/locais';
 
 cachePublico(Astro.response.headers);
-const [lista, totais, falas] = await Promise.all([destaques(6), totaisPorTipo(), depoimentos(3)]);
+const [lista, totais, falas, cidades, porCategoria] = await Promise.all([
+  destaques(6), totaisPorTipo(), depoimentos(3), cidadesEmAlta(12).catch(() => []), totaisPorCategoria().catch(() => ({} as Record<string, number>)),
+]);
 await registrarMetrica(lista.map((b) => b.id), 'aparicoes', Astro.request.headers.get('user-agent'));
 const v = caminhoVitrine;
+// Tipo e serviço com categoria (com buffets) vão para a página da categoria; os demais, para a busca (noindex)
+const comBuffets = (cat: ReturnType<typeof categoriaDoTipo>) => (cat && porCategoria[cat.slug] ? cat : null);
+const linkTipo = (slug: string) => {
+  const cat = comBuffets(categoriaDoTipo(slug));
+  return v(cat ? caminhoCategoria(cat) : `/buscar?tipo=${slug}`);
+};
+const linkServico = (slug: string) => {
+  const cat = comBuffets(categoriaDoServico(slug));
+  return v(cat ? caminhoCategoria(cat) : `/buscar?servico=${slug}`);
+};
 // Ilustrações do topo: fotos genéricas do Busca (public/busca), nunca a de um buffet cadastrado (neutralidade)
 const ilustracao = (nome: string) => ({ src: (w: number) => `/busca/${nome}-${w}.webp` });
 const ILUSTRACOES = [ilustracao('mesa-decorada'), ilustracao('salao-buffet')];
@@ -77,7 +91,7 @@ const DESCRICAO_SERVICO: Record<string, string> = {
     <ul class="vh-categorias">
       {TIPOS_EVENTO.map((t) => (
         <li>
-          <a class="vh-categoria" href={v(`/buscar?tipo=${t.slug}`)}>
+          <a class="vh-categoria" href={linkTipo(t.slug)}>
             <span class="vh-categoria-ico"><Icon name={t.icone} size={20} /></span>
             <span class="vh-categoria-texto">{t.rotulo}<span class="vh-categoria-qtd tabular">{totais[t.slug] ? `${totais[t.slug]} ${totais[t.slug] === 1 ? 'buffet' : 'buffets'}` : 'Em breve'}</span></span>
           </a>
@@ -92,7 +106,7 @@ const DESCRICAO_SERVICO: Record<string, string> = {
     <ul class="vh-categorias">
       {TIPOS_SERVICO.map((s) => (
         <li>
-          <a class="vh-categoria" href={v(`/buscar?servico=${s.slug}`)}>
+          <a class="vh-categoria" href={linkServico(s.slug)}>
             <span class="vh-categoria-ico"><Icon name={s.icone} size={20} /></span>
             <span class="vh-categoria-texto">{s.rotulo}<span class="vh-categoria-qtd">{DESCRICAO_SERVICO[s.slug]}</span></span>
           </a>
@@ -100,6 +114,16 @@ const DESCRICAO_SERVICO: Record<string, string> = {
       ))}
     </ul>
   </section>
+
+  {cidades.length > 0 && (
+    <section class="vitrine-secao" aria-labelledby="h-cidades">
+      <h2 id="h-cidades" class="vh-secao-titulo">Cidades mais buscadas</h2>
+      <p class="vh-secao-sub">Veja os buffets de cada cidade, com os bairros e os tipos de evento atendidos.</p>
+      <ul class="vl-links">
+        {cidades.map((c) => <li><a href={v(c.caminho)}>Buffets em {c.rotulo} <span class="tabular">{c.total}</span></a></li>)}
+      </ul>
+    </section>
+  )}
 
   <section class="vitrine-secao" id="como-funciona" aria-labelledby="h-como">
     <p class="eyebrow" style="color:var(--terracotta-700)">Como funciona</p>

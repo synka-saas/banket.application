@@ -15,6 +15,7 @@ import { lerTokenSessao, verifySession } from '../../../lib/auth';
 import { getMembership } from '../../../lib/membership';
 import { appUrl } from '../../../lib/mail';
 import { mascararTelefone } from '../../../lib/mascaras';
+import { caminhoCategoria, caminhoLocal, categoriaDoServico, categoriaDoTipo, encaixa } from '../../../lib/busca/categorias';
 
 const criterios = criteriosDaUrl(Astro.url);
 // Prévia (?previa=1): só para quem está logado na empresa dona do perfil; sem cache e fora do índice
@@ -38,6 +39,13 @@ if (!emPrevia) await registrarMetrica([p.id], 'visualizacoes', Astro.request.hea
 
 const v = caminhoVitrine;
 const busca = queryDaBusca({ tipo: criterios.tipo, cidade: criterios.cidade, data: criterios.data, convidados: criterios.convidados });
+// Links para as páginas de categoria da cidade do buffet (só categorias em que ele entra: a página existe)
+const comoPerfil = { tiposEvento: p.tipos_evento, tiposServico: p.tipos_servico, atendeDomicilio: p.atende_domicilio };
+const linkCategoria = (cat: ReturnType<typeof categoriaDoTipo>) =>
+  cat && p.cidade_slug && encaixa(comoPerfil, cat) ? v(caminhoCategoria(cat, p.cidade_slug)) : null;
+// "Voltar aos resultados": a última busca (sessão) ou a página da categoria × cidade / do local do buffet
+const catVoltar = categoriaDoTipo(criterios.tipo);
+const voltarPara = linkCategoria(catVoltar) ?? (p.cidade_slug ? v(caminhoLocal(p.cidade_slug)) : v('/buscar') + busca);
 const nota = p.nota_media?.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const local = [p.bairro, p.cidade].filter(Boolean).join(', ');
 const atendimento = p.espaco_proprio && p.atende_domicilio ? 'Espaço próprio e em domicílio' : p.espaco_proprio ? 'Espaço próprio' : p.atende_domicilio ? 'Em domicílio' : null;
@@ -58,8 +66,11 @@ const fatos = [
   atendimento && { icone: p.espaco_proprio ? 'building' : 'home', rotulo: 'Atendimento', valor: atendimento },
   p.tempo_resposta_texto && { icone: 'clock', rotulo: 'Resposta', valor: p.tempo_resposta_texto },
   // Serviços numa linha própria: a lista costuma ser longa e espremia a coluna
-  p.tipos_servico.length > 0 && { icone: 'tools-kitchen-2', rotulo: 'Serviços', valor: p.tipos_servico.map(rotuloServico).join(', '), largo: true },
-].filter(Boolean) as { icone: string; rotulo: string; valor: string; largo?: boolean }[];
+  p.tipos_servico.length > 0 && {
+    icone: 'tools-kitchen-2', rotulo: 'Serviços', valor: p.tipos_servico.map(rotuloServico).join(', '), largo: true,
+    itens: p.tipos_servico.map((s) => ({ rotulo: rotuloServico(s), href: linkCategoria(categoriaDoServico(s)) })),
+  },
+].filter(Boolean) as { icone: string; rotulo: string; valor: string; largo?: boolean; itens?: { rotulo: string; href: string | null }[] }[];
 const ld = jsonLdPerfil({
   nome: p.nome, slug: p.slug, descricao: p.descricao, url: buscaUrl(`/buffet/${p.slug}`), logo: p.logo ? buscaUrl(p.logo) : null,
   fotos: fotos.map((f) => buscaUrl(f.url)), cidade: p.cidade, uf: p.uf, bairro: p.bairro, notaMedia: p.nota_media,
@@ -108,7 +119,7 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
     </div>
   )}
   <div class="vitrine-secao" style="padding-top:16px">
-    <a class="voltar" href={v('/buscar') + busca} data-voltar-busca><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
+    <a class="voltar" href={voltarPara} data-voltar-busca><Icon name="arrow-left" size={16} /> Voltar aos resultados</a>
 
     {fotos.length > 0 ? (
       <div class={`vp-galeria vp-galeria--${Math.min(fotos.length, 5)}`}>
@@ -141,14 +152,19 @@ const fmtData = (d: Date | string) => new Date(d).toLocaleDateString('pt-BR', { 
           {p.descricao && <p>{p.descricao}</p>}
           {fatos.length > 0 && (
             <ul class="vp-fatos">
-              {fatos.map((f) => <li class:list={['vp-fato', { 'vp-fato--largo': f.largo }]}><span class="vp-fato-ico"><Icon name={f.icone} size={18} /></span><span><small>{f.rotulo}</small>{f.valor}</span></li>)}
+              {fatos.map((f) => <li class:list={['vp-fato', { 'vp-fato--largo': f.largo }]}><span class="vp-fato-ico"><Icon name={f.icone} size={18} /></span><span><small>{f.rotulo}</small>{f.itens ? f.itens.map((it, i) => <>{i > 0 && ', '}{it.href ? <a href={it.href}>{it.rotulo}</a> : it.rotulo}</>) : f.valor}</span></li>)}
             </ul>
           )}
         </section>
 
         <section class="vp-secao" aria-labelledby="h-eventos">
           <h2 id="h-eventos">Tipos de evento atendidos</h2>
-          <ul class="vp-tags">{p.tipos_evento.map((t) => <li class="tag">{rotuloEvento(t)}</li>)}</ul>
+          <ul class="vp-tags">
+            {p.tipos_evento.map((t) => {
+              const href = linkCategoria(categoriaDoTipo(t));
+              return <li>{href ? <a class="tag" href={href}>{rotuloEvento(t)}</a> : <span class="tag">{rotuloEvento(t)}</span>}</li>;
+            })}
+          </ul>
           {p.restricoes.length > 0 && (
             <>
               <h2 style="margin-top:16px;font-size:var(--fs-15)">Opções de cardápio</h2>

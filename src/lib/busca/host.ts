@@ -7,6 +7,8 @@
 // No host do app, "/vitrine/…" redireciona (301) para o host da vitrine, exceto a prévia do perfil (?previa=1).
 // Sem BUSCA_URL (dev), nada muda: a vitrine fica em /vitrine e a área em /busca.
 
+import { CATEGORIAS, PREFIXO_LOCAL } from './categorias';
+
 export type DecisaoHost =
   | { acao: 'seguir' }
   | { acao: 'reescrever'; caminho: string }
@@ -15,8 +17,11 @@ export type DecisaoHost =
 const DIRETOS = ['/_astro/', '/_image', '/busca-media/', '/busca-demo/', '/api/vitrine/', '/api/health', '/fonts/', '/uploads/'];
 /** Rotas do app que também respondem no host do Busca: nenhuma (a área do buffet fica no app). */
 export const AREA_NO_HOST_BUSCA: string[] = [];
-/** Rotas da vitrine (servidas por /vitrine no host do Busca). */
-export const VITRINE = ['/buscar', '/buffet', '/orcamento', '/para-buffets', '/avaliar', '/sitemap.xml', '/robots.txt'];
+/** Rotas da vitrine (servidas por /vitrine no host do Busca), inclusive as páginas de categoria e de local. */
+export const VITRINE = [
+  '/buscar', '/buffet', '/orcamento', '/para-buffets', '/avaliar', '/sitemap.xml', '/sitemap-categorias.xml', '/sitemap-cidades.xml',
+  '/robots.txt', `/${PREFIXO_LOCAL}`, ...CATEGORIAS.map((c) => `/${c.slug}`),
+];
 const ESTATICO = /\.(png|jpe?g|svg|ico|webp|gif|css|js|map|woff2?|ttf|txt)$/i;
 
 const casa = (pathname: string, prefixo: string) => pathname === prefixo || pathname.startsWith(`${prefixo}/`) || pathname.startsWith(`${prefixo}?`);

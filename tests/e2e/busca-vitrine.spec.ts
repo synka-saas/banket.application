@@ -143,15 +143,33 @@ test.describe('Banket Busca: vitrine', () => {
     }
   });
 
-  test('landing por tipo e cidade: título, perguntas, forma curta da URL e 404', async ({ page, request }) => {
-    await page.goto(`${V}/buffet/casamento/campinas`);
+  test('páginas de categoria e local: 301 das URLs antigas, H1, canonical, breadcrumb, 404 e sitemap', async ({ page, request }) => {
+    // Landing antiga e busca só por tipo (+ cidade) vão para o endereço novo
+    const antiga = await request.get(`${V}/buffet/casamento/campinas`, { maxRedirects: 0 });
+    expect(antiga.status()).toBe(301);
+    expect(antiga.headers().location).toMatch(/\/buffet-para-casamento\/campinas-sp\/$/);
+    const busca = await request.get(`${V}/buscar?tipo=casamento&cidade=campinas-sp`, { maxRedirects: 0 });
+    expect(busca.status()).toBe(301);
+    expect(busca.headers().location).toMatch(/\/buffet-para-casamento\/campinas-sp\/$/);
+    // Com filtro além do tipo, continua na busca (noindex, canonical para a página-base)
+    expect((await request.get(`${V}/buscar?tipo=casamento&cidade=campinas-sp&convidados=100`, { maxRedirects: 0 })).status()).toBe(200);
+    // Barra final e ?pagina=1 padronizados
+    expect((await request.get(`${V}/buffet-para-casamento/campinas-sp`, { maxRedirects: 0 })).status()).toBe(301);
+    expect((await request.get(`${V}/buffet-para-casamento/campinas-sp/?pagina=1`, { maxRedirects: 0 })).status()).toBe(301);
+
+    await page.goto(`${V}/buffet-para-casamento/campinas-sp/`);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Buffet para casamento em Campinas');
+    await expect(page).toHaveTitle(/^Buffet para casamento em Campinas: \d+ buffets? com orçamento grátis \| Banket Busca$/);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/buffet-para-casamento\/campinas-sp\/$/);
     const tipos = await page.locator('script[type="application/ld+json"]').evaluateAll((els) => els.map((e) => JSON.parse(e.textContent ?? '{}')['@type']));
-    expect(tipos).toContain('FAQPage');
-    const longa = await request.get(`${V}/buffet/casamento/campinas-sp`, { maxRedirects: 0 });
-    expect(longa.status()).toBe(301);
-    expect(longa.headers().location).toMatch(/\/buffet\/casamento\/campinas$/);
-    expect((await request.get(`${V}/buffet/festa/campinas`)).status()).toBe(404);
+    expect(tipos).toContain('BreadcrumbList');
+    await expect(page.locator('.vl-migalhas')).toContainText('Buffet para casamento');
+    await expect(page.locator('.vr-intro')).toBeVisible();
+
+    expect((await request.get(`${V}/buffet-para-confraternizacao/`)).status()).toBe(404);
+    expect((await request.get(`${V}/buffets-em/cidade-que-nao-existe-xx/`)).status()).toBe(404);
+    const sitemap = await request.get(`${V}/sitemap-cidades.xml`);
+    expect(sitemap.headers()['content-type']).toContain('application/xml');
   });
 
   test('nunca expõe perfil não publicado nem empresa suspensa', async ({ request }) => {

@@ -1,0 +1,120 @@
+---
+// Página de categoria e/ou local do Banket Busca (/{categoria}/…, /buffets-em/…), renderizada no servidor: breadcrumb
+// visível + BreadcrumbList, H1 "{Categoria} em {Cidade}", introdução única, a lista do local (mesmos cards e filtros da
+// busca; os filtros levam a /buscar, noindex), paginação com links reais e os links internos (bairros/cidades, outras
+// categorias, página do local). Abaixo do piso de perfis completos: noindex,follow (e fora do sitemap).
+import VitrineLayout from '../../layouts/VitrineLayout.astro';
+import FormBusca from './FormBusca.astro';
+import Resultados from './Resultados.astro';
+import Icon from '../ui/Icon.astro';
+import { hojeSaoPaulo } from '../../lib/datas';
+import { lerCriterios } from '../../lib/busca/filtros';
+import { buscaUrl, caminhoVitrine } from '../../lib/busca/url';
+import { jsonLdLista, jsonLdMigalhas } from '../../lib/busca/seo';
+import { caminhoLocal, comPagina, descricaoPagina, introPagina, migalhas, tituloH1, tituloPagina, type LocalTexto } from '../../lib/busca/categorias';
+import { facetasDe, registrarMetrica, type ResultadoBusca } from '../../server/busca/publico';
+import { cachePublico } from '../../server/busca/vitrine';
+import type { ResolucaoPagina } from '../../server/busca/locais';
+
+interface Props {
+  dados: Extract<ResolucaoPagina, { acao: 'mostrar' }>;
+}
+const { dados } = Astro.props;
+const { pagina: pg, caminho, numero, totalPaginas, itens, todos } = dados;
+const cat = pg.categoria;
+const cidade = pg.cidade;
+const bairro = pg.bairro;
+cachePublico(Astro.response.headers);
+
+const local: LocalTexto | null = bairro && cidade ? { nome: bairro.nome, cidade: cidade.nome } : cidade ? { nome: cidade.nome } : null;
+const h1 = tituloH1(cat, local);
+const titulo = tituloPagina(cat, local, pg.total, numero);
+const descricao = descricaoPagina(cat, local, pg.fatos);
+const intro = introPagina(cat, local, pg.fatos);
+const trilha = migalhas(cat, cidade, bairro);
+const v = caminhoVitrine;
+const canonical = comPagina(caminho, numero);
+
+// Critérios equivalentes (painel de filtros e barra de busca levam a /buscar, que é noindex)
+const params = new URLSearchParams();
+if (cat?.tipos[0]) params.set('tipo', cat.tipos[0]);
+if (cidade) params.set('cidade', cidade.slug);
+const criterios = lerCriterios(params, hojeSaoPaulo());
+const resultado: ResultadoBusca = { cidade, total: pg.total, itens, temMais: false, facetas: facetasDe(todos, criterios, cidade), sugestoes: [] };
+await registrarMetrica(itens.map((i) => i.id), 'aparicoes', Astro.request.headers.get('user-agent'));
+
+const tituloLocais = cidade ? `Bairros com ${cat ? cat.nome.toLowerCase() : 'buffets'} em ${cidade.nome}` : cat ? `${cat.nome} por cidade` : '';
+const outras = cidade ? `Outros eventos em ${bairro ? bairro.nome : cidade.nome}` : 'Outras categorias';
+---
+
+<VitrineLayout
+  title={h1}
+  tituloCompleto={titulo}
+  description={descricao}
+  canonical={canonical}
+  noindex={!pg.indexavel}
+  jsonLd={[
+    jsonLdMigalhas(trilha, (c) => buscaUrl(c)),
+    ...(itens.length ? [jsonLdLista(itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []),
+  ]}
+>
+  <div class="vitrine-secao" style="padding-top:20px">
+    <nav class="vl-migalhas" aria-label="Você está em">
+      <ol>
+        {trilha.map((m) => (
+          <li>{m.atual ? <span aria-current="page">{m.rotulo}</span> : <a href={v(m.caminho)}>{m.rotulo}</a>}</li>
+        ))}
+      </ol>
+    </nav>
+
+    <div class="vr-resumo" data-resumo-busca>
+      <button type="button" class="vr-resumo-botao" aria-expanded="false" data-resumo-botao>
+        <span class="vh-categoria-ico"><Icon name="search" size={18} /></span>
+        <span class="vr-resumo-texto"><strong>{cat ? cat.curto : 'Todos os eventos'}</strong><span>{cidade ? `${bairro ? `${bairro.nome} · ` : ''}${cidade.nome} · ${cidade.uf}` : 'Qualquer cidade'}</span></span>
+        <Icon name="pencil" size={16} />
+      </button>
+      <FormBusca criterios={criterios} cidade={cidade} variante="barra" />
+    </div>
+
+    <div style="margin-top:24px">
+      <Resultados
+        resultado={resultado}
+        criterios={criterios}
+        titulo={h1}
+        cardsSemCriterios
+        paginaDe={(crit) =>
+          !crit.nome && !crit.data && !crit.convidados && !crit.servicos.length && !crit.restricoes.length && !crit.local && !crit.avaliacao &&
+          !crit.raio && crit.ordem === 'relevancia' && crit.tipo === criterios.tipo && crit.cidade === criterios.cidade ? caminho : null}
+        intro={numero === 1 ? intro : undefined}
+        paginacao={{
+          numero,
+          total: totalPaginas,
+          anterior: numero > 1 ? v(comPagina(caminho, numero - 1)) : null,
+          proxima: numero < totalPaginas ? v(comPagina(caminho, numero + 1)) : null,
+        }}
+      />
+    </div>
+  </div>
+
+  <section class="vitrine-secao" aria-label="Veja também">
+    {cat && cidade && (
+      <p style="margin:0 0 16px">
+        <a class="btn btn-outline btn-md" href={v(caminhoLocal(cidade.slug, bairro?.slug))}>
+          Todos os buffets em {bairro ? `${bairro.nome}, ${cidade.nome}` : cidade.nome} <Icon name="arrow-right" size={16} />
+        </a>
+      </p>
+    )}
+    {pg.locais.length > 0 && (
+      <>
+        <h2 class="vh-secao-titulo">{tituloLocais}</h2>
+        <ul class="vl-links">{pg.locais.map((l) => <li><a href={v(l.caminho)}>{l.rotulo} <span class="tabular">{l.total}</span></a></li>)}</ul>
+      </>
+    )}
+    {pg.categorias.length > 0 && (
+      <>
+        <h2 class="vh-secao-titulo" style={pg.locais.length ? 'margin-top:32px' : undefined}>{outras}</h2>
+        <ul class="vl-links">{pg.categorias.map((l) => <li><a href={v(l.caminho)}>{l.rotulo} <span class="tabular">{l.total}</span></a></li>)}</ul>
+      </>
+    )}
+  </section>
+</VitrineLayout>

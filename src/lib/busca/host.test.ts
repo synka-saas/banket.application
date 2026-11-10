@@ -53,3 +53,14 @@ describe('decidirHost', () => {
     expect(d('app.banket.com.br', '/busca')).toEqual({ acao: 'seguir' });
   });
 });
+
+describe('páginas de categoria e local no host do Busca', () => {
+  it('são servidas pela vitrine com a URL limpa', () => {
+    expect(decidirHost('busca.banket.com.br', '/buffet-para-casamento/sao-paulo-sp/', '', 'busca.banket.com.br', 'https://busca.banket.com.br', 'https://app.banket.com.br'))
+      .toEqual({ acao: 'reescrever', caminho: '/vitrine/buffet-para-casamento/sao-paulo-sp/' });
+    expect(decidirHost('busca.banket.com.br', '/buffets-em/sao-paulo-sp/aclimacao/', '', 'busca.banket.com.br', 'https://busca.banket.com.br', 'https://app.banket.com.br'))
+      .toEqual({ acao: 'reescrever', caminho: '/vitrine/buffets-em/sao-paulo-sp/aclimacao/' });
+    expect(decidirHost('busca.banket.com.br', '/sitemap-cidades.xml', '', 'busca.banket.com.br', 'https://busca.banket.com.br', 'https://app.banket.com.br'))
+      .toEqual({ acao: 'reescrever', caminho: '/vitrine/sitemap-cidades.xml' });
+  });
+});

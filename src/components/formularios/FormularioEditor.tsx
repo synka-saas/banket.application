@@ -10,6 +10,7 @@ import {
   type TipoPergunta,
 } from '../../lib/formularios/modelo';
 import { Icon } from '../ui/Icon';
+import OpcoesDrawer from './OpcoesDrawer';
 import { confirmar, toast } from '../../lib/ui';
 import '../../styles/formularios.css';
 
@@ -38,8 +39,14 @@ interface Rascunho {
   obrigatoria: boolean;
   placeholder: string;
   ajuda: string;
-  /** Pergunta padrão com opções editáveis (budget): o rascunho mexe só nas opções */
-  soOpcoes?: boolean;
+}
+
+/** Pergunta padrão com opções editáveis (faixas de budget) aberta no painel de opções */
+interface EdicaoOpcoes {
+  secao: string;
+  id: string;
+  rotulo: string;
+  opcoes: string[];
 }
 
 const novoId = () => `c_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
@@ -52,6 +59,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
   const [mensagem, setMensagem] = useState(formulario.mensagem_sucesso ?? '');
   const [secoes, setSecoes] = useState<SecaoResolvida[]>(formulario.secoes);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
+  const [edicaoOpcoes, setEdicaoOpcoes] = useState<EdicaoOpcoes | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [alterado, setAlterado] = useState(false);
 
@@ -101,7 +109,6 @@ export default function FormularioEditor({ formulario, origem }: Props) {
 
   function abrirRascunho(secao: string, p?: PerguntaResolvida) {
     setRascunho({
-      soOpcoes: Boolean(p?.padrao && p.opcoesEditaveis),
       secao,
       id: p?.id ?? null,
       rotulo: p?.rotulo ?? '',
@@ -126,16 +133,6 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       : [];
     if (comOpcoes && opcoes.length < 2) return toast('Informe ao menos 2 opções, uma por linha.', 'error');
     if (opcoes.some((o) => o.length > 120)) return toast('Cada opção pode ter no máximo 120 caracteres.', 'error');
-
-    // Pergunta padrão (faixas de budget): troca só as opções, o resto continua do modelo
-    if (rascunho.soOpcoes && rascunho.id) {
-      alterarSecao(rascunho.secao, (s) => ({
-        ...s,
-        perguntas: s.perguntas.map((p) => (p.id === rascunho.id ? { ...p, opcoes: opcoes.map((o) => ({ valor: o, rotulo: o })) } : p)),
-      }));
-      setRascunho(null);
-      return;
-    }
 
     const pergunta: PerguntaResolvida = {
       id: rascunho.id ?? novoId(),
@@ -162,6 +159,14 @@ export default function FormularioEditor({ formulario, origem }: Props) {
         : [...s.perguntas, pergunta],
     }));
     setRascunho(null);
+  }
+
+  // Pergunta padrão (faixas de budget): troca só as opções, o resto continua do modelo
+  function aplicarOpcoes(opcoes: string[]) {
+    if (!edicaoOpcoes) return;
+    const { secao, id } = edicaoOpcoes;
+    alterarPergunta(secao, id, { opcoes: opcoes.map((o) => ({ valor: o, rotulo: o })) });
+    setEdicaoOpcoes(null);
   }
 
   async function enviar(method: 'PUT' | 'POST' | 'DELETE', body?: unknown): Promise<{ id?: string } | null> {
@@ -240,6 +245,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
   const totalPerguntas = ativas.reduce((acc, s) => acc + s.perguntas.filter((p) => p.ativa).length, 0);
 
   return (
+    <>
     <form class="fe" onSubmit={salvar}>
       <section class="fe-card">
         <div class="fe-geral">
@@ -363,7 +369,13 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                   )}
                   {p.padrao && p.opcoesEditaveis && (
                     <div class="fe-acoes">
-                      <button type="button" class="row-action" onClick={() => abrirRascunho(s.chave, p)}>Editar opções</button>
+                      <button
+                        type="button"
+                        class="row-action"
+                        onClick={() => setEdicaoOpcoes({ secao: s.chave, id: p.id, rotulo: p.rotulo, opcoes: p.opcoes.map((o) => o.rotulo) })}
+                      >
+                        Editar opções
+                      </button>
                     </div>
                   )}
                   {p.travada ? (
@@ -394,28 +406,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
             ))}
           </ul>
 
-          {rascunho?.secao === s.chave && rascunho.soOpcoes ? (
-            <div class="fe-rascunho">
-              <div class="fe-rascunho-grid">
-                <div class="field fe-span">
-                  <label for={`fe-r-opcoes-${s.chave}`}>Opções de "{rascunho.rotulo}" (uma por linha)<span class="obrigatorio">*</span></label>
-                  <textarea
-                    id={`fe-r-opcoes-${s.chave}`}
-                    rows={5}
-                    value={rascunho.opcoes}
-                    onInput={(e) => setRascunho({ ...rascunho, opcoes: e.currentTarget.value })}
-                    placeholder={'Até R$ 10.000\nDe R$ 10.000 a R$ 25.000'}
-                    autoFocus
-                  />
-                  <span class="field-hint">A resposta escolhida aparece como verba estimada no evento.</span>
-                </div>
-              </div>
-              <div class="fe-rascunho-acoes">
-                <button type="button" class="btn btn-secondary btn-md" onClick={() => setRascunho(null)}>Cancelar</button>
-                <button type="button" class="btn btn-primary btn-md" onClick={confirmarRascunho}>Aplicar opções</button>
-              </div>
-            </div>
-          ) : rascunho?.secao === s.chave ? (
+          {rascunho?.secao === s.chave ? (
             <div class="fe-rascunho">
               <div class="fe-rascunho-grid">
                 <div class="field fe-span">
@@ -513,5 +504,15 @@ export default function FormularioEditor({ formulario, origem }: Props) {
         </div>
       </div>
     </form>
+    {edicaoOpcoes && (
+      <OpcoesDrawer
+        pergunta={edicaoOpcoes.rotulo}
+        opcoes={edicaoOpcoes.opcoes}
+        ajuda="A resposta escolhida aparece como verba estimada no evento."
+        onAplicar={aplicarOpcoes}
+        onFechar={() => setEdicaoOpcoes(null)}
+      />
+    )}
+    </>
   );
 }
