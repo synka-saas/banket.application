@@ -16,8 +16,8 @@ export function formatMoney(value: number | null | undefined): string {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-/** Valor para preencher um input de texto ("250,00"). */
+/** Valor para preencher um input de texto ("250,00", "39.250,00"). */
 export function moneyInput(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  return value.toFixed(2).replace('.', ',');
+  if (value === null || value === undefined || Number.isNaN(value)) return '';
+  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

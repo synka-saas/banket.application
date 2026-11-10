@@ -181,6 +181,7 @@ const mensagemSucesso =
 
 <script>
   import { toast as mostrarToast, type ToastTipo } from '../../lib/ui';
+  import { telefoneValido } from '../../lib/mascaras';
   const form = document.getElementById('fp-form') as HTMLFormElement | null;
   if (form) iniciar(form);
 
@@ -259,9 +260,32 @@ const mensagemSucesso =
           marcarErro(el, 'Informe um e-mail válido.');
           return false;
         }
+        if (!vazio && el.dataset.tipo === 'telefone' && !telefoneValido(String(v))) {
+          marcarErro(el, mensagemTelefone(el));
+          return false;
+        }
       }
       return true;
     }
+
+    const mensagemTelefone = (el: HTMLElement) => `Informe o ${el.dataset.rotulo ?? 'telefone'} com DDD, como (11) 91234-5678.`;
+
+    // Telefone/WhatsApp conferido ao sair do campo: o erro aparece já, sem esperar o "Avançar"
+    form.addEventListener('focusout', (e) => {
+      const campo = e.target as HTMLInputElement;
+      const el = campo.closest<HTMLElement>('.fp-pergunta[data-tipo="telefone"]');
+      if (!el) return;
+      const v = campo.value.trim();
+      el.classList.remove('fp-erro');
+      el.querySelector('.fp-erro-msg')?.remove();
+      if (!v || telefoneValido(v)) return;
+      el.classList.add('fp-erro');
+      const aviso = document.createElement('p');
+      aviso.className = 'fp-erro-msg';
+      aviso.setAttribute('role', 'alert');
+      aviso.textContent = mensagemTelefone(el);
+      el.appendChild(aviso);
+    });
 
     // ---------- Rascunho: recarregar a página não perde as respostas (UX-071) ----------
     const chaveRascunho = `banket-fp-${form.dataset.slug}`;

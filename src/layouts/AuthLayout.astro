@@ -1,6 +1,8 @@
 ---
 import Icon from '../components/ui/Icon.astro';
 import Mascaras from '../components/ui/Mascaras.astro';
+import ValidacaoNativa from '../components/ui/ValidacaoNativa.astro';
+import GoogleTagManager from '../components/GoogleTagManager.astro';
 
 interface Props {
   title: string;
@@ -18,6 +20,7 @@ import '../styles/global.css';
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <GoogleTagManager />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -25,6 +28,7 @@ import '../styles/global.css';
     <title>{`${title} · Banket`}</title>
   </head>
   <body>
+    <GoogleTagManager noscript />
     <div class="auth-layout">
       <div class={`auth-left ${showOverlay ? 'has-overlay' : ''}`}>
         <div class="bg-image"></div>
@@ -61,6 +65,7 @@ import '../styles/global.css';
       </div>
     </div>
     <Mascaras />
+    <ValidacaoNativa />
   </body>
 </html>
 

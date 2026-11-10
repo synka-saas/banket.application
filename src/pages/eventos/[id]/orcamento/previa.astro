@@ -68,17 +68,28 @@ const pad = (n: number) => String(n).padStart(2, '0');
 </EventoLayout>
 
 <script>
-  // Escala cada página A4 (794×1123 css px) para caber na largura disponível
+  // Escala cada página A4 (794×1123 css px) para caber na largura disponível. O conteúdo (miolo) pode passar de
+  // uma página: o quadro cresce até a altura real do documento, para nada ficar escondido.
   const LARGURA_A4 = 794;
-  const RAZAO_A4 = 1123 / 794;
+  const ALTURA_A4 = 1123;
+  function alturaDoConteudo(iframe: HTMLIFrameElement): number {
+    try {
+      return Math.max(ALTURA_A4, iframe.contentDocument?.documentElement.scrollHeight ?? 0);
+    } catch {
+      return ALTURA_A4;
+    }
+  }
   function ajustar() {
     document.querySelectorAll<HTMLElement>('[data-previa-quadro]').forEach((quadro) => {
       const escala = Math.min(1, quadro.clientWidth / LARGURA_A4);
       const iframe = quadro.querySelector<HTMLIFrameElement>('[data-previa-iframe]')!;
+      const altura = alturaDoConteudo(iframe);
+      iframe.style.height = `${altura}px`;
       iframe.style.transform = `scale(${escala})`;
-      quadro.style.height = `${Math.round(LARGURA_A4 * RAZAO_A4 * escala)}px`;
+      quadro.style.height = `${Math.round(altura * escala)}px`;
     });
   }
+  document.querySelectorAll<HTMLIFrameElement>('[data-previa-iframe]').forEach((iframe) => iframe.addEventListener('load', ajustar));
   window.addEventListener('resize', ajustar);
   ajustar();
 </script>

@@ -3,11 +3,16 @@
 // "recusado" (motivo da perda). Uso: window.banketEtapaExtras(variante) → Promise com
 // { fechado_em } / { motivo_perda }, {} quando a etapa não pede nada, ou null se o usuário cancelar.
 // Com `planoPagamento` (owner/admin), o fechamento oferece cadastrar o plano de pagamento em seguida ({ _plano: '1' }).
+// Sem o Financeiro no plano, a opção aparece desmarcada e com cadeado: o clique abre o upsell (data-bloqueado).
+import Icon from '../ui/Icon.astro';
+import { podeUsarEm } from '../../lib/planos/gating';
+
 interface Props {
   planoPagamento?: boolean;
 }
 
 const { planoPagamento = false } = Astro.props;
+const financeiroNoPlano = podeUsarEm(Astro.locals.plano ?? null, 'financeiro');
 ---
 
 <dialog class="dialogo-form etapa-dialogo" data-etapa-dialogo aria-labelledby="etapa-dialogo-titulo">
@@ -36,7 +41,14 @@ const { planoPagamento = false } = Astro.props;
     </div>
     {planoPagamento && (
       <div class="field" data-so="aprovado">
-        <label class="switch switch-sm"><input id="etapa-plano" type="checkbox" checked />Cadastrar o plano de pagamento em seguida</label>
+        {financeiroNoPlano ? (
+          <label class="switch switch-sm"><input id="etapa-plano" type="checkbox" checked />Cadastrar o plano de pagamento em seguida</label>
+        ) : (
+          <label class="switch switch-sm campo-bloqueado" data-bloqueado="financeiro" title="Não incluído no seu plano">
+            <input type="checkbox" aria-disabled="true" />Cadastrar o plano de pagamento em seguida
+            <Icon name="lock" size={14} />
+          </label>
+        )}
         <span class="field-hint">Valores, entrada e parcelas acertados no contrato viram contas a receber.</span>
       </div>
     )}

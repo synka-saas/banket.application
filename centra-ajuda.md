@@ -30,14 +30,14 @@ Você deve **orquestrar tudo**: transformar o protótipo do Claude Design em um 
 - `help/support/` é a **fonte única da verdade** do conteúdo. Adicionar ou editar um `.md` ou imagem ali e regenerar o site deve bastar. Nada de copiar conteúdo manualmente para dentro do projeto Astro.
 - `help/central-ajuda/` é **referência** e não deve ser apagada nem alterada. O site Astro novo fica em `help/site/`.
 - O site roda em um **container Docker** (build multi-stage: Node gera o estático e `nginx:alpine` serve). A porta fica publicada **apenas em `127.0.0.1`**.
-- É servido no **mesmo host da plataforma**, em `platform.banket.app/ajuda/`, para o cookie de sessão ser enviado sem alterar o domínio do cookie.
+- É servido no **mesmo host da plataforma**, em `app.banket.com.br/ajuda/`, para o cookie de sessão ser enviado sem alterar o domínio do cookie.
 - A proteção fica no **Nginx do host via `auth_request`**, que consulta um endpoint leve da API antes de repassar qualquer requisição ao container. Nenhum arquivo (HTML, imagens, índice de busca) pode vazar para quem não estiver logado.
 
 ## Passo 0: Investigar antes de implementar (obrigatório)
 Leia o `CLAUDE.md` da raiz e me reporte, **antes de alterar qualquer coisa**:
 
 1. **Autenticação**: a sessão é por **cookie** ou por **token no header** (Bearer/localStorage)? Informe o nome do cookie, as flags (HttpOnly, SameSite, Domain, Path) e onde a sessão é validada em `api/` (Fastify).
-2. **Infra**: porta/upstream da API, onde fica a config do Nginx de `platform.banket.app`, e se o Nginx roda **no host ou em container** (isso muda como ele alcança o container da ajuda). Veja também o `docker-compose.yml` da raiz para seguir as mesmas convenções (rede, restart policy, logs).
+2. **Infra**: porta/upstream da API, onde fica a config do Nginx de `app.banket.com.br`, e se o Nginx roda **no host ou em container** (isso muda como ele alcança o container da ajuda). Veja também o `docker-compose.yml` da raiz para seguir as mesmas convenções (rede, restart policy, logs).
 3. **Login**: rota de login em `platform/` e se ela já aceita parâmetro de retorno (ex.: `?redirect=`).
 4. **Protótipo (`help/central-ajuda/`)**: estrutura do `Central de Ajuda.dc.html` (quais telas ele contém, como estão organizadas), o que há em `_ds/` (tokens, fontes, componentes), o que `image-slot.js` e `support.js` fazem de fato, e quais assets de `uploads/` são usados. Liste os componentes identificáveis (header, sidebar, busca, cards de categoria, página de artigo, rodapé etc.).
 5. **Conteúdo (`help/support/`)**: inventário com quantidade de `.md` e imagens, estrutura de pastas, se há frontmatter (e quais campos), como as imagens são referenciadas (caminhos relativos, absolutos, URLs), links internos entre documentos e nomes de arquivo problemáticos (espaços, acentos, maiúsculas).
@@ -85,7 +85,7 @@ Criar em `help/`:
 - O contexto do build é `help/`, para o container enxergar `site/` e `support/`. O protótipo (`central-ajuda/`) não entra na imagem.
 
 ## Passo 4: Nginx do host
-No `server` de `platform.banket.app`, algo nesta linha (ajuste à config real e à porta escolhida):
+No `server` de `app.banket.com.br`, algo nesta linha (ajuste à config real e à porta escolhida):
 
 ```nginx
 location /ajuda/ {
@@ -109,7 +109,7 @@ location @login_redirect {
 ```
 
 - Validar com `nginx -t`. **Me mostre o diff antes de recarregar o Nginx.**
-- Se o login em `platform/` não suportar `?redirect=`, implemente aceitando **apenas caminhos relativos internos** (evitar open redirect).
+- Se o login em `app/` não suportar `?redirect=`, implemente aceitando **apenas caminhos relativos internos** (evitar open redirect).
 - Adicionar um link "Ajuda" no menu/header da plataforma apontando para `/ajuda/`.
 
 ## Passo 5: Runbook `help/DEPLOY.md`

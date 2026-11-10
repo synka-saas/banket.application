@@ -5,6 +5,7 @@ import { calcularOrcamento, novaChave, type BlocoInfo, type ConteudoOrcamento, t
 import { Acordeao } from './controles';
 import { Icon } from '../ui/Icon';
 import { confirmar, toast } from '../../lib/ui';
+import { normalizarHora } from '../../lib/datas';
 import '../../styles/orcamento.css';
 
 interface Props {
@@ -118,6 +119,11 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
     atualizarBloco(b.key, { linhas });
   }
 
+  // Linhas de horário (bloco de cronograma ou rótulo com "horário"/"hora"): "1200" vira "12:00" ao sair do campo
+  const ehHorario = (bloco: BlocoInfo, label: string) =>
+    /cronograma|hor[áa]rio/i.test(bloco.titulo) || /hor[áa]rio|\bhora\b/i.test(label);
+  const valorDigitado = (bloco: BlocoInfo, label: string, valor: string) => (ehHorario(bloco, label) ? normalizarHora(valor) : valor);
+
   const atualizarLinha = (bloco: BlocoInfo, linhaKey: string, patch: { label?: string; valor?: string }) =>
     atualizarBloco(bloco.key, {
       // Editar uma linha automática a torna manual
@@ -160,7 +166,12 @@ export default function BlocosEditor({ eventoId, numero, congelada, campo, conte
                       onBlur={(e) => e.currentTarget.value !== l.valor && atualizarLinha(b, l.key, { valor: e.currentTarget.value })} />
                   ) : (
                     <input class="valor-kv" value={l.valor} disabled={congelada || b.auto === 'staff'} aria-label={`Valor de ${l.label}`} maxLength={2000}
-                      onBlur={(e) => e.currentTarget.value !== l.valor && atualizarLinha(b, l.key, { valor: e.currentTarget.value })} />
+                      placeholder={ehHorario(b, l.label) ? '00:00' : undefined}
+                      onBlur={(e) => {
+                        const valor = valorDigitado(b, l.label, e.currentTarget.value);
+                        e.currentTarget.value = valor;
+                        if (valor !== l.valor) atualizarLinha(b, l.key, { valor });
+                      }} />
                   )}
                   <span class="linha-acoes">
                     {l.auto && <span class="auto-selo tag tag-sm tag-sage" title="Informação obtida automaticamente a partir de cálculo." aria-label="Informação obtida automaticamente a partir de cálculo."><Icon name="circle-letter-a" size={16} /></span>}

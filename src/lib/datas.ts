@@ -61,3 +61,17 @@ export function somarMeses(iso: string, meses: number): string {
 export function hojeSaoPaulo(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 }
+
+/**
+ * Horário digitado de forma livre → "HH:MM": "1200" → "12:00", "930" → "09:30", "12h" → "12:00", "12h30" → "12:30",
+ * "9" → "09:00". O que não é um horário válido (texto, "25:00", "1260") volta como veio.
+ */
+export function normalizarHora(valor: string): string {
+  const s = valor.trim();
+  const m = /^(\d{1,2})(?:[:hH.]?(\d{2}))?\s*[hH]?$/.exec(s);
+  if (!m) return valor;
+  const h = Number(m[1]);
+  const min = Number(m[2] ?? 0);
+  if (h > 23 || min > 59) return valor;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}

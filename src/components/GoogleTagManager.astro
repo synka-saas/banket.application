@@ -1,0 +1,39 @@
+---
+// Google Tag Manager do app (app.banket.com.br, GTM-MXR2K7FR) e do Banket Busca (busca.banket.com.br, GTM-MW2LK75W).
+// Fonte única dos IDs. O site institucional (banket.com.br) é HTML estático e tem container próprio: assets/js/gtm.js.
+//
+// Snippet oficial do GTM: o push de {'gtm.start', event: 'gtm.js'} é o que dispara os acionadores de página
+// ("Todas as páginas"); sem ele as tags de visualização não disparam.
+//   <GoogleTagManager />           → logo depois de <head>
+//   <GoogleTagManager noscript />  → logo depois de <body>
+//
+// Não carrega em endereço com código de acesso ou dado pessoal (?token=, ?email=, /p/<token>, /print/*): a visualização
+// de página manda a URL inteira ao Analytics. A regra fica aqui porque as páginas 404 e 500 também saem nesses endereços.
+// Só carrega em produção.
+interface Props {
+  container?: 'app' | 'busca';
+  noscript?: boolean;
+}
+
+const { container = 'app', noscript = false } = Astro.props;
+const { pathname, searchParams } = Astro.url;
+const carregar =
+  import.meta.env.PROD &&
+  !searchParams.has('token') &&
+  !searchParams.has('email') &&
+  !pathname.startsWith('/p/') &&
+  !pathname.startsWith('/print/');
+const id = container === 'busca' ? 'GTM-MW2LK75W' : 'GTM-MXR2K7FR';
+const snippet = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${id}');`;
+---
+
+{carregar && (noscript ? (
+  <noscript><iframe src={`https://www.googletagmanager.com/ns.html?id=${id}`}
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+) : (
+  <script is:inline set:html={snippet}></script>
+))}

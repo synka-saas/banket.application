@@ -105,6 +105,8 @@ export const eventoSchema = z
     infraestrutura: optionalText(2000),
     verba_total: optionalMoney(),
     verba_por_pessoa: optionalMoney(),
+    /** Faixa de verba escolhida no formulário de captação ("Até R$ 5.000") */
+    verba_faixa: optionalText(120),
     forma_pagamento: optionalText(255),
     qualificacao: z.preprocess((v) => (v ? v : null), z.enum(['alta', 'media', 'baixa']).nullable()),
     responsavel_nome: optionalText(255),
@@ -189,6 +191,7 @@ export interface EventoCard {
   tipo_nome: string | null;
   categoria_nome: string | null;
   verba_total: number | null;
+  verba_faixa: string | null;
   valor_orcamento: number | null;
   local_nome: string | null;
   /** Desde quando está na etapa atual (última mudança de status, ou a criação) */
@@ -210,7 +213,7 @@ const SELECT_CARD = `
   SELECT e.id, e.titulo, c.nome AS cliente_nome, c.tipo_pessoa AS cliente_tipo, e.status_id,
          to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento, to_char(e.hora_inicio, 'HH24:MI') AS hora_inicio,
          e.numero_convidados, f.nome AS formato_nome, t.nome AS tipo_nome, ce.nome AS categoria_nome,
-         e.verba_total, o.valor_total AS valor_orcamento, e.local_nome,
+         e.verba_total, e.verba_faixa, o.valor_total AS valor_orcamento, e.local_nome,
          COALESCE((SELECT max(tl.created_at) FROM evento_timeline tl WHERE tl.evento_id = e.id AND tl.tipo = 'status'),
                   e.created_at) AS etapa_desde
     FROM eventos e
@@ -339,7 +342,7 @@ export async function carregarEvento(db: Db, id: string): Promise<EventoDetalhe>
             to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento,
             to_char(e.hora_inicio, 'HH24:MI') AS hora_inicio, to_char(e.hora_fim, 'HH24:MI') AS hora_fim,
             e.duracao_evento_horas, e.duracao_alimentacao_horas, e.numero_convidados, e.perfil_convidados,
-            e.local_tipo, e.local_nome, e.endereco, e.infraestrutura, e.verba_total, e.verba_por_pessoa,
+            e.local_tipo, e.local_nome, e.endereco, e.infraestrutura, e.verba_total, e.verba_por_pessoa, e.verba_faixa,
             e.forma_pagamento, e.qualificacao, e.responsavel_nome, e.responsavel_email, e.responsavel_whatsapp,
             e.convite_experiencia, e.estilo_principal, e.estilo_secundario, e.bebidas_alcoolicas,
             e.bebidas_sem_alcool, e.restricoes, e.compliance, e.staff_terceiros, e.comentario_cliente,
@@ -386,7 +389,7 @@ export async function statusDeEntrada(db: Db): Promise<string> {
 const CAMPOS = [
   'titulo', 'tipo_evento_id', 'categoria_evento_id', 'formato_servico_id', 'data_evento', 'hora_inicio', 'hora_fim',
   'duracao_evento_horas', 'duracao_alimentacao_horas', 'numero_convidados', 'perfil_convidados', 'espaco_id', 'local_tipo',
-  'local_nome', 'endereco', 'infraestrutura', 'verba_total', 'verba_por_pessoa', 'forma_pagamento', 'qualificacao',
+  'local_nome', 'endereco', 'infraestrutura', 'verba_total', 'verba_por_pessoa', 'verba_faixa', 'forma_pagamento', 'qualificacao',
   'responsavel_nome', 'responsavel_email', 'responsavel_whatsapp', 'convite_experiencia', 'estilo_principal',
   'estilo_secundario', 'bebidas_alcoolicas', 'bebidas_sem_alcool', 'restricoes', 'compliance', 'staff_terceiros',
   'comentario_cliente',
@@ -630,12 +633,20 @@ function csvCell(v: unknown): string {
   return /[";\n]/.test(seguro) ? `"${seguro.replace(/"/g, '""')}"` : seguro;
 }
 
+/** Pedidos ainda na etapa de entrada (variante `novo`): contador do item Propostas no menu; some quando o card é movido. */
+export async function contarPedidosNovos(db: Db): Promise<number> {
+  const { rows } = await db.query<{ n: number }>(
+    `SELECT count(*) AS n FROM eventos e JOIN status_orcamento s ON s.id = e.status_id WHERE s.variante = 'novo'`
+  );
+  return Number(rows[0]?.n ?? 0);
+}
+
 export async function exportarEventosCsv(db: Db, filtros: FiltrosEventos): Promise<string> {
   const { sql, params } = whereEventos(filtros);
   const { rows } = await db.query(
     `SELECT e.titulo, c.nome AS cliente, s.nome AS status, to_char(e.data_evento, 'DD/MM/YYYY') AS data,
             to_char(e.hora_inicio, 'HH24:MI') AS horario, e.numero_convidados, t.nome AS tipo, ce.nome AS categoria,
-            f.nome AS formato, e.local_nome, e.verba_total, o.valor_total AS orcamento, e.responsavel_nome,
+            f.nome AS formato, e.local_nome, e.verba_total, e.verba_faixa, o.valor_total AS orcamento, e.responsavel_nome,
             e.responsavel_email, e.responsavel_whatsapp
        FROM eventos e
        LEFT JOIN clientes c ON c.id = e.cliente_id
@@ -655,7 +666,7 @@ export async function exportarEventosCsv(db: Db, filtros: FiltrosEventos): Promi
   const linhas = rows.map((r) =>
     [
       r.titulo, r.cliente, r.status, r.data, r.horario, r.numero_convidados, r.tipo, r.categoria, r.formato,
-      r.local_nome, r.verba_total?.toString().replace('.', ','), r.orcamento?.toString().replace('.', ','),
+      r.local_nome, r.verba_total?.toString().replace('.', ',') ?? r.verba_faixa, r.orcamento?.toString().replace('.', ','),
       r.responsavel_nome, r.responsavel_email, r.responsavel_whatsapp,
     ].map(csvCell).join(';')
   );

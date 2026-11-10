@@ -3,6 +3,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { lerTokenSessao, clearSessionCookie, isAdmin } from './lib/auth';
 import { consumeFlash, setFlash } from './lib/flash';
 import { conferirSessao } from './lib/membership';
+import { registrarAcesso } from './lib/acessos';
 import { ErroPlano, entitlements, podeUsarEm } from './lib/planos/gating';
 import { inicioDoPlano, recursoDaRota } from './lib/planos/rotas';
 import { PAGINA_ESCOLHA_PLANO, deveEscolherPlano, verificarTrialVencido } from './server/planos';
@@ -103,6 +104,7 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
     return context.redirect(`/auth/login${destino}`);
   }
   context.locals.user = user;
+  registrarAcesso(user.id, user.tenantId);
 
   const suspensa = membership?.tenantStatus !== 'active';
   if (suspensa && !LIBERADAS_SUSPENSA.has(pathname)) {
@@ -140,7 +142,9 @@ async function autorizar(context: APIContext, next: MiddlewareNext): Promise<Res
     if (pathname.startsWith('/api/') || pathname.startsWith('/print/')) {
       return Response.json(new ErroPlano('RECURSO_FORA_DO_PLANO', recurso, 'Este recurso não faz parte do seu plano.').toJSON(), { status: 403 });
     }
-    return context.redirect(`${inicioDoPlano(temPropostas)}?bloqueado=${encodeURIComponent(recurso)}`);
+    // Aba de um evento (link direto): fica no evento, com o painel aberto por cima do resumo
+    const evento = temPropostas ? /^\/eventos\/([0-9a-f-]{36})\//i.exec(pathname)?.[1] : null;
+    return context.redirect(`${evento ? `/eventos/${evento}` : inicioDoPlano(temPropostas)}?bloqueado=${encodeURIComponent(recurso)}`);
   }
 
   return next();

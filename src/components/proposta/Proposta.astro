@@ -396,6 +396,20 @@ const staffAtivo = c.staff.filter((s) => efetivo(s.quantidade_manual, s.quantida
     border-collapse: collapse;
   }
 
+  /* Na tela (prévia) não há páginas: topo e rodapé ficam nas pontas do documento, sem cobrir o texto.
+     Na impressão continuam fixos e se repetem em cada página (os espaços de thead/tfoot reservam o lugar). */
+  @media screen {
+    body {
+      position: relative;
+      min-height: 297mm;
+    }
+
+    .topo,
+    .rodape {
+      position: absolute;
+    }
+  }
+
   .espaco-topo {
     height: 52mm;
   }

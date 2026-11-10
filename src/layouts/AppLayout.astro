@@ -8,16 +8,21 @@ import Submenu from '../components/Submenu.astro';
 import Toast from '../components/ui/Toast.astro';
 import Confirmar from '../components/ui/Confirmar.astro';
 import Mascaras from '../components/ui/Mascaras.astro';
+import ValidacaoNativa from '../components/ui/ValidacaoNativa.astro';
 import Reordenar from '../components/ui/Reordenar.astro';
 import Upsell from '../components/planos/Upsell.astro';
 import { withTenant } from '../lib/db';
 import { contarNaoLidas } from '../server/conversas';
+import { contarPedidosNovos } from '../server/eventos';
+import { podeUsarEm } from '../lib/planos/gating';
 import type { BadgesNavegacao } from '../lib/nav';
 
 interface SubmenuItem {
   id: string;
   label: string;
   href: string;
+  /** Recurso fora do plano: a aba mostra o cadeado e o clique abre o painel de upsell na própria tela */
+  bloqueado?: string;
 }
 
 interface Props {
@@ -33,10 +38,20 @@ interface Props {
 
 const { title, heading = title, submenu, submenuActive, voltar } = Astro.props;
 
-// Mensagens não lidas no Inbox (uma consulta indexada por página); uma falha aqui nunca derruba a tela
+// Contadores do menu (uma transação por página): mensagens não lidas no Inbox e pedidos novos no Painel de Propostas
+// (eventos na etapa de entrada, só com o módulo no plano). Uma falha aqui nunca derruba a tela.
 const user = Astro.locals.user;
-const naoLidas = user ? await withTenant(user.tenantId, (db) => contarNaoLidas(db, user)).catch(() => 0) : 0;
-const badges: BadgesNavegacao = naoLidas > 0 ? { '/inbox': naoLidas } : {};
+const propostasNoPlano = podeUsarEm(Astro.locals.plano ?? null, 'propostas');
+const contagens = user
+  ? await withTenant(user.tenantId, async (db) => ({
+      naoLidas: await contarNaoLidas(db, user),
+      pedidosNovos: propostasNoPlano ? await contarPedidosNovos(db) : 0,
+    })).catch(() => ({ naoLidas: 0, pedidosNovos: 0 }))
+  : { naoLidas: 0, pedidosNovos: 0 };
+const badges: BadgesNavegacao = {
+  ...(contagens.naoLidas > 0 ? { '/inbox': contagens.naoLidas } : {}),
+  ...(contagens.pedidosNovos > 0 ? { '/eventos': contagens.pedidosNovos } : {}),
+};
 ---
 
 <Layout title={title}>
@@ -58,6 +73,7 @@ const badges: BadgesNavegacao = naoLidas > 0 ? { '/inbox': naoLidas } : {};
   <Confirmar />
   <Upsell />
   <Mascaras />
+  <ValidacaoNativa />
   <Reordenar />
 </Layout>
 

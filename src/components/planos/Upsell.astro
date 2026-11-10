@@ -2,7 +2,9 @@
 // Painel de upsell (fase 1 do Banket Busca): abre quando um recurso fora do plano é tocado — `?bloqueado=<recurso>`
 // (redirect do middleware), clique num item com cadeado (`[data-bloqueado]`) ou resposta 403 com
 // RECURSO_FORA_DO_PLANO / LIMITE_DO_PLANO em qualquer fetch. Conteúdo por recurso em lib/planos/recursos.ts
-// (BENEFICIOS). CTAs: teste grátis (gratuito com oferta, owner/admin), ver planos, falar com a equipe.
+// (BENEFICIOS). Texto padrão do backlog de 10/11/2026: selo "Exclusivo para planos superiores", "Desbloqueie <recurso> no
+// seu buffet", "Ver planos e vantagens" e "Continuar no <plano atual>" (fecha). No gratuito com oferta, o teste grátis
+// vem antes de ver os planos.
 // Registra os eventos do funil em POST /api/planos/upsell.
 import Icon from '../ui/Icon.astro';
 import { isAdmin } from '../../lib/auth';
@@ -13,6 +15,9 @@ const user = Astro.locals.user;
 const oferta = ofertaDeTrial(plano);
 const admin = isAdmin(user);
 const gratuito = plano?.gratuito === true;
+// "Continuar no plano Essencial" / "Continuar no Plano Busca"
+const nomePlano = plano?.planoNome ?? null;
+const continuar = nomePlano ? `Continuar no ${/^plano\b/i.test(nomePlano) ? nomePlano : `plano ${nomePlano}`}` : 'Continuar no plano atual';
 ---
 
 <dialog
@@ -27,13 +32,18 @@ const gratuito = plano?.gratuito === true;
   <form method="dialog" class="upsell-caixa">
     <button type="submit" value="fechar" class="upsell-fechar" aria-label="Fechar"><Icon name="x" size={18} /></button>
     <span class="upsell-tile"><Icon name="lock" size={20} /></span>
-    <p class="eyebrow upsell-eyebrow" data-upsell-eyebrow>Não incluído no seu plano</p>
+    <p class="eyebrow upsell-eyebrow" data-upsell-eyebrow>Exclusivo para planos superiores</p>
     <h2 id="upsell-titulo" class="upsell-titulo" data-upsell-titulo></h2>
-    <p class="upsell-texto" data-upsell-texto></p>
+    <p class="upsell-texto">
+      Essa funcionalidade foi criada para acelerar sua operação e dar mais escala às suas vendas. Faça um upgrade no seu
+      plano para liberar este e outros recursos avançados do Banket.
+    </p>
+    <p class="upsell-detalhe" data-upsell-texto></p>
     <p class="upsell-limite" data-upsell-limite hidden></p>
     <div class="upsell-acoes">
       <a href="/planos?teste=1" class="btn btn-primary btn-md" data-upsell-trial hidden>Iniciar teste grátis de 30 dias</a>
-      <a href="/planos" class="btn btn-outline btn-md" data-upsell-planos>Ver planos</a>
+      <a href="/planos" class="btn btn-primary btn-md" data-upsell-planos>Ver planos e vantagens</a>
+      <button type="submit" value="fechar" class="btn btn-outline btn-md" data-upsell-continuar>{continuar}</button>
       <button type="button" class="btn btn-text btn-md" data-upsell-recusar hidden>Não tenho interesse no momento</button>
     </div>
     <p class="upsell-rodape" data-upsell-rodape hidden>Só proprietários e administradores podem mudar o plano. Fale com o responsável pela conta.</p>
@@ -52,6 +62,7 @@ const gratuito = plano?.gratuito === true;
     const limite = q('[data-upsell-limite]');
     const eyebrow = q('[data-upsell-eyebrow]');
     const trial = q<HTMLAnchorElement>('[data-upsell-trial]');
+    const planos = q<HTMLAnchorElement>('[data-upsell-planos]');
     const recusar = q<HTMLButtonElement>('[data-upsell-recusar]');
     const rodape = q('[data-upsell-rodape]');
     const gratuito = dialog.dataset.gratuito === '1';
@@ -73,14 +84,18 @@ const gratuito = plano?.gratuito === true;
       const b = BENEFICIOS[recurso];
       const rotulo = rotuloRecurso(recurso);
       const ehLimite = detalhe?.limite != null;
-      eyebrow.textContent = ehLimite ? 'Limite do plano' : 'Não incluído no seu plano';
-      titulo.textContent = b?.titulo ?? rotulo;
-      texto.textContent = b?.texto ?? `${rotulo} está disponível nos planos pagos do Banket.`;
+      eyebrow.textContent = ehLimite ? 'Limite do plano' : 'Exclusivo para planos superiores';
+      titulo.textContent = ehLimite ? (b?.titulo ?? rotulo) : `Desbloqueie ${rotulo} no seu buffet`;
+      texto.textContent = b?.texto ?? '';
+      texto.hidden = !b?.texto;
       limite.hidden = !ehLimite;
       if (ehLimite) limite.textContent = detalhe?.mensagem ?? `Seu plano permite até ${detalhe?.limite} (você usa ${detalhe?.uso}).`;
       const podeTestar = gratuito && admin && oferta === 'disponivel';
       trial.hidden = !podeTestar;
       recusar.hidden = !podeTestar;
+      // Com o teste disponível ele é a ação principal; ver os planos vira secundária
+      planos.classList.toggle('btn-primary', !podeTestar);
+      planos.classList.toggle('btn-outline', podeTestar);
       rodape.hidden = admin;
       if (!dialog!.open) dialog!.showModal();
       registrar('cadeado_visto', recurso, ehLimite ? { limite: detalhe?.limite, uso: detalhe?.uso } : {});
@@ -219,11 +234,17 @@ const gratuito = plano?.gratuito === true;
   }
 
   .upsell-texto,
+  .upsell-detalhe,
   .upsell-limite {
     margin: 0;
     font-size: var(--fs-14);
     line-height: 1.5;
     color: var(--text-secondary);
+  }
+
+  .upsell-detalhe {
+    font-size: var(--fs-13);
+    color: var(--text-muted);
   }
 
   .upsell-limite {

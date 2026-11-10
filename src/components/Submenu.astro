@@ -1,6 +1,9 @@
 ---
+import Icon from './ui/Icon.astro';
+
 interface Props {
-  items: { id: string; label: string; href?: string }[];
+  /** bloqueado = recurso fora do plano: cadeado + data-bloqueado (o Upsell intercepta o clique e não navega) */
+  items: { id: string; label: string; href?: string; bloqueado?: string }[];
   activeId?: string;
 }
 
@@ -10,8 +13,15 @@ const { items = [], activeId } = Astro.props;
 <div class="submenu-container">
   <nav class="submenu-nav">
     {items.map((item) => (
-      <a href={item.href || `?tab=${item.id}`} class:list={['submenu-item', { active: activeId === item.id }]} aria-current={activeId === item.id ? 'page' : undefined}>
+      <a
+        href={item.href || `?tab=${item.id}`}
+        class:list={['submenu-item', { active: activeId === item.id, 'submenu-item--bloqueado': item.bloqueado }]}
+        aria-current={activeId === item.id ? 'page' : undefined}
+        data-bloqueado={item.bloqueado || undefined}
+        title={item.bloqueado ? `${item.label} · não incluído no seu plano` : undefined}
+      >
         {item.label}
+        {item.bloqueado && <Icon name="lock" size={14} class="submenu-cadeado" />}
       </a>
     ))}
   </nav>
@@ -71,6 +81,15 @@ const { items = [], activeId } = Astro.props;
 
   .submenu-item:hover {
     color: var(--text-strong);
+  }
+
+  .submenu-item--bloqueado {
+    gap: var(--space-1);
+    color: var(--text-muted);
+  }
+
+  .submenu-item :global(.submenu-cadeado) {
+    color: var(--text-muted);
   }
 
   .submenu-item.active {

@@ -42,3 +42,6 @@ playwright-report/
 design-system/uploads/
 scrapping/
 base/
+
+# backlogs gerados no Figma (capturas e listas de ajustes; ficam só na VPS)
+/backlog/

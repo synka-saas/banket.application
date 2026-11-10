@@ -90,7 +90,7 @@ export async function contextoNegociacao(db: Db, user: SessionUser, eventoId: st
       `Data: ${e.data_evento ? dataCurta(e.data_evento) : 'não definida'}${diasAte !== null ? ` (faltam ${diasAte} dias)` : ''} · Horário: ${faixaHorario(e.hora_inicio, e.hora_fim)}`,
       `Convidados: ${e.numero_convidados ?? '—'} · Perfil: ${e.perfil_convidados ?? '—'}`,
       `Local: ${e.espaco_nome ?? e.local_nome ?? '—'}`,
-      `Verba informada: ${e.verba_total ? formatMoney(Number(e.verba_total)) : '—'} total · ${e.verba_por_pessoa ? formatMoney(Number(e.verba_por_pessoa)) : '—'} por pessoa`,
+      `Verba informada: ${e.verba_total ? formatMoney(Number(e.verba_total)) : '—'} total · ${e.verba_por_pessoa ? formatMoney(Number(e.verba_por_pessoa)) : '—'} por pessoa${e.verba_faixa ? ` · faixa escolhida no formulário: ${e.verba_faixa}` : ''}`,
       `Forma de pagamento desejada: ${e.forma_pagamento ?? '—'}`,
       `Qualificação dada pelo comercial: ${e.qualificacao ?? '—'}`,
       `Estilo gastronômico: ${[e.estilo_principal, e.estilo_secundario].filter(Boolean).join(' / ') || '—'}`,

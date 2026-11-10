@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ params, url, locals }) => {
   return new Response(resultado.csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="lista-de-compras-v${String(resultado.numero).padStart(2, '0')}.csv"`,
+      'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(resultado.nome)}`,
     },
   });
 };

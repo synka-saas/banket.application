@@ -1,6 +1,7 @@
 ---
 // Páginas públicas de texto corrido (Termos de uso, Política de privacidade).
 import '../styles/global.css';
+import GoogleTagManager from '../components/GoogleTagManager.astro';
 
 interface Props {
   title: string;
@@ -13,12 +14,14 @@ const { title, atualizadoEm } = Astro.props;
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <GoogleTagManager />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{`${title} · Banket`}</title>
   </head>
   <body class="legal-body">
+    <GoogleTagManager noscript />
     <main class="legal">
       <a href="/auth/cadastro" class="legal-logo"><img src="/logo-dark.png" alt="Banket" /></a>
       <article class="legal-card">

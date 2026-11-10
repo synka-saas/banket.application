@@ -15,6 +15,7 @@ import { listarTemplates } from '../../../server/templates';
 import { envioSchema, enviarProposta, rascunhoEnvio } from '../../../server/envio';
 import { formatMoney } from '../../../lib/money';
 import { dataHora } from '../../../lib/datas';
+import { exigir, podeUsarEm } from '../../../lib/planos/gating';
 import OrcamentoAbas from '../../../components/orcamento/OrcamentoAbas.astro';
 
 const user = Astro.locals.user;
@@ -44,6 +45,8 @@ if (Astro.request.method === 'POST') {
         return { message: `Versão restaurada como versão ${String(numero).padStart(2, '0')}.`, redirect: base };
       }
       if (data._action === 'enviar') {
+        // O envio abre a conversa do Inbox com o cliente: depende do recurso inbox do plano
+        await exigir(user.tenantId, 'inbox', 'O envio da proposta por e-mail');
         const input = envioSchema.parse(data);
         const r = await enviarProposta(db, user, id, input);
         const pad = (n: number) => String(n).padStart(2, '0');
@@ -96,6 +99,7 @@ const { evento, orcamento, versao } = ctx;
           espacos={ctx.espacos}
           idades={ctx.idades}
           pdfUrl={`${base}/pdf?versao=${versao.numero}`}
+          envioBloqueado={podeUsarEm(Astro.locals.plano ?? null, 'inbox') ? null : 'inbox'}
         />
       ) : (
         <section class="sem-orcamento">

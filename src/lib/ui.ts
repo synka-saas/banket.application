@@ -28,6 +28,23 @@ declare global {
   }
 }
 
+/**
+ * Troca mensagens técnicas do navegador (falha de rede, resposta que não é JSON, tempo esgotado) por um texto que o
+ * usuário entende. Mensagens do próprio sistema passam como estão. Aplicado em todo toast (Toast.astro).
+ */
+export function mensagemAmigavel(mensagem: string): string {
+  const m = mensagem.trim();
+  if (/failed to fetch|networkerror|load failed|network request failed|err_internet|err_network/i.test(m))
+    return 'Não foi possível falar com o servidor. Confira sua conexão com a internet e tente de novo.';
+  if (/aborted|timed? ?out|timeout/i.test(m)) return 'O servidor demorou para responder. Tente de novo em instantes.';
+  if (/unexpected token|is not valid json|json\.parse|unexpected end of json/i.test(m))
+    return 'Recebemos uma resposta inesperada do servidor. Recarregue a página e tente de novo.';
+  if (/^(http )?\d{3}\b|internal server error|bad gateway|service unavailable|gateway time/i.test(m))
+    return 'Algo deu errado do nosso lado. Tente de novo em instantes.';
+  if (/^(undefined|null|\[object object\])$/i.test(m) || !m) return 'Algo deu errado. Tente de novo.';
+  return mensagem;
+}
+
 export function toast(mensagem: string, tipo: ToastTipo = 'info', opcoes?: ToastOpcoes) {
   window.banketToast?.(mensagem, tipo, opcoes);
 }

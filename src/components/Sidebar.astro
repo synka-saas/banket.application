@@ -47,7 +47,7 @@ const cardTrial = admin && plano?.trial != null && !plano?.assinaturaViva;
       >
         <Icon name={item.icon} size={20} class="nav-icon" />
         <span class="nav-label">{item.label}</span>
-        {badges[item.href] ? <span class="nav-badge tabular" aria-label={`${badges[item.href]} não lidas`}>{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
+        {badges[item.href] ? <span class="nav-badge tabular" aria-label={`${badges[item.href]} ${item.href === '/eventos' ? 'pedidos novos' : 'não lidas'}`}>{badges[item.href] > 99 ? '99+' : badges[item.href]}</span> : null}
         {item.bloqueado && <Icon name="lock" size={14} class="nav-cadeado" />}
         {item.bloqueado && <span class="sr-only">(não incluído no seu plano)</span>}
       </a>

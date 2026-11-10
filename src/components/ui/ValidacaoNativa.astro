@@ -1,0 +1,52 @@
+---
+// Avisos da validação nativa dos formulários (required, type="email", min/max…) em português, qualquer que seja o
+// idioma do navegador. O texto vem de mensagemValidacao (lib/validacao.ts); campos com setCustomValidity próprio
+// continuam com a mensagem deles. Incluído pelos layouts, junto das máscaras.
+---
+
+<script>
+  import { mensagemValidacao } from '../../lib/validacao';
+
+  type Campo = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+  const traduzidos = new WeakSet<Campo>();
+
+  document.addEventListener(
+    'invalid',
+    (e) => {
+      const campo = e.target as Campo;
+      if (!('validity' in campo)) return;
+      // Mensagem própria do campo (setCustomValidity de outro script): não mexe
+      if (campo.validity.customError && !traduzidos.has(campo)) return;
+      campo.setCustomValidity('');
+      const mensagem = mensagemValidacao(campo.validity, {
+        tipo: campo instanceof HTMLInputElement ? campo.type : campo.tagName.toLowerCase(),
+        min: campo.getAttribute('min'),
+        max: campo.getAttribute('max'),
+        minLength: campo.getAttribute('minlength'),
+        maxLength: campo.getAttribute('maxlength'),
+        titulo: campo.getAttribute('title'),
+      });
+      if (!mensagem) return;
+      campo.setCustomValidity(mensagem);
+      traduzidos.add(campo);
+    },
+    true
+  );
+
+  // A mensagem traduzida é refeita a cada envio: ao mexer no campo, ela sai para a validação valer de novo
+  const limpar = (e: Event) => {
+    const campo = e.target as Campo;
+    if (!traduzidos.has(campo)) return;
+    campo.setCustomValidity('');
+    traduzidos.delete(campo);
+    // Rádios do mesmo grupo dividem a validação
+    if (campo instanceof HTMLInputElement && campo.type === 'radio' && campo.name && campo.form) {
+      campo.form.querySelectorAll<HTMLInputElement>(`input[type="radio"][name="${CSS.escape(campo.name)}"]`).forEach((r) => {
+        r.setCustomValidity('');
+        traduzidos.delete(r);
+      });
+    }
+  };
+  document.addEventListener('input', limpar, true);
+  document.addEventListener('change', limpar, true);
+</script>

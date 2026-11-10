@@ -361,7 +361,7 @@ CHECK: precisa ser por evento, proporcional ou ter mínimo.
 `data_evento DATE`, `hora_inicio`, `hora_fim`, `duracao_evento_horas`, `duracao_alimentacao_horas`, `numero_convidados`,
 `perfil_convidados`, `espaco_id` (→ `espacos`, SET NULL), `local_tipo` (`casa | externo`, derivado do espaço: próprio =
 casa), `local_nome` (espelho do nome do espaço, ou texto livre em "Outro local"), `endereco`, `infraestrutura`, `verba_total`,
-`verba_por_pessoa`, `forma_pagamento`, `qualificacao` (`alta | media | baixa`), `responsavel_nome/email/whatsapp`,
+`verba_por_pessoa`, `verba_faixa` (faixa escolhida no formulário de captação, "Até R$ 5.000"; aparece como verba estimada quando não há valor; migration 051), `forma_pagamento`, `qualificacao` (`alta | media | baixa`), `responsavel_nome/email/whatsapp`,
 `convite_experiencia`, `estilo_principal`, `estilo_secundario`, `bebidas_alcoolicas`, `bebidas_sem_alcool`,
 `restricoes TEXT[]`, `compliance TEXT[]`, `staff_terceiros`, `comentario_cliente`, `origem` (`manual | formulario`),
 `criado_por`.
@@ -566,7 +566,8 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `aplicar_padroes_financeiro(id)` | categorias iniciais de contas a receber e a pagar |
 | `aplicar_padroes_pesquisa(id)` | `pesquisa_config` (textos e e-mail) + questionário inicial (NPS, CSAT, escolhas, abertas) |
 | `fn_tenant_entitlements(id)` | **fonte única do plano**: `{sem_plano, plano_slug, gratuito, trial, trial_vencido, trial_usado, recursos, override}` (SECURITY DEFINER, datas em São Paulo); atalhos `fn_tenant_pode(id, recurso)` e `fn_tenant_limite(id, recurso)` |
-| `aplicar_padroes_tenant_completo(id)` | chama as sete acima; usado no cadastro de empresa nova |
+| `aplicar_padroes_cardapio_staff(id)` | 8 seções do cardápio (Entradas … Coffee Break) e 4 serviços de staff de demonstração com cachê zerado (Garçom 1/15 mín. 2, Chefe de salão por evento, Auxiliar de cozinha 1/30, Barman 1/80); só quando a empresa não tem nenhum (migration 052) |
+| `aplicar_padroes_tenant_completo(id)` | chama as oito acima; usado no cadastro de empresa nova e na reivindicação do Busca |
 
 ### Histórico das migrations
 
@@ -606,6 +607,9 @@ resposta, `ordem`, `nota`, `opcoes TEXT[]`, `texto`.
 | `032_busca` | tabelas do Banket Busca, extensões de geolocalização e texto, `eventos.origem` com `busca` |
 | `033_busca_cidades` | 5.571 municípios com centroide (fonte kelvins/municipios-brasileiros, dados do IBGE) |
 | `034_busca_sem_pacotes` | cadastro do perfil em 6 etapas (sem pacotes nem preço): recalcula `etapa_concluida` (6 = publicado) e `completude` com os pesos novos |
+| `052_padroes_cardapio_staff` | `aplicar_padroes_cardapio_staff` (seções do cardápio e staff de demonstração) em `aplicar_padroes_tenant_completo`; backfill nas empresas sem nenhum cadastro (fora as importadas sem dono) |
+| `051_eventos_verba_faixa` | `eventos.verba_faixa` + backfill a partir do snapshot das respostas do formulário |
+| `050_manager_ro` | leitura direta pelo Manager Hwesta: `acessos_dia` (acesso diário, gravado por `lib/acessos.ts` no middleware), schema `manager_ro` com as views de contrato (mesmas colunas do Yosp) e o papel `manager_reader` (NOLOGIN; senha fora do git). Mudou tabela usada por view? Mantenha a view (ver INTEGRACAO_HWESTA.md) |
 | `048_essencial_busca_personalizado` | Essencial com os recursos do Busca do Profissional (Perfil Personalizado em todos os planos pagos; o Simples fica só no plano Busca) e descrição do plano |
 | `047_busca_ranking_avaliacoes_whatsapp` | `busca_metricas_dia.cliques_contato`, `busca_perfis.ultima_resposta_em`, tempo de resposta e avisos do WhatsApp em `configuracoes_tenant`, avaliação do Busca em `pesquisa_envios` + `busca_recalcular_avaliacoes(tenant)`, `whatsapp_mensagens` (RLS) e `whatsapp_events` (só sistema) |
 | `046_planos_precos_master` | preços (89/197/297; anual 10×), limites do Profissional e do Prime (ilimitado só no Master) e o plano Master (R$ 449, não público) |
@@ -720,8 +724,9 @@ O IP vem de `X-Real-IP` ou do **último** item de `X-Forwarded-For` (os primeiro
 
 ## Funcionalidades (módulos e rotas)
 
-Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban), Inbox (com o contador de não lidas,
-calculado no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, **Financeiro** (só admin), Estoque, Staff, Espaços,
+Navegação lateral (`components/Sidebar.astro`) — inclui **Estoque** antes de Staff: Dashboard, Propostas (página "Painel de Propostas", o Kanban; com o
+contador de pedidos ainda na etapa de entrada, `contarPedidosNovos`, que cai quando o card é movido), Inbox (com o
+contador de não lidas; os dois calculados no `AppLayout`), Cardápios, Clientes, Agenda, Formulários, **Financeiro** (só admin), Estoque, Staff, Espaços,
 Templates, Documentos, **Pesquisas**, Banket Busca, Configurações (só admin), **Ajuda** (`/ajuda/`, a Central de Ajuda,
 fora do app), Suporte.
 
@@ -980,8 +985,9 @@ restrições, dados operacionais, ativo). Opções prontas (pacotes) editadas nu
 Cadastro PF/PJ com CPF/CNPJ validado, e-mail e documento únicos por empresa, histórico de eventos do cliente.
 
 ### Agenda — `/agenda` (`server/agenda.ts`)
-Eventos com data, por mês ou semana, coloridos pela cor do status; filtro por variante de status. Mostra também as
-reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
+Eventos com data, por mês ou semana, coloridos pela cor do status; filtro por variante de status. Clicar num evento abre
+o **resumo rápido** (diálogo com cliente, data, horário, convidados, local, formato e orçamento/verba; botão "Abrir
+evento"); Ctrl/Cmd+clique segue o link. Mostra também as reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
 
 ### Formulários — `/formularios`, `/formularios/:id`, `/formularios/:id/respostas`, público `/f/:slug`
 - Modelo fixo em `lib/formularios/modelo.ts` (seções de boas-vindas, local, dimensionamento B2B/B2C, gastronomia &
@@ -1005,6 +1011,17 @@ reuniões agendadas (`reunioesNoPeriodo`) e dá acesso a `/reunioes`.
   entrada e grava o snapshot em `formulario_respostas`. Com `_perfil` de um perfil **da mesma empresa** (a RLS confere),
   o evento nasce com `origem = 'busca'` (timeline "Pedido recebido pelo Banket Busca"), o pedido vai para
   `busca_pedidos` e owner/admin recebem o e-mail "Novo pedido pelo Banket Busca" com o link do evento.
+- **Ajustes de 10/11/2026**: a 1ª etapa pergunta "O evento é corporativo ou social?" e, logo depois, "Qual a ocasião?"
+  (`b2b_ocasiao`/`b2c_ocasiao` saíram do Dimensionamento para a seção `contato`, condicionais à natureza, com
+  `fluxoOpcoes` dizendo de qual fluxo vêm as ocasiões; pergunta padrão condicional ausente da configuração entra logo
+  depois da pergunta de que depende); "Nosso espaço" pergunta **em qual dos espaços próprios** (`espaco`, `origemOpcoes:
+  'espacos'`, `espacosDoFormulario`, com a última opção "Ainda não defini qual dos espaços" = `ESPACO_A_DEFINIR`: evento
+  sem espaço, local "Nosso espaço (a definir)"; sem resposta válida, o espaço padrão) e "Região / CEP" só aparece no local
+  externo; as faixas de budget têm `opcoesEditaveis` ("Editar opções" no editor; o valor gravado é o rótulo, em
+  `config.secoes[].perguntas[].opcoes`) e a faixa respondida vai para `eventos.verba_faixa`; o corporativo também pergunta
+  staff de terceiros e restrições (`b2b_staff`, `b2b_restricoes`); "Bebidas e bar" é múltipla escolha; sem a opção "3
+  orçamentos comparativos"; WhatsApp/telefone exigem DDD (`telefoneValido`, `lib/mascaras.ts`, no servidor e ao sair do
+  campo); abaixo do cartão, os links do Banket (site e Instagram), fora do modo embutido.
 - **Usar no Banket Busca**: ação no card do formulário (`/formularios`, `usarNoBusca`); o card escolhido mostra o selo
   "No Banket Busca".
 
@@ -1089,7 +1106,8 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   `UserError(msg, campo)` e o nome da restrição única do Postgres (`*_email_*`, `*_documento_*`, `*_nome_*`…).
 - **`lib/ui.ts`** (navegador): `toast(msg, tipo, {acao})`, `confirmar({titulo, texto, confirmar, perigo})`,
   `emCarregamento(botao, rotulo)`, `baixarArquivo(url)`. Nunca use `window.confirm`/`window.banketToast` direto.
-- **Toast**: erro fica até fechar (`role="alert"`); sucesso some em 5 s; ação opcional (ex.: Desfazer).
+- **Toast**: erro fica até fechar (`role="alert"`); sucesso some em 5 s; ação opcional (ex.: Desfazer). Todo toast de erro passa por `mensagemAmigavel` (`lib/ui.ts`): "Failed to fetch", JSON inválido e erros HTTP viram texto para o usuário.
+- **Validação nativa em português** (`components/ui/ValidacaoNativa.astro` + `lib/validacao.ts`, nos layouts App, Auth e Formulário): `required`, e-mail, limites e tamanho com mensagem em pt-BR em qualquer idioma do navegador; `setCustomValidity` próprio de um campo prevalece.
 - **Confirmar** (`components/ui/Confirmar.astro`, `<dialog>`): também via `data-confirm="Pergunta?"`
   (+ `data-confirm-texto`, `data-confirm-rotulo`); verbos Excluir/Remover/Cancelar/Descartar deixam o botão vermelho.
 - **Carregando**: `data-carregando="Salvando…"` no botão de envio de formulário comum.
@@ -1174,7 +1192,12 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   ativos: criar ativo ou reativar ocupa vaga), análises de IA e fundos de template por mês (fuso SP).
 - **Menu**: itens fora do plano ficam com cadeado (`nav-item--bloqueado`, `data-bloqueado`); o clique abre o painel
   (`components/planos/Upsell.astro`, no `AppLayout`), que também abre com `?bloqueado=` e com qualquer `fetch` 403 de
-  plano. Item "Banket Busca" depois de Pesquisas, com o ícone `banket` (símbolo do logo no traço dos ícones; a pílula "busca" fica só no cabeçalho da vitrine). Card do plano no rodapé da sidebar (owner/admin).
+  plano. Texto do painel: selo "Exclusivo para planos superiores", "Desbloqueie <recurso> no seu buffet", texto padrão,
+  "Ver planos e vantagens" e "Continuar no <plano atual>". **Abas e ações** seguem o mesmo padrão `data-bloqueado`
+  (abas do evento em `EventoLayout` e sub-abas do orçamento via `recursoDaRota`; "Enviar ao cliente" sem `inbox`;
+  "Cadastrar o plano de pagamento" no fechamento sem `financeiro`; "Gerenciado no estoque" sem `estoque`), com as classes
+  `.btn-bloqueado` / `.campo-bloqueado` de `global.css`: o clique abre o painel na própria tela, sem navegar. Link direto
+  para uma aba bloqueada de evento volta ao resumo do evento (`/eventos/:id?bloqueado=`), não ao dashboard. Item "Banket Busca" depois de Pesquisas, com o ícone `banket` (símbolo do logo no traço dos ícones; a pílula "busca" fica só no cabeçalho da vitrine). Card do plano no rodapé da sidebar (owner/admin).
 - **Teste grátis** (modelo do Yosp): toda empresa nasce no plano Busca (`cadastroInicial`). **Escolher um plano inicia
   o teste de 30 dias**, sem cartão: owner/admin, uma vez por empresa (`trial_usado_em`). `/planos?teste=1` é a página de
   seleção ("Escolha o plano para começar"); quem se cadastrou pelo site cai nela depois do cadastro e a cada entrada
@@ -1260,12 +1283,25 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   da vitrine não consomem o cookie de flash e saem com `Cache-Control: public, s-maxage=300`.
 
 ### Banket Busca: importação da base — `scripts/importar-busca.mjs`
-- Entrada: CSV com `;` da coleta (Google Maps + sites; `base/` fica fora do git). Ajustes manuais opcionais em
-  `base/revisao/` (`removidos_categoria.csv` reincluir, `mantidos_categoria_limitrofe.csv` remover, `redes_propostas.csv`
-  `manter_no_grupo`/`nome_conta`); relatório em `base/revisao/simulacao.csv`. Conexão `DATABASE_URL_SYSTEM`.
-- **Entra**: `relevante = sim`, IA não recusou, categoria do ramo (buffet/catering; limítrofes como salão ou cerimonial só
-  com sinal de buffet no nome ou confirmação da IA), nome e **ao menos um contato válido**. Contatos só das colunas
-  `*_valido` (sem e-mails setoriais como compras@/rh@, WhatsApp só celular, site só domínio próprio que respondeu).
+- Entrada: CSV da coleta (Google Maps + sites; `base/` fica fora do git), em dois formatos detectados sozinhos: o de
+  16/10 (`;`, colunas `*_valido`, `e_buffet_ia`; só São Paulo) e o de 17/10 (`,`, `email`/`telefone`/`whatsapp_celular`,
+  `origem_email`, `codigo_ibge` de várias cidades). Ajustes manuais opcionais em `base/revisao/` (`removidos_categoria.csv`
+  reincluir, `mantidos_categoria_limitrofe.csv` remover, `redes_propostas.csv` `manter_no_grupo`/`nome_conta`); relatório
+  em `base/revisao/simulacao-<arquivo>.csv`. Conexão `DATABASE_URL_SYSTEM`. Sem `--gravar` é simulação (ROLLBACK).
+- **Só buffets** (o Banket é nichado): use `--estrito` (padrão desde 19/10/2026). Categoria de buffet (infantil,
+  casamento, para festas, serviço de bufê) entra salvo nome de outro negócio (bolos, salgados, balões, brinquedos,
+  locação, parque, bar, mágico…); "Serviço de catering" precisa de sinal de evento no nome e não pode ser alimentação
+  corporativa; demais categorias do ramo só com "buffet"/"catering" no nome; categorias fora do ramo (restaurante,
+  padaria, marcenaria — "buffet" também é móvel —…) com "buffet" e palavra de evento; buffet por quilo nunca. Sem
+  `--estrito` vale a regra antiga (categoria do ramo; limítrofes com sinal de buffet). `--sem-categoria` só para análise.
+- **Contato**: `relevante = sim`, nome e ao menos um contato válido (e-mail, telefone, WhatsApp, Instagram ou site): sem
+  e-mails setoriais (compras@, sac@…), de órgão público ou de plataformas; e-mail da busca web só se exclusivo e com o
+  nome; WhatsApp só celular; telefone preferindo o DDD da cidade; site só domínio próprio que respondeu. E-mail,
+  Instagram, site ou CNPJ usado por linhas de nomes sem relação é ignorado (dado de plataforma de links).
+- **Deduplicação** (obrigatória; a base nova repete as cidades já importadas): fica de fora `place_id` já importado ou
+  em `busca_exclusoes`; mesmo e-mail, WhatsApp, telefone, Instagram ou domínio de site de um perfil existente; mesmo
+  nome a até 300 m de um perfil existente ou de outra linha; mesmo nome e contato no arquivo; mesmo WhatsApp/telefone a
+  até 150 m de outra linha (o mesmo lugar com duas fichas no Google).
 - **Redes**: unidades que compartilham e-mail, Instagram, CNPJ ou domínio do site são uma empresa (telefone não conta);
   nome da conta = prefixo comum dos nomes (ou o informado na revisão); o perfil mantém o nome da unidade.
 - **Caracterização**: tipos de evento da coluna `tipos_evento` (15 anos → debutante, aniversário adulto → aniversário…)
@@ -1339,10 +1375,15 @@ transacionais usam `emailLayout` (título, parágrafos, botão, rodapé); os do 
   (`04-orcamento/01-criar-orcamento.md` → `/ajuda/orcamento/criar-orcamento/`). Publicar = `make help-deploy` na raiz
   (não reinicia o app); `make help-rollback` volta a imagem anterior.
 
+### Google Tag Manager — `components/GoogleTagManager.astro`
+Snippet oficial, fonte única dos IDs e só em produção: `app.banket.com.br` = `GTM-MXR2K7FR` (`Layout`, `AuthLayout`, `LegalLayout`), `busca.banket.com.br` = `GTM-MW2LK75W` (`VitrineLayout`, fora de `?previa=1`). **Sem GTM** (a visualização de página manda a URL ao Analytics): qualquer endereço com `?token=` ou `?email=`, `/print/*` e `/p/*` (regra no componente, vale também para 404/500), e `/f/*` (`FormularioLayout` não usa o componente). O site institucional tem container próprio (ver Site institucional).
+
 ### Health check
 `GET /api/health` → `{status:'ok'}` ou 503 se o banco não responde (usado no deploy).
 
 ### Integração com o Manager Hwesta (HCP v1) — detalhes em [INTEGRACAO_HWESTA.md](INTEGRACAO_HWESTA.md)
+- **Leitura direta** (desde 23/10/2026): o Manager lê métricas no Postgres pelas views `manager_ro.*` (migration 050),
+  pela rede interna `hwesta_data_net`, com o papel `manager_reader`. As views são contrato: ver INTEGRACAO_HWESTA.md.
 - O Manager (`manager.hwesta.tech`) gerencia empresas, usuários, plano, suspensão e chamados **só por HTTP**, pelas
   rotas `/api/hwesta/v1/*` (públicas no middleware; autenticadas por Bearer `HWESTA_MANAGER_KEY`).
 - `src/lib/hwesta/` é o núcleo genérico do protocolo (vem da skill `integrar-gestao`; não editar aqui). O que é do
@@ -1536,8 +1577,7 @@ recopie os valores; não crie variável de cor fora dele. No código do produto 
   `snippets/banket-agenda-proxy.conf`, método restrito por rota, `limit_req` por IP real (`conf.d/banket-site.conf`,
   `CF-Connecting-IP`) e sem cookies. Não há chave de API no site: usa-se o modo público do Manager, que aplica limite
   por IP, campo-isca `website` e máximo de 3 chamadas abertas por e-mail. Plano e volume de eventos vão em `notes`.
-  Cabeçalhos em `snippets/banket-site-headers.conf`: CSP `script-src 'self'` (nenhum script em linha nem externo —
-  o beacon do Cloudflare Web Analytics fica bloqueado), `connect-src 'self'`, `frame-ancestors 'self'`, HSTS.
+  Cabeçalhos em `snippets/banket-site-headers.conf`: CSP `script-src 'self'` + Google Tag Manager (`GTM-NCQVSJ2L`: snippet oficial em `assets/js/gtm.js`, carregado no `<head>` das 4 páginas, e `<noscript>` depois do `<body>`; nenhum script em linha; o beacon do Cloudflare Web Analytics fica bloqueado), `connect-src 'self'` + Google Analytics, `frame-ancestors 'self'`, HSTS.
   No JS, tudo que vem da API entra por `textContent`; a tela de confirmação só mostra o convite `.ics` (token
   validado por regex) — o link do Meet e o de cancelar chegam pelo e-mail. Para testar de ponta a ponta sem sujar a agenda, cancele a reserva com
   `POST /api/public/agenda/bookings/<token>/cancel` no Manager.

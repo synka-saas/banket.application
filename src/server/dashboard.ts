@@ -128,7 +128,7 @@ export async function carregarIndicadores(db: Db, periodo: Periodo): Promise<Ind
     [DIAS_SEM_RESPOSTA]
   );
 
-  // Retornos combinados nas anotações (vencidos até 30 dias atrás e os próximos 7 dias)
+  // Retornos combinados nas anotações: vencidos até 30 dias atrás e todos os futuros, do mais próximo ao mais distante
   const { rows: retornos } = await db.query<RetornoAgendado>(
     `SELECT t.evento_id AS id, to_char(t.retorno_em, 'YYYY-MM-DD') AS retorno_em, t.descricao,
             e.titulo, c.nome AS cliente_nome
@@ -136,7 +136,7 @@ export async function carregarIndicadores(db: Db, periodo: Periodo): Promise<Ind
        JOIN eventos e ON e.id = t.evento_id
        LEFT JOIN clientes c ON c.id = e.cliente_id
       WHERE t.tipo = 'anotacao' AND t.retorno_em IS NOT NULL
-        AND t.retorno_em BETWEEN CURRENT_DATE - 30 AND CURRENT_DATE + 7
+        AND t.retorno_em >= (now() AT TIME ZONE 'America/Sao_Paulo')::date - 30
       ORDER BY t.retorno_em, t.created_at
       LIMIT 6`
   );

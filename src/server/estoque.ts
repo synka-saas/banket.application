@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { Db } from '../lib/db';
 import type { SessionUser } from '../lib/auth';
 import { parseMoney } from '../lib/money';
-import { exigirLimiteDb } from '../lib/planos/gating';
+import { exigir, exigirLimiteDb } from '../lib/planos/gating';
 import { CONTAGEM_SQL } from './planos';
 import { UserError, optionalDate, optionalMoney, optionalText, optionalUuid, requiredText } from '../lib/forms';
 import type { PageParams } from '../lib/pagination';
@@ -394,6 +394,8 @@ export async function sincronizarItemCardapio(db: Db, tenantId: string, catalogo
     if (ligado[0]?.ativo) await db.query('UPDATE estoque_itens SET ativo = false, updated_at = now() WHERE id = $1', [ligado[0].id]);
     return;
   }
+  // Sem o módulo Estoque no plano: "não faz parte do seu plano" (e não "permite até 0 itens")
+  if (!ligado[0]?.ativo) await exigir(tenantId, 'estoque', 'O controle de estoque');
   if (ligado[0]) {
     if (!ligado[0].ativo) {
       await exigirLimiteDb(db, 'estoque_itens', CONTAGEM_SQL.estoque_itens, 'itens em estoque');

@@ -28,8 +28,11 @@ import {
 import { listarCategoriasItem, listarFormatosServico } from '../../server/configuracoes';
 import EstadoVazio from '../../components/ui/EstadoVazio.astro';
 import { lerOrdenacao } from '../../lib/ordenacao';
+import Icon from '../../components/ui/Icon.astro';
+import { podeUsarEm } from '../../lib/planos/gating';
 
 const { tenantId } = Astro.locals.user;
+const estoqueNoPlano = podeUsarEm(Astro.locals.plano ?? null, 'estoque');
 
 if (Astro.request.method === 'POST') {
   return handleFormPost(
@@ -224,7 +227,14 @@ const novoItem = JSON.stringify({ secao_id: secaoFiltro ?? '', ativo: true, unid
         <span class="field-hint">Disponível para novos orçamentos.</span>
       </div>
       <div class="field c2 campo-switch">
-        <label class="switch"><input type="checkbox" name="estoque_gerenciado" />Gerenciado no estoque</label>
+        {estoqueNoPlano ? (
+          <label class="switch"><input type="checkbox" name="estoque_gerenciado" />Gerenciado no estoque</label>
+        ) : (
+          <label class="switch campo-bloqueado" data-bloqueado="estoque" title="Não incluído no seu plano">
+            <input type="checkbox" aria-disabled="true" />Gerenciado no estoque
+            <Icon name="lock" size={14} />
+          </label>
+        )}
         <span class="field-hint">Entra no Estoque e a lista de compras mostra se o saldo cobre o evento.</span>
       </div>
       <div class="field c3">

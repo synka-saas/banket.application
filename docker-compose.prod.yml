@@ -85,6 +85,11 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-banket_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      default:
+      # Leitura do Manager Hwesta (papel manager_reader, só o schema manager_ro); rede interna, sem saída
+      hwesta_data:
+        aliases: [banket_db]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-banket_user} -d $${POSTGRES_DB:-banket_db}"]
       interval: 5s
@@ -98,4 +103,7 @@ volumes:
 networks:
   hwesta_net:
     name: hwesta_external_net
+    external: true
+  hwesta_data:
+    name: hwesta_data_net
     external: true

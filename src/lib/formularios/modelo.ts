@@ -4,6 +4,7 @@
 // As seções e perguntas padrão vivem aqui. No banco (formularios.config) ficam só os ajustes:
 // seção ativa/inativa, perguntas padrão ativas/obrigatórias, ordem e perguntas personalizadas.
 import { z } from 'zod';
+import { telefoneValido } from '../mascaras';
 
 export type TipoPergunta =
   | 'texto'
@@ -53,9 +54,18 @@ interface PerguntaModelo {
   travada?: boolean;
   /** Só aparece quando outra pergunta tem o valor informado. */
   mostrarSe?: { chave: string; valor: string };
-  /** As opções vêm do banco: ocasiões ligadas ao tipo do fluxo (Configurações › Ocasiões). */
-  origemOpcoes?: 'ocasioes';
+  /**
+   * As opções vêm do banco: 'ocasioes' = ocasiões ligadas ao tipo do fluxo (Configurações › Ocasiões);
+   * 'espacos' = espaços próprios ativos da empresa (menu Espaços).
+   */
+  origemOpcoes?: OrigemOpcoes;
+  /** O buffet pode trocar as opções no editor (ex.: faixas de budget); o valor gravado é o próprio rótulo. */
+  opcoesEditaveis?: boolean;
+  /** Fluxo das ocasiões quando a pergunta fica numa seção de todos os fluxos (ocasião logo depois do tipo). */
+  fluxoOpcoes?: Exclude<Fluxo, 'todos'>;
 }
+
+export type OrigemOpcoes = 'ocasioes' | 'espacos';
 
 interface SecaoModelo {
   chave: string;
@@ -83,11 +93,30 @@ export const MODELO_SECOES: SecaoModelo[] = [
       { chave: 'whatsapp', rotulo: 'WhatsApp', tipo: 'telefone', placeholder: '(00) 00000-0000', obrigatoria: true, travada: true },
       {
         chave: 'natureza',
-        rotulo: 'Qual o tipo do evento?',
+        rotulo: 'O evento é corporativo ou social?',
         tipo: 'unica',
         opcoes: [op('B2B', 'Corporativo (B2B)', 'Empresas e negócios.'), op('B2C', 'Social (B2C)', 'Casamentos e festas.')],
         obrigatoria: true,
         travada: true,
+      },
+      // Ocasião logo depois do tipo (decisão de 10/11/2026): as opções seguem o tipo escolhido
+      {
+        chave: 'b2b_ocasiao',
+        rotulo: 'Qual a ocasião?',
+        tipo: 'selecao',
+        obrigatoria: true,
+        origemOpcoes: 'ocasioes',
+        fluxoOpcoes: 'B2B',
+        mostrarSe: { chave: 'natureza', valor: 'B2B' },
+      },
+      {
+        chave: 'b2c_ocasiao',
+        rotulo: 'Qual a ocasião?',
+        tipo: 'selecao',
+        obrigatoria: true,
+        origemOpcoes: 'ocasioes',
+        fluxoOpcoes: 'B2C',
+        mostrarSe: { chave: 'natureza', valor: 'B2C' },
       },
     ],
   },
@@ -119,7 +148,22 @@ export const MODELO_SECOES: SecaoModelo[] = [
         obrigatoria: true,
         mostrarSe: { chave: 'local_tipo', valor: 'externo' },
       },
-      { chave: 'regiao', rotulo: 'Região / CEP', tipo: 'texto', placeholder: '00000-000 ou bairro/cidade', obrigatoria: false },
+      {
+        chave: 'espaco',
+        rotulo: 'Em qual dos nossos espaços?',
+        tipo: 'unica',
+        obrigatoria: true,
+        origemOpcoes: 'espacos',
+        mostrarSe: { chave: 'local_tipo', valor: 'espaco_proprio' },
+      },
+      {
+        chave: 'regiao',
+        rotulo: 'Região / CEP',
+        tipo: 'texto',
+        placeholder: '00000-000 ou bairro/cidade',
+        obrigatoria: false,
+        mostrarSe: { chave: 'local_tipo', valor: 'externo' },
+      },
     ],
   },
   {
@@ -129,7 +173,6 @@ export const MODELO_SECOES: SecaoModelo[] = [
     icone: 'building',
     fluxo: 'B2B',
     perguntas: [
-      { chave: 'b2b_ocasiao', rotulo: 'Ocasião', tipo: 'selecao', obrigatoria: true, origemOpcoes: 'ocasioes' },
       { chave: 'b2b_empresa', rotulo: 'Razão social / Empresa', tipo: 'texto', placeholder: 'Sua Empresa LTDA', obrigatoria: true },
       { chave: 'b2b_data', rotulo: 'Data prevista', tipo: 'data', obrigatoria: true },
       { chave: 'b2b_participantes', rotulo: 'Quantidade de participantes', tipo: 'numero', placeholder: 'Ex.: 150', obrigatoria: true },
@@ -148,6 +191,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
         chave: 'b2b_budget',
         rotulo: 'Estimativa de verba (budget)',
         tipo: 'selecao',
+        opcoesEditaveis: true,
         opcoes: [
           op('ate_5k', 'Até R$ 5.000'),
           op('5k_15k', 'De R$ 5.000 a R$ 15.000'),
@@ -171,8 +215,22 @@ export const MODELO_SECOES: SecaoModelo[] = [
         opcoes: [
           op('faturamento_prazo', 'Faturamento a prazo'),
           op('laudos_vigilancia', 'Exigência de laudos/alvarás (Vigilância)'),
-          op('tres_orcamentos', 'Precisa de 3 orçamentos comparativos'),
         ],
+        obrigatoria: false,
+      },
+      {
+        chave: 'b2b_staff',
+        rotulo: 'Staff de terceiros',
+        tipo: 'numero',
+        placeholder: '0',
+        ajuda: 'Profissionais contratados por você (fotografia, som, recepção…) que também serão servidos.',
+        obrigatoria: false,
+      },
+      {
+        chave: 'b2b_restricoes',
+        rotulo: 'Restrições e preferências alimentares',
+        tipo: 'texto',
+        placeholder: 'Ex.: vegano, intolerância à lactose, sem glúten…',
         obrigatoria: false,
       },
     ],
@@ -184,7 +242,6 @@ export const MODELO_SECOES: SecaoModelo[] = [
     icone: 'users',
     fluxo: 'B2C',
     perguntas: [
-      { chave: 'b2c_ocasiao', rotulo: 'Ocasião', tipo: 'selecao', obrigatoria: true, origemOpcoes: 'ocasioes' },
       { chave: 'b2c_data', rotulo: 'Data do evento', tipo: 'data', obrigatoria: true },
       { chave: 'b2c_adultos', rotulo: 'Convidados adultos (acima de 12 anos)', tipo: 'numero', placeholder: '0', obrigatoria: false },
       { chave: 'b2c_criancas', rotulo: 'Crianças (6 a 11 anos)', tipo: 'numero', placeholder: '0', obrigatoria: false },
@@ -200,6 +257,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
         chave: 'b2c_budget',
         rotulo: 'Estimativa de investimento (budget)',
         tipo: 'selecao',
+        opcoesEditaveis: true,
         opcoes: [
           op('ate_10k', 'Até R$ 10.000'),
           op('10k_25k', 'De R$ 10.000 a R$ 25.000'),
@@ -238,7 +296,7 @@ export const MODELO_SECOES: SecaoModelo[] = [
       {
         chave: 'bebidas',
         rotulo: 'Bebidas e bar',
-        tipo: 'unica',
+        tipo: 'multipla',
         opcoes: [
           op('padrao', 'Pacote não alcoólico padrão'),
           op('openbar', 'Open bar completo (alcoólicos)'),
@@ -269,9 +327,10 @@ export const MODELO_SECOES: SecaoModelo[] = [
     perguntas: [
       {
         chave: 'detalhes',
-        rotulo: 'Detalhes e desejos específicos',
+        rotulo: 'Detalhes e estilo do evento',
         tipo: 'texto_longo',
-        placeholder: 'Existe mais algum detalhe, tema ou observação importante que gostaria de compartilhar conosco?',
+        placeholder:
+          'Qual estilo de evento você espera? Deixe aqui referências, temas ou outras observações importantes que gostaria de compartilhar.',
         obrigatoria: false,
       },
     ],
@@ -284,10 +343,17 @@ export const MODELO_SECOES: SecaoModelo[] = [
 const textoOpcional = (max: number) =>
   z.preprocess((v) => (typeof v === 'string' && v.trim() ? v.trim() : undefined), z.string().max(max).optional());
 
+const listaOpcoes = z
+  .array(z.string().trim().min(1).max(120, 'Cada opção pode ter no máximo 120 caracteres.'))
+  .max(30, 'Use no máximo 30 opções.')
+  .transform((lista) => lista.filter((o, i) => lista.indexOf(o) === i));
+
 const perguntaPadraoConfig = z.object({
   chave: z.string().min(1).max(60),
   ativa: z.boolean(),
   obrigatoria: z.boolean().optional(),
+  /** Só nas perguntas com opcoesEditaveis: as opções do buffet no lugar das do modelo */
+  opcoes: listaOpcoes.optional(),
 });
 
 const perguntaCustomConfig = z
@@ -297,11 +363,7 @@ const perguntaCustomConfig = z
     ativa: z.boolean(),
     rotulo: z.string().trim().min(1, 'Informe o texto da pergunta.').max(200, 'A pergunta pode ter no máximo 200 caracteres.'),
     tipo: z.enum(Object.keys(TIPOS_PERGUNTA) as [TipoPergunta, ...TipoPergunta[]], { error: 'Tipo de pergunta inválido.' }),
-    opcoes: z
-      .array(z.string().trim().min(1).max(120, 'Cada opção pode ter no máximo 120 caracteres.'))
-      .max(30, 'Use no máximo 30 opções.')
-      .default([])
-      .transform((lista) => lista.filter((o, i) => lista.indexOf(o) === i)),
+    opcoes: listaOpcoes.default([]),
     obrigatoria: z.boolean(),
     placeholder: textoOpcional(200),
     ajuda: textoOpcional(300),
@@ -339,8 +401,16 @@ export interface PerguntaResolvida {
   travada: boolean;
   ativa: boolean;
   mostrarSe: { chave: string; valor: string } | null;
-  /** 'ocasioes': opções preenchidas pelas ocasiões ativas no tipo do fluxo (não editáveis no formulário). */
-  origemOpcoes: 'ocasioes' | null;
+  /** Opções vindas do banco (ocasiões do fluxo ou espaços próprios): não editáveis no formulário. */
+  origemOpcoes: OrigemOpcoes | null;
+  /** Pergunta padrão cujas opções o buffet pode trocar no editor */
+  opcoesEditaveis: boolean;
+}
+
+/** Opções que vêm do banco, por origem. */
+export interface OpcoesDinamicas {
+  ocasioes?: OcasioesPorFluxo;
+  espacos?: Opcao[];
 }
 
 /** Ocasiões (categorias_evento) disponíveis em cada fluxo, conforme a matriz de tipos em Configurações › Ocasiões. */
@@ -357,14 +427,22 @@ export interface SecaoResolvida {
   perguntas: PerguntaResolvida[];
 }
 
-function resolverPadrao(p: PerguntaModelo, cfg?: { ativa: boolean; obrigatoria?: boolean }, dinamicas: Opcao[] = []): PerguntaResolvida {
+function resolverPadrao(
+  p: PerguntaModelo,
+  cfg: { ativa: boolean; obrigatoria?: boolean; opcoes?: string[] } | undefined,
+  dinamicas: Partial<Record<OrigemOpcoes, Opcao[]>> & { ocasioesPorFluxo?: OcasioesPorFluxo }
+): PerguntaResolvida {
   const travada = Boolean(p.travada);
+  const proprias = p.opcoesEditaveis && cfg?.opcoes && cfg.opcoes.length >= 2 ? cfg.opcoes.map((o) => op(o, o)) : null;
+  const dinamica = p.origemOpcoes === 'ocasioes' && p.fluxoOpcoes ? dinamicas.ocasioesPorFluxo?.[p.fluxoOpcoes] : undefined;
   return {
     id: p.chave,
     padrao: true,
     rotulo: p.rotulo,
     tipo: p.tipo,
-    opcoes: p.origemOpcoes ? dinamicas : (p.opcoes ?? (p.tipo === 'sim_nao' ? OPCOES_SIM_NAO : [])),
+    opcoes: p.origemOpcoes
+      ? (dinamica ?? dinamicas[p.origemOpcoes] ?? [])
+      : (proprias ?? p.opcoes ?? (p.tipo === 'sim_nao' ? OPCOES_SIM_NAO : [])),
     placeholder: p.placeholder ?? null,
     ajuda: p.ajuda ?? null,
     obrigatoria: travada ? p.obrigatoria : (cfg?.obrigatoria ?? p.obrigatoria),
@@ -372,6 +450,7 @@ function resolverPadrao(p: PerguntaModelo, cfg?: { ativa: boolean; obrigatoria?:
     ativa: travada ? true : (cfg?.ativa ?? true),
     mostrarSe: p.mostrarSe ?? null,
     origemOpcoes: p.origemOpcoes ?? null,
+    opcoesEditaveis: Boolean(p.opcoesEditaveis),
   };
 }
 
@@ -391,6 +470,7 @@ function resolverCustom(p: Extract<PerguntaConfig, { custom: true }>): PerguntaR
     ativa: p.ativa,
     mostrarSe: null,
     origemOpcoes: null,
+    opcoesEditaveis: false,
   };
 }
 
@@ -402,14 +482,20 @@ export function lerConfig(raw: unknown): FormularioConfig {
 
 /**
  * Junta o modelo com a configuração: as seções seguem a ordem do modelo; as perguntas seguem a ordem salva.
- * Perguntas padrão que ainda não estão na configuração entram no fim da seção; chaves desconhecidas são ignoradas.
- * `ocasioes` preenche as perguntas de ocasião de cada fluxo (sem ela, ficam sem opções e não aparecem).
+ * Perguntas padrão que ainda não estão na configuração entram no fim da seção (as condicionais, logo depois da pergunta
+ * de que dependem); chaves desconhecidas são ignoradas.
+ * `dinamicas` preenche as perguntas com opções do banco: ocasiões de cada fluxo e espaços próprios (sem elas, ficam
+ * sem opções e não aparecem).
  */
-export function montarFormulario(raw: unknown, ocasioes: OcasioesPorFluxo = {}): SecaoResolvida[] {
+export function montarFormulario(raw: unknown, opcoesBanco: OpcoesDinamicas = {}): SecaoResolvida[] {
   const config = lerConfig(raw);
   return MODELO_SECOES.map((secao) => {
     const cfg = config.secoes.find((s) => s.chave === secao.chave);
-    const dinamicas = secao.fluxo === 'todos' ? [] : (ocasioes[secao.fluxo] ?? []);
+    const dinamicas = {
+      ocasioes: secao.fluxo === 'todos' ? [] : (opcoesBanco.ocasioes?.[secao.fluxo] ?? []),
+      espacos: opcoesBanco.espacos ?? [],
+      ocasioesPorFluxo: opcoesBanco.ocasioes,
+    };
     const modelo = new Map(secao.perguntas.map((p) => [p.chave, p]));
     const vistas = new Set<string>();
     const perguntas: PerguntaResolvida[] = [];
@@ -426,7 +512,19 @@ export function montarFormulario(raw: unknown, ocasioes: OcasioesPorFluxo = {}):
         perguntas.push(resolverPadrao(base, p, dinamicas));
       }
     }
-    for (const p of secao.perguntas) if (!vistas.has(p.chave)) perguntas.push(resolverPadrao(p, undefined, dinamicas));
+    // Pergunta do modelo que ainda não está na configuração entra no fim; a condicional, logo depois da pergunta de que
+    // depende e das outras que dependem dela (ex.: ocasião logo depois do tipo do evento)
+    for (const p of secao.perguntas) {
+      if (vistas.has(p.chave)) continue;
+      let pos = perguntas.length;
+      const base = p.mostrarSe ? perguntas.findIndex((x) => x.id === p.mostrarSe!.chave) : -1;
+      if (base >= 0) {
+        pos = base + 1;
+        while (pos < perguntas.length && perguntas[pos].mostrarSe?.chave === p.mostrarSe!.chave) pos++;
+      }
+      perguntas.splice(pos, 0, resolverPadrao(p, undefined, dinamicas));
+      vistas.add(p.chave);
+    }
 
     return {
       chave: secao.chave,
@@ -441,6 +539,15 @@ export function montarFormulario(raw: unknown, ocasioes: OcasioesPorFluxo = {}):
   });
 }
 
+/** Opções trocadas pelo buffet numa pergunta padrão editável (null = as do modelo). */
+function opcoesProprias(secao: string, p: PerguntaResolvida): string[] | null {
+  if (!p.opcoesEditaveis) return null;
+  const modelo = MODELO_SECOES.find((s) => s.chave === secao)?.perguntas.find((x) => x.chave === p.id)?.opcoes ?? [];
+  const rotulos = p.opcoes.map((o) => o.rotulo);
+  const iguais = rotulos.length === modelo.length && rotulos.every((r, i) => r === modelo[i].rotulo);
+  return iguais ? null : rotulos;
+}
+
 /** Converte o formulário resolvido de volta na configuração enxuta que vai para o banco. */
 export function extrairConfig(secoes: SecaoResolvida[]): FormularioConfig {
   return {
@@ -449,7 +556,7 @@ export function extrairConfig(secoes: SecaoResolvida[]): FormularioConfig {
       ativa: s.ativa,
       perguntas: s.perguntas.map((p): PerguntaConfig =>
         p.padrao
-          ? { chave: p.id, ativa: p.ativa, obrigatoria: p.obrigatoria }
+          ? { chave: p.id, ativa: p.ativa, obrigatoria: p.obrigatoria, ...(opcoesProprias(s.chave, p) ? { opcoes: opcoesProprias(s.chave, p)! } : {}) }
           : {
               id: p.id,
               custom: true,
@@ -510,7 +617,11 @@ function campoResposta(p: PerguntaResolvida): z.ZodType<ValorResposta> {
   if (p.tipo === 'email') texto = z.email(`E-mail inválido em "${p.rotulo}".`);
   if (p.tipo === 'numero') texto = z.string().regex(/^\d{1,7}([.,]\d{1,2})?$/, `Informe um número válido em "${p.rotulo}".`);
   if (p.tipo === 'data') texto = z.iso.date(`Data inválida em "${p.rotulo}".`);
-  if (p.tipo === 'telefone') texto = z.string().regex(/^[\d\s()+-]{8,20}$/, `Telefone inválido em "${p.rotulo}".`);
+  if (p.tipo === 'telefone')
+    texto = z
+      .string()
+      .regex(/^[\d\s()+-]{8,20}$/, `Telefone inválido em "${p.rotulo}".`)
+      .refine(telefoneValido, `Informe "${p.rotulo}" com DDD, como (11) 91234-5678.`);
   if (valores.length) texto = z.string().refine((v) => valores.includes(v), `Opção inválida em "${p.rotulo}".`);
 
   return z.preprocess(

@@ -38,6 +38,8 @@ interface Rascunho {
   obrigatoria: boolean;
   placeholder: string;
   ajuda: string;
+  /** Pergunta padrão com opções editáveis (budget): o rascunho mexe só nas opções */
+  soOpcoes?: boolean;
 }
 
 const novoId = () => `c_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
@@ -99,6 +101,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
 
   function abrirRascunho(secao: string, p?: PerguntaResolvida) {
     setRascunho({
+      soOpcoes: Boolean(p?.padrao && p.opcoesEditaveis),
       secao,
       id: p?.id ?? null,
       rotulo: p?.rotulo ?? '',
@@ -122,6 +125,17 @@ export default function FormularioEditor({ formulario, origem }: Props) {
           .filter((o, i, l) => o && l.indexOf(o) === i)
       : [];
     if (comOpcoes && opcoes.length < 2) return toast('Informe ao menos 2 opções, uma por linha.', 'error');
+    if (opcoes.some((o) => o.length > 120)) return toast('Cada opção pode ter no máximo 120 caracteres.', 'error');
+
+    // Pergunta padrão (faixas de budget): troca só as opções, o resto continua do modelo
+    if (rascunho.soOpcoes && rascunho.id) {
+      alterarSecao(rascunho.secao, (s) => ({
+        ...s,
+        perguntas: s.perguntas.map((p) => (p.id === rascunho.id ? { ...p, opcoes: opcoes.map((o) => ({ valor: o, rotulo: o })) } : p)),
+      }));
+      setRascunho(null);
+      return;
+    }
 
     const pergunta: PerguntaResolvida = {
       id: rascunho.id ?? novoId(),
@@ -139,6 +153,7 @@ export default function FormularioEditor({ formulario, origem }: Props) {
       ativa: true,
       mostrarSe: null,
       origemOpcoes: null,
+      opcoesEditaveis: false,
     };
     alterarSecao(rascunho.secao, (s) => ({
       ...s,
@@ -330,7 +345,11 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                       ? p.opcoes.length > 0
                         ? ` · ${p.opcoes.length} ${p.opcoes.length === 1 ? 'ocasião' : 'ocasiões'} (Configurações › Ocasiões)`
                         : ' · Nenhuma ocasião marcada para este tipo em Configurações › Ocasiões: não aparece no formulário'
-                      : p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
+                      : p.origemOpcoes === 'espacos'
+                        ? p.opcoes.length > 0
+                          ? ` · ${p.opcoes.length} ${p.opcoes.length === 1 ? 'espaço próprio' : 'espaços próprios'} (menu Espaços)`
+                          : ' · Nenhum espaço próprio ativo no menu Espaços: não aparece no formulário'
+                        : p.opcoes.length > 0 && p.tipo !== 'sim_nao' ? ` · ${p.opcoes.length} opções` : ''}
                     {!p.padrao && ' · Personalizada'}
                     {rotuloCondicao(s, p) && ` · ${rotuloCondicao(s, p)}`}
                   </span>
@@ -340,6 +359,11 @@ export default function FormularioEditor({ formulario, origem }: Props) {
                     <div class="fe-acoes">
                       <button type="button" class="row-action" onClick={() => abrirRascunho(s.chave, p)}>Editar</button>
                       <button type="button" class="row-action danger" onClick={() => removerPergunta(s.chave, p)}>Remover</button>
+                    </div>
+                  )}
+                  {p.padrao && p.opcoesEditaveis && (
+                    <div class="fe-acoes">
+                      <button type="button" class="row-action" onClick={() => abrirRascunho(s.chave, p)}>Editar opções</button>
                     </div>
                   )}
                   {p.travada ? (
@@ -370,7 +394,28 @@ export default function FormularioEditor({ formulario, origem }: Props) {
             ))}
           </ul>
 
-          {rascunho?.secao === s.chave ? (
+          {rascunho?.secao === s.chave && rascunho.soOpcoes ? (
+            <div class="fe-rascunho">
+              <div class="fe-rascunho-grid">
+                <div class="field fe-span">
+                  <label for={`fe-r-opcoes-${s.chave}`}>Opções de "{rascunho.rotulo}" (uma por linha)<span class="obrigatorio">*</span></label>
+                  <textarea
+                    id={`fe-r-opcoes-${s.chave}`}
+                    rows={5}
+                    value={rascunho.opcoes}
+                    onInput={(e) => setRascunho({ ...rascunho, opcoes: e.currentTarget.value })}
+                    placeholder={'Até R$ 10.000\nDe R$ 10.000 a R$ 25.000'}
+                    autoFocus
+                  />
+                  <span class="field-hint">A resposta escolhida aparece como verba estimada no evento.</span>
+                </div>
+              </div>
+              <div class="fe-rascunho-acoes">
+                <button type="button" class="btn btn-secondary btn-md" onClick={() => setRascunho(null)}>Cancelar</button>
+                <button type="button" class="btn btn-primary btn-md" onClick={confirmarRascunho}>Aplicar opções</button>
+              </div>
+            </div>
+          ) : rascunho?.secao === s.chave ? (
             <div class="fe-rascunho">
               <div class="fe-rascunho-grid">
                 <div class="field fe-span">

@@ -2,6 +2,7 @@
 // Abre ao clicar em qualquer elemento [data-opcao-editar="<id>"] (vazio = nova opção).
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { moneyInput, parseMoney } from '../../lib/money';
+import { formatarDinheiro } from '../../lib/mascaras';
 import { Icon } from '../ui/Icon';
 import { confirmar, toast } from '../../lib/ui';
 import '../../styles/editor.css';
@@ -60,6 +61,13 @@ const vazio: FormState = {
 let seq = 0;
 const novaChave = () => `s${++seq}`;
 
+/** Duração digitada → "4", "4,5" (até duas casas, vírgula decimal); vazio ou inválido volta como está. */
+function formatarHoras(valor: string): string {
+  const n = Number(valor.trim().replace(',', '.'));
+  if (!valor.trim() || !Number.isFinite(n) || n < 0) return valor.trim();
+  return String(Math.round(n * 100) / 100).replace('.', ',');
+}
+
 export default function OpcaoEditor({ catalogo, formatos }: Props) {
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -72,6 +80,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
   // Alterações não salvas: fechar pede confirmação (as chaves internas das seções não contam)
   const serializar = (f: FormState) => JSON.stringify({ ...f, secoes: f.secoes.map(({ key: _key, ...resto }) => resto) });
   const inicial = useRef('');
+  const nomeRef = useRef<HTMLInputElement>(null);
   const formAtual = useRef(form);
   formAtual.current = form;
   const carregar = (f: FormState) => {
@@ -101,6 +110,8 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
     setAberto(true);
     if (!id) {
       carregar(vazio);
+      // Cardápio novo: o nome é o primeiro campo a preencher
+      setTimeout(() => nomeRef.current?.focus(), 0);
       return;
     }
     setCarregando(true);
@@ -250,6 +261,7 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
       <form class="ed-drawer" onSubmit={salvar} aria-label="Editar cardápio">
         <header class="ed-header">
           <input
+            ref={nomeRef}
             class="ed-title"
             value={form.nome}
             onInput={(e) => set('nome', e.currentTarget.value)}
@@ -278,12 +290,16 @@ export default function OpcaoEditor({ catalogo, formatos }: Props) {
           <div class="ed-body">
             <div class="ed-row">
               <div class="field">
-                <label for="op-preco">Preço base por pessoa</label>
-                <input id="op-preco" inputMode="decimal" placeholder="R$ 00,00" value={form.preco_por_pessoa} onInput={(e) => set('preco_por_pessoa', e.currentTarget.value)} />
+                <label for="op-preco">Preço base por pessoa (R$)</label>
+                <input id="op-preco" inputMode="decimal" placeholder="0,00" value={form.preco_por_pessoa}
+                  onInput={(e) => set('preco_por_pessoa', e.currentTarget.value)}
+                  onBlur={(e) => e.currentTarget.value && set('preco_por_pessoa', formatarDinheiro(e.currentTarget.value))} />
               </div>
               <div class="field">
                 <label for="op-duracao">Duração do serviço (horas)</label>
-                <input id="op-duracao" inputMode="decimal" placeholder="00 horas" value={form.duracao_horas} onInput={(e) => set('duracao_horas', e.currentTarget.value)} />
+                <input id="op-duracao" inputMode="decimal" placeholder="Ex.: 4,5" value={form.duracao_horas}
+                  onInput={(e) => set('duracao_horas', e.currentTarget.value.replace(/[^\d.,]/g, ''))}
+                  onBlur={(e) => set('duracao_horas', formatarHoras(e.currentTarget.value))} />
               </div>
               <div class="field">
                 <label for="op-formato">Formato de serviço</label>

@@ -7,6 +7,7 @@ import '../styles/busca.css';
 import MarcaBusca from '../components/busca/MarcaBusca.astro';
 import Icon from '../components/ui/Icon.astro';
 import Toast from '../components/ui/Toast.astro';
+import GoogleTagManager from '../components/GoogleTagManager.astro';
 import { appUrl } from '../lib/mail';
 import { buscaUrl, caminhoVitrine, urlArea } from '../lib/busca/url';
 import { TIPOS_EVENTO } from '../lib/busca/catalogos';
@@ -28,6 +29,8 @@ const url = canonical ? buscaUrl(canonical) : null;
 const og = imagem ? (imagem.startsWith('http') ? imagem : buscaUrl(imagem)) : buscaUrl('/busca/og-banket-busca.jpg');
 const tituloCompleto = `${title} · Banket Busca`;
 const v = caminhoVitrine;
+// Google Tag Manager do Banket Busca: fora da prévia do perfil (dono logado)
+const gtm = Astro.url.searchParams.get('previa') !== '1';
 const colunas = [
   { titulo: 'Eventos', links: TIPOS_EVENTO.slice(0, 5).map((t) => ({ rotulo: t.rotulo, href: v(`/buscar?tipo=${t.slug}`) })) },
   { titulo: 'Para buffets', links: [
@@ -45,6 +48,7 @@ const colunas = [
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    {gtm && <GoogleTagManager container="busca" />}
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{tituloCompleto}</title>
@@ -63,6 +67,7 @@ const colunas = [
     {jsonLd.map((obj) => <script type="application/ld+json" set:html={JSON.stringify(obj).replace(/</g, '\\u003c')} />)}
   </head>
   <body class="vitrine">
+    {gtm && <GoogleTagManager container="busca" noscript />}
     <a class="vitrine-pular" href="#conteudo">Pular para o conteúdo</a>
     <header class="vitrine-topo">
       <MarcaBusca href={v('/')} />

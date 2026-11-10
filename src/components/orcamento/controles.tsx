@@ -52,8 +52,11 @@ export function ValorManual(props: {
   const aplicar = () => {
     const v = parseMoney(texto);
     if (v === null) props.onChange(null);
-    else if (!Number.isNaN(v) && v >= 0) props.onChange(Math.round(v * 100) / 100);
-    else setTexto(moneyInput(props.manual));
+    else if (!Number.isNaN(v) && v >= 0) {
+      const valor = Math.round(v * 100) / 100;
+      setTexto(moneyInput(valor));
+      props.onChange(valor);
+    } else setTexto(moneyInput(props.manual));
   };
 
   const ajustado = !props.simples && props.manual !== null;

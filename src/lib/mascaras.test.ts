@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aplicarMascara, formatarDinheiro, mascararCep, mascararTelefone } from './mascaras';
+import { aplicarMascara, formatarDinheiro, mascararCep, mascararTelefone, telefoneValido } from './mascaras';
 
 describe('mascararTelefone', () => {
   it('diferencia fixo (10 dígitos) de celular (11)', () => {
@@ -40,5 +40,20 @@ describe('aplicarMascara', () => {
     expect(aplicarMascara('documento', '11222333000181', 'PJ')).toBe('11.222.333/0001-81');
     expect(aplicarMascara('cnpj', '11222333000181')).toBe('11.222.333/0001-81');
     expect(aplicarMascara('numero', '12a3')).toBe('123');
+  });
+});
+
+describe('telefoneValido', () => {
+  it('aceita fixo e celular com DDD, com ou sem +55', () => {
+    expect(telefoneValido('(11) 99321-3836')).toBe(true);
+    expect(telefoneValido('(11) 3333-4444')).toBe(true);
+    expect(telefoneValido('+55 11 99321-3836')).toBe(true);
+  });
+
+  it('recusa número sem DDD, incompleto ou celular sem o 9', () => {
+    expect(telefoneValido('(99) 3213-836')).toBe(false);
+    expect(telefoneValido('99321-3836')).toBe(false);
+    expect(telefoneValido('(11) 89321-3836')).toBe(false);
+    expect(telefoneValido('(01) 3333-4444')).toBe(false);
   });
 });

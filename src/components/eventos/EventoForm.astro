@@ -266,6 +266,10 @@ const enderecosEspacos: Record<string, string> = Object.fromEntries(espacos.map(
         <input id="ev-verba-pp" inputmode="decimal" name="verba_por_pessoa" value={dinheiro('verba_por_pessoa')} data-mascara="dinheiro" />
       </div>
       <div class="field">
+        <label for="ev-verba-faixa">Faixa informada pelo cliente</label>
+        <input id="ev-verba-faixa" name="verba_faixa" value={texto('verba_faixa')} maxlength="120" placeholder="Ex.: De R$ 10.000 a R$ 25.000" />
+      </div>
+      <div class="field">
         <label for="ev-pag">Forma de pagamento</label>
         <input id="ev-pag" name="forma_pagamento" value={texto('forma_pagamento')} maxlength="255" placeholder="Ex.: 30/60 dias" />
       </div>

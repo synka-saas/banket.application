@@ -708,8 +708,18 @@ export async function contextoOrcamento(db: Db, eventoId: string, versaoParam: s
 }
 
 /** Lista de compras da versão em CSV (";" e BOM para o Excel em português). */
-export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoParam: string | null): Promise<{ csv: string; numero: number }> {
-  const { versao } = await contextoOrcamento(db, eventoId, versaoParam);
+/** Nome do arquivo da lista de compras (CSV e PDF): evento, cliente (quando o título não o traz) e versão. */
+export function nomeArquivoListaCompras(evento: { titulo?: string | null; cliente_nome?: string | null }, numero: number): string {
+  const titulo = evento.titulo?.trim() || 'Evento';
+  const cliente = evento.cliente_nome?.trim();
+  const partes = ['Lista de compras', titulo];
+  if (cliente && !titulo.toLowerCase().includes(cliente.toLowerCase())) partes.push(cliente);
+  partes.push(`v${String(numero).padStart(2, '0')}`);
+  return partes.join(' - ').replace(/[\\/:*?"<>|]/g, '-');
+}
+
+export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoParam: string | null): Promise<{ csv: string; nome: string }> {
+  const { evento, versao } = await contextoOrcamento(db, eventoId, versaoParam);
   if (!versao) throw new UserError('Este evento ainda não tem orçamento.');
   const celula = (v: string | number | null | undefined) => {
     const t = v === null || v === undefined ? '' : String(v);
@@ -731,7 +741,7 @@ export async function exportarListaComprasCsv(db: Db, eventoId: string, versaoPa
       l.observacao ?? '',
     ]),
   ];
-  return { csv: `\uFEFF${linhas.map((l) => l.map(celula).join(';')).join('\r\n')}`, numero: versao.numero };
+  return { csv: `\uFEFF${linhas.map((l) => l.map(celula).join(';')).join('\r\n')}`, nome: `${nomeArquivoListaCompras(evento, versao.numero)}.csv` };
 }
 
 /** Situação no estoque em texto (CSV e PDF): "Em estoque", "Faltam 2 kg", "Sem estoque" ou vazio. */

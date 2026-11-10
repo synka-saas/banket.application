@@ -114,6 +114,21 @@ O snapshot é lido com cache de 60 s, invalidado quando o Manager empurra um nov
 - Eventos são assinados (`X-Hwesta-Signature`, HMAC-SHA256 do corpo com `HWESTA_MANAGER_KEY`) e idempotentes
   pelo id da entrega.
 
+## Leitura direta pelo Manager (migration 050)
+
+Desde 23/10/2026 o Manager lê métricas direto no Postgres (painel `/metricas` e Dashboard "ao vivo"); escritas
+seguem pelo HCP. Runbook completo: `/var/www/hwesta/manager/LEITURA_DIRETA.md`.
+
+- Schema `manager_ro` com as views `v_contas`, `v_plano_historico`, `v_faturas`, `v_uso_semanal`, `v_uso_atual`,
+  `v_ativacao`, `v_comunicacao_semanal` e `v_busca_funil`. Os nomes de coluna são os mesmos do Yosp (migration 072 de
+  lá): o Manager trata as duas plataformas com o mesmo código.
+- Papel `manager_reader`: só `SELECT` nessas views. Criado NOLOGIN pela migration; LOGIN e senha são definidos à mão.
+- O Postgres entra na rede interna `hwesta_data_net` (alias `banket_db`; ver `docker-compose.prod.yml`).
+- `acessos_dia`: uma linha por usuário × empresa × dia, gravada pelo middleware (`lib/acessos.ts`, no máximo a cada
+  10 min por usuário, sem esperar). É o "último acesso" e os "dias ativos" do Manager.
+- **Contrato**: mudou uma tabela usada por uma view? Mantenha a view com as mesmas colunas. O Postgres recusa remover
+  coluna usada por view (a migration falha: é o aviso). Mudar o contrato exige ajustar `src/lib/metricas.js` do Manager.
+
 ## Como conferir
 
 ```bash

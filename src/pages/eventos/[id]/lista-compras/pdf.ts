@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { withTenant } from '../../../../lib/db';
 import { signPrintToken } from '../../../../lib/printToken';
 import { eventoExiste } from '../../../../server/eventos';
-import { contextoOrcamento } from '../../../../server/orcamento';
+import { contextoOrcamento, nomeArquivoListaCompras } from '../../../../server/orcamento';
 import { imprimir, respostaPdf } from '../../../../server/pdf';
 
 // Lista de compras da versão em PDF (lista simples); ?ver=1 abre no navegador em vez de baixar.
@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ params, url, locals }) => {
   );
   if (!ctx?.versao) return new Response(null, { status: 404 });
   const token = await signPrintToken({ tenantId: locals.user.tenantId, alvo: 'compras', id: ctx.versao.id });
-  const titulo = `Lista de compras - ${(ctx.evento.titulo ?? 'evento').replace(/[\\/:*?"<>|]/g, '-')} - v${String(ctx.versao.numero).padStart(2, '0')}`;
+  const titulo = nomeArquivoListaCompras(ctx.evento, ctx.versao.numero);
   const arquivo = await imprimir(`/print/compras/${ctx.versao.id}`, token, ['miolo'], titulo);
   return respostaPdf({ arquivo, nome: `${titulo}.pdf` }, url.searchParams.get('ver') !== '1');
 };

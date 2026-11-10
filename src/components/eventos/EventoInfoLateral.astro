@@ -13,12 +13,13 @@ interface Props {
 
 const { evento: e } = Astro.props;
 
+// Valor numérico (digitado no app) e, sem ele, a faixa escolhida no formulário de captação
 const verba =
   e.verba_total || e.verba_por_pessoa
     ? [e.verba_total ? formatMoney(e.verba_total) : null, e.verba_por_pessoa ? `${formatMoney(e.verba_por_pessoa)} por pessoa` : null]
         .filter(Boolean)
         .join(' · ')
-    : null;
+    : (e.verba_faixa ?? null);
 const restricoes = e.restricoes.map((r) => RESTRICOES_EVENTO[r as keyof typeof RESTRICOES_EVENTO] ?? r);
 ---
 

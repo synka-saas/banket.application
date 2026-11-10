@@ -132,6 +132,22 @@ textarea {
   cursor: not-allowed;
 }
 
+/* Switch/checkbox fora do plano: desmarcado, apagado e com cadeado; o clique abre o upsell em vez de marcar */
+.campo-bloqueado {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.campo-bloqueado input {
+  opacity: 0.55;
+}
+
+/* Ação fora do plano: parece desabilitada, mas o clique abre o painel de upsell ([data-bloqueado], Upsell.astro) */
+.btn.btn-bloqueado {
+  opacity: 0.55;
+  cursor: pointer;
+}
+
 /* Carregando (lib/ui.ts emCarregamento): spinner antes do rótulo */
 .btn.btn-carregando {
   opacity: 0.8;

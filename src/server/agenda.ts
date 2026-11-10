@@ -11,6 +11,11 @@ export interface EventoAgenda {
   hora_fim: string | null;
   numero_convidados: number | null;
   local_nome: string | null;
+  formato_nome: string | null;
+  /** Total da versão atual do orçamento; sem orçamento, a verba informada (valor ou faixa) */
+  valor_orcamento: number | null;
+  verba_total: number | null;
+  verba_faixa: string | null;
   status_nome: string;
   cor: string;
   variante: VarianteStatus;
@@ -57,11 +62,14 @@ export function semanaDe(referencia: string): string[] {
 export async function eventosNoPeriodo(db: Db, inicio: string, fim: string, variante: string | null): Promise<EventoAgenda[]> {
   const { rows } = await db.query<EventoAgenda>(
     `SELECT e.id, e.titulo, c.nome AS cliente_nome, e.data_evento::text, to_char(e.hora_inicio, 'HH24:MI') AS hora_inicio,
-            to_char(e.hora_fim, 'HH24:MI') AS hora_fim, e.numero_convidados, e.local_nome,
+            to_char(e.hora_fim, 'HH24:MI') AS hora_fim, e.numero_convidados, e.local_nome, f.nome AS formato_nome,
+            o.valor_total AS valor_orcamento, e.verba_total, e.verba_faixa,
             s.nome AS status_nome, s.cor, s.variante
        FROM eventos e
        JOIN status_orcamento s ON s.id = e.status_id
        LEFT JOIN clientes c ON c.id = e.cliente_id
+       LEFT JOIN formatos_servico f ON f.id = e.formato_servico_id
+       LEFT JOIN orcamentos o ON o.evento_id = e.id
       WHERE e.data_evento BETWEEN $1 AND $2 AND ($3::text IS NULL OR s.variante = $3)
       ORDER BY e.data_evento, e.hora_inicio NULLS LAST, lower(e.titulo)`,
     [inicio, fim, variante]

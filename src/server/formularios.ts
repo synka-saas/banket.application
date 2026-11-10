@@ -18,6 +18,7 @@ import {
   rotuloOpcao,
   validarRespostas,
   type OcasioesPorFluxo,
+  type OpcoesDinamicas,
   type RespostaResumo,
   type Respostas,
   type SecaoResolvida,
@@ -45,6 +46,31 @@ export async function ocasioesPorFluxo(db: Db): Promise<OcasioesPorFluxo> {
   const resultado: OcasioesPorFluxo = { B2B: [], B2C: [] };
   for (const r of rows) resultado[FLUXO_POR_TIPO[r.slug]]?.push({ valor: r.id, rotulo: r.nome });
   return resultado;
+}
+
+/** Espaços próprios ativos (pergunta "Em qual dos nossos espaços?"), o padrão primeiro, com o endereço de apoio. */
+export async function espacosDoFormulario(db: Db): Promise<{ valor: string; rotulo: string; descricao?: string }[]> {
+  const { rows } = await db.query<{ id: string; nome: string; endereco: string | null; cidade: string | null }>(
+    `SELECT e.id, e.nome, e.endereco, e.cidade
+       FROM espacos e
+       LEFT JOIN configuracoes_tenant c ON c.espaco_padrao_id = e.id
+      WHERE e.tipo = 'proprio' AND e.ativo
+      ORDER BY (c.espaco_padrao_id IS NULL), e.ordem, lower(e.nome)`
+  );
+  const espacos = rows.map((r) => {
+    const local = [r.endereco, r.cidade].filter(Boolean).join(' · ');
+    return { valor: r.id, rotulo: r.nome, ...(local ? { descricao: local } : {}) };
+  });
+  // Por último, para quem ainda não escolheu (o evento nasce "no nosso espaço", sem espaço definido)
+  return espacos.length ? [...espacos, { valor: ESPACO_A_DEFINIR, rotulo: 'Ainda não defini qual dos espaços' }] : [];
+}
+
+/** Resposta "Ainda não defini qual dos espaços" na pergunta do espaço próprio. */
+export const ESPACO_A_DEFINIR = 'a_definir';
+
+/** Opções do banco usadas pelo formulário: ocasiões por fluxo e espaços próprios. */
+export async function opcoesDoFormulario(db: Db): Promise<OpcoesDinamicas> {
+  return { ocasioes: await ocasioesPorFluxo(db), espacos: await espacosDoFormulario(db) };
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +170,7 @@ export async function carregarFormulario(db: Db, id: string): Promise<Formulario
   );
   if (!rows[0]) return null;
   const { config, ...f } = rows[0];
-  return { ...f, secoes: montarFormulario(config, await ocasioesPorFluxo(db)) };
+  return { ...f, secoes: montarFormulario(config, await opcoesDoFormulario(db)) };
 }
 
 async function slugDisponivel(base: string): Promise<string> {
@@ -312,7 +338,7 @@ export async function formularioPublico(slug: string, incluirInativos = false): 
       tenantId: alvo.tenant_id,
       nome: f.nome,
       mensagem_sucesso: f.mensagem_sucesso,
-      secoes: montarFormulario(f.config, await ocasioesPorFluxo(db)),
+      secoes: montarFormulario(f.config, await opcoesDoFormulario(db)),
       empresa: { nome: f.empresa_nome, logo_path: f.logo_path },
     };
   });
@@ -375,17 +401,29 @@ async function clienteDoPedido(db: Db, tenantId: string, r: Respostas): Promise<
   );
 }
 
+/** Espaço escolhido no formulário, se for um espaço próprio ativo da empresa (a RLS limita à empresa). */
+async function espacoEscolhido(db: Db, id: string | null): Promise<string | null> {
+  if (!id || !UUID.test(id)) return null;
+  const { rows } = await db.query<{ id: string }>("SELECT id FROM espacos WHERE id = $1 AND tipo = 'proprio' AND ativo", [id]);
+  return rows[0]?.id ?? null;
+}
+
 /** Converte as respostas do formulário no briefing do evento (campos sem coluna ficam só no snapshot). */
-async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
+async function briefingDoPedido(db: Db, r: Respostas, clienteId: string, resumo: RespostaResumo[]) {
   const b2b = r.natureza === 'B2B';
   const numero = (v: unknown) => (typeof v === 'string' && v ? Math.round(Number(v.replace(',', '.'))) : 0);
   const convidados = b2b ? numero(r.b2b_participantes) : numero(r.b2c_adultos) + numero(r.b2c_criancas);
+  const restricoes = texto(b2b ? r.b2b_restricoes : r.b2c_restricoes);
+  const staff = numero(b2b ? r.b2b_staff : r.b2c_staff);
   const comentario = [
     texto(r.detalhes),
-    texto(r.b2c_restricoes) && `Restrições alimentares: ${r.b2c_restricoes}`,
+    restricoes && `Restrições alimentares: ${restricoes}`,
     texto(r.b2b_aprovacao) && `Processo de aprovação: ${r.b2b_aprovacao}`,
-    Array.isArray(r.b2b_compliance) && r.b2b_compliance.includes('tres_orcamentos') && 'Precisa de 3 orçamentos comparativos.',
   ].filter(Boolean);
+  // Bebidas: várias opções desde 10/11/2026 (respostas antigas, de escolha única, chegam como texto)
+  const bebidas = (Array.isArray(r.bebidas) ? r.bebidas : texto(r.bebidas) ? [r.bebidas as string] : [])
+    .map((v) => rotuloOpcao('bebidas', v) ?? v)
+    .join(' · ');
 
   return eventoSchema.parse({
     cliente_id: clienteId,
@@ -397,8 +435,12 @@ async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
     data_evento: texto(b2b ? r.b2b_data : r.b2c_data) ?? '',
     numero_convidados: convidados > 0 ? String(convidados) : '',
     perfil_convidados: rotuloOpcao('b2b_perfil', texto(r.b2b_perfil)) ?? '',
-    // No nosso espaço = espaço padrão da empresa (se houver); externo fica como texto livre
-    espaco_id: r.local_tipo === 'externo' ? '' : ((await espacoPadraoId(db)) ?? ''),
+    // No nosso espaço = o espaço escolhido (se for um espaço próprio ativo) ou o padrão; "ainda não defini" fica sem
+    // espaço; externo fica como texto livre
+    espaco_id: r.local_tipo === 'externo' || r.espaco === ESPACO_A_DEFINIR
+      ? ''
+      : ((await espacoEscolhido(db, texto(r.espaco))) ?? (await espacoPadraoId(db)) ?? ''),
+    ...(r.local_tipo !== 'externo' && r.espaco === ESPACO_A_DEFINIR ? { local_nome: 'Nosso espaço (a definir)' } : {}),
     local_tipo: r.local_tipo === 'externo' ? 'externo' : 'casa',
     infraestrutura: rotuloOpcao('infraestrutura', texto(r.infraestrutura)) ?? '',
     endereco: texto(r.regiao) ?? '',
@@ -406,9 +448,11 @@ async function briefingDoPedido(db: Db, r: Respostas, clienteId: string) {
     responsavel_email: r.email,
     responsavel_whatsapp: r.whatsapp,
     convite_experiencia: rotuloOpcao('degustacao', texto(r.degustacao)) ?? '',
-    bebidas_alcoolicas: rotuloOpcao('bebidas', texto(r.bebidas)) ?? '',
+    bebidas_alcoolicas: bebidas,
     compliance: Array.isArray(r.b2b_compliance) ? r.b2b_compliance : [],
-    staff_terceiros: numero(r.b2c_staff) > 0 ? `${numero(r.b2c_staff)} profissionais de terceiros` : '',
+    // A faixa de verba sai do resumo: o rótulo é o da opção como o buffet a configurou no formulário
+    verba_faixa: resumo.find((l) => l.chave === (b2b ? 'b2b_budget' : 'b2c_budget'))?.valor ?? '',
+    staff_terceiros: staff > 0 ? `${staff} profissionais de terceiros` : '',
     comentario_cliente: comentario.join('\n\n'),
   });
 }
@@ -478,7 +522,8 @@ export async function receberResposta(formulario: FormularioPublico, dados: Reco
   const aviso: { perfil: string | null; pessoas: { nome: string; email: string }[]; whatsapp: (string | number | null)[] } = { perfil: null, pessoas: [], whatsapp: [] };
   return withTenant(formulario.tenantId, async (db) => {
     const clienteId = await clienteDoPedido(db, formulario.tenantId, respostas);
-    const briefing = await briefingDoPedido(db, respostas, clienteId);
+    const resumo = resumirRespostas(formulario.secoes, respostas);
+    const briefing = await briefingDoPedido(db, respostas, clienteId, resumo);
     // O perfil precisa ser da empresa do formulário (a RLS esconde os das outras)
     const perfil = busca && UUID.test(busca.perfilId)
       ? (await db.query<{ nome: string }>('SELECT nome FROM busca_perfis WHERE id = $1', [busca.perfilId])).rows[0]?.nome ?? null
@@ -487,7 +532,7 @@ export async function receberResposta(formulario: FormularioPublico, dados: Reco
     await db.query(
       `INSERT INTO formulario_respostas (tenant_id, formulario_id, evento_id, cliente_id, dados, ip)
        VALUES ($1, $2, $3, $4, $5, $6)`,
-      [formulario.tenantId, formulario.id, eventoId, clienteId, JSON.stringify(resumirRespostas(formulario.secoes, respostas)), ip]
+      [formulario.tenantId, formulario.id, eventoId, clienteId, JSON.stringify(resumo), ip]
     );
     if (perfil && busca) {
       await registrarPedidoBusca(db, formulario.tenantId, busca, respostas, eventoId, clienteId, ip);

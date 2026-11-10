@@ -3,6 +3,8 @@
 import AppLayout from './AppLayout.astro';
 import { ROTULOS } from '../lib/rotulos';
 import { isAdmin } from '../lib/auth';
+import { podeUsarEm } from '../lib/planos/gating';
+import { recursoDaRota } from '../lib/planos/rotas';
 
 interface Props {
   eventoId: string;
@@ -25,10 +27,16 @@ const abas = [
   ...(isAdmin(Astro.locals.user) ? [{ id: 'financas', label: 'Finanças', href: `${base}/financas` }] : []),
   { id: 'timeline', label: 'Linha do tempo', href: `${base}/linha-do-tempo` },
 ];
+// Abas cujo módulo está fora do plano ficam com cadeado: o clique abre o upsell aqui mesmo, sem sair do evento
+const plano = Astro.locals.plano ?? null;
+const abasComPlano = abas.map((a) => {
+  const recurso = recursoDaRota(a.href);
+  return recurso && !podeUsarEm(plano, recurso) ? { ...a, bloqueado: recurso } : a;
+});
 const abaAtiva = aba === 'informacoes' || aba === 'condicoes' || aba === 'compras' || aba === 'margem' ? 'orcamento' : aba;
 ---
 
-<AppLayout title={titulo} heading={titulo} voltar={{ href: '/eventos', label: ROTULOS.funil }} submenu={abas} submenuActive={abaAtiva}>
+<AppLayout title={titulo} heading={titulo} voltar={{ href: '/eventos', label: ROTULOS.funil }} submenu={abasComPlano} submenuActive={abaAtiva}>
   <slot />
   <slot name="overlays" slot="overlays" />
 </AppLayout>

@@ -11,7 +11,7 @@ import Bebidas from './Bebidas';
 import Staff from './Staff';
 import LocacaoExtras from './LocacaoExtras';
 import { Icon } from '../ui/Icon';
-import { baixarArquivo, confirmar, toast } from '../../lib/ui';
+import { baixarArquivo, confirmar, mensagemAmigavel, toast } from '../../lib/ui';
 import '../../styles/orcamento.css';
 
 interface Props {
@@ -26,6 +26,8 @@ interface Props {
   espacos: EspacoRef[];
   idades: { isentas: number; meia: number };
   pdfUrl: string;
+  /** Recurso fora do plano que bloqueia o envio (inbox): botão com cadeado que abre o upsell */
+  envioBloqueado?: string | null;
 }
 
 type Estado = 'salvo' | 'pendente' | 'salvando' | 'erro';
@@ -76,7 +78,7 @@ export default function OrcamentoBuilder(props: Props) {
         setErro(null);
         setEstado(ultimo.current === c ? 'salvo' : 'pendente');
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Erro ao salvar';
+        const msg = mensagemAmigavel(err instanceof Error ? err.message : 'Erro ao salvar');
         setErro(msg);
         setEstado('erro');
         toast(msg, 'error');
@@ -357,14 +359,26 @@ export default function OrcamentoBuilder(props: Props) {
             <Icon name="download" size={18} />
             {gerandoPdf ? 'Gerando PDF…' : disabled ? 'Baixar PDF' : 'Salvar e baixar PDF'}
           </button>
-          <button
-            type="button"
-            class="btn btn-primary btn-md"
-            data-drawer-open="drawer-enviar"
-            onClick={() => estado === 'pendente' && salvarAgora()}
-          >
-            <Icon name="send" size={18} /> Enviar ao cliente
-          </button>
+          {props.envioBloqueado ? (
+            <button
+              type="button"
+              class="btn btn-primary btn-md btn-bloqueado"
+              aria-disabled="true"
+              data-bloqueado={props.envioBloqueado}
+              title="Não incluído no seu plano"
+            >
+              <Icon name="lock" size={16} /> Enviar ao cliente
+            </button>
+          ) : (
+            <button
+              type="button"
+              class="btn btn-primary btn-md"
+              data-drawer-open="drawer-enviar"
+              onClick={() => estado === 'pendente' && salvarAgora()}
+            >
+              <Icon name="send" size={18} /> Enviar ao cliente
+            </button>
+          )}
         </div>
       </div>
     </div>

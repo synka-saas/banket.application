@@ -16,6 +16,18 @@ export function mascararTelefone(valor: string): string {
   return `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
 }
 
+/**
+ * Telefone brasileiro com DDD: 10 dígitos (fixo) ou 11 (celular, começa com 9 depois do DDD); aceita +55 na frente.
+ * DDD com dois dígitos de 1 a 9. "(99) 3213-836" (sem um dígito) ou "93213-8360" (sem DDD) não passam.
+ */
+export function telefoneValido(valor: string): boolean {
+  let d = digitos(valor);
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);
+  if (!/^[1-9][1-9]/.test(d)) return false;
+  if (d.length === 11) return d[2] === '9';
+  return d.length === 10 && /[2-8]/.test(d[2]);
+}
+
 /** CEP "00000-000". */
 export function mascararCep(valor: string): string {
   const d = digitos(valor).slice(0, 8);

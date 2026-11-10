@@ -2,7 +2,8 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import Button from '../../components/ui/Button.astro';
 import { withTenant } from '../../lib/db';
-import { faixaHorario } from '../../lib/datas';
+import { dataComDiaSemana, faixaHorario } from '../../lib/datas';
+import { formatMoney } from '../../lib/money';
 import { VARIANTES_STATUS } from '../../server/configuracoes';
 import { reunioesNoPeriodo } from '../../server/reunioes';
 import Icon from '../../components/ui/Icon.astro';
@@ -52,6 +53,27 @@ const link = (over: Record<string, string | null>) => {
 };
 
 const diaNum = (iso: string) => Number(iso.slice(8, 10));
+
+// Resumo rápido do evento (diálogo ao clicar na agenda): já vai pronto para exibir, sem outra consulta
+type EventoDaAgenda = (typeof eventos)[number];
+const resumo = (e: EventoDaAgenda) =>
+  JSON.stringify({
+    id: e.id,
+    titulo: e.titulo ?? e.cliente_nome ?? 'Evento',
+    status: e.status_nome,
+    cor: e.cor,
+    linhas: [
+      ['Cliente', e.cliente_nome],
+      ['Data', dataComDiaSemana(e.data_evento)],
+      ['Horário', e.hora_inicio || e.hora_fim ? faixaHorario(e.hora_inicio, e.hora_fim) : null],
+      ['Convidados', e.numero_convidados !== null ? String(e.numero_convidados) : null],
+      ['Local', e.local_nome],
+      ['Formato de serviço', e.formato_nome],
+      e.valor_orcamento !== null
+        ? ['Orçamento', formatMoney(e.valor_orcamento)]
+        : ['Verba estimada', e.verba_total !== null ? formatMoney(e.verba_total) : e.verba_faixa],
+    ].filter((l): l is [string, string] => Boolean(l[1])),
+  });
 const titulo =
   visao === 'semana'
     ? `${diaNum(dias[0])} ${MESES_NOME[Number(dias[0].slice(5, 7)) - 1].slice(0, 3).toLowerCase()} – ${diaNum(dias[6])} ${MESES_NOME[Number(dias[6].slice(5, 7)) - 1].slice(0, 3).toLowerCase()} ${dias[6].slice(0, 4)}`
@@ -95,7 +117,7 @@ const MAX_NO_DIA = 3;
           <div class:list={['dia', { fora: Number(dia.slice(5, 7)) !== grade.mes, hoje: dia === hojeIso }]}>
             <a class="numero" href={link({ data: dia, visao: 'semana' })}>{diaNum(dia)}</a>
             {lista.slice(0, MAX_NO_DIA).map((e) => (
-              <a class="evento" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`} title={`${e.titulo ?? ''} · ${e.status_nome}`}>
+              <a class="evento" href={`/eventos/${e.id}`} style={`--cor:${e.cor}`} title={`${e.titulo ?? ''} · ${e.status_nome}`} data-evento-resumo={resumo(e)}>
                 {e.hora_inicio && <b>{e.hora_inicio}</b>}
                 <span class="evento-titulo">{e.titulo ?? e.cliente_nome ?? 'Evento'}</span>
               </a>
@@ -134,7 +156,7 @@ const MAX_NO_DIA = 3;
               </a>
             ))}
             {lista.map((e) => (
-              <a class="cartao" href={`/eventos/${e.id}`}>
+              <a class="cartao" href={`/eventos/${e.id}`} data-evento-resumo={resumo(e)}>
                 <span class="status"><span class="dot" style={`background:${e.cor}`}></span>{e.status_nome}</span>
                 <strong>{e.titulo ?? 'Evento'}</strong>
                 {e.cliente_nome && <span>{e.cliente_nome}</span>}
@@ -156,9 +178,88 @@ const MAX_NO_DIA = 3;
     {reunioes.length > 0 && `${reunioes.length} ${reunioes.length === 1 ? 'reunião' : 'reuniões'}. `}
     Eventos sem data definida não aparecem na agenda.
   </p>
+
+  <dialog class="dialogo-form agenda-resumo" slot="overlays" data-agenda-resumo aria-labelledby="agenda-resumo-titulo">
+    <form method="dialog" class="dialogo-caixa">
+      <span class="status-name agenda-resumo-status"><span class="dot" data-resumo-cor></span><span data-resumo-status></span></span>
+      <h2 id="agenda-resumo-titulo" data-resumo-titulo></h2>
+      <dl class="agenda-resumo-linhas" data-resumo-linhas></dl>
+      <div class="dialogo-acoes">
+        <button type="submit" value="fechar" class="btn btn-secondary btn-md">Fechar</button>
+        <a class="btn btn-primary btn-md" data-resumo-abrir href="#">Abrir evento <span aria-hidden="true">→</span></a>
+      </div>
+    </form>
+  </dialog>
 </AppLayout>
 
+<script>
+  // Clique num evento da agenda abre o resumo; Ctrl/Cmd/Shift/botão do meio seguem o link (nova aba etc.)
+  const dialogo = document.querySelector<HTMLDialogElement>('[data-agenda-resumo]');
+  if (dialogo) {
+    const q = <T extends HTMLElement>(sel: string) => dialogo.querySelector<T>(sel)!;
+    document.addEventListener('click', (e) => {
+      const alvo = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-evento-resumo]');
+      if (!alvo || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      // Link interno do cartão (Meet) segue normal
+      if ((e.target as HTMLElement).closest('a') !== alvo) return;
+      e.preventDefault();
+      const r = JSON.parse(alvo.dataset.eventoResumo!) as { id: string; titulo: string; status: string; cor: string; linhas: [string, string][] };
+      q('[data-resumo-titulo]').textContent = r.titulo;
+      q('[data-resumo-status]').textContent = r.status;
+      q('[data-resumo-cor]').style.background = r.cor;
+      const linhas = q('[data-resumo-linhas]');
+      linhas.replaceChildren(
+        ...r.linhas.map(([rotulo, valor]) => {
+          const div = document.createElement('div');
+          const dt = document.createElement('dt');
+          const dd = document.createElement('dd');
+          dt.textContent = rotulo;
+          dd.textContent = valor;
+          div.append(dt, dd);
+          return div;
+        })
+      );
+      q<HTMLAnchorElement>('[data-resumo-abrir]').href = `/eventos/${r.id}`;
+      dialogo.showModal();
+    });
+    dialogo.addEventListener('click', (e) => {
+      if (e.target === dialogo) dialogo.close();
+    });
+  }
+</script>
+
 <style>
+  .agenda-resumo {
+    width: min(440px, calc(100vw - 32px));
+  }
+
+  .agenda-resumo-status {
+    font-size: var(--fs-13);
+    color: var(--text-secondary);
+  }
+
+  .agenda-resumo-linhas {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-1) 0 var(--space-2);
+  }
+
+  .agenda-resumo-linhas :global(div) {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: var(--space-3);
+    font-size: var(--fs-14);
+  }
+
+  .agenda-resumo-linhas :global(dt) {
+    color: var(--text-secondary);
+  }
+
+  .agenda-resumo-linhas :global(dd) {
+    margin: 0;
+    color: var(--text-body);
+  }
+
   .agenda-topo {
     display: flex;
     justify-content: space-between;

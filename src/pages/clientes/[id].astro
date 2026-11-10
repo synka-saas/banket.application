@@ -36,7 +36,7 @@ const dados = await withTenant(tenantId, async (db) => {
   if (!rows[0]) return null;
   const eventos = await db.query(
     `SELECT e.id, e.titulo, to_char(e.data_evento, 'YYYY-MM-DD') AS data_evento, e.numero_convidados,
-            s.nome AS status_nome, s.cor AS status_cor, o.valor_total, e.verba_total
+            s.nome AS status_nome, s.cor AS status_cor, o.valor_total, e.verba_total, e.verba_faixa
        FROM eventos e JOIN status_orcamento s ON s.id = e.status_id
        LEFT JOIN orcamentos o ON o.evento_id = e.id
       WHERE e.cliente_id = $1 ORDER BY e.data_evento DESC NULLS LAST`,
@@ -79,7 +79,9 @@ const tabela = eventos.map((e) => ({
       ? formatMoney(e.valor_total)
       : e.verba_total !== null
         ? html`<span class="verba" title="Verba estimada pelo cliente (ainda sem orçamento)">${formatMoney(e.verba_total)}</span>`
-        : '-',
+        : e.verba_faixa
+          ? html`<span class="verba" title="Faixa de verba informada pelo cliente (ainda sem orçamento)">${e.verba_faixa}</span>`
+          : '-',
 }));
 ---
 

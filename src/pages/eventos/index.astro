@@ -131,7 +131,9 @@ const listaData =
         ? formatMoney(e.valor_orcamento)
         : e.verba_total !== null
           ? html`<span class="verba" title="Verba estimada pelo cliente (ainda sem orçamento)">${formatMoney(e.verba_total)}</span>`
-          : '-',
+          : e.verba_faixa
+            ? html`<span class="verba" title="Faixa de verba informada pelo cliente (ainda sem orçamento)">${e.verba_faixa}</span>`
+            : '-',
     acoes: html`<a class="row-action" href="/eventos/${e.id}">Abrir</a>`,
   })) ?? [];
 const filtrando = estaFiltrando(Astro.url);
@@ -298,7 +300,7 @@ const filtrando = estaFiltrando(Astro.url);
                   {c.valor_orcamento !== null ? (
                     <div><dt>Orçamento</dt><dd>{formatMoney(c.valor_orcamento)}</dd></div>
                   ) : (
-                    <div class="verba"><dt>{ROTULOS.verbaEstimada}</dt><dd class:list={{ vazio: c.verba_total === null }}>{c.verba_total !== null ? formatMoney(c.verba_total) : '—'}</dd></div>
+                    <div class="verba"><dt>{ROTULOS.verbaEstimada}</dt><dd class:list={{ vazio: c.verba_total === null && !c.verba_faixa }}>{c.verba_total !== null ? formatMoney(c.verba_total) : (c.verba_faixa ?? '—')}</dd></div>
                   )}
                   <div><dt>Data</dt><dd class:list={{ vazio: !c.data_evento }}>{c.data_evento ? dataCurta(c.data_evento) : '—'}</dd></div>
                 </dl>

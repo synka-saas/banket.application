@@ -13,7 +13,7 @@ const { flash } = Astro.props;
 <script>
   // API global: window.banketToast(mensagem, tipo, { acao }) — use toast() de lib/ui.ts.
   // Erros ficam até o usuário fechar (role="alert"); sucesso e informação somem sozinhos, pausando com o mouse em cima.
-  import type { ToastOpcoes, ToastTipo } from '../../lib/ui';
+  import { mensagemAmigavel, type ToastOpcoes, type ToastTipo } from '../../lib/ui';
   import { svgIcone } from '../../lib/icones';
 
   const DURACAO = 5000;
@@ -26,6 +26,7 @@ const { flash } = Astro.props;
   }
 
   function show(message: string, type: ToastTipo = 'info', opcoes: ToastOpcoes = {}) {
+    if (type === 'error') message = mensagemAmigavel(String(message ?? ''));
     const el = document.createElement('div');
     el.className = `toast toast-${type}`;
     el.setAttribute('role', type === 'error' ? 'alert' : 'status');

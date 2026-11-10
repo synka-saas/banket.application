@@ -43,6 +43,6 @@ const modelo = await withTenant(user.tenantId, async (db) => {
 if (!modelo) return new Response(null, { status: 404 });
 ---
 
-<AppLayout title={modelo.nome} heading={`Documentos / ${modelo.nome}`} voltar={{ href: '/documentos', label: 'Documentos' }}>
+<AppLayout title={modelo.nome} heading={modelo.nome} voltar={{ href: '/documentos', label: 'Documentos' }}>
   <ModeloForm modelo={modelo} tenantId={user.tenantId} />
 </AppLayout>

@@ -1,6 +1,10 @@
 ---
 // Sub-abas do orçamento (tudo o que muda com a versão fica dentro de Orçamento), com a versão sempre à vista.
-// Preserva ?versao= ao trocar de sub-aba.
+// Preserva ?versao= ao trocar de sub-aba. Sub-aba fora do plano: cadeado e upsell na própria tela (data-bloqueado).
+import Icon from '../ui/Icon.astro';
+import { podeUsarEm } from '../../lib/planos/gating';
+import { recursoDaRota } from '../../lib/planos/rotas';
+
 interface Props {
   eventoId: string;
   ativa: 'itens' | 'informacoes' | 'condicoes' | 'previa' | 'compras' | 'margem';
@@ -18,13 +22,25 @@ const abas = [
   // Uso interno (não entra na proposta): quantidades por item e compras do evento
   { id: 'compras', label: 'Lista de compras', href: `${base}/lista-compras${sufixo}` },
   { id: 'margem', label: 'Assistente de Orçamentos IA', href: `${base}/assistente-orcamento${sufixo}` },
-];
+].map((a) => {
+  const recurso = recursoDaRota(a.href.split('?')[0]);
+  return { ...a, bloqueado: recurso && !podeUsarEm(Astro.locals.plano ?? null, recurso) ? recurso : null };
+});
 ---
 
 <nav class="orc-abas" aria-label="Partes do orçamento">
   <div class="orc-abas-lista">
     {abas.map((a) => (
-      <a href={a.href} class:list={{ ativa: a.id === ativa }} aria-current={a.id === ativa ? 'page' : undefined}>{a.label}</a>
+      <a
+        href={a.href}
+        class:list={{ ativa: a.id === ativa, bloqueada: a.bloqueado }}
+        aria-current={a.id === ativa ? 'page' : undefined}
+        data-bloqueado={a.bloqueado || undefined}
+        title={a.bloqueado ? `${a.label} · não incluído no seu plano` : undefined}
+      >
+        {a.label}
+        {a.bloqueado && <Icon name="lock" size={14} />}
+      </a>
     ))}
   </div>
   {versao && (
@@ -69,6 +85,11 @@ const abas = [
     white-space: nowrap;
     text-decoration: none;
     transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .orc-abas-lista a.bloqueada {
+    gap: var(--space-1);
+    color: var(--text-muted);
   }
 
   .orc-abas-lista a::after {
