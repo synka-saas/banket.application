@@ -4,7 +4,7 @@
 //   /{categoria}/{cidade-uf}/{bairro}/    categoria × bairro
 //   /buffets-em/{cidade-uf}/[{bairro}/]   só o local
 // Slugs em minúsculas, sem acento e com hífen; a cidade sempre com a UF (busca_cidades.slug); barra final sempre.
-// A tabela CATEGORIAS é a configuração: só entram categorias com inventário (sem confraternização, batizado…).
+// A tabela CATEGORIAS é a configuração: categorias só têm página quando há inventário.
 import { slugTexto } from './geo';
 
 export interface Categoria {
@@ -34,6 +34,13 @@ export const CATEGORIAS: Categoria[] = [
   { slug: 'coffee-break', nome: 'Coffee break', curto: 'Coffee break', icone: 'coffee', tipos: ['coffee_break'], servicos: ['coffee_break'], plural: 'coffee breaks' },
   { slug: 'buffet-de-churrasco', nome: 'Buffet de churrasco', curto: 'Churrasco', icone: 'flame', tipos: ['churrasco'], servicos: ['churrasco'], plural: 'churrascos' },
   { slug: 'buffet-a-domicilio', nome: 'Buffet a domicílio', curto: 'Buffet a domicílio', icone: 'home', tipos: [], servicos: ['buffet_domicilio'], domicilio: true, plural: 'eventos em casa' },
+  { slug: 'buffet-para-bodas', nome: 'Buffet para bodas', curto: 'Bodas', icone: 'heart-handshake', tipos: ['bodas'], servicos: [], plural: 'bodas' },
+  { slug: 'buffet-para-batizado', nome: 'Buffet para batizado e primeira comunhão', curto: 'Batizado e primeira comunhão', icone: 'baby-carriage', tipos: ['batizado'], servicos: [], plural: 'batizados e primeiras comunhões' },
+  { slug: 'buffet-para-eventos-religiosos', nome: 'Buffet para eventos religiosos', curto: 'Eventos religiosos', icone: 'users-group', tipos: ['religioso'], servicos: [], plural: 'eventos religiosos' },
+  { slug: 'buffet-para-cha-de-bebe-ou-de-casa-nova', nome: 'Buffet para chá de bebê ou de casa nova', curto: 'Chá de bebê ou de casa nova', icone: 'gift', tipos: ['cha'], servicos: [], plural: 'chás de bebê ou de casa nova' },
+  { slug: 'buffet-para-confraternizacao', nome: 'Buffet para confraternização', curto: 'Confraternização', icone: 'glass-full', tipos: ['confraternizacao'], servicos: [], plural: 'confraternizações' },
+  { slug: 'buffet-para-lancamentos-e-feiras', nome: 'Buffet para lançamentos e feiras', curto: 'Lançamentos e feiras', icone: 'speakerphone', tipos: ['lancamento'], servicos: [], plural: 'lançamentos e feiras' },
+  { slug: 'buffet-para-outros-eventos', nome: 'Buffet para outros eventos', curto: 'Outros eventos', icone: 'calendar-event', tipos: ['outros'], servicos: [], plural: 'outros eventos' },
 ];
 
 /** Prefixo das páginas só de local. */

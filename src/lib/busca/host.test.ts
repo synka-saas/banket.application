@@ -16,6 +16,7 @@ describe('decidirHost', () => {
     expect(d(HV, '/buffet/sabor', '?data=2026-11-14')).toEqual({ acao: 'reescrever', caminho: '/vitrine/buffet/sabor?data=2026-11-14' });
     expect(d(HV, '/buffet/casamento/campinas')).toEqual({ acao: 'reescrever', caminho: '/vitrine/buffet/casamento/campinas' });
     expect(d(HV, '/buscar', '?tipo=x')).toEqual({ acao: 'reescrever', caminho: '/vitrine/buscar?tipo=x' });
+    expect(d(HV, '/sitemap-perfis.xml')).toEqual({ acao: 'reescrever', caminho: '/vitrine/sitemap-perfis.xml' });
     expect(d(HV, '/sitemap.xml')).toEqual({ acao: 'reescrever', caminho: '/vitrine/sitemap.xml' });
     expect(d(HV, '/robots.txt')).toEqual({ acao: 'reescrever', caminho: '/vitrine/robots.txt' });
   });

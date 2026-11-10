@@ -165,11 +165,17 @@ test.describe('Banket Busca: vitrine', () => {
     expect(tipos).toContain('BreadcrumbList');
     await expect(page.locator('.vl-migalhas')).toContainText('Buffet para casamento');
     await expect(page.locator('.vr-intro')).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
 
-    expect((await request.get(`${V}/buffet-para-confraternizacao/`)).status()).toBe(404);
+    expect((await request.get(`${V}/buffet-categoria-inexistente/`)).status()).toBe(404);
     expect((await request.get(`${V}/buffets-em/cidade-que-nao-existe-xx/`)).status()).toBe(404);
     const sitemap = await request.get(`${V}/sitemap-cidades.xml`);
     expect(sitemap.headers()['content-type']).toContain('application/xml');
+    const indice = await (await request.get(`${V}/sitemap.xml`)).text();
+    for (const grupo of ['categorias', 'cidades', 'perfis']) expect(indice).toContain(`/sitemap-${grupo}.xml</loc>`);
+    const perfis = await (await request.get(`${V}/sitemap-perfis.xml`)).text();
+    expect(perfis).toContain('/buffet/');
+    expect(perfis).not.toContain('/buffet/sabores-do-abc</loc>');
   });
 
   test('nunca expõe perfil não publicado nem empresa suspensa', async ({ request }) => {

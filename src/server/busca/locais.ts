@@ -22,6 +22,7 @@ import {
 export interface PerfilInventario {
   id: string;
   nome: string;
+  slug: string;
   cidadeId: number | null;
   /** Outras cidades atendidas (busca_perfil_cidades) */
   cidadesAtendidas: number[];
@@ -62,7 +63,7 @@ export function inventario(): Promise<Inventario> {
 async function carregar(): Promise<Inventario> {
   return leituraPublica(async (db) => {
     const { rows } = await db.query(
-      `SELECT p.id, p.nome, p.cidade_id, p.bairro, p.descricao, p.tipos_evento, p.tipos_servico, p.atende_domicilio,
+      `SELECT p.id, p.nome, p.slug, p.cidade_id, p.bairro, p.descricao, p.tipos_evento, p.tipos_servico, p.atende_domicilio,
               p.espaco_proprio, p.capacidade_max, p.nota_media, p.total_avaliacoes,
               ARRAY(SELECT pc.cidade_id FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id) AS cidades,
               EXISTS (SELECT 1 FROM busca_fotos f WHERE f.perfil_id = p.id AND f.bloqueado_plano_em IS NULL
@@ -74,6 +75,7 @@ async function carregar(): Promise<Inventario> {
     const perfis: PerfilInventario[] = rows.map((r) => ({
       id: r.id,
       nome: r.nome,
+      slug: r.slug,
       cidadeId: r.cidade_id,
       cidadesAtendidas: r.cidades ?? [],
       bairro: r.bairro?.trim() || null,
@@ -268,6 +270,11 @@ export async function paginasIndexaveis(): Promise<{ categorias: PaginaIndexavel
   return { categorias, locais };
 }
 
+/** URLs de perfis publicados de empresas ativas; usa o mesmo inventário das listagens. */
+export async function caminhosPerfisPublicados(): Promise<string[]> {
+  return (await inventario()).perfis.map((p) => `/buffet/${p.slug}`);
+}
+
 /** A página de um local (cidade, opcionalmente bairro) é indexável? Usada pelo campo Cidade da busca. */
 export async function localIndexavel(cidadeSlug: string, bairroSlug: string | null = null): Promise<boolean> {
   const inv = await inventario();
@@ -338,7 +345,8 @@ export async function resolverPagina(url: URL, segmentos: { categoria?: string; 
   const caminho = cat ? caminhoCategoria(cat, cidadeSlug, bairroSlug) : caminhoLocal(cidadeSlug!, bairroSlug);
   const pedido = url.pathname.replace(/^\/vitrine(?=\/)/, '');
   const paginaParam = url.searchParams.get('pagina');
-  const numero = paginaParam && /^\d{1,3}$/.test(paginaParam) ? Number(paginaParam) : 1;
+  const valorPagina = paginaParam && /^\d+$/.test(paginaParam) ? Number(paginaParam) : 1;
+  const numero = Number.isSafeInteger(valorPagina) ? valorPagina : Number.MAX_SAFE_INTEGER;
   if (pedido !== caminho || (paginaParam !== null && numero <= 1)) return { acao: 'redirecionar', caminho: comPagina(caminho, numero) };
 
   const pagina = await paginaLocal(cat, cidadeSlug, bairroSlug);

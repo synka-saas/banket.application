@@ -206,7 +206,7 @@ const SQL_CANDIDATOS = `
      AND ($1::float8 IS NULL OR p.cidade_id = $3
           OR EXISTS (SELECT 1 FROM busca_perfil_cidades pc WHERE pc.perfil_id = p.id AND pc.cidade_id = $3)
           OR (p.lat IS NOT NULL AND earth_box(ll_to_earth($1, $2), ${RAIO_PREFILTRO_M}) @> ll_to_earth(p.lat, p.lng)))
-   LIMIT ${MAX_CANDIDATOS}`;
+   LIMIT $8`;
 
 function paraItem(r: any, data: string | null): ItemResultado {
   const item: ItemResultado = {
@@ -226,7 +226,7 @@ function paraItem(r: any, data: string | null): ItemResultado {
 }
 
 async function candidatos(db: Db, crit: Pick<Criterios, 'tipo' | 'data' | 'nome'>, cidade: Cidade | null, ids: string[] | null = null): Promise<ItemResultado[]> {
-  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data, crit.nome, ids]);
+  const { rows } = await db.query(SQL_CANDIDATOS, [cidade?.lat ?? null, cidade?.lng ?? null, cidade?.id ?? null, crit.tipo, crit.data, crit.nome, ids, ids ? null : MAX_CANDIDATOS]);
   return rows.map((r) => paraItem(r, crit.data));
 }
 

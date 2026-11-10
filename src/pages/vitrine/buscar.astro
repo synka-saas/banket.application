@@ -66,7 +66,7 @@ const titulo = [criterios.tipo ? `Buffet para ${rotuloEvento(criterios.tipo).toL
   title={titulo}
   description={`${resultado.total} buffets compatíveis com o seu evento. Compare fotos, serviços e avaliações e peça orçamento grátis.`}
   noindex
-  canonical={base ?? undefined}
+  canonical={base ?? (cidadeBase && (await localIndexavel(cidadeBase.slug)) ? caminhoLocal(cidadeBase.slug) : '/')}
   jsonLd={resultado.itens.length ? [jsonLdLista(resultado.itens.map((i) => ({ nome: i.nome, url: buscaUrl(`/buffet/${i.slug}`) })))] : []}
 >
   <div class="vitrine-secao" style="padding-top:20px">

@@ -40,7 +40,8 @@ describe('tabela de categorias', () => {
       for (const s of c.servicos) expect(TIPOS_SERVICO.some((x) => x.slug === s)).toBe(true);
     }
     expect(categoriaPorSlug('buffet-para-casamento')?.nome).toBe('Buffet para casamento');
-    expect(categoriaPorSlug('buffet-para-confraternizacao')).toBeNull();
+    expect(categoriaPorSlug('buffet-para-confraternizacao')?.tipos).toEqual(['confraternizacao']);
+    for (const tipo of TIPOS_EVENTO) expect(CATEGORIAS.some((c) => c.tipos.includes(tipo.slug))).toBe(true);
   });
 
   it('equivalência das buscas antigas (301)', () => {
@@ -50,7 +51,7 @@ describe('tabela de categorias', () => {
     expect(categoriaDaBusca(null, ['buffet_domicilio'])?.slug).toBe('buffet-a-domicilio');
     expect(categoriaDaBusca('debutante', [])?.slug).toBe('buffet-para-festa-de-15-anos');
     // Sem equivalente: tipo sem categoria, serviço sem categoria ou mistura de categorias
-    expect(categoriaDaBusca('confraternizacao', [])).toBeNull();
+    expect(categoriaDaBusca('confraternizacao', [])?.slug).toBe('buffet-para-confraternizacao');
     expect(categoriaDaBusca(null, ['finger_food'])).toBeNull();
     expect(categoriaDaBusca('casamento', ['churrasco'])).toBeNull();
     expect(categoriaDaBusca(null, [])).toBeNull();
