@@ -1008,7 +1008,6 @@ body.vitrine {
 
 /* Páginas de categoria e local: introdução, paginação, breadcrumb e blocos de links */
 .vr-intro {
-  max-width: 760px;
   margin: 12px 0 0;
   font-size: var(--fs-14);
   line-height: 1.6;

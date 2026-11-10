@@ -59,8 +59,8 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
     <div>
       <h1 class="vr-titulo">{titulo ?? contagem}</h1>
       <p class="vr-meta">{titulo ? `${contagem}${resumo ? ` · ${resumo}` : ''}` : resumo || 'Todos os buffets publicados'}.</p>
-      {intro && <p class="vr-intro">{intro}</p>}
-      <details class="vr-como">
+      {/* Nas páginas de categoria e local (com paginação própria) não há a explicação do ranking */}
+      {!paginacao && <details class="vr-como">
         <summary>Como ordenamos os resultados</summary>
         <p>
           Mostramos primeiro os buffets mais relevantes para a sua busca: distância, avaliações, perfil completo, tempo de
@@ -68,7 +68,7 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
           ocupar até três posições marcadas como <strong>Destaque</strong> no topo. Todo buffet que atende ao seu pedido
           aparece na lista. Em "Melhor avaliados" e "Mais próximos" não há destaque nem impulso.
         </p>
-      </details>
+      </details>}
     </div>
     <form class="vr-ordem" method="get" action={caminhoVitrine('/buscar')} data-ordem>
       {[...new URLSearchParams(queryDaBusca({ ...c, ordem: 'relevancia', pagina: 1 }).slice(1))].map(([k, v]) => <input type="hidden" name={k} value={v} />)}
@@ -77,6 +77,8 @@ const descricaoVazio = `Nenhum buffet${r.cidade ? ` de ${r.cidade.nome}` : ''}${
       <button type="submit" class="btn btn-outline btn-sm" data-sem-js>Ordenar</button>
     </form>
   </div>
+  {/* Introdução das páginas de categoria e local: largura toda, abaixo do cabeçalho */}
+  {intro && <p class="vr-intro">{intro}</p>}
 
   <div class="vr-barra-movel">
     <button type="button" class="btn btn-outline btn-md" data-abrir-filtros><Icon name="adjustments-horizontal" size={16} /> Filtros{nFiltros ? ` (${nFiltros})` : ''}</button>
